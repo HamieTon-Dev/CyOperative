@@ -27,6 +27,10 @@ data class PlayerProfile(
     val selectedTheme: String = "default",
     val ownedBackgrounds: Set<String> = setOf("none"),
     val selectedBackground: String = "none",
+    /** Full-body design for the operative (BodyStyle id). */
+    val operativeBody: String = "agent",
+    val endlessBestStage: Int = 0,
+    val endlessBestScore: Long = 0,
     /** Revive tokens bought with ◇ (revive packs). */
     val reviveTokens: Int = 0,
     val tutorialDone: Boolean = false,

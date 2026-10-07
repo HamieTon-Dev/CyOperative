@@ -4,12 +4,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.3.0 (versionCode 2) |
+| Version | 0.4.0 (versionCode 3) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
-| Last completed | CO-071/072/092/093 store, skins, living backgrounds, revive tokens |
-| Current task | CO-090 waiting on owner picks (Power-Up Board artifact, db doc `picks/main`) |
+| Last completed | CO-095..099 campaign levels, procedural rooms, endless mode, 2.5D look, body designs |
+| Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
 | Build status | `./gradlew :app:assembleDebug` ✅ |
-| Test status | `./gradlew :app:testDebugUnitTest` ✅ (26 tests + 9 opt-in screenshot renders) |
+| Test status | `./gradlew :app:testDebugUnitTest` ✅ (30 tests + 14 opt-in screenshot renders) |
 
 ## Known issues / caveats
 - Not yet run on a physical device or emulator (no emulator in the cloud session).
@@ -18,7 +18,8 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 - Bosses all draw as a rotating hexagon with their tag; unique silhouettes pending (CO-063).
 - ◇ packs: debug builds grant test ◇; release shows "billing not connected" until CO-070.
 - Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).
-- Balance: a simple dodging bot with no permanent upgrades averages ~level 9–10.
+- Balance: a simple dodging bot with no permanent upgrades averages ~level 6 in campaign.
+- The top wall/gate sits under the translucent HUD until the player walks up.
 
 ## Important architecture decisions
 - **Same stack as CyOps TD**: Kotlin + Compose; no game engine. Arena drawn on a Compose

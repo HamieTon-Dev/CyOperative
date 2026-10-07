@@ -27,11 +27,29 @@ Candidates within range. Visible (line-of-sight) targets preferred; among them s
 distance², ×0.25 if within 150 units (threatening), ×0.6 for bosses, ×0.85 for the
 current target (predictable stickiness). Falls back to the nearest in-range target.
 
+## 4b. Game modes (owner, 2026-10-07)
+- **CAMPAIGN (main game).** Discrete levels. Each level has a fixed threat count
+  (8, 14, 17, 20, 21, … capped at 45; `Scaling.campaignThreats`). Kill them all → choose a
+  power-up (one after EVERY cleared level) → the gate in the top wall opens → walk through
+  → the next room slides down from above. Boss every 10 levels; random event levels.
+- **ENDLESS (optional).** One generated room, threats never stop. Difficulty stage rises
+  every 30 s; a boss at every 10th stage pauses normal spawns. Upgrades come from data (XP)
+  and pop up mid-fight. Separate records (best stage / best score).
+
+## 4c. Look: 2.5D
+Simulation stays top-down; rendering gives height: extruded obstacles (lit top + front face,
+cast shadow), hovering extruded enemies with eyes that track the operative, floor shadows,
+projectiles in the air, depth sorting by floor position. Full-body operative designs
+(`BodyStyle`): A FIELD AGENT, B SENTINEL MECH, C SHADOW RUNNER — all keep the >_< face and
+take skin colours. Owner chooses the default.
+
 ## 5. World & arenas
 World width 720 units, heights 1040–1300; camera scales to screen width and follows
-vertically. Player enters bottom-centre, leaves via the ACCESS PORT top-centre (opens
-after the clear + upgrades). 12 templates gated by level, randomly mirrored, never the
-same layout twice in a row; dedicated boss arena. Obstacles block movement, player
+vertically. Player enters bottom-centre, leaves through the GATE in the top wall (opens after the clear
++ power-up). 85% of rooms are procedurally generated (`ArenaGenerator`: 6 layout styles ×
+5 hardware kits, random sizes, small blinking server units, floor decor — cables, vents,
+light strips, holo panels, data pools, hazard stripes — validated for a clear spawn, clear
+gate and a walkable route); 15% are the 12 hand-made templates; dedicated boss arena. Obstacles block movement, player
 shots and enemy shots (some boss patterns may ghost through in future).
 Tested: every arena has a clear spawn, clear port and a walkable route between them.
 
@@ -48,8 +66,8 @@ Spawns are telegraphed 0.85 s and never within 300 units of the player.
 - Boss HP = enemy HP × (1 + 0.08(cycle-1)) × (1 + 0.25·rosterLoop)
 
 ## 8. Run upgrades (data/Upgrades.kt)
-3 cards, pick 1. Run-level ("DATA") XP from kills; each level-up queues a card pick,
-presented after the arena clears (plus +1 after bosses and events). Rarity weights:
+3 cards, pick 1. Campaign: one pick after every cleared level (+1 after bosses and events).
+Endless: data (XP) from kills; each data level-up opens a pick mid-fight. Rarity weights:
 Common 100, Uncommon 55, Rare 26, Epic 10, Legendary 4; evolutions weighted 60 when
 unlocked. Evolution = parent at max level (+ optional partner). Chains:
 Packet Nodes → Enhanced Nodes → Sentinel Nodes (+Node Overclock) → Autonomous Defense Node;

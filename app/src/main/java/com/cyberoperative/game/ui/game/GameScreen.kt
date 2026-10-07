@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cyberoperative.game.engine.GameMode
 import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.ui.theme.Palette
@@ -147,7 +148,7 @@ fun GameScreen(
                 }
         ) {
             @Suppress("UNUSED_VARIABLE") val tick = session.frameTick
-            renderer.draw(this, session.engine, time, session.skin, session.background, showDamageNumbers, topInsetPx, bottomInsetPx)
+            renderer.draw(this, session.engine, time, session.skin, session.body, session.background, showDamageNumbers, topInsetPx, bottomInsetPx)
             // Joystick
             val bx = if (stickActive) originX else restX
             val by = if (stickActive) originY else restY
@@ -176,7 +177,7 @@ fun GameScreen(
         }
         if (hud.phase == Phase.PORTAL) {
             Text(
-                "▲ ACCESS PORT OPEN — MOVE TO CONTINUE",
+                "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
                 color = Palette.Green, style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -226,7 +227,7 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
                 LevelKind.EVENT -> Color(h.eventAccent)
                 LevelKind.NORMAL -> Palette.Cyan
             }
-            Text("LVL ${h.level}", color = levelColor, style = MaterialTheme.typography.titleLarge)
+            Text(if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}", color = levelColor, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("SCORE ${"%,d".format(h.score)}", color = Palette.TextPrimary, style = MaterialTheme.typography.labelMedium)
@@ -250,10 +251,18 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
             height = 14
         )
         Spacer(Modifier.height(3.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("DATA ${h.runLevel}", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.width(6.dp))
-            Box(Modifier.weight(1f)) { Bar(h.xpPercent / 100f, Palette.Green, null, 0f, 5) }
+        if (h.mode == GameMode.ENDLESS) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("DATA ${h.runLevel}", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.weight(1f)) { Bar(h.xpPercent / 100f, Palette.Green, null, 0f, 5) }
+            }
+        } else if (h.kind != LevelKind.BOSS && h.timedSeconds < 0) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("THREATS ${h.levelKills}/${h.levelThreats}", color = Palette.Red, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.weight(1f)) { Bar(h.levelKills / h.levelThreats.coerceAtLeast(1).toFloat(), Palette.Red, null, 0f, 5) }
+            }
         }
         val boss = h.bossName
         if (boss != null) {
@@ -262,7 +271,7 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
         } else if (h.eventName != null) {
             Spacer(Modifier.height(3.dp))
             Text(
-                h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "   THREATS ${h.enemiesLeft}",
+                h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
                 color = Color(h.eventAccent), style = MaterialTheme.typography.labelMedium
             )
         }

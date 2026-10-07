@@ -17,7 +17,7 @@ class Arena(val template: ArenaTemplate, extra: List<ObstacleSpec> = emptyList()
     val spawnX: Float get() = width * 0.5f
     val spawnY: Float get() = height - 120f
     val portalX: Float get() = width * 0.5f
-    val portalY: Float get() = 90f
+    val portalY: Float get() = 70f
 
     /** Scratch output for [pushOut]; avoids allocating a pair per call. */
     val out = FloatArray(2)

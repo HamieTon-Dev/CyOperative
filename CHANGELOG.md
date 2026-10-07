@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-10-07
+### Added
+- CAMPAIGN as the main mode: fixed threats per level (8 → 14 → … capped at 45) with a
+  THREATS x/N bar, a power-up after every clear, a gate in the top wall that opens, and
+  the next room sliding in from above.
+- Procedural rooms: 6 layout styles × 5 hardware kits, small blinking server units,
+  hardware crates and floor decoration, validated walkable every time.
+- ENDLESS mode (menu button): one room, continuous spawns, stage every 30 s, boss every
+  10 stages, data-driven upgrades mid-fight, separate records.
+- 2.5D rendering: extruded obstacles with shadows, hovering enemies with tracking eyes,
+  airborne projectiles and orbs, depth sorting, wall of server racks with the exit gate.
+- Three full-body operative designs (Field Agent, Sentinel Mech, Shadow Runner), all
+  skinnable; chooser on the OPERATIVE screen.
+
 ## 0.3.0 — 2026-10-07
 ### Added
 - Store with the owner's structure: ◇ packs (◇150 $1.00 · ◇500 $4.50 · ◇1000 $8.50 ·

@@ -1,13 +1,14 @@
 # Cyber Operative Development Backlog
 
 ## CURRENT MILESTONE
-**M3 — Store & cosmetics (0.3.x)**, then power-up/boss-drop decisions: vertical slice is done; validate feel on
+**M4 — Campaign levels & 2.5D look (0.4.x)**: owner picks body design and power-ups: vertical slice is done; validate feel on
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
 - CO-060 On-device playtest & balance pass (needs a physical device / emulator run)
 
 ## NEXT
+- CO-094 Owner chooses the default body design (A/B/C) — then polish that one
 - CO-090 Apply the owner's picks from the Power-Up Board (names, icons, boss-drop rule)
 - CO-091 Boss signature weapons (12 proposed, see Power-Up Board) once approved
 - CO-061 Hit-stop / screen shake + richer death & hit effects
@@ -82,6 +83,11 @@ device, tune balance, then fill out the store/meta phases.
 - CO-072 17 operative skins from CyOps TD agent / core colours (+ all-skins bundle)
 - CO-092 Living backgrounds ported from CyOps TD (7) + store + equip
 - CO-093 Revive tokens and paid revive (max 3 per run)
+- CO-095 Campaign levels: fixed threat counts, power-up per clear, top gate, slide transition
+- CO-096 Procedural room generator + decor + small servers
+- CO-097 Endless mode
+- CO-098 2.5D renderer with depth sorting
+- CO-099 Three full-body operative designs
 
 ## FUTURE IDEAS
 - Mythic / ZERO-DAY rarity tier
@@ -97,4 +103,6 @@ device, tune balance, then fill out the store/meta phases.
    (https://claude.ai/artifact/8fjDBEvGFPJp68SNZUZgQP).
 4. Whether events/achievements may grant small ◇ amounts (currently 0).
 5. Keep the 1 free revive per run? (paid revives capped at 3 per run.)
-6. **Ads at all?** (CyOps TD has AdMob infra; not added here yet.)
+6. **Default body design**: A FIELD AGENT, B SENTINEL MECH or C SHADOW RUNNER
+   (docs/screenshots/body_designs.png).
+7. **Ads at all?** (CyOps TD has AdMob infra; not added here yet.)

@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.audio.MusicState
+import com.cyberoperative.game.engine.GameMode
 import com.cyberoperative.game.engine.GameSound
 import com.cyberoperative.game.save.SaveRepository
 import com.cyberoperative.game.ui.game.GameScreen
@@ -48,8 +49,10 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
         audio.play(GameSound.UI_BACK)
         screen = Screen.Menu
     }
-    fun startRun() {
-        session = GameSession(save, audio)
+    var lastMode by remember { mutableStateOf(GameMode.CAMPAIGN) }
+    fun startRun(mode: GameMode = lastMode) {
+        lastMode = mode
+        session = GameSession(save, audio, mode)
         screen = Screen.Game
     }
 
@@ -67,7 +70,11 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
         Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) { screen = Screen.Menu }
         Screen.Menu -> MainMenuScreen(profile) { target ->
             click()
-            if (target == MenuTarget.PLAY) startRun() else screen = Screen.Sub(target)
+            when (target) {
+                MenuTarget.PLAY -> startRun(GameMode.CAMPAIGN)
+                MenuTarget.ENDLESS -> startRun(GameMode.ENDLESS)
+                else -> screen = Screen.Sub(target)
+            }
         }
         Screen.Game -> {
             val sess = session
@@ -89,7 +96,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
             BackHandler { back() }
             when (s.target) {
                 MenuTarget.UPGRADES -> PermanentUpgradesScreen(save, audio, ::back)
-                MenuTarget.OPERATIVE -> OperativeScreen(profile, ::back)
+                MenuTarget.OPERATIVE -> OperativeScreen(save, ::back)
                 MenuTarget.ARMORY -> ArmoryScreen(::back)
                 MenuTarget.ACHIEVEMENTS -> AchievementsScreen(profile, ::back)
                 MenuTarget.LEADERBOARD -> LeaderboardScreen(profile, ::back)
@@ -97,7 +104,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                 MenuTarget.ABOUT -> AboutScreen(::back)
                 MenuTarget.SKINS -> SkinsScreen(save, audio, ::back)
                 MenuTarget.STORE -> StoreScreen(save, audio, ::back) { screen = Screen.Sub(MenuTarget.SKINS) }
-                MenuTarget.PLAY -> LaunchedEffect(Unit) { startRun() }
+                MenuTarget.PLAY, MenuTarget.ENDLESS -> LaunchedEffect(Unit) { startRun() }
             }
         }
     }

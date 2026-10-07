@@ -39,7 +39,8 @@ data class RunConfig(
     val rerolls: Int = 0,
     val upgradeQuality: Float = 0f,
     val startingUpgrades: Int = 0,
-    val startLevel: Int = 1
+    val startLevel: Int = 1,
+    val mode: GameMode = GameMode.CAMPAIGN
 )
 
 /** Final numbers of a run, for the game-over screen and the save. */
@@ -80,7 +81,12 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         private set
     lateinit var arena: Arena
         private set
-    val build = RunBuild(config.baseStats).also { it.qualityBonus = config.upgradeQuality }
+    val mode: GameMode get() = config.mode
+    val build = RunBuild(config.baseStats).also {
+        it.qualityBonus = config.upgradeQuality
+        // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
+        if (config.mode == GameMode.CAMPAIGN) it.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
+    }
     val stats: RunStats get() = build.stats
 
     var runLevel = 1
@@ -126,6 +132,16 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         private set
     private var levelDamageTaken = 0f
     private var levelEnemyTotal = 0
+    /** Campaign HUD: threats destroyed / threats in this level (incl. splits and summons). */
+    var levelKills = 0
+        private set
+    private var levelSpawned = 0
+    val levelThreats: Int get() = max(plan.enemyCount, levelSpawned)
+    /** Seconds left of the slide-in of a new room (gameplay waits for it). */
+    var slideIn = 0f
+        private set
+    /** Endless mode: time into the current difficulty stage. */
+    private var stageTimer = 0f
 
     // --- Player -------------------------------------------------------------
     var px = 0f
@@ -243,12 +259,17 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     private fun step(dt: Float) {
         if (bannerTimer > 0f) bannerTimer -= dt
         updateEffects(dt)
+        if (slideIn > 0f) {
+            slideIn = max(0f, slideIn - dt)
+            return
+        }
         when (phase) {
             Phase.UPGRADE, Phase.DEAD -> return
             Phase.TRANSITION -> {
                 phaseTimer += dt
                 if (phaseTimer >= TRANSITION_TIME) {
                     startLevel(level + 1, plan.arena.id, plan.kind == LevelKind.EVENT)
+                    slideIn = TRANSITION_TIME
                 }
                 return
             }
@@ -261,7 +282,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         updatePlayer(dt)
         updateOrbit(dt)
         if (phase == Phase.COMBAT) {
-            updateSpawning(dt)
+            if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
             updateEventRules(dt)
         }
         ai.update(dt)
@@ -274,9 +295,11 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         }
 
         when (phase) {
-            Phase.COMBAT -> checkCleared()
+            Phase.COMBAT -> if (mode == GameMode.ENDLESS) {
+                if (pendingUpgrades > 0) openUpgrades(resumeCombat = true)
+            } else checkCleared()
             Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
-            Phase.PORTAL -> if (MathUtil.dist2(px, py, arena.portalX, arena.portalY) < PORTAL_RADIUS * PORTAL_RADIUS) {
+            Phase.PORTAL -> if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
                 phase = Phase.TRANSITION
                 phaseTimer = 0f
             }
@@ -290,7 +313,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
-        plan = forced ?: LevelPlanner.plan(level, rng, previousArena, previousEvent)
+        plan = forced ?: LevelPlanner.plan(level, rng, previousArena, previousEvent, mode)
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -307,6 +330,9 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         levelSeconds = 0f
         levelDamageTaken = 0f
         levelEnemyTotal = plan.enemyCount
+        levelKills = 0
+        levelSpawned = 0
+        stageTimer = 0f
         timedRemaining = plan.rules.timedSeconds
         boss = null
         bossPhaseLabel = ""
@@ -324,7 +350,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
                 showBanner(e.name, sub, 2.6f)
                 sound(GameSound.EVENT_START)
             }
-            LevelKind.NORMAL -> showBanner("LEVEL $level", plan.arena.name, 1.4f)
+            LevelKind.NORMAL -> if (mode == GameMode.ENDLESS) showBanner("ENDLESS", "Survive as long as you can", 2f)
+            else showBanner("LEVEL $level", "${plan.enemyCount} THREATS · ${plan.arena.name}", 1.6f)
         }
     }
 
@@ -409,6 +436,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             if (plan.rules.diamondChance > 0f && rng.nextFloat() < plan.rules.diamondChance) diamondsEarned += 1
             pendingUpgrades++
         }
+        // Campaign: every cleared level earns a power-up.
+        pendingUpgrades++
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // Firewall fully restores between arenas.
@@ -893,6 +922,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             return
         }
         kills++
+        levelKills++
         if (e.isElite) elitesDefeated++
         val s = stats
         val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
@@ -929,6 +959,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     }
 
     private fun gainXp(amount: Float) {
+        // Campaign power-ups come from level clears; data only feeds endless mode.
+        if (mode == GameMode.CAMPAIGN) return
         xp += amount
         var need = Scaling.xpToNext(runLevel)
         while (xp >= need) {
@@ -986,6 +1018,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
     fun spawnEnemyAt(def: EnemyDef, elite: EliteModifier?, x: Float, y: Float, telegraph: Boolean): Enemy? {
         val e = enemies.obtain() ?: return null
+        levelSpawned++
         val rules: EventRules = plan.rules
         e.active = true
         e.uid = nextUid++
@@ -1324,6 +1357,36 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         for (h in hazards.items) h.active = false
     }
 
+    /**
+     * Endless: one room, never cleared. Difficulty (the "level" used by every
+     * scaling curve) rises one stage every [Scaling.ENDLESS_STAGE_SECONDS];
+     * every 10th stage brings that stage's boss, and normal spawns pause
+     * until it falls.
+     */
+    private fun updateEndless(dt: Float) {
+        stageTimer += dt
+        if (stageTimer >= Scaling.ENDLESS_STAGE_SECONDS) {
+            stageTimer = 0f
+            level++
+            if (Scaling.isBossLevel(level) && boss == null) {
+                val b = com.cyberoperative.game.data.Bosses.forLevel(level)
+                showBanner("WARNING: ${b.name}", b.title, 2.4f)
+                sound(GameSound.BOSS_SPAWN)
+                bossBrain.spawn(b, arena.width / 2f, 260f)
+            } else {
+                showBanner("STAGE $level", "Threat level rising", 1.2f)
+            }
+        }
+        if (boss != null) return
+        spawnTimer -= dt
+        if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
+            spawnTimer = max(0.35f, 1.5f - level * 0.03f)
+            val pool = Enemies.pool(level)
+            val elite = if (rng.nextFloat() < Scaling.eliteChance(level)) EliteModifier.entries[rng.nextInt(EliteModifier.entries.size)] else null
+            spawnEnemy(LevelPlanner.weightedPick(pool, rng), elite, telegraph = true)
+        }
+    }
+
     /** Test hook: jump to a level (used by unit tests and debug). */
     fun debugJumpToLevel(target: Int) {
         startLevel(target, null, true)
@@ -1351,6 +1414,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         const val CLEAR_BEAT = 0.9f
         const val TRANSITION_TIME = 0.45f
         const val PORTAL_RADIUS = 46f
+        const val GATE_HALF_WIDTH = 80f
         const val RING_THICKNESS = 12f
 
         private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")

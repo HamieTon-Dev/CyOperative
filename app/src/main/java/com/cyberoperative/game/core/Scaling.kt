@@ -49,6 +49,25 @@ object Scaling {
         return min(5 + (n * 0.55f).toInt(), 46)
     }
 
+    /**
+     * Campaign: how many threats a level contains (owner: "kill 8 on level 1,
+     * 14 on level 2…"). Grows fast early, then flattens; capped so a level is
+     * never a slog.
+     */
+    fun campaignThreats(level: Int): Int {
+        if (level <= 1) return 8
+        return min(45, (8.0 + 6.0 * Math.pow((level - 1).toDouble(), 0.6)).toInt())
+    }
+
+    /** Campaign waves: one screen-full at a time. */
+    fun campaignWaves(threats: Int): Int = when {
+        threats <= 8 -> 1
+        else -> min(5, (threats + 9) / 10)
+    }
+
+    /** Endless mode: seconds per difficulty stage. */
+    const val ENDLESS_STAGE_SECONDS = 30f
+
     /** Number of waves in a normal level. */
     fun waveCount(level: Int): Int = when {
         level < 4 -> 1

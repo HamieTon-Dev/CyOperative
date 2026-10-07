@@ -41,7 +41,7 @@ import kotlin.math.sin
 enum class MenuTarget(val label: String) {
     PLAY("PLAY"), OPERATIVE("OPERATIVE"), UPGRADES("UPGRADES"), ARMORY("ARMORY"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
-    SETTINGS("SETTINGS"), ABOUT("ABOUT")
+    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE")
 }
 
 /** Main menu (§6). One big PLAY, the rest in a compact two-column grid. */
@@ -109,8 +109,14 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 subtitle = "START OPERATION",
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.PLAY) }
+            Spacer(Modifier.height(10.dp))
+            CyberButton(
+                "ENDLESS MODE", accent = Palette.Purple,
+                subtitle = if (profile.endlessBestStage > 0) "BEST STAGE ${profile.endlessBestStage}" else "ONE ROOM · NEVER-ENDING THREATS",
+                modifier = Modifier.fillMaxWidth()
+            ) { onSelect(MenuTarget.ENDLESS) }
             Spacer(Modifier.height(14.dp))
-            val rest = MenuTarget.entries.drop(1)
+            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS }
             for (row in rest.chunked(2)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     for (item in row) {

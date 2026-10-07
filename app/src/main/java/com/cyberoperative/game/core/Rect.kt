@@ -9,6 +9,9 @@ data class Rect(val left: Float, val top: Float, val right: Float, val bottom: F
 
     fun contains(x: Float, y: Float): Boolean = x in left..right && y in top..bottom
 
+    fun intersectsRect(l: Float, t: Float, r: Float, b: Float): Boolean =
+        left < r && right > l && top < b && bottom > t
+
     /** True if a circle at ([cx],[cy]) with radius [r] overlaps this rect. */
     fun intersectsCircle(cx: Float, cy: Float, r: Float): Boolean {
         val nx = MathUtil.clamp(cx, left, right)

@@ -39,15 +39,25 @@ data class LevelPlan(
  */
 object LevelPlanner {
 
-    fun plan(level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean): LevelPlan {
+    const val GENERATED_SHARE = 0.85f
+
+    fun plan(level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean, mode: GameMode = GameMode.CAMPAIGN): LevelPlan {
+        if (mode == GameMode.ENDLESS) return endlessPlan(rng)
         if (Scaling.isBossLevel(level)) return bossPlan(level, rng)
 
         val event = pickEvent(level, rng, previousWasEvent)
         if (event != null) return eventPlan(level, rng, event, previousArenaId)
 
         val arena = pickArena(level, rng, previousArenaId)
-        val waves = buildWaves(level, rng, Scaling.enemyBudget(level), Scaling.waveCount(level), EventRules())
+        val threats = Scaling.campaignThreats(level)
+        val waves = buildWaves(level, rng, threats, Scaling.campaignWaves(threats), EventRules())
         return LevelPlan(level, LevelKind.NORMAL, arena, waves)
+    }
+
+    /** Endless: one large generated room; the engine spawns continuously. */
+    fun endlessPlan(rng: Random): LevelPlan {
+        val arena = ArenaGenerator.generate(8, rng).copy(name = "ENDLESS FLOOD")
+        return LevelPlan(1, LevelKind.NORMAL, arena, emptyList())
     }
 
     fun pickEvent(level: Int, rng: Random, previousWasEvent: Boolean): EventDef? {
@@ -78,9 +88,9 @@ object LevelPlanner {
         }
         val arena = if (rules.vault) Arenas.templates.first { it.id == "open_grid" }
         else pickArena(level, rng, previousArenaId)
-        val budget = max(4, (Scaling.enemyBudget(level) * rules.enemyCountMul).roundToInt())
+        val budget = max(4, (Scaling.campaignThreats(level) * rules.enemyCountMul).roundToInt())
         val waves = if (rules.timedSeconds > 0f) emptyList()
-        else buildWaves(level, rng, budget, Scaling.waveCount(level) + rules.extraWaves, rules)
+        else buildWaves(level, rng, budget, Scaling.campaignWaves(budget) + rules.extraWaves, rules)
         return LevelPlan(level, LevelKind.EVENT, arena, waves, event = event, rules = rules, modifierNames = names)
     }
 
@@ -90,7 +100,9 @@ object LevelPlanner {
         return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss)
     }
 
+    /** Most rooms are freshly generated; a hand-made layout turns up now and then. */
     fun pickArena(level: Int, rng: Random, previousArenaId: String?): ArenaTemplate {
+        if (rng.nextFloat() < GENERATED_SHARE) return ArenaGenerator.generate(level, rng)
         val pool = Arenas.eligible(level)
         var t = pool[rng.nextInt(pool.size)]
         // Avoid repeating the base layout twice in a row.
@@ -119,7 +131,7 @@ object LevelPlanner {
                 val def = weightedPick(pool, rng)
                 val elite = if (rng.nextFloat() < eliteChance) EliteModifier.entries[rng.nextInt(EliteModifier.entries.size)] else null
                 val pack = if (elite == null) def.packSize else 1
-                repeat(pack) { if (wave.size < size + 2) wave += SpawnSpec(def, if (it == 0) elite else null) }
+                repeat(pack) { if (wave.size < size) wave += SpawnSpec(def, if (it == 0) elite else null) }
             }
             remaining -= wave.size
             waves += wave

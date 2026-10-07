@@ -22,6 +22,9 @@ class RunBuild(private val base: RunStats) {
     private val levels = LinkedHashMap<String, Int>()
     val stats = RunStats()
 
+    /** Upgrade ids never offered in this run (mode-specific). */
+    var excluded: Set<String> = emptySet()
+
     /** Extra rarity bias from permanent "Upgrade Quality" (0 = none). */
     var qualityBonus = 0f
 
@@ -32,6 +35,7 @@ class RunBuild(private val base: RunStats) {
     fun owned(): Map<String, Int> = levels
 
     fun isEligible(def: UpgradeDef): Boolean {
+        if (def.id in excluded) return false
         if (def.instant) return true
         if (level(def.id) >= def.maxLevel) return false
         val from = def.evolvesFrom

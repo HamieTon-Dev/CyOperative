@@ -18,8 +18,17 @@ enum class ObstacleKind(val label: String) {
     ROUTER("ROUTER"),
     TERMINAL("CORRUPTED TERMINAL"),
     POWER_UNIT("POWER UNIT"),
-    FIBER_JUNCTION("FIBER JUNCTION")
+    FIBER_JUNCTION("FIBER JUNCTION"),
+    /** Small blinking server unit (procedural arenas). */
+    SMALL_SERVER("SERVER UNIT"),
+    /** Stack of hardware crates. */
+    CRATES("HARDWARE CRATES")
 }
+
+/** Non-colliding floor decoration (procedural arenas). */
+enum class DecorKind { CABLE, VENT, FLOOR_LIGHT, HOLO_PANEL, DATA_POOL, WARNING_STRIPES, FLOOR_TILE }
+
+data class DecorSpec(val kind: DecorKind, val x: Float, val y: Float, val w: Float, val h: Float, val seed: Int = 0)
 
 data class ObstacleSpec(val rect: Rect, val kind: ObstacleKind)
 
@@ -30,7 +39,8 @@ data class ArenaTemplate(
     val obstacles: List<ObstacleSpec>,
     /** Minimum level before this layout can appear (complex layouts later). */
     val minLevel: Int = 1,
-    val bossArena: Boolean = false
+    val bossArena: Boolean = false,
+    val decor: List<DecorSpec> = emptyList()
 ) {
     val width: Float get() = ARENA_WIDTH
 

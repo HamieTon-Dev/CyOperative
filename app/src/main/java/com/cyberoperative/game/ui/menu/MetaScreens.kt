@@ -110,11 +110,32 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
 // ---------------------------------------------------------------------------
 
 @Composable
-fun OperativeScreen(profile: PlayerProfile, onBack: () -> Unit) {
+fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
+    val profile by save.profile.collectAsState()
     val op = Operatives.byId(profile.selectedOperative)
     val level = operativeLevel(profile.operativeXp)
     ScreenScaffold("OPERATIVE", onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
+            Text("BODY DESIGN", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (style in com.cyberoperative.game.ui.game.BodyStyle.entries) {
+                    val selected = profile.operativeBody == style.id
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .background(Palette.Surface, RoundedCornerShape(8.dp))
+                            .border(if (selected) 2.dp else 1.dp, if (selected) Palette.Green else Palette.Divider, RoundedCornerShape(8.dp))
+                            .clickable { save.update { it.copy(operativeBody = style.id) } }
+                            .padding(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        com.cyberoperative.game.ui.game.FigurePreview(style, com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin), Modifier.fillMaxWidth().height(120.dp))
+                        Text(style.label, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
             TerminalCard(accent = Palette.Green) {
                 Column {
                     Text(op.name, color = Palette.Green, style = MaterialTheme.typography.titleLarge)

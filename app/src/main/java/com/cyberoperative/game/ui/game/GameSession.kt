@@ -8,6 +8,7 @@ import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.audio.MusicState
 import com.cyberoperative.game.data.Operatives
 import com.cyberoperative.game.engine.GameEngine
+import com.cyberoperative.game.engine.GameMode
 import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.engine.Scoring
@@ -47,7 +48,10 @@ data class HudSnapshot(
     val paidRevivesLeft: Int = 0,
     val rerolls: Int = 0,
     val enemiesLeft: Int = 0,
-    val offerSerial: Int = 0
+    val offerSerial: Int = 0,
+    val mode: GameMode = GameMode.CAMPAIGN,
+    val levelKills: Int = 0,
+    val levelThreats: Int = 0
 )
 
 /** Outcome of the finished run for the game-over screen. */
@@ -69,7 +73,11 @@ data class RunResult(
  * if the app is killed on the game-over screen, and a revive never double
  * counts.
  */
-class GameSession(private val save: SaveRepository, private val audio: AudioManager) {
+class GameSession(
+    private val save: SaveRepository,
+    private val audio: AudioManager,
+    val mode: GameMode = GameMode.CAMPAIGN
+) {
 
     val engine: GameEngine
     var frameTick by mutableLongStateOf(0L)
@@ -91,16 +99,17 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
 
     val skin = OperativeSkins.byId(save.current.selectedSkin)
     val background = LivingBackground.byId(save.current.selectedBackground)
+    val body = BodyStyle.byId(save.current.operativeBody)
 
     private val startBestLevel: Int
     private val startBestScore: Long
 
     init {
         val p = save.current
-        val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, System.nanoTime())
+        val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, System.nanoTime()).copy(mode = mode)
         engine = GameEngine(config)
-        startBestLevel = p.highestLevel
-        startBestScore = p.bestScore
+        startBestLevel = if (mode == GameMode.CAMPAIGN) p.highestLevel else p.endlessBestStage
+        startBestScore = if (mode == GameMode.CAMPAIGN) p.bestScore else p.endlessBestScore
         updateMusic()
     }
 
@@ -160,7 +169,10 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
             paidRevivesLeft = StoreCatalog.MAX_PAID_REVIVES_PER_RUN - paidRevives,
             rerolls = g.rerollsLeft,
             enemiesLeft = g.aliveCount(),
-            offerSerial = g.offerSerial
+            offerSerial = g.offerSerial,
+            mode = g.mode,
+            levelKills = g.levelKills,
+            levelThreats = g.levelThreats
         )
     }
 
@@ -242,8 +254,11 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
                 euros = p.euros + dEuros,
                 diamonds = p.diamonds + dDiamonds,
                 operativeXp = p.operativeXp + xpGain,
-                highestLevel = maxOf(p.highestLevel, s.levelReached),
-                bestScore = maxOf(p.bestScore, s.score),
+                // Endless keeps its own records so the campaign ladder stays meaningful.
+                highestLevel = if (mode == GameMode.CAMPAIGN) maxOf(p.highestLevel, s.levelReached) else p.highestLevel,
+                bestScore = if (mode == GameMode.CAMPAIGN) maxOf(p.bestScore, s.score) else p.bestScore,
+                endlessBestStage = if (mode == GameMode.ENDLESS) maxOf(p.endlessBestStage, s.levelReached) else p.endlessBestStage,
+                endlessBestScore = if (mode == GameMode.ENDLESS) maxOf(p.endlessBestScore, s.score) else p.endlessBestScore,
                 totalKills = p.totalKills + dKills,
                 totalBosses = p.totalBosses + dBosses,
                 totalEvents = p.totalEvents + dEvents,
