@@ -1,43 +1,99 @@
 package com.cyberoperative.game.audio
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.os.Build
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.os.SystemClock
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.cyberoperative.game.R
 import com.cyberoperative.game.engine.GameSound
 import java.io.File
 import kotlin.random.Random
+import android.media.AudioManager as SystemAudio
 
 /** Music states (§46). */
 enum class MusicState { NONE, MENU, COMBAT, BOSS, EVENT, GAME_OVER }
 
 /**
- * Sound effects through a SoundPool (synthesized once into the cache dir)
- * and music through a single looping MediaPlayer. Every failure degrades to
- * silence; audio can never crash the game.
+ * Sound effects through a SoundPool (synthesized once into the cache dir) and
+ * the CyOps TD soundtrack through one MediaPlayer with a shuffle playlist.
+ *
+ * Background rule (owner: "music still plays when minimized" must never
+ * happen): nothing may START audio unless the app is in the foreground and
+ * holds audio focus. Every start path — a state change, a track ending, the
+ * player's buttons, a focus regain — goes through [canPlay]. Leaving the app
+ * pauses music and every SFX stream; losing focus (a call, another app) or
+ * unplugging headphones pauses too. Every failure degrades to silence.
  */
 class AudioManager(private val context: Context) {
 
     private var pool: SoundPool? = null
     private val ids = java.util.concurrent.ConcurrentHashMap<GameSound, Int>()
     private val lastPlayed = HashMap<GameSound, Long>()
-    private var music: MediaPlayer? = null
-    private var musicState = MusicState.NONE
     private var musicVolume = 0.7f
     private var sfxVolume = 0.8f
     var hapticsEnabled = true
-    private var combatToggle = false
-    private var paused = false
+
+    // --- Music state, observable by the pause-screen player -------------
+    private var player: MediaPlayer? = null
+    private var state = MusicState.NONE
+    private val bag = ShuffleBag(Random(System.nanoTime()))
+
+    var currentTrack by mutableStateOf<MusicTrack?>(null)
+        private set
+    /** The player's own pause (the play/pause button), independent of the app lifecycle. */
+    var userPaused by mutableStateOf(false)
+        private set
+    var shuffle by mutableStateOf(true)
+        private set
+    /** A track the player picked by hand; it keeps playing across music-state changes. */
+    var pinned by mutableStateOf<MusicTrack?>(null)
+        private set
+
+    private var foreground = true
+    private var hasFocus = false
+    private val system = context.getSystemService(Context.AUDIO_SERVICE) as SystemAudio
+
+    private val focusListener = SystemAudio.OnAudioFocusChangeListener { change ->
+        when (change) {
+            SystemAudio.AUDIOFOCUS_GAIN -> { hasFocus = true; player?.setVolume(musicVolume, musicVolume); resumeIfAllowed() }
+            SystemAudio.AUDIOFOCUS_LOSS -> { hasFocus = false; pauseMusicOnly() }
+            SystemAudio.AUDIOFOCUS_LOSS_TRANSIENT -> pauseMusicOnly()
+            SystemAudio.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> player?.setVolume(musicVolume * 0.25f, musicVolume * 0.25f)
+        }
+    }
+    private val focusRequest: AudioFocusRequest? = if (Build.VERSION.SDK_INT >= 26) {
+        AudioFocusRequest.Builder(SystemAudio.AUDIOFOCUS_GAIN)
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setOnAudioFocusChangeListener(focusListener)
+            .build()
+    } else null
+
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(c: Context?, i: Intent?) {
+            // Headphones unplugged: never blast music out of the speaker.
+            if (i?.action == SystemAudio.ACTION_AUDIO_BECOMING_NOISY) pauseByUser(true)
+        }
+    }
 
     fun initialize() {
         if (pool != null) return
+        try {
+            context.registerReceiver(noisyReceiver, IntentFilter(SystemAudio.ACTION_AUDIO_BECOMING_NOISY))
+        } catch (_: Throwable) {
+        }
         try {
             val p = SoundPool.Builder()
                 .setMaxStreams(10)
@@ -68,10 +124,15 @@ class AudioManager(private val context: Context) {
     fun setVolumes(music: Float, sfx: Float) {
         musicVolume = music
         sfxVolume = sfx
-        this.music?.setVolume(musicVolume, musicVolume)
+        player?.setVolume(musicVolume, musicVolume)
     }
 
+    // ======================================================================
+    // Sound effects
+    // ======================================================================
+
     fun play(sound: GameSound) {
+        if (!foreground) return
         val p = pool ?: return
         val id = ids[sound] ?: return
         val recipe = SoundBank.recipes[sound] ?: return
@@ -96,6 +157,7 @@ class AudioManager(private val context: Context) {
     }
 
     fun playBootChime() {
+        if (!foreground) return
         try {
             val mp = MediaPlayer.create(context, R.raw.boot_chime) ?: return
             mp.setVolume(sfxVolume, sfxVolume)
@@ -106,50 +168,156 @@ class AudioManager(private val context: Context) {
         }
     }
 
-    fun setMusic(state: MusicState) {
-        if (state == musicState) return
-        musicState = state
-        val res = when (state) {
-            MusicState.NONE -> null
-            MusicState.MENU -> R.raw.music_menu
-            MusicState.COMBAT -> {
-                combatToggle = !combatToggle
-                if (combatToggle) R.raw.music_combat_a else R.raw.music_combat_b
-            }
-            MusicState.BOSS -> R.raw.music_boss
-            MusicState.EVENT -> R.raw.music_event
-            MusicState.GAME_OVER -> R.raw.music_gameover
+    // ======================================================================
+    // Music
+    // ======================================================================
+
+    private fun canPlay(): Boolean = foreground && !userPaused && state != MusicState.NONE
+
+    private fun requestFocus(): Boolean {
+        if (hasFocus) return true
+        val r = try {
+            if (Build.VERSION.SDK_INT >= 26 && focusRequest != null) system.requestAudioFocus(focusRequest)
+            else @Suppress("DEPRECATION") system.requestAudioFocus(focusListener, SystemAudio.STREAM_MUSIC, SystemAudio.AUDIOFOCUS_GAIN)
+        } catch (_: Throwable) {
+            SystemAudio.AUDIOFOCUS_REQUEST_FAILED
         }
-        stopMusic()
-        if (res == null) return
+        hasFocus = r == SystemAudio.AUDIOFOCUS_REQUEST_GRANTED
+        return hasFocus
+    }
+
+    private fun abandonFocus() {
+        if (!hasFocus) return
         try {
-            val mp = MediaPlayer.create(context, res) ?: return
-            mp.isLooping = true
+            if (Build.VERSION.SDK_INT >= 26 && focusRequest != null) system.abandonAudioFocusRequest(focusRequest)
+            else @Suppress("DEPRECATION") system.abandonAudioFocus(focusListener)
+        } catch (_: Throwable) {
+        }
+        hasFocus = false
+    }
+
+    /** The game says which kind of music fits now (menu, combat, boss…). */
+    fun setMusic(next: MusicState) {
+        if (next == state) return
+        state = next
+        if (next == MusicState.NONE) { stopPlayer(); return }
+        // A hand-picked track keeps playing through state changes.
+        val keep = pinned
+        if (keep != null && currentTrack == keep && player != null) return
+        val cur = currentTrack
+        if (cur != null && player != null && cur in MusicLibrary.poolFor(next)) return
+        playTrack(if (keep != null) keep else bag.next(MusicLibrary.poolFor(next), cur))
+    }
+
+    private fun playTrack(track: MusicTrack?) {
+        stopPlayer()
+        currentTrack = track
+        if (track == null) return
+        try {
+            val mp = MediaPlayer.create(context, track.res) ?: return
             mp.setVolume(musicVolume, musicVolume)
-            if (!paused) mp.start()
-            music = mp
+            mp.isLooping = !shuffle && pinned != null
+            mp.setOnCompletionListener { onTrackFinished() }
+            player = mp
+            if (canPlay() && requestFocus()) mp.start()
         } catch (t: Throwable) {
             Log.w(TAG, "music failed", t)
         }
     }
 
-    private fun stopMusic() {
+    private fun onTrackFinished() {
+        // Next in the shuffle (or the next track in list order when shuffle is off).
+        val nextTrack = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        if (pinned != null) pinned = nextTrack
+        playTrack(nextTrack)
+    }
+
+    private fun poolNow(): List<MusicTrack> = if (pinned != null) MusicLibrary.all else MusicLibrary.poolFor(state)
+
+    private fun nextInOrder(t: MusicTrack?): MusicTrack {
+        val list = MusicLibrary.all
+        val i = list.indexOf(t)
+        return list[(i + 1).mod(list.size)]
+    }
+
+    private fun stopPlayer() {
         try {
-            music?.stop()
-            music?.release()
+            player?.setOnCompletionListener(null)
+            player?.stop()
+            player?.release()
         } catch (_: Throwable) {
         }
-        music = null
+        player = null
     }
 
-    fun onPause() {
-        paused = true
-        try { music?.pause() } catch (_: Throwable) {}
+    private fun pauseMusicOnly() {
+        try { if (player?.isPlaying == true) player?.pause() } catch (_: Throwable) {}
     }
 
-    fun onResume() {
-        paused = false
-        try { music?.start() } catch (_: Throwable) {}
+    private fun resumeIfAllowed() {
+        val mp = player
+        if (mp == null) {
+            if (canPlay() && state != MusicState.NONE) playTrack(pinned ?: bag.next(MusicLibrary.poolFor(state), null))
+            return
+        }
+        if (canPlay() && requestFocus()) {
+            try { if (!mp.isPlaying) mp.start() } catch (_: Throwable) {}
+        }
+    }
+
+    // --- Player controls (pause-screen music player) -------------------
+
+    fun selectTrack(track: MusicTrack) {
+        pinned = track
+        userPaused = false
+        playTrack(track)
+    }
+
+    fun nextTrack() {
+        val n = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        if (pinned != null) pinned = n
+        userPaused = false
+        playTrack(n)
+    }
+
+    fun previousTrack() {
+        val p = bag.previous(currentTrack) ?: MusicLibrary.all.let { l -> l[(l.indexOf(currentTrack) - 1).mod(l.size)] }
+        if (pinned != null) pinned = p
+        userPaused = false
+        playTrack(p)
+    }
+
+    fun pauseByUser(value: Boolean) {
+        userPaused = value
+        if (value) pauseMusicOnly() else resumeIfAllowed()
+    }
+
+    fun toggleShuffle() {
+        shuffle = !shuffle
+        player?.isLooping = !shuffle && pinned != null
+    }
+
+    /** Back to automatic music (menu / combat / boss rotations). */
+    fun clearPin() {
+        pinned = null
+        val cur = currentTrack
+        if (cur == null || cur !in MusicLibrary.poolFor(state)) playTrack(bag.next(MusicLibrary.poolFor(state), cur))
+    }
+
+    // --- Lifecycle -------------------------------------------------------
+
+    /** Activity stopped/paused: silence everything, music and effects. */
+    fun onBackground() {
+        foreground = false
+        pauseMusicOnly()
+        try { pool?.autoPause() } catch (_: Throwable) {}
+        abandonFocus()
+    }
+
+    fun onForeground() {
+        foreground = true
+        try { pool?.autoResume() } catch (_: Throwable) {}
+        resumeIfAllowed()
     }
 
     private fun vibrate(ms: Long) {

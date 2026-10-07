@@ -23,11 +23,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        app.audio.onPause()
+        app.audio.onBackground()
     }
 
     override fun onResume() {
         super.onResume()
-        app.audio.onResume()
+        app.audio.onForeground()
     }
 }

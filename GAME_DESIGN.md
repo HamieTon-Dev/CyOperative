@@ -124,5 +124,7 @@ HamieTon.dev ident (1.9 s, tap to skip) → INITIALIZING terminal (fictional, ha
 commands only; nothing is executed) → main menu.
 
 ## 16. Audio
-Synthesized SFX for every cue (rate-limited, soft). Music: menu, combat (2 tracks
-alternate), boss, event, game over — reused CyOps TD tracks.
+Synthesized SFX for every cue (rate-limited, soft). Music: the whole CyOps TD soundtrack
+(24 tracks) shuffled — menu tracks on menus, all tracks in a run, the level-10 pieces for
+bosses, Liminal tracks on game over. Pause-screen player lets the player pick tracks,
+skip, pause, toggle shuffle or return to AUTO. Audio never plays in the background.

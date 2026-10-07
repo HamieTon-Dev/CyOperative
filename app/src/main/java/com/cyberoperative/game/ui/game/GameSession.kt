@@ -75,7 +75,7 @@ data class RunResult(
  */
 class GameSession(
     private val save: SaveRepository,
-    private val audio: AudioManager,
+    val audio: AudioManager,
     val mode: GameMode = GameMode.CAMPAIGN
 ) {
 

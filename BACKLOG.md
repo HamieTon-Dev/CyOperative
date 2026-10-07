@@ -88,6 +88,8 @@ device, tune balance, then fill out the store/meta phases.
 - CO-097 Endless mode
 - CO-098 2.5D renderer with depth sorting
 - CO-099 Three full-body operative designs
+- CO-100 Full CyOps TD soundtrack, shuffle, pause-screen music player
+- CO-101 Background-audio fix (foreground + audio focus + noisy + auto-pause)
 
 ## FUTURE IDEAS
 - Mythic / ZERO-DAY rarity tier

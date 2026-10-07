@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 — 2026-10-07
+### Added
+- Full CyOps TD soundtrack (24 tracks: 20 level, 2 menu, 2 Liminal), re-encoded to 128 kbps.
+- Shuffle playback with no repeats until every track has played; menu, combat, boss
+  and game-over rotations.
+- Music player on the pause screen: previous / play-pause / next, SHUFFLE, AUTO, and a
+  tap-to-play track list.
+### Fixed
+- Music and effects can no longer keep playing when the app is minimized: every start
+  path checks foreground + audio focus; SFX streams pause with the app; calls/other apps
+  (audio focus) and unplugged headphones pause music; leaving mid-fight opens the pause menu.
+
 ## 0.4.0 — 2026-10-07
 ### Added
 - CAMPAIGN as the main mode: fixed threats per level (8 → 14 → … capped at 45) with a

@@ -67,6 +67,16 @@ fun GameScreen(
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
     }
+    // Leaving the app mid-fight opens the pause menu, so coming back never
+    // drops the player straight into combat.
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_PAUSE && session.engine.phase != Phase.DEAD) session.paused = true
+        }
+        lifecycle.addObserver(obs)
+        onDispose { lifecycle.removeObserver(obs) }
+    }
 
     // Frame loop: lives with the screen; leaving the composition stops it.
     var time by remember { mutableFloatStateOf(0f) }
@@ -202,6 +212,7 @@ fun GameScreen(
         }
         if (session.paused && hud.phase != Phase.DEAD) {
             PauseOverlay(
+                audio = session.audio,
                 onResume = { session.paused = false },
                 onQuit = { session.finish(); onExitToMenu() }
             )
@@ -371,7 +382,7 @@ val TUTORIAL_LINES = listOf(
 )
 
 @Composable
-private fun PauseOverlay(onResume: () -> Unit, onQuit: () -> Unit) {
+private fun PauseOverlay(audio: com.cyberoperative.game.audio.AudioManager, onResume: () -> Unit, onQuit: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
@@ -381,18 +392,22 @@ private fun PauseOverlay(onResume: () -> Unit, onQuit: () -> Unit) {
     ) {
         Column(
             Modifier
-                .padding(32.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .background(Palette.Surface, RoundedCornerShape(10.dp))
                 .border(1.dp, Palette.Cyan, RoundedCornerShape(10.dp))
-                .padding(20.dp),
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("OPERATION PAUSED", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
             com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
+            MusicPlayerPanel(audio, Modifier.weight(1f, fill = false))
+            Spacer(Modifier.height(12.dp))
             com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text("Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         }
     }

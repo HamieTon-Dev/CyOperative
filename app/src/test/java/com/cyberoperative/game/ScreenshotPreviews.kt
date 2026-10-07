@@ -113,6 +113,11 @@ class ScreenshotPreviews {
         })
     }
 
+    @Test fun pauseMusicPlayer() {
+        assumeTrue(enabled)
+        gameplay("pause_music_player", 1f, setup = { s -> s.paused = true })
+    }
+
     @Test fun bootTerminal() {
         assumeTrue(enabled)
         compose.mainClock.autoAdvance = false
