@@ -1,0 +1,170 @@
+package com.cyberoperative.game.engine
+
+import com.cyberoperative.game.data.EliteModifier
+import com.cyberoperative.game.data.EnemyDef
+
+/**
+ * Runtime entities. Mutable classes (not data classes) living in fixed-size
+ * pools, so a busy arena allocates nothing per frame (§61).
+ */
+
+enum class AiState { SPAWNING, MOVE, WINDUP, DASH, RECOVER, HIDDEN }
+
+class Enemy {
+    var active = false
+    var uid = 0
+    lateinit var def: EnemyDef
+    var elite: EliteModifier? = null
+    var boss: BossState? = null
+
+    var x = 0f
+    var y = 0f
+    var vx = 0f
+    var vy = 0f
+    var radius = 16f
+    var hp = 1f
+    var maxHp = 1f
+    var speed = 0f
+    var damageMul = 1f
+    var attackRateMul = 1f
+    var damageTakenMul = 1f
+    var rewardMul = 1f
+
+    var state = AiState.SPAWNING
+    var stateTimer = 0f
+    var attackTimer = 0f
+    var aimX = 0f
+    var aimY = 0f
+    var strafeDir = 1f
+    var wobble = 0f
+    var hitFlash = 0f
+    var orbHitCooldown = 0f
+    var bladeHitCooldown = 0f
+    var contactCooldown = 0f
+    var stuckTimer = 0f
+    var detourTimer = 0f
+    var detourX = 0f
+    var detourY = 0f
+    var lastX = 0f
+    var lastY = 0f
+    /** Split children give reduced score so splitting can't be farmed. */
+    var isChild = false
+
+    val targetable: Boolean get() = active && state != AiState.SPAWNING && state != AiState.HIDDEN
+    val isElite: Boolean get() = elite != null
+}
+
+enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS }
+
+class Projectile {
+    var active = false
+    var friendly = true
+    var kind = ProjKind.BOLT
+    var x = 0f
+    var y = 0f
+    var vx = 0f
+    var vy = 0f
+    var radius = 6f
+    var damage = 0f
+    var life = 0f
+    var pierceLeft = 0
+    var bounceLeft = 0
+    var chainLeft = 0
+    var crit = false
+    var lastHitUid = -1
+    /** Phase through obstacles (some boss patterns). */
+    var ghost = false
+    var homing = 0f
+}
+
+enum class TextKind { NORMAL, CRIT, BOSS, HEAL, SHIELD, PLAYER_HURT, INFO }
+
+class FloatText {
+    var active = false
+    var x = 0f
+    var y = 0f
+    var text = ""
+    var kind = TextKind.NORMAL
+    var life = 0f
+}
+
+class Particle {
+    var active = false
+    var x = 0f
+    var y = 0f
+    var vx = 0f
+    var vy = 0f
+    var life = 0f
+    var maxLife = 1f
+    var color = 0L
+    var size = 3f
+}
+
+enum class HazardKind {
+    /** Telegraphed line (charge / sniper sight). Visual only. */
+    LINE,
+    /** Telegraphed circle that damages once when the timer completes. */
+    BLAST,
+    /** Lingering damaging zone (corruption). */
+    ZONE,
+    /** Expanding ring that damages on contact with its edge. */
+    SHOCK_RING,
+    /** Telegraphed line that becomes a damaging beam after [Hazard.windup]. */
+    BEAM
+}
+
+class Hazard {
+    var active = false
+    var kind = HazardKind.LINE
+    var x = 0f
+    var y = 0f
+    var x2 = 0f
+    var y2 = 0f
+    var radius = 0f
+    var maxRadius = 0f
+    var timer = 0f
+    var duration = 0f
+    var damage = 0f
+    var color = 0L
+    var ownerUid = -1
+    var hitPlayer = false
+    var windup = 0f
+    var tick = 0f
+}
+
+/** Purely visual expanding ring (EMP, explosions, level clear). */
+class Pulse {
+    var active = false
+    var x = 0f
+    var y = 0f
+    var radius = 0f
+    var maxRadius = 0f
+    var life = 0f
+    var maxLife = 0f
+    var color = 0L
+}
+
+/** Fixed-capacity pool. `obtain()` returns null when full (caller skips the spawn). */
+class Pool<T>(capacity: Int, factory: () -> T, private val isActive: (T) -> Boolean) {
+    val items: List<T> = List(capacity) { factory() }
+    private var cursor = 0
+
+    fun obtain(): T? {
+        val n = items.size
+        for (i in 0 until n) {
+            val idx = (cursor + i) % n
+            val item = items[idx]
+            if (!isActive(item)) {
+                cursor = (idx + 1) % n
+                return item
+            }
+        }
+        return null
+    }
+
+    fun countActive(): Int {
+        var c = 0
+        for (i in items.indices) if (isActive(items[i])) c++
+        return c
+    }
+}

@@ -1,0 +1,1367 @@
+package com.cyberoperative.game.engine
+
+import com.cyberoperative.game.core.MathUtil
+import com.cyberoperative.game.core.Scaling
+import com.cyberoperative.game.data.EliteModifier
+import com.cyberoperative.game.data.Enemies
+import com.cyberoperative.game.data.EnemyDef
+import com.cyberoperative.game.data.EventRules
+import com.cyberoperative.game.data.Upgrades
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.random.Random
+
+/** Where the run is. The UI decides what to show from this. */
+enum class Phase {
+    /** Fighting. */
+    COMBAT,
+    /** Arena clear; short beat before upgrades / the access port. */
+    CLEARED,
+    /** Paused on the three-card upgrade screen. */
+    UPGRADE,
+    /** Access port open; walk into it to continue. */
+    PORTAL,
+    /** Brief fade between arenas. */
+    TRANSITION,
+    /** Operative terminated; waiting for revive / game-over decision. */
+    DEAD
+}
+
+/** Everything a run starts with: the operative's base stats + permanent progression. */
+data class RunConfig(
+    val baseStats: RunStats = RunStats(),
+    val seed: Long = System.nanoTime(),
+    val freeRevives: Int = 1,
+    val rerolls: Int = 0,
+    val upgradeQuality: Float = 0f,
+    val startingUpgrades: Int = 0,
+    val startLevel: Int = 1
+)
+
+/** Final numbers of a run, for the game-over screen and the save. */
+data class RunSummary(
+    val levelReached: Int,
+    val score: Long,
+    val kills: Int,
+    val bosses: Int,
+    val elites: Int,
+    val events: Int,
+    val euros: Int,
+    val diamonds: Int,
+    val seconds: Float
+)
+
+/**
+ * The simulation. Pure Kotlin with no Android dependency, so every rule can be
+ * unit tested. The UI feeds it [setInput] and [update]; it never draws.
+ *
+ * Core loop (§8–10, §16):
+ * - MOVE = SURVIVE: while the stick is held the operative moves and the
+ *   primary weapon holds fire.
+ * - STOP = SHOOT: when the stick is released it auto-targets and fires.
+ * - ORBITS = CONTINUOUS DAMAGE: Packet Nodes and Encryption Blades never stop.
+ */
+class GameEngine(val config: RunConfig = RunConfig()) {
+
+    val rng = Random(config.seed)
+
+    // --- Run state --------------------------------------------------------
+    var level = config.startLevel
+        private set
+    var phase = Phase.COMBAT
+        private set
+    var phaseTimer = 0f
+        private set
+    lateinit var plan: LevelPlan
+        private set
+    lateinit var arena: Arena
+        private set
+    val build = RunBuild(config.baseStats).also { it.qualityBonus = config.upgradeQuality }
+    val stats: RunStats get() = build.stats
+
+    var runLevel = 1
+        private set
+    var xp = 0f
+        private set
+    var pendingUpgrades = 0
+        private set
+    var offer: List<UpgradeOffer> = emptyList()
+        private set(value) {
+            field = value
+            offerSerial++
+        }
+    /** Bumped whenever [offer] changes so the UI knows to redraw the cards. */
+    var offerSerial = 0
+        private set
+    var rerollsLeft = config.rerolls
+        private set
+    var revivesLeft = config.freeRevives
+        private set
+    var revivesUsed = 0
+        private set
+
+    var score = 0L
+        private set
+    var kills = 0
+        private set
+    var bossesDefeated = 0
+        private set
+    var elitesDefeated = 0
+        private set
+    var eventsCompleted = 0
+        private set
+    /** Event ids completed this run (achievements: complete every event type). */
+    val completedEventIds = HashSet<String>()
+    var eurosEarned = 0
+        private set
+    var diamondsEarned = 0
+        private set
+    var runSeconds = 0f
+        private set
+    var levelSeconds = 0f
+        private set
+    private var levelDamageTaken = 0f
+    private var levelEnemyTotal = 0
+
+    // --- Player -------------------------------------------------------------
+    var px = 0f
+        private set
+    var py = 0f
+        private set
+    val playerRadius = 20f
+    var hp = 100f
+        private set
+    var firewall = 0f
+        private set
+    var facing = -MathUtil.PI / 2f
+        private set
+    var moving = false
+        private set
+    var invuln = 0f
+        private set
+    var hurtFlash = 0f
+        private set
+    private var inputX = 0f
+    private var inputY = 0f
+    private var fireCooldown = 0f
+    private var stillTime = 0f
+    private var followUpLeft = 0
+    private var followUpTimer = 0f
+    private var lanceTimer = 0f
+    private var empTimer = 0f
+    private var sinceDamage = 99f
+    private var firewallWasUp = false
+    var orbAngle = 0f
+        private set
+    var bladeAngle = 0f
+        private set
+    private var orbBoltTimer = 0f
+    var targetUid = -1
+        private set
+
+    // --- Entities -----------------------------------------------------------
+    val enemies = Pool(96, { Enemy() }) { it.active }
+    val projectiles = Pool(480, { Projectile() }) { it.active }
+    val texts = Pool(56, { FloatText() }) { it.active }
+    val particles = Pool(320, { Particle() }) { it.active }
+    val hazards = Pool(64, { Hazard() }) { it.active }
+    val pulses = Pool(24, { Pulse() }) { it.active }
+    private var nextUid = 1
+
+    // --- Level flow ---------------------------------------------------------
+    private var waveIndex = 0
+    private var waveTimer = 0f
+    private var eventTimer = 0f
+    private var spawnTimer = 0f
+    private var hazardTimer = 0f
+    var timedRemaining = 0f
+        private set
+    var portalOpen = false
+        private set
+    var boss: Enemy? = null
+        private set
+    var bossPhaseLabel = ""
+        private set
+
+    /** Short centred announcement ("LEVEL 7", "PHASE 2"). */
+    var banner = ""
+        private set
+    var bannerSub = ""
+        private set
+    var bannerTimer = 0f
+        private set
+
+    /** Sounds requested this frame; drained by the UI layer. */
+    val sounds = ArrayList<GameSound>(16)
+
+    /** Monotonic counter the renderer watches. */
+    var frame = 0L
+        private set
+
+    /** True while the upgrade screen was opened before combat (starting upgrades). */
+    private var upgradeReturnsToCombat = false
+
+    private val ai = EnemyAi(this)
+    private val bossBrain = BossBrain(this)
+
+    init {
+        build.recompute()
+        hp = stats.maxHp
+        firewall = stats.firewallMax
+        startLevel(level, null, false)
+        if (config.startingUpgrades > 0) {
+            // Starting Weapon Power: pick free upgrades before the first fight.
+            pendingUpgrades = config.startingUpgrades
+            openUpgrades(resumeCombat = true)
+        }
+    }
+
+    // ======================================================================
+    // Input & main update
+    // ======================================================================
+
+    /** Joystick vector; magnitude 0..1. */
+    fun setInput(x: Float, y: Float) {
+        inputX = x
+        inputY = y
+    }
+
+    fun update(delta: Float) {
+        var remaining = delta.coerceIn(0f, MAX_FRAME)
+        while (remaining > 0f) {
+            val dt = min(STEP, remaining)
+            step(dt)
+            remaining -= dt
+        }
+        frame++
+    }
+
+    private fun step(dt: Float) {
+        if (bannerTimer > 0f) bannerTimer -= dt
+        updateEffects(dt)
+        when (phase) {
+            Phase.UPGRADE, Phase.DEAD -> return
+            Phase.TRANSITION -> {
+                phaseTimer += dt
+                if (phaseTimer >= TRANSITION_TIME) {
+                    startLevel(level + 1, plan.arena.id, plan.kind == LevelKind.EVENT)
+                }
+                return
+            }
+            else -> {}
+        }
+        phaseTimer += dt
+        runSeconds += dt
+        if (phase == Phase.COMBAT) levelSeconds += dt
+
+        updatePlayer(dt)
+        updateOrbit(dt)
+        if (phase == Phase.COMBAT) {
+            updateSpawning(dt)
+            updateEventRules(dt)
+        }
+        ai.update(dt)
+        bossBrain.update(dt)
+        updateProjectiles(dt)
+        updateHazards(dt)
+        if (hp <= 0f) {
+            die()
+            return
+        }
+
+        when (phase) {
+            Phase.COMBAT -> checkCleared()
+            Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
+            Phase.PORTAL -> if (MathUtil.dist2(px, py, arena.portalX, arena.portalY) < PORTAL_RADIUS * PORTAL_RADIUS) {
+                phase = Phase.TRANSITION
+                phaseTimer = 0f
+            }
+            else -> {}
+        }
+    }
+
+    // ======================================================================
+    // Level lifecycle
+    // ======================================================================
+
+    private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
+        level = newLevel
+        plan = forced ?: LevelPlanner.plan(level, rng, previousArena, previousEvent)
+        val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
+        arena = Arena(plan.arena, extra)
+        clearAll()
+        px = arena.spawnX
+        py = arena.spawnY
+        facing = -MathUtil.PI / 2f
+        phase = Phase.COMBAT
+        phaseTimer = 0f
+        portalOpen = false
+        waveIndex = 0
+        waveTimer = 0f
+        spawnTimer = 0f
+        hazardTimer = 0f
+        levelSeconds = 0f
+        levelDamageTaken = 0f
+        levelEnemyTotal = plan.enemyCount
+        timedRemaining = plan.rules.timedSeconds
+        boss = null
+        bossPhaseLabel = ""
+        invuln = 1.0f
+        when (plan.kind) {
+            LevelKind.BOSS -> {
+                val b = plan.boss!!
+                showBanner("WARNING: ${b.name}", b.title, 2.4f)
+                sound(GameSound.BOSS_SPAWN)
+                bossBrain.spawn(b, arena.width / 2f, 300f)
+            }
+            LevelKind.EVENT -> {
+                val e = plan.event!!
+                val sub = if (plan.modifierNames.isNotEmpty()) plan.modifierNames.joinToString(" · ") else e.subtitle
+                showBanner(e.name, sub, 2.6f)
+                sound(GameSound.EVENT_START)
+            }
+            LevelKind.NORMAL -> showBanner("LEVEL $level", plan.arena.name, 1.4f)
+        }
+    }
+
+    private fun clearAll() {
+        for (e in enemies.items) e.active = false
+        for (p in projectiles.items) p.active = false
+        for (h in hazards.items) h.active = false
+        for (t in texts.items) t.active = false
+        for (p in pulses.items) p.active = false
+    }
+
+    private fun updateSpawning(dt: Float) {
+        val rules = plan.rules
+        if (rules.timedSeconds > 0f) {
+            timedRemaining -= dt
+            spawnTimer -= dt
+            if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
+                spawnTimer = max(0.35f, rules.spawnInterval - level * 0.006f)
+                val pool = Enemies.pool(level)
+                spawnEnemy(LevelPlanner.weightedPick(pool, rng), null, telegraph = true)
+            }
+            return
+        }
+        if (waveIndex >= plan.waves.size) return
+        waveTimer += dt
+        val alive = aliveCount()
+        val first = waveIndex == 0
+        if (first || alive <= 2 || waveTimer > WAVE_TIMEOUT) {
+            if (!first && alive > 0 && waveTimer < WAVE_MIN_GAP) return
+            for (spec in plan.waves[waveIndex]) {
+                if (aliveCount() >= Scaling.MAX_ALIVE) break
+                spawnEnemy(spec.def, spec.elite, telegraph = true)
+            }
+            waveIndex++
+            waveTimer = 0f
+        }
+    }
+
+    private fun updateEventRules(dt: Float) {
+        val interval = plan.rules.hazardInterval
+        if (interval <= 0f) return
+        hazardTimer += dt
+        if (hazardTimer >= interval) {
+            hazardTimer = 0f
+            // Firewall Breach / unstable sectors: a corruption zone lands near
+            // the player, always telegraphed first (a BLAST marker), so the
+            // safe space shrinks without ever being unavoidable.
+            val ang = rng.nextFloat() * MathUtil.TWO_PI
+            val d = 60f + rng.nextFloat() * 160f
+            val x = MathUtil.clamp(px + cos(ang) * d, 60f, arena.width - 60f)
+            val y = MathUtil.clamp(py + sin(ang) * d, 60f, arena.height - 60f)
+            addZone(x, y, 80f, 7f, 14f * Scaling.enemyDamage(level), 0xFFFF7A1A, telegraph = 1.0f)
+        }
+    }
+
+    private fun checkCleared() {
+        val timed = plan.rules.timedSeconds > 0f
+        val done = if (timed) timedRemaining <= 0f
+        else plan.kind != LevelKind.BOSS && waveIndex >= plan.waves.size && aliveCount() == 0
+        if (plan.kind == LevelKind.BOSS && boss == null && phaseTimer > 1f && aliveCount() == 0) {
+            levelCleared()
+            return
+        }
+        if (done) {
+            if (timed) purgeHostiles()
+            levelCleared()
+        }
+    }
+
+    private fun levelCleared() {
+        phase = Phase.CLEARED
+        phaseTimer = 0f
+        for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
+        for (h in hazards.items) h.active = false
+        val eventMul = if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f
+        score += Scoring.levelClear(level, levelSeconds, levelEnemyTotal, levelDamageTaken, eventMul)
+        val euros = ((5 + level) * eventMul * stats.euroMul).toInt()
+        eurosEarned += euros
+        if (plan.kind == LevelKind.EVENT) {
+            eventsCompleted++
+            plan.event?.let { completedEventIds += it.id }
+            if (plan.rules.diamondChance > 0f && rng.nextFloat() < plan.rules.diamondChance) diamondsEarned += 1
+            pendingUpgrades++
+        }
+        addText(px, py - 40f, "+$euros €", TextKind.INFO)
+        addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
+        // Firewall fully restores between arenas.
+        firewall = stats.firewallMax
+        showBanner(if (plan.kind == LevelKind.EVENT) "EVENT COMPLETE" else "THREATS ELIMINATED", "", 1.2f)
+        sound(GameSound.LEVEL_COMPLETE)
+        sound(GameSound.CURRENCY)
+    }
+
+    private fun afterClear() {
+        if (pendingUpgrades > 0) {
+            openUpgrades()
+        } else {
+            openPortal()
+        }
+    }
+
+    private fun openUpgrades(resumeCombat: Boolean = false) {
+        offer = build.rollOffer(rng)
+        if (offer.isEmpty()) {
+            pendingUpgrades = 0
+            if (!resumeCombat) openPortal()
+            return
+        }
+        upgradeReturnsToCombat = resumeCombat
+        phase = Phase.UPGRADE
+        phaseTimer = 0f
+    }
+
+    private fun finishUpgrades() {
+        offer = emptyList()
+        if (upgradeReturnsToCombat) {
+            upgradeReturnsToCombat = false
+            phase = Phase.COMBAT
+            phaseTimer = 0f
+        } else {
+            openPortal()
+        }
+    }
+
+    /** UI: the player picked card [index]. */
+    fun chooseUpgrade(index: Int) {
+        if (phase != Phase.UPGRADE) return
+        val choice = offer.getOrNull(index) ?: return
+        val wasMaxHp = stats.maxHp
+        val instant = build.take(choice.def)
+        if (instant) {
+            when (choice.def.id) {
+                Upgrades.CRYPTO_CACHE.id -> {
+                    val euros = ((15 + 3 * level) * stats.euroMul).toInt()
+                    eurosEarned += euros
+                    addText(px, py - 40f, "+$euros €", TextKind.INFO)
+                    sound(GameSound.CURRENCY)
+                }
+                Upgrades.DATA_DUMP.id -> gainXp(Scaling.xpToNext(runLevel) * 0.6f)
+                else -> heal(stats.maxHp * 0.4f, ignoreMul = true)
+            }
+        } else {
+            // Max-HP upgrades heal by the amount gained so they feel immediate.
+            val gained = stats.maxHp - wasMaxHp
+            if (gained > 0f) hp += gained
+            hp = min(hp, stats.maxHp)
+            if (choice.def == Upgrades.FIREWALL || choice.def.evolvesFrom == Upgrades.FIREWALL.id ||
+                choice.def.id in FIREWALL_IDS
+            ) {
+                firewall = stats.firewallMax
+                sound(GameSound.FIREWALL_UP)
+            }
+        }
+        pendingUpgrades--
+        sound(GameSound.UPGRADE_SELECTED)
+        if (pendingUpgrades > 0) {
+            offer = build.rollOffer(rng)
+            if (offer.isEmpty()) { pendingUpgrades = 0; finishUpgrades() }
+        } else {
+            finishUpgrades()
+        }
+    }
+
+    /** UI: spend a reroll (permanent progression) to redraw the cards. */
+    fun reroll(): Boolean {
+        if (phase != Phase.UPGRADE || rerollsLeft <= 0) return false
+        rerollsLeft--
+        offer = build.rollOffer(rng)
+        sound(GameSound.UI_CLICK)
+        return true
+    }
+
+    private fun openPortal() {
+        phase = Phase.PORTAL
+        phaseTimer = 0f
+        portalOpen = true
+        sound(GameSound.PORTAL_OPEN)
+    }
+
+    private fun die() {
+        hp = 0f
+        phase = Phase.DEAD
+        phaseTimer = 0f
+        addPulse(px, py, 260f, 0.9f, 0xFFFF2D55)
+        repeat(30) { addParticle(px, py, 0xFF00E5FF, 260f, 0.9f, 4f) }
+        sound(GameSound.GAME_OVER)
+    }
+
+    val canRevive: Boolean get() = phase == Phase.DEAD && revivesLeft > 0
+
+    /**
+     * Revive in place (§34): half HP, full firewall, a long grace period and
+     * every hostile projectile/hazard near the operative wiped. Limited per run.
+     */
+    fun revive(paid: Boolean = false): Boolean {
+        if (phase != Phase.DEAD) return false
+        if (!paid) {
+            if (revivesLeft <= 0) return false
+            revivesLeft--
+        }
+        revivesUsed++
+        hp = stats.maxHp * 0.5f
+        firewall = stats.firewallMax
+        invuln = 2.5f
+        for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
+        for (h in hazards.items) h.active = false
+        // Push nearby enemies back so the revive is not an instant re-death.
+        for (e in enemies.items) {
+            if (!e.active || e.boss != null) continue
+            val d = MathUtil.dist(px, py, e.x, e.y)
+            if (d < 220f && d > 0.1f) {
+                e.x += (e.x - px) / d * (220f - d)
+                e.y += (e.y - py) / d * (220f - d)
+                arena.pushOut(e.x, e.y, e.radius)
+                e.x = arena.out[0]; e.y = arena.out[1]
+            }
+        }
+        addPulse(px, py, 240f, 0.6f, 0xFF00FF9C)
+        phase = if (aliveCount() == 0 && portalOpen) Phase.PORTAL else Phase.COMBAT
+        phaseTimer = 0f
+        sound(GameSound.REVIVE)
+        return true
+    }
+
+    fun summary(): RunSummary = RunSummary(
+        levelReached = level, score = score, kills = kills, bosses = bossesDefeated,
+        elites = elitesDefeated, events = eventsCompleted, euros = eurosEarned,
+        diamonds = diamondsEarned, seconds = runSeconds
+    )
+
+    // ======================================================================
+    // Player
+    // ======================================================================
+
+    private fun updatePlayer(dt: Float) {
+        val s = stats
+        if (invuln > 0f) invuln -= dt
+        if (hurtFlash > 0f) hurtFlash -= dt
+        sinceDamage += dt
+
+        // Regeneration and firewall recharge.
+        if (s.regenPerSec > 0f && hp < s.maxHp) heal(s.maxHp * s.regenPerSec * dt, quiet = true)
+        if (s.firewallMax > 0f && sinceDamage >= s.firewallDelay && firewall < s.firewallMax) {
+            firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallRate * dt)
+            if (firewall >= s.firewallMax && !firewallWasUp) {
+                firewallWasUp = true
+                sound(GameSound.FIREWALL_UP)
+            }
+        }
+
+        // Movement.
+        val mag = sqrt(inputX * inputX + inputY * inputY)
+        moving = mag > MOVE_DEADZONE
+        if (moving) {
+            val m = min(1f, mag)
+            val speed = s.moveSpeed * m
+            val nx = px + inputX / mag * speed * dt
+            val ny = py + inputY / mag * speed * dt
+            arena.pushOut(nx, ny, playerRadius)
+            px = arena.out[0]
+            py = arena.out[1]
+            facing = atan2(inputY, inputX)
+            stillTime = 0f
+            followUpLeft = 0
+        } else {
+            stillTime += dt
+        }
+
+        fireCooldown -= dt
+        lanceTimer -= dt
+        if (phase != Phase.COMBAT) {
+            targetUid = -1
+            return
+        }
+
+        // EMP Burst is an always-on ability.
+        if (s.empLevel > 0) {
+            empTimer -= dt
+            if (empTimer <= 0f) {
+                empTimer = 7f - s.empLevel
+                firePulseDamage(px, py, 150f + 25f * s.empLevel, s.damage * (0.9f + 0.3f * s.empLevel), clearsProjectiles = true)
+                sound(GameSound.EMP)
+            }
+        }
+
+        // STOP = SHOOT.
+        if (moving || stillTime < STOP_TO_FIRE_DELAY) {
+            targetUid = -1
+            return
+        }
+        val target = acquireTarget()
+        if (target == null) {
+            targetUid = -1
+            return
+        }
+        targetUid = target.uid
+        facing = atan2(target.y - py, target.x - px)
+
+        if (fireCooldown <= 0f) {
+            fireVolley(facing)
+            fireCooldown = 1f / s.fireRate
+            followUpLeft = s.followUpShots
+            followUpTimer = FOLLOW_UP_GAP
+            if (s.coneLevel > 0) fireCone(facing)
+        } else if (followUpLeft > 0) {
+            followUpTimer -= dt
+            if (followUpTimer <= 0f) {
+                fireVolley(facing)
+                followUpLeft--
+                followUpTimer = FOLLOW_UP_GAP
+            }
+        }
+        if (s.lanceLevel > 0 && lanceTimer <= 0f) {
+            lanceTimer = 2.8f - 0.4f * s.lanceLevel
+            fireLance(facing)
+        }
+    }
+
+    /**
+     * Target priority (§8): the nearest visible threat, with enemies that are
+     * actively threatening the player (very close) always first, and a boss
+     * preferred when nothing is pressing.
+     */
+    fun acquireTarget(): Enemy? {
+        val range2 = stats.range * stats.range
+        var best: Enemy? = null
+        var bestScore = Float.MAX_VALUE
+        var fallback: Enemy? = null
+        var fallbackD = Float.MAX_VALUE
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            val d2 = MathUtil.dist2(px, py, e.x, e.y)
+            if (d2 > range2) continue
+            if (d2 < fallbackD) { fallbackD = d2; fallback = e }
+            if (!arena.lineOfSight(px, py, e.x, e.y, 2f)) continue
+            var score = d2
+            if (d2 < THREAT_RADIUS * THREAT_RADIUS) score *= 0.25f
+            else if (e.boss != null) score *= 0.6f
+            if (e.uid == targetUid) score *= 0.85f // slight stickiness: predictable targeting
+            if (score < bestScore) { bestScore = score; best = e }
+        }
+        return best ?: fallback
+    }
+
+    private fun fireVolley(angle: Float) {
+        val s = stats
+        val n = s.parallelShots
+        val perpX = -sin(angle)
+        val perpY = cos(angle)
+        for (i in 0 until n) {
+            val off = (i - (n - 1) / 2f) * 15f
+            spawnBolt(px + perpX * off, py + perpY * off, angle, ProjKind.BOLT, s.damage)
+        }
+        for (k in 1..s.diagonalPairs) {
+            val a = 0.32f * k
+            spawnBolt(px, py, angle + a, ProjKind.BOLT, s.damage * 0.8f)
+            spawnBolt(px, py, angle - a, ProjKind.BOLT, s.damage * 0.8f)
+        }
+        if (s.rearShot) spawnBolt(px, py, angle + MathUtil.PI, ProjKind.BOLT, s.damage * 0.8f)
+        sound(GameSound.PLAYER_SHOT)
+    }
+
+    private fun fireCone(angle: Float) {
+        val s = stats
+        val pellets = 1 + 2 * s.coneLevel
+        val spread = 0.9f
+        for (i in 0 until pellets) {
+            val t = if (pellets == 1) 0f else i / (pellets - 1f) - 0.5f
+            val p = spawnBolt(px, py, angle + t * spread, ProjKind.CONE, s.damage * 0.45f) ?: continue
+            p.life = 0.42f
+            p.radius = 5f
+        }
+    }
+
+    private fun fireLance(angle: Float) {
+        val s = stats
+        val p = spawnBolt(px, py, angle, ProjKind.LANCE, s.damage * (2.5f + 0.5f * s.lanceLevel)) ?: return
+        p.pierceLeft = 999
+        p.radius = 10f
+        p.vx *= 0.8f
+        p.vy *= 0.8f
+        p.bounceLeft = 0
+        p.chainLeft = 0
+        sound(GameSound.LANCE)
+    }
+
+    private fun spawnBolt(x: Float, y: Float, angle: Float, kind: ProjKind, damage: Float): Projectile? {
+        val p = projectiles.obtain() ?: return null
+        val s = stats
+        p.active = true
+        p.friendly = true
+        p.kind = kind
+        p.x = x + cos(angle) * (playerRadius + 4f)
+        p.y = y + sin(angle) * (playerRadius + 4f)
+        p.vx = cos(angle) * s.projectileSpeed
+        p.vy = sin(angle) * s.projectileSpeed
+        p.radius = 6f
+        val crit = rng.nextFloat() < s.critChance
+        p.crit = crit
+        p.damage = damage * plan.rules.playerDamageMul * (if (crit) s.critMul else 1f)
+        p.life = s.range / s.projectileSpeed * 1.25f
+        p.pierceLeft = s.pierce
+        p.bounceLeft = s.bounce
+        p.chainLeft = s.chain
+        p.lastHitUid = -1
+        p.ghost = false
+        p.homing = 0f
+        return p
+    }
+
+    private fun updateOrbit(dt: Float) {
+        val s = stats
+        orbAngle = (orbAngle + s.orbAngularSpeed * dt) % MathUtil.TWO_PI
+        bladeAngle = (bladeAngle - 3.4f * dt) % MathUtil.TWO_PI
+        if (phase != Phase.COMBAT) return
+
+        // Packet Nodes: contact damage with a per-enemy cooldown.
+        val orbs = s.orbCount
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            if (e.orbHitCooldown > 0f) e.orbHitCooldown -= dt
+            if (e.bladeHitCooldown > 0f) e.bladeHitCooldown -= dt
+            if (e.orbHitCooldown <= 0f) {
+                for (i in 0 until orbs) {
+                    val a = orbAngle + MathUtil.TWO_PI * i / orbs
+                    val ox = px + cos(a) * s.orbRadius
+                    val oy = py + sin(a) * s.orbRadius
+                    val rr = s.orbSize + e.radius
+                    if (MathUtil.dist2(ox, oy, e.x, e.y) < rr * rr) {
+                        e.orbHitCooldown = ORB_HIT_COOLDOWN
+                        damageEnemy(e, s.orbDamage * plan.rules.playerDamageMul, false, ProjKind.BOLT, quiet = true)
+                        sound(GameSound.ORB_HIT)
+                        break
+                    }
+                }
+            }
+            if (s.bladeCount > 0 && e.active && e.bladeHitCooldown <= 0f) {
+                for (i in 0 until s.bladeCount) {
+                    val a = bladeAngle + MathUtil.TWO_PI * i / s.bladeCount
+                    val bx = px + cos(a) * s.bladeRadius
+                    val by = py + sin(a) * s.bladeRadius
+                    val rr = 14f + e.radius
+                    if (MathUtil.dist2(bx, by, e.x, e.y) < rr * rr) {
+                        e.bladeHitCooldown = 0.5f
+                        damageEnemy(e, s.bladeDamage * plan.rules.playerDamageMul, false, ProjKind.BOLT, quiet = true)
+                        break
+                    }
+                }
+            }
+        }
+
+        // Autonomous Defense Node: each node fires at the nearest threat.
+        if (s.orbBoltInterval > 0f) {
+            orbBoltTimer -= dt
+            if (orbBoltTimer <= 0f) {
+                orbBoltTimer = s.orbBoltInterval
+                for (i in 0 until orbs) {
+                    val a = orbAngle + MathUtil.TWO_PI * i / orbs
+                    val ox = px + cos(a) * s.orbRadius
+                    val oy = py + sin(a) * s.orbRadius
+                    val t = nearestEnemy(ox, oy, 420f) ?: continue
+                    val ang = atan2(t.y - oy, t.x - ox)
+                    val p = projectiles.obtain() ?: break
+                    p.active = true; p.friendly = true; p.kind = ProjKind.NODE_BOLT
+                    p.x = ox; p.y = oy
+                    p.vx = cos(ang) * 520f; p.vy = sin(ang) * 520f
+                    p.radius = 5f; p.damage = s.orbDamage * 0.8f; p.crit = false
+                    p.life = 1f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+                    p.lastHitUid = -1; p.ghost = false; p.homing = 0f
+                }
+            }
+        }
+    }
+
+    fun nearestEnemy(x: Float, y: Float, maxDist: Float, exceptUid: Int = -1): Enemy? {
+        var best: Enemy? = null
+        var bd = maxDist * maxDist
+        for (e in enemies.items) {
+            if (!e.targetable || e.uid == exceptUid) continue
+            val d = MathUtil.dist2(x, y, e.x, e.y)
+            if (d < bd) { bd = d; best = e }
+        }
+        return best
+    }
+
+    // ======================================================================
+    // Damage
+    // ======================================================================
+
+    fun damagePlayer(amount: Float, sourceX: Float, sourceY: Float, ignoreInvuln: Boolean = false) {
+        if (phase == Phase.DEAD || phase == Phase.TRANSITION) return
+        if (!ignoreInvuln && invuln > 0f) return
+        val s = stats
+        if (s.dodge > 0f && rng.nextFloat() < s.dodge) {
+            addText(px, py - 30f, "DODGE", TextKind.INFO)
+            invuln = 0.2f
+            return
+        }
+        var dmg = amount * (1f - s.armor)
+        sinceDamage = 0f
+        if (firewall > 0f) {
+            val absorbed = min(firewall, dmg)
+            firewall -= absorbed
+            dmg -= absorbed
+            addText(px, py - 30f, "-${absorbed.toInt()}", TextKind.SHIELD)
+            sound(GameSound.SHIELD_BLOCK)
+            if (firewall <= 0f) {
+                firewallWasUp = false
+                sound(GameSound.FIREWALL_BREAK)
+                if (s.firewallBreakPulse > 0f) {
+                    firePulseDamage(px, py, 200f, s.damage * s.firewallBreakPulse, clearsProjectiles = true)
+                }
+            }
+        }
+        if (dmg > 0f) {
+            hp -= dmg
+            levelDamageTaken += dmg
+            addText(px, py - 30f, "-${dmg.toInt().coerceAtLeast(1)}", TextKind.PLAYER_HURT)
+            hurtFlash = 0.25f
+            sound(GameSound.PLAYER_HURT)
+        }
+        invuln = if (ignoreInvuln) max(invuln, 0.1f) else HIT_INVULN
+        if (s.counterRing > 0) {
+            for (i in 0 until s.counterRing) {
+                val a = MathUtil.TWO_PI * i / s.counterRing
+                val p = spawnBolt(px, py, a, ProjKind.COUNTER, s.damage * 0.6f) ?: break
+                p.life = 0.6f
+            }
+        }
+    }
+
+    fun heal(amount: Float, quiet: Boolean = false, ignoreMul: Boolean = false) {
+        if (hp <= 0f) return
+        val mul = if (ignoreMul) 1f else stats.healMul * plan.rules.healingMul
+        val real = min(stats.maxHp - hp, amount * mul)
+        if (real <= 0f) return
+        hp += real
+        if (!quiet && real >= 1f) addText(px, py - 34f, "+${real.toInt()}", TextKind.HEAL)
+    }
+
+    fun damageEnemy(e: Enemy, raw: Float, crit: Boolean, kind: ProjKind, quiet: Boolean = false) {
+        if (!e.targetable) return
+        var d = raw
+        if (e.isElite || e.boss != null) d *= stats.eliteDamageMul
+        val armor = e.def.armor * sqrt(Scaling.enemyHp(level))
+        d = max(d * 0.2f, d - armor)
+        d *= e.damageTakenMul
+        e.hp -= d
+        e.hitFlash = 0.1f
+        val textKind = when {
+            e.boss != null -> TextKind.BOSS
+            crit -> TextKind.CRIT
+            else -> TextKind.NORMAL
+        }
+        addText(e.x + (rng.nextFloat() - 0.5f) * 16f, e.y - e.radius, d.toInt().coerceAtLeast(1).toString(), textKind)
+        if (crit) sound(GameSound.CRIT) else if (!quiet) sound(GameSound.ENEMY_HIT)
+        if (e.hp <= 0f) killEnemy(e)
+    }
+
+    fun killEnemy(e: Enemy) {
+        if (!e.active) return
+        e.active = false
+        val bossState = e.boss
+        if (bossState != null) {
+            bossBrain.onBossKilled(e, bossState)
+            return
+        }
+        kills++
+        if (e.isElite) elitesDefeated++
+        val s = stats
+        val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
+        gainXp(e.def.xp * (if (e.isElite) EliteModifier.REWARD_MUL else 1f) * s.xpMul)
+        eurosEarned += max(1, (e.def.euros * rewardMul * s.euroMul).toInt())
+        score += Scoring.kill(e.def.score, level, e.isElite, e.isChild)
+        if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
+        if (s.firewallOnKill > 0f && s.firewallMax > 0f) firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallOnKill)
+        repeat(if (e.isElite) 18 else 10) { addParticle(e.x, e.y, e.def.color, 200f, 0.5f, 3f) }
+        sound(if (e.isElite) GameSound.ELITE_DEATH else GameSound.ENEMY_DEATH)
+
+        // Split / elite death effects.
+        val split = e.def.splitInto
+        if (split != null) spawnChildren(Enemies.byId(split), e.def.splitCount, e.x, e.y)
+        when (e.elite) {
+            EliteModifier.REPLICATING -> spawnChildren(e.def, 2, e.x, e.y)
+            EliteModifier.VOLATILE -> {
+                for (i in 0 until 10) {
+                    fireEnemyProjectile(e.x, e.y, MathUtil.TWO_PI * i / 10f, 170f, 9f * Scaling.enemyDamage(level), 7f, ProjKind.ENEMY)
+                }
+                addPulse(e.x, e.y, 90f, 0.4f, 0xFFFF9A1A)
+            }
+            EliteModifier.CORRUPTED -> addZone(e.x, e.y, 70f, 4f, 10f * Scaling.enemyDamage(level), 0xFF9B4DFF, telegraph = 0f)
+            else -> {}
+        }
+    }
+
+    private fun spawnChildren(def: EnemyDef, count: Int, x: Float, y: Float) {
+        for (i in 0 until count) {
+            val a = MathUtil.TWO_PI * i / count + rng.nextFloat()
+            val child = spawnEnemyAt(def, null, x + cos(a) * 20f, y + sin(a) * 20f, telegraph = false) ?: return
+            child.isChild = true
+        }
+    }
+
+    private fun gainXp(amount: Float) {
+        xp += amount
+        var need = Scaling.xpToNext(runLevel)
+        while (xp >= need) {
+            xp -= need
+            runLevel++
+            pendingUpgrades++
+            need = Scaling.xpToNext(runLevel)
+        }
+    }
+
+    val xpFraction: Float get() = (xp / Scaling.xpToNext(runLevel)).coerceIn(0f, 1f)
+
+    /** Radial damage around a point (EMP, firewall break). */
+    fun firePulseDamage(x: Float, y: Float, radius: Float, damage: Float, clearsProjectiles: Boolean) {
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            val r = radius + e.radius
+            if (MathUtil.dist2(x, y, e.x, e.y) < r * r) damageEnemy(e, damage, false, ProjKind.BOLT, quiet = true)
+        }
+        if (clearsProjectiles) {
+            for (p in projectiles.items) {
+                if (p.active && !p.friendly && MathUtil.dist2(x, y, p.x, p.y) < radius * radius) p.active = false
+            }
+        }
+        addPulse(x, y, radius, 0.45f, 0xFF2E9BFF)
+    }
+
+    // ======================================================================
+    // Spawning (used by planner waves, AI and bosses)
+    // ======================================================================
+
+    fun aliveCount(): Int {
+        var c = 0
+        for (e in enemies.items) if (e.active) c++
+        return c
+    }
+
+    /** Spawn at a random free point away from the player. */
+    fun spawnEnemy(def: EnemyDef, elite: EliteModifier?, telegraph: Boolean): Enemy? {
+        var x = 0f
+        var y = 0f
+        var found = false
+        for (attempt in 0 until 30) {
+            x = 50f + rng.nextFloat() * (arena.width - 100f)
+            y = 60f + rng.nextFloat() * (arena.height * 0.72f)
+            val minDist = if (attempt < 20) SPAWN_MIN_DIST else SPAWN_MIN_DIST * 0.6f
+            if (MathUtil.dist2(x, y, px, py) < minDist * minDist) continue
+            if (!arena.isFree(x, y, def.radius * 1.4f + 6f)) continue
+            found = true
+            break
+        }
+        if (!found) return null
+        return spawnEnemyAt(def, elite, x, y, telegraph)
+    }
+
+    fun spawnEnemyAt(def: EnemyDef, elite: EliteModifier?, x: Float, y: Float, telegraph: Boolean): Enemy? {
+        val e = enemies.obtain() ?: return null
+        val rules: EventRules = plan.rules
+        e.active = true
+        e.uid = nextUid++
+        e.def = def
+        e.elite = elite
+        e.boss = null
+        e.isChild = false
+        arena.pushOut(x, y, def.radius)
+        e.x = arena.out[0]
+        e.y = arena.out[1]
+        e.vx = 0f; e.vy = 0f
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul *
+            (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
+        e.maxHp = def.baseHp * hpMul
+        e.hp = e.maxHp
+        e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
+        e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
+        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul
+        e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
+        e.damageTakenMul = elite?.damageTakenMul ?: 1f
+        e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
+        e.state = if (telegraph) AiState.SPAWNING else AiState.MOVE
+        e.stateTimer = if (telegraph) SPAWN_TELEGRAPH else 0f
+        e.attackTimer = def.attackCooldown * (0.5f + rng.nextFloat() * 0.6f)
+        e.strafeDir = if (rng.nextBoolean()) 1f else -1f
+        e.wobble = rng.nextFloat() * MathUtil.TWO_PI
+        e.hitFlash = 0f
+        e.orbHitCooldown = 0f
+        e.bladeHitCooldown = 0f
+        e.contactCooldown = 0f
+        e.stuckTimer = 0f
+        e.detourTimer = 0f
+        e.lastX = e.x; e.lastY = e.y
+        return e
+    }
+
+    fun fireEnemyProjectile(x: Float, y: Float, angle: Float, speed: Float, damage: Float, radius: Float, kind: ProjKind): Projectile? {
+        val p = projectiles.obtain() ?: return null
+        p.active = true
+        p.friendly = false
+        p.kind = kind
+        p.x = x; p.y = y
+        val sp = speed * Scaling.projectileSpeed(level)
+        p.vx = cos(angle) * sp
+        p.vy = sin(angle) * sp
+        p.radius = radius
+        p.damage = damage
+        p.life = 6f
+        p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+        p.crit = false
+        p.lastHitUid = -1
+        p.ghost = false
+        p.homing = 0f
+        return p
+    }
+
+    // ======================================================================
+    // Projectiles
+    // ======================================================================
+
+    private fun updateProjectiles(dt: Float) {
+        val s = stats
+        for (p in projectiles.items) {
+            if (!p.active) continue
+            p.life -= dt
+            if (p.life <= 0f) { p.active = false; continue }
+            if (p.homing > 0f && !p.friendly) {
+                val want = atan2(py - p.y, px - p.x)
+                val cur = atan2(p.vy, p.vx)
+                val diff = MathUtil.wrapAngle(want - cur)
+                val turn = MathUtil.clamp(diff, -p.homing * dt, p.homing * dt)
+                val sp = sqrt(p.vx * p.vx + p.vy * p.vy)
+                p.vx = cos(cur + turn) * sp
+                p.vy = sin(cur + turn) * sp
+            }
+            val ox = p.x
+            val oy = p.y
+            p.x += p.vx * dt
+            p.y += p.vy * dt
+
+            // Walls and obstacles.
+            val outside = p.x < 0f || p.y < 0f || p.x > arena.width || p.y > arena.height
+            val hitIdx = if (p.ghost) -1 else arena.obstacleAt(p.x, p.y, p.radius * 0.6f)
+            if (outside || hitIdx >= 0) {
+                if (p.friendly && p.bounceLeft > 0) {
+                    p.bounceLeft--
+                    if (outside) {
+                        if (p.x < 0f || p.x > arena.width) p.vx = -p.vx
+                        if (p.y < 0f || p.y > arena.height) p.vy = -p.vy
+                    } else {
+                        val r = arena.rect(hitIdx)
+                        if (ox < r.left || ox > r.right) p.vx = -p.vx else p.vy = -p.vy
+                    }
+                    p.x = ox; p.y = oy
+                    p.lastHitUid = -1
+                } else {
+                    p.active = false
+                    addParticle(p.x, p.y, if (p.friendly) 0xFF00E5FF else 0xFFFF7A1A, 90f, 0.2f, 2f)
+                }
+                continue
+            }
+
+            if (p.friendly) {
+                for (e in enemies.items) {
+                    if (!e.targetable || e.uid == p.lastHitUid) continue
+                    val rr = e.radius + p.radius
+                    if (MathUtil.dist2(p.x, p.y, e.x, e.y) >= rr * rr) continue
+                    onBoltHit(p, e)
+                    break
+                }
+            } else {
+                // Encryption Blades block hostile packets.
+                if (s.bladeCount > 0) {
+                    var blocked = false
+                    for (i in 0 until s.bladeCount) {
+                        val a = bladeAngle + MathUtil.TWO_PI * i / s.bladeCount
+                        val bx = px + cos(a) * s.bladeRadius
+                        val by = py + sin(a) * s.bladeRadius
+                        val rr = 16f + p.radius
+                        if (MathUtil.dist2(bx, by, p.x, p.y) < rr * rr) { blocked = true; break }
+                    }
+                    if (blocked) {
+                        p.active = false
+                        addParticle(p.x, p.y, 0xFF00E5FF, 120f, 0.25f, 2f)
+                        sound(GameSound.SHIELD_BLOCK)
+                        continue
+                    }
+                }
+                val rr = playerRadius * 0.8f + p.radius
+                if (MathUtil.dist2(p.x, p.y, px, py) < rr * rr) {
+                    p.active = false
+                    damagePlayer(p.damage, p.x, p.y)
+                }
+            }
+        }
+    }
+
+    private fun onBoltHit(p: Projectile, e: Enemy) {
+        val s = stats
+        if (p.kind == ProjKind.BOLT && e.boss == null && s.instantDeleteChance > 0f && rng.nextFloat() < s.instantDeleteChance) {
+            addText(e.x, e.y - e.radius - 10f, "DELETED", TextKind.CRIT)
+            damageEnemy(e, e.hp / e.damageTakenMul + 9999f, true, p.kind)
+        } else {
+            damageEnemy(e, p.damage, p.crit, p.kind)
+        }
+        p.lastHitUid = e.uid
+        if (p.chainLeft > 0) {
+            val next = nearestEnemy(e.x, e.y, 220f, exceptUid = e.uid)
+            if (next != null) {
+                val c = projectiles.obtain()
+                if (c != null) {
+                    val ang = atan2(next.y - e.y, next.x - e.x)
+                    c.active = true; c.friendly = true; c.kind = ProjKind.NODE_BOLT
+                    c.x = e.x; c.y = e.y
+                    c.vx = cos(ang) * 760f; c.vy = sin(ang) * 760f
+                    c.radius = 5f; c.damage = p.damage * s.chainDamageMul; c.crit = false
+                    c.life = 0.5f; c.pierceLeft = 0; c.bounceLeft = 0; c.chainLeft = p.chainLeft - 1
+                    c.lastHitUid = e.uid; c.ghost = true; c.homing = 0f
+                }
+            }
+            p.chainLeft = 0
+        }
+        if (p.pierceLeft > 0) p.pierceLeft-- else p.active = false
+    }
+
+    // ======================================================================
+    // Hazards & visual effects
+    // ======================================================================
+
+    fun addLine(x: Float, y: Float, x2: Float, y2: Float, duration: Float, color: Long, ownerUid: Int): Hazard? {
+        val h = hazards.obtain() ?: return null
+        h.active = true; h.kind = HazardKind.LINE
+        h.x = x; h.y = y; h.x2 = x2; h.y2 = y2
+        h.timer = 0f; h.duration = duration; h.color = color; h.ownerUid = ownerUid
+        h.radius = 3f; h.damage = 0f; h.hitPlayer = false
+        return h
+    }
+
+    fun addBlast(x: Float, y: Float, radius: Float, delay: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.BLAST
+        h.x = x; h.y = y; h.radius = radius
+        h.timer = 0f; h.duration = delay; h.damage = damage; h.color = color
+        h.hitPlayer = false; h.ownerUid = -1
+    }
+
+    fun addZone(x: Float, y: Float, radius: Float, duration: Float, dps: Float, color: Long, telegraph: Float) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.ZONE
+        h.x = x; h.y = y; h.radius = radius
+        h.timer = 0f; h.windup = telegraph; h.duration = telegraph + duration
+        h.damage = dps; h.color = color; h.tick = 0f; h.hitPlayer = false; h.ownerUid = -1
+    }
+
+    fun addShockRing(x: Float, y: Float, maxRadius: Float, speed: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.SHOCK_RING
+        h.x = x; h.y = y; h.radius = 10f; h.maxRadius = maxRadius
+        h.timer = 0f; h.duration = maxRadius / speed; h.damage = damage; h.color = color
+        h.hitPlayer = false; h.ownerUid = -1
+    }
+
+    fun addBeam(x: Float, y: Float, angle: Float, length: Float, width: Float, windup: Float, active: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.BEAM
+        h.x = x; h.y = y
+        h.x2 = x + cos(angle) * length; h.y2 = y + sin(angle) * length
+        h.radius = width; h.windup = windup
+        h.timer = 0f; h.duration = windup + active; h.damage = damage; h.color = color
+        h.hitPlayer = false; h.ownerUid = -1
+    }
+
+    private fun updateHazards(dt: Float) {
+        for (h in hazards.items) {
+            if (!h.active) continue
+            h.timer += dt
+            when (h.kind) {
+                HazardKind.LINE -> if (h.timer >= h.duration) h.active = false
+                HazardKind.BLAST -> if (h.timer >= h.duration) {
+                    h.active = false
+                    if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) {
+                        damagePlayer(h.damage, h.x, h.y)
+                    }
+                    addPulse(h.x, h.y, h.radius, 0.3f, h.color)
+                }
+                HazardKind.ZONE -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (h.timer >= h.windup) {
+                        h.tick -= dt
+                        if (h.tick <= 0f && MathUtil.dist2(px, py, h.x, h.y) < h.radius * h.radius) {
+                            h.tick = 0.5f
+                            damagePlayer(h.damage * 0.5f, h.x, h.y, ignoreInvuln = true)
+                        }
+                    }
+                }
+                HazardKind.SHOCK_RING -> {
+                    h.radius = 10f + (h.maxRadius - 10f) * (h.timer / h.duration)
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (!h.hitPlayer) {
+                        val d = MathUtil.dist(px, py, h.x, h.y)
+                        if (kotlin.math.abs(d - h.radius) < RING_THICKNESS + playerRadius * 0.5f) {
+                            h.hitPlayer = true
+                            damagePlayer(h.damage, h.x, h.y)
+                        }
+                    }
+                }
+                HazardKind.BEAM -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (h.timer >= h.windup && !h.hitPlayer) {
+                        if (distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
+                            h.hitPlayer = true
+                            damagePlayer(h.damage, h.x, h.y)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateEffects(dt: Float) {
+        for (t in texts.items) {
+            if (!t.active) continue
+            t.life -= dt
+            t.y -= 38f * dt
+            if (t.life <= 0f) t.active = false
+        }
+        for (p in particles.items) {
+            if (!p.active) continue
+            p.life -= dt
+            p.x += p.vx * dt
+            p.y += p.vy * dt
+            p.vx *= 0.92f
+            p.vy *= 0.92f
+            if (p.life <= 0f) p.active = false
+        }
+        for (p in pulses.items) {
+            if (!p.active) continue
+            p.life -= dt
+            p.radius = p.maxRadius * (1f - p.life / p.maxLife)
+            if (p.life <= 0f) p.active = false
+        }
+    }
+
+    fun addText(x: Float, y: Float, text: String, kind: TextKind) {
+        val t = texts.obtain() ?: return
+        t.active = true; t.x = x; t.y = y; t.text = text; t.kind = kind
+        t.life = if (kind == TextKind.INFO) 1.1f else 0.7f
+    }
+
+    fun addParticle(x: Float, y: Float, color: Long, speed: Float, life: Float, size: Float) {
+        val p = particles.obtain() ?: return
+        val a = rng.nextFloat() * MathUtil.TWO_PI
+        val sp = speed * (0.3f + rng.nextFloat() * 0.7f)
+        p.active = true; p.x = x; p.y = y
+        p.vx = cos(a) * sp; p.vy = sin(a) * sp
+        p.life = life * (0.6f + rng.nextFloat() * 0.4f); p.maxLife = p.life
+        p.color = color; p.size = size
+    }
+
+    fun addPulse(x: Float, y: Float, radius: Float, life: Float, color: Long) {
+        val p = pulses.obtain() ?: return
+        p.active = true; p.x = x; p.y = y; p.radius = 0f; p.maxRadius = radius
+        p.life = life; p.maxLife = life; p.color = color
+    }
+
+    fun showBanner(text: String, sub: String, seconds: Float) {
+        banner = text
+        bannerSub = sub
+        bannerTimer = seconds
+    }
+
+    fun sound(s: GameSound) {
+        if (sounds.size < 32) sounds += s
+    }
+
+    internal fun enemyAiMove(e: Enemy, tx: Float, ty: Float, speed: Float, dt: Float) = ai.moveToward(e, tx, ty, speed, dt)
+
+    internal fun setBossRef(e: Enemy?) { boss = e }
+    internal fun setBossPhaseLabel(label: String) { bossPhaseLabel = label }
+    internal fun onBossDefeated(eurosReward: Int, scoreReward: Int) {
+        bossesDefeated++
+        eurosEarned += (eurosReward * stats.euroMul).toInt()
+        score += scoreReward
+        pendingUpgrades++
+        purgeHostiles()
+    }
+
+    /** Removes every hostile (boss death, timed event end). */
+    fun purgeHostiles() {
+        for (e in enemies.items) {
+            if (!e.active) continue
+            e.active = false
+            repeat(6) { addParticle(e.x, e.y, e.def.color, 160f, 0.4f, 3f) }
+        }
+        for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
+        for (h in hazards.items) h.active = false
+    }
+
+    /** Test hook: jump to a level (used by unit tests and debug). */
+    fun debugJumpToLevel(target: Int) {
+        startLevel(target, null, true)
+    }
+
+    /** Test hook: start a specific plan (e.g. a given event or boss). */
+    fun debugStartPlan(forced: LevelPlan) {
+        startLevel(forced.level, null, true, forced)
+    }
+
+    companion object {
+        const val STEP = 1f / 120f
+        const val MAX_FRAME = 0.1f
+        const val MOVE_DEADZONE = 0.12f
+        /** How long the stick must be released before the first shot. */
+        const val STOP_TO_FIRE_DELAY = 0.04f
+        const val FOLLOW_UP_GAP = 0.11f
+        const val THREAT_RADIUS = 150f
+        const val ORB_HIT_COOLDOWN = 0.4f
+        const val HIT_INVULN = 0.45f
+        const val SPAWN_TELEGRAPH = 0.85f
+        const val SPAWN_MIN_DIST = 300f
+        const val WAVE_TIMEOUT = 14f
+        const val WAVE_MIN_GAP = 1.2f
+        const val CLEAR_BEAT = 0.9f
+        const val TRANSITION_TIME = 0.45f
+        const val PORTAL_RADIUS = 46f
+        const val RING_THICKNESS = 12f
+
+        private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")
+
+        fun distToSegment(px: Float, py: Float, x0: Float, y0: Float, x1: Float, y1: Float): Float {
+            val dx = x1 - x0
+            val dy = y1 - y0
+            val len2 = dx * dx + dy * dy
+            if (len2 < 1e-6f) return MathUtil.dist(px, py, x0, y0)
+            val t = MathUtil.clamp(((px - x0) * dx + (py - y0) * dy) / len2, 0f, 1f)
+            return MathUtil.dist(px, py, x0 + dx * t, y0 + dy * t)
+        }
+    }
+}
