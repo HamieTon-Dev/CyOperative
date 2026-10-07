@@ -85,8 +85,11 @@ data but is 0 pending a monetization decision.
 ## 12. Economy
 - **€**: kills, clears, bosses, events, achievements → permanent upgrades (19 kinds,
   cost = base·(1+level)^1.55, some gated by Operative Level).
-- **◇**: premium, Google Play only (not yet integrated). Skins/operatives/themes/
-  revives/level-up packs. Never required to progress. No misleading store UI.
+- **◇**: premium, Google Play only. Packs: ◇150 $1.00 · ◇500 $4.50 · ◇1000 $8.50 ·
+  ◇10000 $69.99. Revives: 1 ◇100 · 7 ◇500 · 20 ◇800 · 250 ◇6500 (max 3 paid revives per run).
+  Operative skins ◇100 each, all ◇300 (17 skins from CyOps TD agent/core colours).
+  Living backgrounds (from CyOps TD) provisional ◇150 each / ◇600 all.
+  Never required to progress. No misleading store UI.
 - Operative XP = 12·level reached + kills + 80·bosses; level curve 200 + 60·(L−1).
 
 ## 13. Score (engine/Scoring.kt)

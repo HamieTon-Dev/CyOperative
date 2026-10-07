@@ -17,7 +17,8 @@ import com.cyberoperative.game.ui.game.GameSession
 import com.cyberoperative.game.ui.menu.AboutScreen
 import com.cyberoperative.game.ui.menu.AchievementsScreen
 import com.cyberoperative.game.ui.menu.ArmoryScreen
-import com.cyberoperative.game.ui.menu.ComingSoonScreen
+import com.cyberoperative.game.ui.menu.SkinsScreen
+import com.cyberoperative.game.ui.menu.StoreScreen
 import com.cyberoperative.game.ui.menu.LeaderboardScreen
 import com.cyberoperative.game.ui.menu.MainMenuScreen
 import com.cyberoperative.game.ui.menu.MenuTarget
@@ -94,24 +95,10 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                 MenuTarget.LEADERBOARD -> LeaderboardScreen(profile, ::back)
                 MenuTarget.SETTINGS -> SettingsScreen(save, audio, ::back)
                 MenuTarget.ABOUT -> AboutScreen(::back)
-                MenuTarget.SKINS -> ComingSoonScreen("SKINS", SKINS_PLAN, ::back)
-                MenuTarget.STORE -> ComingSoonScreen("STORE", STORE_PLAN, ::back)
+                MenuTarget.SKINS -> SkinsScreen(save, audio, ::back)
+                MenuTarget.STORE -> StoreScreen(save, audio, ::back) { screen = Screen.Sub(MenuTarget.SKINS) }
                 MenuTarget.PLAY -> LaunchedEffect(Unit) { startRun() }
             }
         }
     }
 }
-
-private val SKINS_PLAN = listOf(
-    "Operative armour, glow and energy colours",
-    "Weapon, orb and projectile effects",
-    "Cosmetic only — no gameplay advantage"
-)
-
-private val STORE_PLAN = listOf(
-    "◇ PACKS (Google Play Billing)",
-    "SKINS · OPERATIVES · THEMES",
-    "REVIVES · LEVEL-UP PACKS",
-    "SPECIAL OFFERS",
-    "Nothing in the store is required to progress."
-)

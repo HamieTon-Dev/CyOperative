@@ -40,10 +40,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cyberoperative.game.R
 import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.ui.theme.Palette
@@ -89,7 +87,6 @@ fun GameScreen(
     }
 
     val renderer = remember { ArenaRenderer() }
-    val operative = painterResource(R.drawable.ic_cyber_operative)
     val density = LocalDensity.current
     val hud = session.hud
 
@@ -150,7 +147,7 @@ fun GameScreen(
                 }
         ) {
             @Suppress("UNUSED_VARIABLE") val tick = session.frameTick
-            renderer.draw(this, session.engine, time, operative, showDamageNumbers, topInsetPx, bottomInsetPx)
+            renderer.draw(this, session.engine, time, session.skin, session.background, showDamageNumbers, topInsetPx, bottomInsetPx)
             // Joystick
             val bx = if (stickActive) originX else restX
             val by = if (stickActive) originY else restY
@@ -196,8 +193,7 @@ fun GameScreen(
         if (hud.phase == Phase.DEAD && result != null) {
             GameOverOverlay(
                 result = result,
-                canRevive = hud.canRevive,
-                revivesLeft = hud.revivesLeft,
+                hud = hud,
                 onRevive = { session.revive() },
                 onMenu = { session.finish(); onExitToMenu() },
                 onNew = { session.finish(); onNewOperation() }

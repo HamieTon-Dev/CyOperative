@@ -4,19 +4,20 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.2.0 (versionCode 1) |
+| Version | 0.3.0 (versionCode 2) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
-| Last completed | CO-031 tests, bot playthroughs, screenshot previews |
-| Current task | CO-060 on-device playtest & balance |
+| Last completed | CO-071/072/092/093 store, skins, living backgrounds, revive tokens |
+| Current task | CO-090 waiting on owner picks (Power-Up Board artifact, db doc `picks/main`) |
 | Build status | `./gradlew :app:assembleDebug` ✅ |
-| Test status | `./gradlew :app:testDebugUnitTest` ✅ (22 tests + 6 opt-in screenshot renders) |
+| Test status | `./gradlew :app:testDebugUnitTest` ✅ (26 tests + 9 opt-in screenshot renders) |
 
 ## Known issues / caveats
 - Not yet run on a physical device or emulator (no emulator in the cloud session).
   Rendering was verified with Robolectric native graphics (docs/screenshots/).
 - APK is ~39 MB because of reused MP3 music (6 tracks ≈ 28 MB); consider re-encoding.
 - Bosses all draw as a rotating hexagon with their tag; unique silhouettes pending (CO-063).
-- Store/Skins are placeholder screens by design (no fake purchases).
+- ◇ packs: debug builds grant test ◇; release shows "billing not connected" until CO-070.
+- Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).
 - Balance: a simple dodging bot with no permanent upgrades averages ~level 9–10.
 
 ## Important architecture decisions
@@ -39,6 +40,7 @@ Everything (initial build). Key files: `engine/GameEngine.kt`, `engine/EnemyAi.k
 `engine/BossBrain.kt`, `engine/LevelPlanner.kt`, `data/*.kt`, `ui/game/*`.
 
 ## Next recommended task
+Read the owner's picks (ArtifactData get picks/main on https://claude.ai/artifact/8fjDBEvGFPJp68SNZUZgQP) and apply them (CO-090/091). Otherwise:
 CO-060: install `app/build/outputs/apk/debug/app-debug.apk`, play levels 1–12, then tune
 `core/Scaling.kt`, `RunStats` defaults and enemy data. Then CO-061..066.
 

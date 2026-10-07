@@ -12,7 +12,11 @@ import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.engine.Scoring
 import com.cyberoperative.game.save.SaveRepository
+import com.cyberoperative.game.data.LivingBackground
+import com.cyberoperative.game.data.OperativeSkins
+import com.cyberoperative.game.data.StoreCatalog
 import com.cyberoperative.game.meta.Achievements
+import com.cyberoperative.game.meta.StoreManager
 
 /** What the HUD shows. Rebuilt every frame, assigned only when it changes. */
 data class HudSnapshot(
@@ -38,6 +42,9 @@ data class HudSnapshot(
     val bannerVisible: Boolean = false,
     val canRevive: Boolean = false,
     val revivesLeft: Int = 0,
+    val reviveTokens: Int = 0,
+    val diamonds: Long = 0,
+    val paidRevivesLeft: Int = 0,
     val rerolls: Int = 0,
     val enemiesLeft: Int = 0,
     val offerSerial: Int = 0
@@ -81,6 +88,9 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
     private var committedDiamonds = 0
     private var committedRun = false
     private var lastPhase = Phase.COMBAT
+
+    val skin = OperativeSkins.byId(save.current.selectedSkin)
+    val background = LivingBackground.byId(save.current.selectedBackground)
 
     private val startBestLevel: Int
     private val startBestScore: Long
@@ -145,6 +155,9 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
             bannerVisible = g.bannerTimer > 0f,
             canRevive = g.canRevive,
             revivesLeft = g.revivesLeft,
+            reviveTokens = save.current.reviveTokens,
+            diamonds = save.current.diamonds,
+            paidRevivesLeft = StoreCatalog.MAX_PAID_REVIVES_PER_RUN - paidRevives,
             rerolls = g.rerollsLeft,
             enemiesLeft = g.aliveCount(),
             offerSerial = g.offerSerial
@@ -167,8 +180,27 @@ class GameSession(private val save: SaveRepository, private val audio: AudioMana
 
     fun reroll() = engine.reroll()
 
+    /** Paid (token / ◇) revives used this run; capped so a run can't be infinite. */
+    private var paidRevives = 0
+
+    /** Free revive first, then a revive token, then ◇100 (a 1-revive pack). */
     fun revive(): Boolean {
-        val ok = engine.revive()
+        if (engine.canRevive) {
+            val ok = engine.revive()
+            if (ok) result = null
+            return ok
+        }
+        if (paidRevives >= StoreCatalog.MAX_PAID_REVIVES_PER_RUN) return false
+        var paid = false
+        save.update { p ->
+            val next = StoreManager.useReviveToken(p)
+                ?: StoreManager.buyRevives(p, StoreCatalog.revivePacks.first())?.let { StoreManager.useReviveToken(it) }
+            if (next != null) paid = true
+            next ?: p
+        }
+        if (!paid) return false
+        paidRevives++
+        val ok = engine.revive(paid = true)
         if (ok) result = null
         return ok
     }

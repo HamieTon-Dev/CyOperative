@@ -55,6 +55,33 @@ class ScreenshotPreviews {
         save("main_menu")
     }
 
+    @Test fun skins() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(diamonds = 120, ownedSkins = setOf("default", "red_hat"), selectedSkin = "red_hat") }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.SkinsScreen(repo, AudioManager(ctx)) {} } }
+        compose.mainClock.advanceTimeBy(800)
+        save("skins")
+    }
+
+    @Test fun store() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(diamonds = 650, reviveTokens = 3) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.StoreScreen(repo, AudioManager(ctx), {}, {}) } }
+        compose.mainClock.advanceTimeBy(500)
+        save("store")
+    }
+
+    @Test fun skinnedArena() {
+        assumeTrue(enabled)
+        gameplay("gameplay_skin_background", 3f, profileSetup = { it.copy(selectedSkin = "spectrum", selectedBackground = "aurora") })
+    }
+
     @Test fun bootTerminal() {
         assumeTrue(enabled)
         compose.mainClock.autoAdvance = false
@@ -63,10 +90,14 @@ class ScreenshotPreviews {
         save("boot_terminal")
     }
 
-    private fun gameplay(name: String, simulateSeconds: Float, setup: (GameSession) -> Unit = {}) {
+    private fun gameplay(
+        name: String, simulateSeconds: Float,
+        profileSetup: (com.cyberoperative.game.save.PlayerProfile) -> com.cyberoperative.game.save.PlayerProfile = { it },
+        setup: (GameSession) -> Unit = {}
+    ) {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
-        repo.update { it.copy(tutorialDone = true) }
+        repo.update { profileSetup(it.copy(tutorialDone = true)) }
         val session = GameSession(repo, AudioManager(ctx))
         setup(session)
         val bot = Bot(session.engine, dodge = true)

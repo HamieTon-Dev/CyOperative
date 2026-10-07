@@ -25,6 +25,10 @@ data class PlayerProfile(
     val selectedOperative: String = "operative",
     val ownedThemes: Set<String> = setOf("default"),
     val selectedTheme: String = "default",
+    val ownedBackgrounds: Set<String> = setOf("none"),
+    val selectedBackground: String = "none",
+    /** Revive tokens bought with ◇ (revive packs). */
+    val reviveTokens: Int = 0,
     val tutorialDone: Boolean = false,
     val settings: GameSettings = GameSettings()
 )

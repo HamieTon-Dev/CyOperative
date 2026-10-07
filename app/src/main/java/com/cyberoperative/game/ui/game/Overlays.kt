@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cyberoperative.game.data.StoreCatalog
 import com.cyberoperative.game.engine.UpgradeOffer
 import com.cyberoperative.game.ui.common.CyberButton
 import com.cyberoperative.game.ui.theme.Palette
@@ -112,8 +113,7 @@ private fun UpgradeCard(o: UpgradeOffer, onClick: () -> Unit) {
 @Composable
 fun GameOverOverlay(
     result: RunResult,
-    canRevive: Boolean,
-    revivesLeft: Int,
+    hud: HudSnapshot,
     onRevive: () -> Unit,
     onMenu: () -> Unit,
     onNew: () -> Unit
@@ -154,11 +154,18 @@ fun GameOverOverlay(
                 for (a in result.newAchievements) Text("★ $a", color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(20.dp))
-            if (canRevive) {
-                CyberButton(
-                    "REVIVE", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true,
-                    subtitle = "FREE · $revivesLeft LEFT THIS RUN"
-                ) { onRevive() }
+            val reviveLabel: String? = when {
+                hud.canRevive -> "FREE · ${hud.revivesLeft} LEFT THIS RUN"
+                hud.paidRevivesLeft <= 0 -> null
+                hud.reviveTokens > 0 -> "USE 1 OF ${hud.reviveTokens} REVIVES"
+                hud.diamonds >= StoreCatalog.revivePacks.first().priceDiamonds -> "◇${StoreCatalog.revivePacks.first().priceDiamonds}"
+                else -> null
+            }
+            if (reviveLabel != null) {
+                CyberButton("REVIVE", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, subtitle = reviveLabel) { onRevive() }
+                Spacer(Modifier.height(10.dp))
+            } else if (!hud.canRevive && hud.paidRevivesLeft > 0) {
+                Text("No revives left — revive packs are in the STORE.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(10.dp))
             }
             CyberButton("START NEW OPERATION", Modifier.fillMaxWidth(), accent = Palette.Cyan) { onNew() }

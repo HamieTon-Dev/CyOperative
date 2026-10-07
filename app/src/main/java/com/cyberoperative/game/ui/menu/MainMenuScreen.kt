@@ -1,6 +1,5 @@
 package com.cyberoperative.game.ui.menu
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,14 +28,13 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cyberoperative.game.R
 import com.cyberoperative.game.save.PlayerProfile
 import com.cyberoperative.game.ui.common.CurrencyChip
 import com.cyberoperative.game.ui.common.CyberButton
 import com.cyberoperative.game.ui.common.LivingBackground
+import com.cyberoperative.game.ui.common.OperativeMarkIcon
 import com.cyberoperative.game.ui.theme.Palette
 import kotlin.math.sin
 
@@ -84,10 +82,9 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 }
             }
             Spacer(Modifier.height(22.dp))
-            Image(
-                painterResource(R.drawable.ic_cyber_operative),
-                contentDescription = "Cyber Operative",
-                modifier = Modifier
+            OperativeMarkIcon(
+                com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin),
+                Modifier
                     .size(110.dp)
                     .scale(1f + 0.03f * sin(t * 2f))
             )

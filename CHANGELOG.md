@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 — 2026-10-07
+### Added
+- Store with the owner's structure: ◇ packs (◇150 $1.00 · ◇500 $4.50 · ◇1000 $8.50 ·
+  ◇10000 $69.99), revive packs (1/◇100, 7/◇500, 20/◇800, 250/◇6500), operative skins
+  (◇100 each, all for ◇300) and living backgrounds.
+- 17 operative skins: the >_< shield recoloured in every CyOps TD agent colour (Firewall,
+  IDS, Blue Hat, Analyst, Cryptographer, Zero-Day Hunter, Red Hat, Ace, Anti Duck hologram,
+  Spectrum) and the CyOps TD core-skin palettes (Reactor, Meridian, Glacier, Mainframe,
+  Cascade, Neongrid, Void). Shown in game, on the menu and in the SKINS screen.
+- 7 living backgrounds ported from CyOps TD (Drift, Lattice, Aurora, Rainfall, Pulse,
+  Orbit, Heatmap) drawn on the arena floor.
+- Revive tokens: game over offers the free revive, then a token, then ◇100; at most 3 paid
+  revives per run.
+- Store tests (price table, ownership, old-save migration).
+### Notes
+- ◇ packs credit test ◇ in debug builds only; release builds wait for Google Play Billing.
+
 ## 0.2.0 — 2026-10-07
 ### Added
 - Project bootstrap (Kotlin/Compose, portrait-only, Gradle wrapper, version catalog).

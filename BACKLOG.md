@@ -1,13 +1,15 @@
 # Cyber Operative Development Backlog
 
 ## CURRENT MILESTONE
-**M2 — First Boss & Content Systems (0.2.x)**: vertical slice is done; validate feel on
+**M3 — Store & cosmetics (0.3.x)**, then power-up/boss-drop decisions: vertical slice is done; validate feel on
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
 - CO-060 On-device playtest & balance pass (needs a physical device / emulator run)
 
 ## NEXT
+- CO-090 Apply the owner's picks from the Power-Up Board (names, icons, boss-drop rule)
+- CO-091 Boss signature weapons (12 proposed, see Power-Up Board) once approved
 - CO-061 Hit-stop / screen shake + richer death & hit effects
 - CO-062 Boss intro card (name, title, dossier) before the fight
 - CO-063 Per-boss signature visuals (unique silhouettes instead of hexagon)
@@ -16,9 +18,9 @@ device, tune balance, then fill out the store/meta phases.
 - CO-066 Short interactive tutorial steps on level 1 (beyond the briefing card)
 
 ## PLANNED
-- CO-070 Google Play Billing for ◇ (test SKUs only until production IDs are supplied)
-- CO-071 Store screen: ◇ packs, skins, operatives, themes, revives, level-up packs, offers
-- CO-072 Skins (cosmetic: operative tint, orb/projectile colours)
+- CO-070 Google Play Billing for ◇ (product ids diamonds_150/500/1000/10000; test SKUs until production)
+- CO-071b Store extras: operatives, themes, level-up packs, special offers
+- CO-072b Skins: matching orb/projectile colours per skin
 - CO-073 Themes (menu/arena palettes that never reduce readability)
 - CO-074 Additional operatives with passives
 - CO-075 ◇ revive / rewarded-ad revive (after monetization decision)
@@ -76,6 +78,10 @@ device, tune balance, then fill out the store/meta phases.
 - CO-028 Score formula
 - CO-029 Tutorial briefing card
 - CO-031 Unit tests + automated bot playthroughs + screenshot previews
+- CO-071 Store screen: ◇ packs, revive packs, skins, living backgrounds (owner pricing)
+- CO-072 17 operative skins from CyOps TD agent / core colours (+ all-skins bundle)
+- CO-092 Living backgrounds ported from CyOps TD (7) + store + equip
+- CO-093 Revive tokens and paid revive (max 3 per run)
 
 ## FUTURE IDEAS
 - Mythic / ZERO-DAY rarity tier
@@ -86,9 +92,9 @@ device, tune balance, then fill out the store/meta phases.
 ## USER DECISIONS REQUIRED
 1. **Final package / application ID** (currently provisional `com.cyberoperative.game`).
    Cannot change after first Play upload.
-2. **◇ pricing and pack sizes**; whether events/achievements may grant small ◇ amounts
-   (currently 0).
-3. **Revive policy**: keep 1 free revive per run? add ◇ revive cost and/or rewarded ads?
-4. **Character art direction**: currently the existing shield logo (`>_<`) is the
-   in-game operative. Commission/approve a full-body operative sprite?
-5. **Ads at all?** (CyOps TD has AdMob infra; not added here yet.)
+2. **Living background price**: currently provisional ◇150 each / ◇600 all.
+3. **Power-up names, icons and boss-drop rule**: pick on the Power-Up Board
+   (https://claude.ai/artifact/8fjDBEvGFPJp68SNZUZgQP).
+4. Whether events/achievements may grant small ◇ amounts (currently 0).
+5. Keep the 1 free revive per run? (paid revives capped at 3 per run.)
+6. **Ads at all?** (CyOps TD has AdMob infra; not added here yet.)

@@ -13,10 +13,13 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toArgb
 import com.cyberoperative.game.core.MathUtil
+import com.cyberoperative.game.data.LivingBackground
 import com.cyberoperative.game.data.ObstacleKind
+import com.cyberoperative.game.data.OperativeSkin
+import com.cyberoperative.game.ui.common.OperativeMark
+import com.cyberoperative.game.ui.game.LivingBackgroundDrawer.drawLivingBackground
 import com.cyberoperative.game.data.ShapeKind
 import com.cyberoperative.game.engine.AiState
 import com.cyberoperative.game.engine.Enemy
@@ -59,7 +62,7 @@ class ArenaRenderer {
     var camY = 0f
         private set
 
-    fun draw(scope: DrawScope, g: GameEngine, time: Float, operative: Painter, showNumbers: Boolean, topInset: Float, bottomInset: Float) = with(scope) {
+    fun draw(scope: DrawScope, g: GameEngine, time: Float, skin: OperativeSkin, background: LivingBackground, showNumbers: Boolean, topInset: Float, bottomInset: Float) = with(scope) {
         val arena = g.arena
         scale = size.width / arena.width
         val visibleH = size.height / scale
@@ -77,13 +80,14 @@ class ArenaRenderer {
             translate(0f, -camY)
         }) {
             drawFloor(g, time)
+            drawLivingBackground(background, g.arena.width, g.arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)
             drawHazardsUnder(g, time)
             drawObstacles(g, time)
             drawPortal(g, time)
             drawPulses(g)
             drawEnemies(g, time)
             drawOrbit(g, time)
-            drawPlayer(g, time, operative)
+            drawPlayer(g, time, skin)
             drawProjectiles(g)
             drawHazardsOver(g, time)
             drawParticles(g)
@@ -388,7 +392,7 @@ class ArenaRenderer {
         }
     }
 
-    private fun DrawScope.drawPlayer(g: GameEngine, time: Float, operative: Painter) {
+    private fun DrawScope.drawPlayer(g: GameEngine, time: Float, skin: OperativeSkin) {
         if (g.phase == Phase.DEAD) return
         val c = Offset(g.px, g.py)
         val r = g.playerRadius
@@ -406,11 +410,7 @@ class ArenaRenderer {
         val tip = Offset(g.px + fx * (r + 14f), g.py + fy * (r + 14f))
         drawLine(if (g.moving) Palette.TextMuted else Palette.Green, Offset(g.px + fx * (r + 2f), g.py + fy * (r + 2f)), tip, 4f)
         if (!blink) {
-            val w = r * 2.7f
-            val h = w * 74f / 64f
-            translate(g.px - w / 2f, g.py - h / 2f) {
-                with(operative) { draw(Size(w, h)) }
-            }
+            with(OperativeMark) { drawOperative(skin, time, c, r * 2.7f) }
         }
         // "FIRING" ring when stationary with a target.
         if (!g.moving && g.targetUid >= 0) {
