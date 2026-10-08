@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 — 2026-10-08
+### Added
+- Music runs faster in a fight: 1.25x in levels and events, 1.5x on boss levels (time-
+  stretched at playback, pitch unchanged); full original CyOps TD tracks ship untouched.
+- Big boss health bar at the top: boss tag, name, title, phase, percent, phase markers at
+  60% / 25%, white damage trail.
+- Boss entrance: the bar grows from the centre and fills, the name glitches in, a broken
+  8-bit growl plays with a screen shake, then the fight starts (boss inactive until then).
+- Release signing from `secrets.properties` and RELEASING.md (how to build the .aab and
+  push it to Play testers).
+
 ## 0.4.1 — 2026-10-07
 ### Added
 - Full CyOps TD soundtrack (24 tracks: 20 level, 2 menu, 2 Liminal), re-encoded to 128 kbps.

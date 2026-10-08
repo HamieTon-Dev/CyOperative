@@ -95,7 +95,7 @@ class ArenaRenderer {
         drawRect(Color(0xFF04070D))
         withTransform({
             scale(scale, scale, Offset.Zero)
-            translate(0f, -camY + slide)
+            translate(shakeX(g, time), -camY + slide)
         }) {
             drawFloor(g, time)
             drawLivingBackground(background, arena.width, arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)
@@ -113,6 +113,13 @@ class ArenaRenderer {
         }
         if (g.plan.kind == LevelKind.EVENT) drawSpectrumBorder(time)
         if (g.hurtFlash > 0f) drawRect(Palette.Red.copy(alpha = 0.18f * (g.hurtFlash / 0.25f)))
+    }
+
+    /** Screen shake for the boss growl. */
+    private fun shakeX(g: GameEngine, time: Float): Float {
+        val t = g.bossIntroElapsed
+        val start = com.cyberoperative.game.engine.BossBrain.INTRO_GROWL_AT
+        return if (t >= start && t < start + 0.6f) sin(time * 95f) * 7f * (1f - (t - start) / 0.6f) else 0f
     }
 
     // --- Floor, decor and walls -------------------------------------------

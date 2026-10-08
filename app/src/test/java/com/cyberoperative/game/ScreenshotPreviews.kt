@@ -118,6 +118,16 @@ class ScreenshotPreviews {
         gameplay("pause_music_player", 1f, setup = { s -> s.paused = true })
     }
 
+    private fun bossIntro(name: String, seconds: Float) = gameplay(name, 0f, setup = { s ->
+        s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(10, kotlin.random.Random(1)))
+        var t = 0f
+        while (t < seconds) { s.engine.update(1f / 60f); t += 1f / 60f }
+    })
+
+    @Test fun bossIntro1() { assumeTrue(enabled); bossIntro("boss_intro_1_bar", 0.8f) }
+    @Test fun bossIntro2() { assumeTrue(enabled); bossIntro("boss_intro_2_name", 1.75f) }
+    @Test fun bossIntro3() { assumeTrue(enabled); bossIntro("boss_intro_3_growl", 2.1f) }
+
     @Test fun bootTerminal() {
         assumeTrue(enabled)
         compose.mainClock.autoAdvance = false

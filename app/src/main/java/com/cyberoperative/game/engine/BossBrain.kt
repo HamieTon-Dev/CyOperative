@@ -33,6 +33,8 @@ class BossState(val def: BossDef, val cycle: Int) {
     var anchorY = 0f
     var anchorTimer = 0f
     var driftAngle = 0f
+    /** The entrance growl has played (see [BossBrain.INTRO_GROWL_AT]). */
+    var growled = false
 
     val phase get() = def.phases[phaseIndex]
 }
@@ -58,7 +60,7 @@ class BossBrain(private val g: GameEngine) {
     fun spawn(b: BossDef, x: Float, y: Float) {
         val cycle = Bosses.cycleForLevel(g.level)
         val e = g.spawnEnemyAt(enemyDefFor(b), null, x, y, telegraph = true) ?: return
-        e.stateTimer = 1.6f
+        e.stateTimer = INTRO_SECONDS
         val st = BossState(b, cycle)
         e.boss = st
         e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle)
@@ -77,7 +79,15 @@ class BossBrain(private val g: GameEngine) {
         if (!e.active) return
         if (g.phase != Phase.COMBAT) return
         val st = e.boss ?: return
-        if (e.state == AiState.SPAWNING) return
+        if (e.state == AiState.SPAWNING) {
+            // Entrance: the bar fills, the name appears, then the growl.
+            if (!st.growled && INTRO_SECONDS - e.stateTimer >= INTRO_GROWL_AT) {
+                st.growled = true
+                g.sound(GameSound.BOSS_GROWL)
+                g.addPulse(e.x, e.y, 160f, 0.5f, st.def.color)
+            }
+            return
+        }
 
         // Phase by HP.
         val frac = e.hp / e.maxHp
@@ -328,5 +338,18 @@ class BossBrain(private val g: GameEngine) {
         val euros = (st.def.euros * (1f + 0.04f * g.level)).toInt()
         g.onBossDefeated(euros, Scoring.boss(st.def.score, g.level, st.cycle))
         g.setBossRef(null)
+    }
+
+    companion object {
+        /**
+         * Boss entrance timeline (owner, 2026-10-07): 0–1.4 s the health bar
+         * grows from the centre and fills, 1.4–2.0 s the name glitches in,
+         * 2.0 s the growl, then the fight starts at [INTRO_SECONDS]. The boss
+         * cannot act or be hit until then.
+         */
+        const val INTRO_SECONDS = 3.2f
+        const val INTRO_BAR_END = 1.4f
+        const val INTRO_NAME_END = 2.0f
+        const val INTRO_GROWL_AT = 2.0f
     }
 }

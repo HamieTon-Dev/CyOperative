@@ -170,4 +170,24 @@ class EngineTest {
         println("average level reached: $avg")
         assertTrue("early game too hard: avg $avg", avg >= 4f)
     }
+
+    @Test fun bossEntranceThenFight() {
+        val g = GameEngine(strongConfig())
+        g.debugStartPlan(LevelPlanner.bossPlan(10, Random(2)))
+        g.sounds.clear()
+        var growls = 0
+        var t = 0f
+        while (t < com.cyberoperative.game.engine.BossBrain.INTRO_SECONDS - 0.1f) {
+            g.update(1f / 60f); t += 1f / 60f
+            growls += g.sounds.count { it == com.cyberoperative.game.engine.GameSound.BOSS_GROWL }
+            g.sounds.clear()
+            assertTrue("boss must not be hittable during its entrance", g.boss?.targetable == false)
+            assertEquals("boss must not fire during its entrance", 0, g.projectiles.items.count { it.active && !it.friendly })
+            assertTrue(g.bossIntroElapsed >= 0f)
+        }
+        assertEquals(1, growls)
+        repeat(30) { g.update(1f / 60f) }
+        assertTrue(g.boss!!.targetable)
+        assertEquals(-1f, g.bossIntroElapsed, 0f)
+    }
 }

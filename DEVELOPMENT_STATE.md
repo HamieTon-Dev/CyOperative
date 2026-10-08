@@ -4,9 +4,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.4.1 (versionCode 4) |
+| Version | 0.5.0 (versionCode 5) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
-| Last completed | CO-100/101 soundtrack, music player, background-audio fix |
+| Last completed | Music tempo, big boss bar + entrance, release signing / RELEASING.md |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
 | Build status | `./gradlew :app:assembleDebug` ✅ |
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
@@ -14,7 +14,8 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 ## Known issues / caveats
 - Not yet run on a physical device or emulator (no emulator in the cloud session).
   Rendering was verified with Robolectric native graphics (docs/screenshots/).
-- APK is ~80 MB: the full 24-track soundtrack at 128 kbps (~70 MB). Fine for Play (AAB < 200 MB).
+- Release .aab is ~120 MB: the full original 24-track soundtrack. Fine for Play (< 200 MB).
+- The minified (R8) release build compiles but has not been run on a device yet.
 - Bosses all draw as a rotating hexagon with their tag; unique silhouettes pending (CO-063).
 - ◇ packs: debug builds grant test ◇; release shows "billing not connected" until CO-070.
 - Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).

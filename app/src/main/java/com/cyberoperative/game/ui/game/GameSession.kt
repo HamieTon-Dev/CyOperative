@@ -33,6 +33,11 @@ data class HudSnapshot(
     val phase: Phase = Phase.COMBAT,
     val kind: LevelKind = LevelKind.NORMAL,
     val bossName: String? = null,
+    val bossTitle: String = "",
+    val bossTag: String = "",
+    val bossColor: Long = 0,
+    /** Seconds into the boss entrance (quantized), or -1 when none is running. */
+    val bossIntro: Float = -1f,
     val bossPercent: Int = 0,
     val bossPhase: String = "",
     val eventName: String? = null,
@@ -130,7 +135,8 @@ class GameSession(
     private fun updateMusic() {
         val state = when {
             engine.phase == Phase.DEAD -> MusicState.GAME_OVER
-            engine.plan.kind == LevelKind.BOSS && engine.boss != null -> MusicState.BOSS
+            // The whole boss level (and any Endless boss) runs on boss music.
+            engine.boss != null || (engine.plan.kind == LevelKind.BOSS && engine.phase == Phase.COMBAT) -> MusicState.BOSS
             engine.plan.kind == LevelKind.EVENT -> MusicState.EVENT
             else -> MusicState.COMBAT
         }
@@ -154,6 +160,10 @@ class GameSession(
             phase = g.phase,
             kind = g.plan.kind,
             bossName = b?.boss?.def?.name,
+            bossTitle = b?.boss?.def?.title ?: "",
+            bossTag = b?.boss?.def?.tag ?: "",
+            bossColor = b?.boss?.def?.color ?: 0,
+            bossIntro = g.bossIntroElapsed.let { if (it < 0f) -1f else (it * 30f).toInt() / 30f },
             bossPercent = if (b != null) ((b.hp / b.maxHp) * 100).toInt().coerceIn(0, 100) else 0,
             bossPhase = g.bossPhaseLabel,
             eventName = ev?.name,

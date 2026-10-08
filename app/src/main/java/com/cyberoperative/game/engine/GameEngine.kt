@@ -340,7 +340,6 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         when (plan.kind) {
             LevelKind.BOSS -> {
                 val b = plan.boss!!
-                showBanner("WARNING: ${b.name}", b.title, 2.4f)
                 sound(GameSound.BOSS_SPAWN)
                 bossBrain.spawn(b, arena.width / 2f, 300f)
             }
@@ -1370,7 +1369,6 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             level++
             if (Scaling.isBossLevel(level) && boss == null) {
                 val b = com.cyberoperative.game.data.Bosses.forLevel(level)
-                showBanner("WARNING: ${b.name}", b.title, 2.4f)
                 sound(GameSound.BOSS_SPAWN)
                 bossBrain.spawn(b, arena.width / 2f, 260f)
             } else {
@@ -1386,6 +1384,13 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             spawnEnemy(LevelPlanner.weightedPick(pool, rng), elite, telegraph = true)
         }
     }
+
+    /** Seconds into the current boss's entrance, or -1 when no entrance is running. */
+    val bossIntroElapsed: Float
+        get() {
+            val b = boss ?: return -1f
+            return if (b.active && b.state == AiState.SPAWNING) BossBrain.INTRO_SECONDS - b.stateTimer else -1f
+        }
 
     /** Test hook: jump to a level (used by unit tests and debug). */
     fun debugJumpToLevel(target: Int) {

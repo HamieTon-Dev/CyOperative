@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -114,7 +115,8 @@ fun GameScreen(
             .fillMaxSize()
             .background(Palette.SurfaceSunken)
     ) {
-        val topInsetPx = with(density) { 118.dp.toPx() }
+        // The big boss bar makes the HUD taller; keep the boss out from under it.
+        val topInsetPx = with(density) { (if (hud.bossName != null) 210.dp else 118.dp).toPx() }
         val bottomInsetPx = with(density) { 150.dp.toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
@@ -277,8 +279,8 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
         }
         val boss = h.bossName
         if (boss != null) {
-            Spacer(Modifier.height(4.dp))
-            Bar(h.bossPercent / 100f, Palette.Red, "$boss · ${h.bossPhase}", 0f, 12)
+            Spacer(Modifier.height(6.dp))
+            BossHealthBar(h)
         } else if (h.eventName != null) {
             Spacer(Modifier.height(3.dp))
             Text(
@@ -409,6 +411,114 @@ private fun PauseOverlay(audio: com.cyberoperative.game.audio.AudioManager, onRe
             com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
             Spacer(Modifier.height(4.dp))
             Text("Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+
+/** Characters a corrupted boss name flickers through before it resolves. */
+private const val GLITCH_CHARS = "#%&@!?01<>/\\=+*$"
+
+/**
+ * The big boss bar (owner: "SHOW BIG BOSS health bar at top"), with the
+ * entrance from [com.cyberoperative.game.engine.BossBrain]: the bar grows out
+ * from the centre while it fills, the name glitches in, the bar shakes on the
+ * growl, then the fight starts. Phase thresholds are marked at 60% and 25% and
+ * a white trail drains behind each hit.
+ */
+@Composable
+private fun BossHealthBar(h: HudSnapshot) {
+    val color = if (h.bossColor != 0L) Color(h.bossColor) else Palette.Red
+    val intro = h.bossIntro
+    val barEnd = com.cyberoperative.game.engine.BossBrain.INTRO_BAR_END
+    val nameEnd = com.cyberoperative.game.engine.BossBrain.INTRO_NAME_END
+    val growl = com.cyberoperative.game.engine.BossBrain.INTRO_GROWL_AT
+    val introRunning = intro >= 0f
+    // 0..1: how far the bar has grown/filled during the entrance.
+    val grow = if (introRunning) (intro / barEnd).coerceIn(0f, 1f) else 1f
+    val eased = grow * grow * (3f - 2f * grow)
+    val fraction = if (introRunning) eased else h.bossPercent / 100f
+    val trail by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = if (introRunning) androidx.compose.animation.core.snap() else androidx.compose.animation.core.tween(durationMillis = 650, delayMillis = 250),
+        label = "bossTrail"
+    )
+    val name = h.bossName ?: ""
+    val shownName = when {
+        !introRunning || intro >= nameEnd -> name
+        intro < barEnd -> ""
+        else -> {
+            // Characters resolve left to right; the rest flicker through glitch symbols.
+            val p = (intro - barEnd) / (nameEnd - barEnd)
+            val revealed = (p * name.length).toInt()
+            val seed = (intro * 30f).toInt()
+            buildString {
+                name.forEachIndexed { i, c ->
+                    append(if (i < revealed || c == ' ') c else GLITCH_CHARS[(seed * 7 + i * 13) % GLITCH_CHARS.length])
+                }
+            }
+        }
+    }
+    val shaking = introRunning && intro >= growl && intro < growl + 0.6f
+    val shakeX = if (shaking) (if ((intro * 60f).toInt() % 2 == 0) 5f else -5f) else 0f
+    val flicker = if (shaking && (intro * 40f).toInt() % 3 == 0) 0.45f else 1f
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .offset(x = shakeX.dp)
+            .background(Color(0xE6120208), RoundedCornerShape(8.dp))
+            .border(2.dp, color.copy(alpha = 0.85f * flicker), RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(if (shownName.isEmpty()) "" else h.bossTag, color = color.copy(alpha = flicker), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (shownName.isEmpty()) "!! WARNING !!" else shownName,
+                color = if (shownName.isEmpty()) color.copy(alpha = if ((intro * 6f).toInt() % 2 == 0) 1f else 0.4f) else Palette.TextPrimary.copy(alpha = flicker),
+                style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f), maxLines = 1
+            )
+            if (!introRunning) Text("${h.bossPercent}%", color = color, style = MaterialTheme.typography.titleLarge)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (introRunning && intro < nameEnd) "" else h.bossTitle.uppercase(),
+                color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), maxLines = 1
+            )
+            Text(if (introRunning) (if (intro >= growl) "ENGAGING…" else "") else h.bossPhase, color = color, style = MaterialTheme.typography.labelMedium)
+        }
+        Spacer(Modifier.height(6.dp))
+        androidx.compose.foundation.Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+        ) {
+            val r = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+            // During the entrance the frame itself grows out from the centre.
+            val frameW = size.width * (if (introRunning) eased.coerceAtLeast(0.02f) else 1f)
+            val left = (size.width - frameW) / 2f
+            val o = androidx.compose.ui.geometry.Offset(left, 0f)
+            drawRoundRect(Color(0xFF26060C), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r)
+            if (introRunning) {
+                drawRoundRect(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(listOf(color, color.copy(red = color.red * 0.55f, green = color.green * 0.55f, blue = color.blue * 0.55f))),
+                    topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, alpha = flicker
+                )
+            } else {
+                if (trail > fraction) {
+                    drawRoundRect(Color.White.copy(alpha = 0.75f), size = androidx.compose.ui.geometry.Size(size.width * trail, size.height), cornerRadius = r)
+                }
+                drawRoundRect(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(listOf(color, color.copy(red = color.red * 0.55f, green = color.green * 0.55f, blue = color.blue * 0.55f))),
+                    size = androidx.compose.ui.geometry.Size(size.width * fraction, size.height), cornerRadius = r
+                )
+                for (t in floatArrayOf(0.6f, 0.25f)) {
+                    val x = size.width * t
+                    drawLine(Color.Black.copy(alpha = 0.8f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), 3.dp.toPx())
+                    drawLine(Color.White.copy(alpha = 0.5f), androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, size.height), 1.dp.toPx())
+                }
+            }
+            drawRoundRect(color.copy(alpha = 0.9f * flicker), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
     }
 }

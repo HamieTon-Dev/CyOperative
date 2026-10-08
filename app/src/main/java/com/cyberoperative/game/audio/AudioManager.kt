@@ -151,6 +151,7 @@ class AudioManager(private val context: Context) {
         when (sound) {
             GameSound.PLAYER_HURT -> vibrate(30)
             GameSound.BOSS_DEATH, GameSound.BOSS_SPAWN -> vibrate(120)
+            GameSound.BOSS_GROWL -> vibrate(260)
             GameSound.GAME_OVER -> vibrate(200)
             else -> {}
         }
@@ -200,6 +201,8 @@ class AudioManager(private val context: Context) {
     fun setMusic(next: MusicState) {
         if (next == state) return
         state = next
+        // Same track carrying on into a new state still changes tempo (e.g. a boss arrives).
+        player?.let { if (it.isPlaying) applySpeed(it) }
         if (next == MusicState.NONE) { stopPlayer(); return }
         // A hand-picked track keeps playing through state changes.
         val keep = pinned
@@ -219,9 +222,30 @@ class AudioManager(private val context: Context) {
             mp.isLooping = !shuffle && pinned != null
             mp.setOnCompletionListener { onTrackFinished() }
             player = mp
-            if (canPlay() && requestFocus()) mp.start()
+            if (canPlay() && requestFocus()) startAtSpeed(mp)
         } catch (t: Throwable) {
             Log.w(TAG, "music failed", t)
+        }
+    }
+
+    /**
+     * Owner, 2026-10-07: the soundtrack runs faster in a fight — 1.25x in
+     * levels, 1.5x on boss levels, normal on menus. Time-stretched at playback
+     * (pitch unchanged), so no extra audio files ship.
+     */
+
+    private fun startAtSpeed(mp: MediaPlayer) {
+        mp.start()
+        // Applied after start(): setting a non-zero speed on a paused player
+        // would itself start playback, which must only happen via canPlay().
+        applySpeed(mp)
+    }
+
+    private fun applySpeed(mp: MediaPlayer) {
+        try {
+            mp.playbackParams = mp.playbackParams.setSpeed(speedFor(state)).setPitch(1f)
+        } catch (t: Throwable) {
+            Log.w(TAG, "playback speed unsupported", t)
         }
     }
 
@@ -261,7 +285,7 @@ class AudioManager(private val context: Context) {
             return
         }
         if (canPlay() && requestFocus()) {
-            try { if (!mp.isPlaying) mp.start() } catch (_: Throwable) {}
+            try { if (!mp.isPlaying) startAtSpeed(mp) } catch (_: Throwable) {}
         }
     }
 
@@ -342,5 +366,12 @@ class AudioManager(private val context: Context) {
 
     companion object {
         private const val TAG = "CyberOpAudio"
+
+        fun speedFor(s: MusicState): Float = when (s) {
+            MusicState.COMBAT, MusicState.EVENT -> 1.25f
+            MusicState.BOSS -> 1.5f
+            else -> 1f
+        }
+
     }
 }

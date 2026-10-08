@@ -19,6 +19,7 @@ device, tune balance, then fill out the store/meta phases.
 - CO-066 Short interactive tutorial steps on level 1 (beyond the briefing card)
 
 ## PLANNED
+- CO-105 Reduce download size (audio re-encode / Play Asset Delivery) — owner: later
 - CO-070 Google Play Billing for ◇ (product ids diamonds_150/500/1000/10000; test SKUs until production)
 - CO-071b Store extras: operatives, themes, level-up packs, special offers
 - CO-072b Skins: matching orb/projectile colours per skin
@@ -90,6 +91,9 @@ device, tune balance, then fill out the store/meta phases.
 - CO-099 Three full-body operative designs
 - CO-100 Full CyOps TD soundtrack, shuffle, pause-screen music player
 - CO-101 Background-audio fix (foreground + audio focus + noisy + auto-pause)
+- CO-102 Music tempo by state (1.25x levels, 1.5x bosses)
+- CO-103 Big boss health bar + boss entrance (bar grow, name glitch, growl)
+- CO-104 Release signing + RELEASING.md
 
 ## FUTURE IDEAS
 - Mythic / ZERO-DAY rarity tier

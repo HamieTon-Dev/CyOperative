@@ -1,9 +1,30 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+/**
+ * A release-signing value that must never be committed. Looked up in an
+ * untracked `secrets.properties` at the repo root, then Gradle properties
+ * (`~/.gradle/gradle.properties` / `-P`), then the environment
+ * (`cyberop.keystore.path` -> `CYBEROP_KEYSTORE_PATH`). See RELEASING.md.
+ */
+fun Project.secret(name: String): String? {
+    val local = rootProject.file("secrets.properties")
+    if (local.exists()) {
+        val p = Properties()
+        local.inputStream().use(p::load)
+        p.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+    }
+    (findProperty(name) as String?)?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+    return System.getenv(name.uppercase().replace('.', '_'))?.trim()?.takeIf { it.isNotEmpty() }
+}
+
+val uploadKeystore: File? = project.secret("cyberop.keystore.path")?.let { file(it) }?.takeIf { it.isFile }
 
 android {
     // PROVISIONAL application identity. Final package name is a user decision
@@ -16,8 +37,20 @@ android {
         applicationId = "com.cyberoperative.game"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.4.1"
+        versionCode = 5
+        versionName = "0.5.0"
+    }
+
+    signingConfigs {
+        // Google Play upload key, supplied from outside source control.
+        create("upload") {
+            if (uploadKeystore != null) {
+                storeFile = uploadKeystore
+                storePassword = project.secret("cyberop.keystore.password")
+                keyAlias = project.secret("cyberop.key.alias") ?: "cyberoperative-upload"
+                keyPassword = project.secret("cyberop.key.password") ?: storePassword
+            }
+        }
     }
 
     buildTypes {
@@ -32,6 +65,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Unsigned when no upload key is configured (the .aab must be signed before Play accepts it).
+            signingConfig = if (uploadKeystore != null) signingConfigs.getByName("upload") else null
         }
     }
 

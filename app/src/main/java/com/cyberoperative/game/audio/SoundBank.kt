@@ -69,6 +69,23 @@ object SoundBank {
             v(Q, 240f, 500f, 0.4f, 2.4f), v(S, 120f, 250f, 0.4f, 2.0f),
             v(Q, 240f, 500f, 0.35f, 2.4f, delay = 0.55f)
         ), 0.6f),
+        // Broken 8-bit growl: two detuned low square waves beating against each
+        // other under a crunch of noise, chopped by stuttering "glitch" blips
+        // that skip pitch like a corrupted sample, then a long falling tail.
+        GameSound.BOSS_GROWL to Recipe(1.6f, listOf(
+            v(Q, 92f, 46f, 0.45f, 1.5f),
+            v(Q, 97f, 43f, 0.35f, 1.6f),
+            v(Q, 61f, 38f, 0.30f, 1.2f),
+            v(N, 1f, 1f, 0.22f, 2.6f),
+            v(Q, 420f, 180f, 0.30f, 22f, delay = 0.05f),
+            v(Q, 160f, 300f, 0.28f, 25f, delay = 0.14f),
+            v(Q, 520f, 90f, 0.26f, 20f, delay = 0.22f),
+            v(N, 1f, 1f, 0.30f, 30f, delay = 0.31f),
+            v(Q, 210f, 70f, 0.30f, 18f, delay = 0.36f),
+            v(Q, 640f, 320f, 0.20f, 30f, delay = 0.47f),
+            v(Q, 75f, 30f, 0.40f, 2.2f, delay = 0.55f),
+            v(N, 1f, 1f, 0.18f, 3.5f, delay = 0.55f)
+        ), 0.75f),
         GameSound.BOSS_PHASE to Recipe(0.7f, listOf(v(Q, 180f, 90f, 0.4f, 3f), v(N, 1f, 1f, 0.2f, 5f)), 0.55f),
         GameSound.BOSS_DEATH to Recipe(2.4f, listOf(
             v(N, 1f, 1f, 0.55f, 7f), v(Q, 900f, 220f, 0.22f, 14f),
