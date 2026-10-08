@@ -61,7 +61,9 @@ class VaultAndScalingTest {
             return g.spawnEnemyAt(Enemies.MALWARE, null, 200f, 300f, telegraph = false)!!.maxHp
         }
         assertEquals(1.5f, hp(26) / hp(1), 0.01f)
-        assertEquals(3f, RunConfig(opLevel = 500).opHpMul, 0.001f)
+        assertEquals(3f, RunConfig(opLevel = 101).opHpMul, 0.001f)
+        // Past OP 101 threats keep toughening on a log curve (endless mastery, 0.9.7).
+        assertEquals(5.89f, RunConfig(opLevel = 500).opHpMul, 0.01f)
     }
 
     @Test fun threatsAdaptToBigBuildsOnlyLater() {

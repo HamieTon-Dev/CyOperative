@@ -220,6 +220,22 @@ class ScreenshotPreviews {
         for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
     }
 
+    @Test fun upgradesMastery() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update {
+            it.copy(
+                euros = 2_500_000, operativeXp = 30_000_000L,
+                permanentUpgrades = mapOf("max_hp" to 145, "base_damage" to 60, "attack_speed" to 90, "move_speed" to 10, "attack_range" to 4)
+            )
+        }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.PermanentUpgradesScreen(repo, AudioManager(ctx)) {} } }
+        compose.mainClock.advanceTimeBy(300)
+        save("upgrades_mastery")
+    }
+
     @Test fun hudCollapsed() {
         assumeTrue(enabled)
         gameplay("hud_collapsed", 3f, setup = ::manyBuffs, interact = {

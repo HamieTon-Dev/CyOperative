@@ -149,12 +149,15 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
     }
 }
 
+/** Highest operative level (owner, 2026-10-08). */
+const val MAX_OPERATIVE_LEVEL = 9999
+
 /** Account level from Operative XP (§39): each level needs a little more. */
 fun operativeLevel(xp: Long): Int {
     var level = 1
     var need = 200L
     var rest = xp
-    while (rest >= need && level < 999) {
+    while (rest >= need && level < MAX_OPERATIVE_LEVEL) {
         rest -= need
         level++
         need = 200L + (level - 1) * 60L

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.7 (versionCode 17) — 2026-10-08
+### Changed
+- Endless progression (owner: "scale it to where play never ends"). OP level now goes to 9,999
+  (was 999).
+- Permanent upgrades keep going past their max as MASTERY levels, up to level 9,999. Each
+  mastery level needs one OP level (mastery 50 needs OP LVL 50), and costs keep rising.
+  - Endless with diminishing returns (√ of mastery): max HP, damage, crit damage, firewall,
+    node damage, healing, boss damage, data gain, € gain.
+  - Soft-capped, creeping toward a ceiling: attack speed (max +120%), move speed (+60%),
+    range (+80%), packet speed (+100%), crit chance (+45%), damage reduction (40%),
+    card quality.
+  - Still hard-capped, because more would break runs: starting nodes, starting upgrades,
+    rerolls.
+- Threat scaling keeps going past OP 101 on a log curve: HP ×3 at OP 101, ×7 at OP 1,000 and
+  ×11 at OP 9,999; damage ×2.2 / ×4.2 / ×6.2. Threats also answer mastery: for every ×4 that
+  mastery adds to your damage (or staying power), threat HP (or damage) rises ×2. Mastery
+  always pays off, and fights stay real.
+- The run picker shows the combined threat bonus; upgrade costs show thousands separators.
+
 ## 0.9.6 (versionCode 16) — 2026-10-08
 ### Added
 - Four BOSS 2 music variants (Boss 2, Boss 2 alt, Boss 2 Remix ×2). They join the boss rotation

@@ -46,12 +46,26 @@ data class RunConfig(
     val mode: GameMode = GameMode.CAMPAIGN,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Account OP level (owner, 2026-10-08: veterans face tougher threats and bosses). */
-    val opLevel: Int = 1
+    val opLevel: Int = 1,
+    /** How much permanent-upgrade mastery multiplied damage output / staying power (1 = none). */
+    val masteryDpsRatio: Float = 1f,
+    val masterySurvivalRatio: Float = 1f
 ) {
-    /** Threat HP from OP level: +2% per level above 1, up to ×3 (OP 101). */
-    val opHpMul: Float get() = 1f + 0.02f * (opLevel - 1).coerceIn(0, 100)
-    /** Threat damage from OP level: +1.2% per level above 1, up to ×2.2. */
-    val opDamageMul: Float get() = 1f + 0.012f * (opLevel - 1).coerceIn(0, 100)
+    /**
+     * Threat HP from OP level: +2% per level up to OP 101 (×3), then it keeps
+     * climbing on a log curve (×7 at OP 1,000, ×11 at OP 9,999), times the
+     * square root of the damage mastery added: mastery always pays off, but only
+     * half of it (in multiplier terms) turns into easier fights.
+     */
+    val opHpMul: Float get() = opCurve(0.02f, 0.6f) * kotlin.math.sqrt(masteryDpsRatio)
+    /** Threat damage from OP level: +1.2% per level up to ×2.2, then log (×4.2 at OP 1,000, ×6.2 at 9,999); × √ survival mastery. */
+    val opDamageMul: Float get() = opCurve(0.012f, 0.4f) * kotlin.math.sqrt(masterySurvivalRatio)
+
+    private fun opCurve(perLevel: Float, late: Float): Float {
+        val base = 1f + perLevel * (opLevel - 1).coerceIn(0, 100)
+        val past = (opLevel - 101).coerceAtLeast(0)
+        return if (past == 0) base else base * (1f + late * kotlin.math.ln(1f + past / 100f))
+    }
 }
 
 /**

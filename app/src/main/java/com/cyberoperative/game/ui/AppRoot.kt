@@ -108,6 +108,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                     initial = lastDifficulty,
                     savedRunLabel = RunSnapshot.decodeOrNull(profile.savedRun)?.label,
                     opLevel = com.cyberoperative.game.ui.menu.operativeLevel(profile.operativeXp),
+                    permanent = profile.permanentUpgrades,
                     onStart = { d -> click(); picking = null; startRun(mode, d) },
                     onCancel = { audio.play(GameSound.UI_BACK); picking = null }
                 )

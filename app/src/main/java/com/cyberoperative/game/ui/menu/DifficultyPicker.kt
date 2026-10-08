@@ -46,6 +46,7 @@ fun DifficultyPicker(
     initial: Difficulty,
     savedRunLabel: String?,
     opLevel: Int = 1,
+    permanent: Map<String, Int> = emptyMap(),
     onStart: (Difficulty) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -74,7 +75,9 @@ fun DifficultyPicker(
             )
             Text("SELECT DIFFICULTY", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             if (opLevel > 1) {
-                val cfg = com.cyberoperative.game.engine.RunConfig(opLevel = opLevel)
+                val cfg = remember(opLevel, permanent) {
+                    com.cyberoperative.game.data.Operatives.buildConfig("operative", permanent, 0L).copy(opLevel = opLevel)
+                }
                 Text(
                     "OP LVL $opLevel: threats +${((cfg.opHpMul - 1f) * 100).toInt()}% HP, +${((cfg.opDamageMul - 1f) * 100).toInt()}% damage",
                     color = Palette.Red, style = MaterialTheme.typography.labelSmall

@@ -58,19 +58,31 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
     val opLevel = operativeLevel(profile.operativeXp)
     ScreenScaffold("UPGRADES", onBack, trailing = { CurrencyChip("€", profile.euros, Palette.Euro) }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                Text(
+                    "Past each upgrade's max, MASTERY levels keep going (up to ${"%,d".format(com.cyberoperative.game.data.PermanentUpgradeDef.MAX_LEVEL)}). " +
+                        "Each mastery level needs one OP level and gives a little less than the last. Threats grow with your mastery too.",
+                    color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall
+                )
+            }
             items(PermanentUpgrades.all, key = { it.id }) { def ->
                 val level = profile.permanentUpgrades[def.id] ?: 0
-                val maxed = level >= def.maxLevel
+                val maxed = level >= def.levelCap
                 val cost = def.costFor(level)
                 val locked = opLevel < def.unlockAt
+                // Next mastery level waits for the OP level that unlocks it.
+                val opGated = !maxed && level >= def.capAt(opLevel)
+                val mastered = level >= def.maxLevel
                 val affordable = profile.euros >= cost
-                TerminalCard(accent = if (maxed) Palette.Gold else Palette.Divider) {
+                TerminalCard(accent = if (mastered) Palette.Gold else Palette.Divider) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                             Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                             Text(
-                                "LV $level/${def.maxLevel}" + if (level > 0) "  ·  ${def.effect(level)}" else "",
+                                (if (level > def.maxLevel) "LV ${"%,d".format(level)} · MASTERY ${"%,d".format(level - def.maxLevel)}" else "LV $level/${def.maxLevel}") +
+                                    (if (level > 0) "  ·  ${def.effectAt(level)}" else "") +
+                                    (if (level > def.maxLevel && def.mastery == com.cyberoperative.game.data.Mastery.SOFT) "  ·  soft cap" else ""),
                                 color = Palette.Green, style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -78,12 +90,13 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
                         when {
                             maxed -> Text("MAX", color = Palette.Gold, style = MaterialTheme.typography.titleMedium)
                             locked -> Text("OP LVL\n${def.unlockAt}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
-                            else -> CyberButton("€ $cost", enabled = affordable, accent = Palette.Euro) {
+                            opGated -> Text("OP LVL\n${level - def.maxLevel + 1}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                            else -> CyberButton("€ ${"%,d".format(cost)}", enabled = affordable, accent = Palette.Euro) {
                                 var bought = false
                                 save.update { p ->
                                     val cur = p.permanentUpgrades[def.id] ?: 0
                                     val c = def.costFor(cur)
-                                    if (cur >= def.maxLevel || p.euros < c) p
+                                    if (cur >= def.capAt(operativeLevel(p.operativeXp)) || p.euros < c) p
                                     else {
                                         bought = true
                                         val next = p.copy(euros = p.euros - c, permanentUpgrades = p.permanentUpgrades + (def.id to cur + 1))

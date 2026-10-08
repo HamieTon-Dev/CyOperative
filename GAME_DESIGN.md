@@ -134,6 +134,14 @@ data but is 0 pending a monetization decision.
   Living backgrounds (from CyOps TD) provisional ◇150 each / ◇600 all.
   Never required to progress. No misleading store UI.
 - Operative XP = 12·level reached + kills + 80·bosses; level curve 200 + 60·(L−1).
+  Operative Level caps at 9,999.
+- **Mastery** (0.9.7): permanent upgrades continue past their max up to level 9,999; mastery m
+  needs OP LVL m. Effective level = max + 2·√m (ENDLESS stats) or max + extra·(1−e^(−m/60))
+  (SOFT stats: speed, range, crit chance, armor, packet speed, card quality). Starting nodes,
+  starting upgrades and rerolls stay hard-capped.
+- **OP threat scaling**: +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
+  × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
+  × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
 
 ## 13. Score (engine/Scoring.kt)
 Kills (×level scale, elites ×2.5, split/summon children ×0.35), level clear 100·scale +
