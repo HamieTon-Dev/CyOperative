@@ -45,6 +45,11 @@ class Enemy {
     var detourTimer = 0f
     var detourX = 0f
     var detourY = 0f
+    /** Cached path-following direction, refreshed every [navTimer] seconds. */
+    var navX = 0f
+    var navY = 0f
+    var navTimer = 0f
+    var navValid = false
     var lastX = 0f
     var lastY = 0f
     /** Split children give reduced score so splitting can't be farmed. */

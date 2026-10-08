@@ -15,6 +15,11 @@ import kotlin.math.sqrt
  */
 class EnemyAi(private val g: GameEngine) {
 
+    companion object {
+        /** Seconds between path re-plans per enemy (staggered by spawn time). */
+        const val NAV_REFRESH = 0.12f
+    }
+
     fun update(dt: Float) {
         val phase = g.phase
         if (phase != Phase.COMBAT) return
@@ -47,17 +52,39 @@ class EnemyAi(private val g: GameEngine) {
 
     // --- Movement helpers ---------------------------------------------------
 
-    /** Move toward a direction, sliding along obstacles; detours when stuck. */
+    /**
+     * Move toward a point, sliding along obstacles. When cover blocks the
+     * straight line to the player, follow the [Pathfinder] flow field around
+     * it instead of pushing into the wall; a short sidestep remains as a last
+     * resort if something still pins the enemy.
+     */
     fun moveToward(e: Enemy, tx: Float, ty: Float, speed: Float, dt: Float) {
         var dx = tx - e.x
         var dy = ty - e.y
+        e.navTimer -= dt
+        if (e.navTimer <= 0f) {
+            e.navTimer = NAV_REFRESH
+            e.navValid = false
+            // Only player-bound moves use the field (it leads to the player).
+            val towardPlayer = MathUtil.dist2(tx, ty, g.px, g.py) < 170f * 170f
+            if (towardPlayer && !g.arena.lineOfSight(e.x, e.y, tx, ty, e.radius * 0.9f) && g.path.steer(e.x, e.y, e.radius)) {
+                e.navX = g.path.dir[0]
+                e.navY = g.path.dir[1]
+                e.navValid = true
+            }
+        }
+        if (e.navValid) {
+            dx = e.navX
+            dy = e.navY
+        }
         if (e.detourTimer > 0f) {
             e.detourTimer -= dt
             dx = e.detourX
             dy = e.detourY
         }
         val d = sqrt(dx * dx + dy * dy)
-        if (d < 1f) return
+        if (d < 1f && !e.navValid && e.detourTimer <= 0f) return
+        if (d < 1e-4f) return
         val nx = e.x + dx / d * speed * dt
         val ny = e.y + dy / d * speed * dt
         g.arena.pushOut(nx, ny, e.radius)
@@ -69,11 +96,23 @@ class EnemyAi(private val g: GameEngine) {
         if (e.stuckTimer >= 0.4f) {
             val moved = MathUtil.dist(e.x, e.y, e.lastX, e.lastY)
             if (moved < speed * 0.4f * 0.25f && e.detourTimer <= 0f) {
-                // Slide perpendicular to the desired direction for a moment.
-                val side = if (g.rng.nextBoolean()) 1f else -1f
+                // Slide perpendicular to the desired direction for a moment,
+                // toward whichever side is closer to the player by path.
+                val px1 = e.x - dy / d * 40f
+                val py1 = e.y + dx / d * 40f
+                val px2 = e.x + dy / d * 40f
+                val py2 = e.y - dx / d * 40f
+                val c1 = g.path.costAt(px1, py1)
+                val c2 = g.path.costAt(px2, py2)
+                val side = when {
+                    c1 < c2 -> 1f
+                    c2 < c1 -> -1f
+                    else -> if (g.rng.nextBoolean()) 1f else -1f
+                }
                 e.detourX = -dy / d * side
                 e.detourY = dx / d * side
-                e.detourTimer = 0.6f
+                e.detourTimer = 0.45f
+                e.navTimer = 0f
             }
             e.lastX = e.x
             e.lastY = e.y

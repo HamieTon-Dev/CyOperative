@@ -23,6 +23,13 @@
 - PLASMA BEAM is now TITANIUM (ultra rare) and overheats after 5 s of hits into a 3 s
   cooldown, shown on its icon and above the bar.
 ### Fixed
+- Smarter enemy pathing: a flow field toward the player (20-unit grid, Dijkstra, wall-
+  avoiding costs, no corner cutting) steers enemies around cover instead of into it; they
+  aim at the farthest point down the path they can still see. Stuck sidesteps now pick the
+  side that is closer by path. Test: 144/144 chasers placed behind cover in 24 generated
+  rooms reach the player within budget, using ~52% of it (93% / 66% before).
+- Auto-aim only picks targets its shots can actually reach (no endless volleys into a
+  corner of cover).
 - Music tempo now reliably returns from boss speed (1.5x) once the boss falls; the rate is
   re-checked until the player confirms it.
 ### Changed

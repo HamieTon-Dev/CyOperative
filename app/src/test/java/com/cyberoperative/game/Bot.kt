@@ -63,7 +63,7 @@ class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
                 return
             }
         }
-        if (g.acquireTarget()?.let { g.arena.lineOfSight(g.px, g.py, it.x, it.y, 2f) } == true) {
+        if (g.acquireTarget()?.let { g.arena.lineOfSight(g.px, g.py, it.x, it.y, GameEngine.SHOT_CLEARANCE) } == true) {
             blindTime = 0f
             g.setInput(0f, 0f)
             return

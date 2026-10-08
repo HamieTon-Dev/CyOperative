@@ -36,8 +36,9 @@ class EngineTest {
         val g = GameEngine(RunConfig(baseStats = s, seed = 3L))
         // Let spawns finish their telegraph.
         repeat(120) { g.update(1f / 60f) }
-        // Hold the stick: no primary fire at all.
+        // Hold the stick: no primary fire at all (bolts already in flight don't count).
         g.setInput(0.0f, -1f)
+        for (p in g.projectiles.items) if (p.friendly) p.active = false
         var fired = 0
         repeat(60) { g.update(1f / 60f); fired = maxOf(fired, friendlyBolts(g)) }
         assertEquals("primary weapon must not fire while moving", 0, fired)

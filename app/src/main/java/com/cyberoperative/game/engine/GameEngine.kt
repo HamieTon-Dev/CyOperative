@@ -261,6 +261,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** True while the upgrade screen was opened before combat (starting upgrades). */
     private var upgradeReturnsToCombat = false
 
+    /** Flow field toward the player for enemy navigation. */
+    val path = Pathfinder()
     private val ai = EnemyAi(this)
     private val bossBrain = BossBrain(this)
 
@@ -326,6 +328,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
             updateEventRules(dt)
         }
+        if (phase == Phase.COMBAT) path.update(arena, px, py, dt)
         ai.update(dt)
         bossBrain.update(dt)
         updateProjectiles(dt)
@@ -736,7 +739,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             e.strafeDir = if (rng.nextBoolean()) 1f else -1f
             e.wobble = rng.nextFloat() * MathUtil.TWO_PI
             e.hitFlash = 0f; e.orbHitCooldown = 0f; e.bladeHitCooldown = 0f; e.contactCooldown = 0f
-            e.stuckTimer = 0f; e.detourTimer = 0f; e.lastX = e.x; e.lastY = e.y
+            e.stuckTimer = 0f; e.detourTimer = 0f; e.navTimer = 0f; e.navValid = false; e.lastX = e.x; e.lastY = e.y
         }
         phase = Phase.entries.firstOrNull { it.name == r.phase } ?: Phase.COMBAT
         phaseTimer = r.phaseTimer
@@ -1067,7 +1070,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val d2 = MathUtil.dist2(px, py, e.x, e.y)
             if (d2 > range2) continue
             if (d2 < fallbackD) { fallbackD = d2; fallback = e }
-            if (!arena.lineOfSight(px, py, e.x, e.y, 2f)) continue
+            // Same margin a bolt collides with (radius 6 × 0.6), so a "visible"
+            // target is never one whose shots clip a corner forever.
+            if (!arena.lineOfSight(px, py, e.x, e.y, SHOT_CLEARANCE)) continue
             var score = d2
             if (d2 < THREAT_RADIUS * THREAT_RADIUS) score *= 0.25f
             else if (e.boss != null) score *= 0.6f
@@ -1432,6 +1437,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.contactCooldown = 0f
         e.stuckTimer = 0f
         e.detourTimer = 0f
+        e.navTimer = rng.nextFloat() * EnemyAi.NAV_REFRESH
+        e.navValid = false
         e.lastX = e.x; e.lastY = e.y
         return e
     }
@@ -1838,6 +1845,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val GATE_HALF_WIDTH = 80f
         const val RING_THICKNESS = 12f
         const val BEAM_MAX_FIRE = 5f
+        const val SHOT_CLEARANCE = 4f
         const val BEAM_COOLDOWN = 3f
 
         private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")

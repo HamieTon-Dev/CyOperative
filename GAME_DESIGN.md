@@ -97,6 +97,9 @@ and build (RunSnapshot); CONTINUE restores it once. Saving is blocked while a bo
 Autosave on backgrounding.
 
 ## 9. Enemies (data/EnemyDefs.kt)
+Navigation (engine/Pathfinder.kt): flow field toward the player, rebuilt when the player
+changes cell (≤ every 0.2 s); enemies with a clear line charge straight in, others follow
+the field around cover; bosses use the same movement.
 Malware Crawler, SQL Injector, Bot Drone (packs), Exploit Runner (telegraphed charge),
 Trojan Brute (armour), Phish Lure (spread), Packet Sniffer (laser sight), Worm (splits),
 DDoS Node (radial turret), Rootkit Phantom (teleport + spread). Elites: Encrypted,
