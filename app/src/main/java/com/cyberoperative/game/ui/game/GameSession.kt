@@ -68,7 +68,13 @@ data class HudSnapshot(
     val owned: List<Pair<String, Int>> = emptyList(),
     /** Plasma Beam: heat 0..1 while usable, and seconds of overheat lockout left (0 = ready). */
     val beamHeat: Float = 0f,
-    val beamCooldown: Float = 0f
+    val beamCooldown: Float = 0f,
+    // Upgrade shop
+    val shopMessageSerial: Int = 0,
+    val shopGateOpen: Boolean = false,
+    val inShop: Boolean = false,
+    val atShopCounter: Boolean = false,
+    val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList()
 )
 
 /** Outcome of the finished run for the game-over screen. */
@@ -230,7 +236,12 @@ class GameSession(
             difficulty = difficulty,
             owned = ownedList(),
             beamHeat = (g.beamHeat / GameEngine.BEAM_MAX_FIRE * 20f).toInt() / 20f,
-            beamCooldown = (g.beamCooldown * 10f).toInt() / 10f
+            beamCooldown = (g.beamCooldown * 10f).toInt() / 10f,
+            shopMessageSerial = g.shopMessageSerial,
+            shopGateOpen = g.shopGateOpen,
+            inShop = g.inShop,
+            atShopCounter = g.atShopCounter,
+            shopItems = g.shopItems
         )
     }
 
@@ -264,6 +275,8 @@ class GameSession(
     fun chooseUpgrade(i: Int) = engine.chooseUpgrade(i)
 
     fun reroll() = engine.reroll()
+
+    fun buyShopItem(i: Int) = engine.buyShopItem(i)
 
     /** Paid (token / ◇) revives used this run; capped so a run can't be infinite. */
     private var paidRevives = 0
@@ -345,7 +358,8 @@ class GameSession(
         save.update { p ->
             val xpGain = Scoring.operativeXp(if (countRun) s.levelReached else 0, dKills, dBosses)
             val updated = p.copy(
-                euros = p.euros + dEuros,
+                // Shop purchases spend run € (a negative delta); never below zero.
+                euros = (p.euros + dEuros).coerceAtLeast(0),
                 diamonds = p.diamonds + dDiamonds,
                 operativeXp = p.operativeXp + xpGain,
                 // Endless keeps its own records so the campaign ladder stays meaningful.

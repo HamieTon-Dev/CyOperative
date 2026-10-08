@@ -35,7 +35,9 @@ enum class ObstacleKind(val label: String) {
     /** Low, glowing energy barrier. */
     ENERGY_BARRIER("ENERGY BARRIER"),
     /** Thin, tall antenna mast with a blinking beacon. */
-    ANTENNA_TOWER("ANTENNA TOWER")
+    ANTENNA_TOWER("ANTENNA TOWER"),
+    /** The shopkeeper's counter in the upgrade shop. */
+    SHOP_COUNTER("SHOP COUNTER")
 }
 
 /** Non-colliding floor decoration (procedural arenas). */

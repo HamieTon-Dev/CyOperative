@@ -47,6 +47,9 @@ data class RunConfig(
     val difficulty: Difficulty = Difficulty.MEDIUM
 )
 
+/** One mod on the shop counter. */
+data class ShopItem(val def: com.cyberoperative.game.data.UpgradeDef, val nextLevel: Int, val price: Int, val sold: Boolean)
+
 /** Final numbers of a run, for the game-over screen and the save. */
 data class RunSummary(
     val levelReached: Int,
@@ -117,6 +120,25 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false
+
+    // --- Upgrade shop (owner, 2026-10-08) --------------------------------------
+    /** A side gate to the shop is open this PORTAL phase. */
+    var shopGateOpen = false
+        private set
+    /** Bumped when the "receiving message… upgrade shop available" popup should play. */
+    var shopMessageSerial = 0
+        private set
+    val inShop: Boolean get() = plan.kind == LevelKind.SHOP
+    private var goingToShop = false
+    var shopItems: List<ShopItem> = emptyList()
+        private set
+    /** True while the operative stands at the counter (the buy panel shows). */
+    val atShopCounter: Boolean
+        get() = inShop && arena.obstacles.firstOrNull { it.kind == com.cyberoperative.game.data.ObstacleKind.SHOP_COUNTER }?.let {
+            px > it.rect.left - 40f && px < it.rect.right + 40f && py < it.rect.bottom + 150f
+        } == true
+    /** Side gate on the left wall, halfway down the room. */
+    val shopGateY: Float get() = arena.height * 0.5f
     var rerollsLeft = config.rerolls
         private set
     var revivesLeft = config.freeRevives
@@ -314,7 +336,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             Phase.TRANSITION -> {
                 phaseTimer += dt
                 if (phaseTimer >= TRANSITION_TIME) {
-                    startLevel(level + 1, plan.arena.id, plan.kind == LevelKind.EVENT)
+                    if (goingToShop) enterShop()
+                    else startLevel(level + 1, plan.arena.id, plan.kind == LevelKind.EVENT)
                     slideIn = TRANSITION_TIME
                 }
                 return
@@ -350,6 +373,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             Phase.PORTAL -> if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
                 phase = Phase.TRANSITION
                 phaseTimer = 0f
+                goingToShop = false
+            } else if (shopGateOpen && px < playerRadius + 14f && kotlin.math.abs(py - shopGateY) < SHOP_GATE_HALF) {
+                // Through the side gate into the upgrade shop.
+                phase = Phase.TRANSITION
+                phaseTimer = 0f
+                goingToShop = true
             }
             else -> {}
         }
@@ -361,6 +390,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
+        shopGateOpen = false
+        goingToShop = false
+        shopItems = emptyList()
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
@@ -400,6 +432,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 showBanner(e.name, sub, 2.6f)
                 sound(GameSound.EVENT_START)
             }
+            LevelKind.SHOP -> {}
             LevelKind.NORMAL -> if (mode == GameMode.ENDLESS) showBanner("ENDLESS", "Survive as long as you can", 2f)
             else showBanner(
                 "LEVEL $level",
@@ -540,6 +573,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         bossLuckPending = false
         rewardBatchTotal = 0
         rewardBatchTaken = 0
+        // 1 in 20: the shopkeeper sends a message and a side gate opens.
+        if (!upgradeReturnsToCombat && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
         if (upgradeReturnsToCombat) {
             upgradeReturnsToCombat = false
             phase = Phase.COMBAT
@@ -599,6 +634,62 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         offer = build.rollOffer(rng, luck = offerLuck)
         sound(GameSound.UI_CLICK)
         return true
+    }
+
+    /** Opens the side gate to the shop for this room (also a test hook). */
+    fun offerShop() {
+        if (mode != GameMode.CAMPAIGN || inShop) return
+        shopGateOpen = true
+        shopMessageSerial++
+        sound(GameSound.ACCESS_GRANTED)
+    }
+
+    private fun enterShop() {
+        goingToShop = false
+        shopGateOpen = false
+        val room = ArenaGenerator.shopRoom(Random(rng.nextLong()))
+        plan = LevelPlan(level, LevelKind.SHOP, room, emptyList())
+        arena = Arena(room)
+        clearAll()
+        px = arena.spawnX
+        py = arena.spawnY
+        facing = -MathUtil.PI / 2f
+        phaseTimer = 0f
+        shopItems = rollShopItems()
+        phase = Phase.PORTAL
+        portalOpen = true
+        invuln = 1f
+        showBanner("UPGRADE SHOP", "GOLDEN & TITANIUM MODS · PAY WITH RUN €", 2f)
+    }
+
+    /** Four distinct GOLDEN-or-better mods the build can still take, priced by rarity and depth. */
+    private fun rollShopItems(): List<ShopItem> {
+        val pool = Upgrades.all.filter { !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) }
+            .shuffled(rng).take(4)
+        return pool.map { ShopItem(it, build.level(it.id) + 1, shopPrice(it.rarity, level), sold = false) }
+    }
+
+    /** UI: buy table item [index] with this run's €. */
+    fun buyShopItem(index: Int): Boolean {
+        val item = shopItems.getOrNull(index) ?: return false
+        if (!inShop || item.sold || eurosEarned < item.price || !build.isEligible(item.def)) return false
+        eurosEarned -= item.price
+        applyUpgrade(item.def)
+        shopItems = shopItems.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
+        addText(px, py - 40f, "-${item.price} €", TextKind.INFO)
+        sound(GameSound.CURRENCY)
+        sound(GameSound.UPGRADE_SELECTED)
+        return true
+    }
+
+    /** Applies an upgrade's immediate side effects (HP gained, firewall refilled). Used by the shop. */
+    private fun applyUpgrade(def: com.cyberoperative.game.data.UpgradeDef) {
+        val wasMaxHp = stats.maxHp
+        build.take(def)
+        val gained = stats.maxHp - wasMaxHp
+        if (gained > 0f) hp += gained
+        hp = min(hp, stats.maxHp)
+        if (def.id in FIREWALL_IDS) firewall = stats.firewallMax
     }
 
     private fun openPortal() {
@@ -672,6 +763,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             phase == Phase.DEAD -> "OPERATIVE DOWN"
             bossActive -> "[BOSS] SAVE BLOCKED"
             phase == Phase.TRANSITION || slideIn > 0f -> "ENTERING NEXT ROOM"
+            inShop -> "UPGRADE SHOP · SAVE AFTER LEAVING"
             else -> null
         }
 
@@ -2017,6 +2109,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             return if (b.active && b.state == AiState.SPAWNING) BossBrain.INTRO_SECONDS - b.stateTimer else -1f
         }
 
+    /** Test hook: add run €. */
+    fun debugGrantEuros(amount: Int) { eurosEarned += amount }
+
     /** Test hook: jump to a level (used by unit tests and debug). */
     fun debugJumpToLevel(target: Int) {
         startLevel(target, null, true)
@@ -2048,6 +2143,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val RING_THICKNESS = 12f
         const val BEAM_MAX_FIRE = 5f
         const val SHOT_CLEARANCE = 4f
+        const val SHOP_CHANCE = 1f / 20f
+        const val SHOP_GATE_HALF = 70f
+
+        /** GOLDEN from €1,000, TITANIUM from €2,500, a little more each level. */
+        fun shopPrice(rarity: com.cyberoperative.game.data.Rarity, level: Int): Int = when (rarity) {
+            com.cyberoperative.game.data.Rarity.TITANIUM -> 2500 + 50 * level
+            else -> 1000 + 25 * level
+        }
         const val BEAM_COOLDOWN = 3f
 
         private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")

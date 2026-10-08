@@ -330,6 +330,43 @@ class ScreenshotPreviews {
         for (e in s.engine.enemies.items) e.active = false
     }
 
+    /** Clears the current level (no threats left) and picks every upgrade, ending at the open gate. */
+    private fun clearToPortal(g: com.cyberoperative.game.engine.GameEngine) {
+        var guard = 0
+        while (g.phase != com.cyberoperative.game.engine.Phase.PORTAL && guard++ < 3000) {
+            for (e in g.enemies.items) if (e.active) g.killEnemy(e)
+            if (g.phase == com.cyberoperative.game.engine.Phase.UPGRADE) g.chooseUpgrade(0)
+            g.update(1f / 60f)
+        }
+    }
+
+    @Test fun shopRoom() {
+        assumeTrue(enabled)
+        gameplay("upgrade_shop", 0f) { s ->
+            val g = s.engine
+            g.debugJumpToLevel(12)
+            clearToPortal(g)
+            g.offerShop()
+            var guard = 0
+            while (!g.inShop && guard++ < 1500) { g.setInput(-1f, (g.shopGateY - g.py) / 200f); g.update(1f / 60f) }
+            g.debugGrantEuros(3000)
+            guard = 0
+            while (!g.atShopCounter && guard++ < 1200) { g.setInput((g.arena.width / 2f - g.px) / 100f, -1f); g.update(1f / 60f) }
+            g.setInput(0f, 0f)
+            repeat(30) { g.update(1f / 60f) }
+        }
+    }
+
+    @Test fun shopGate() {
+        assumeTrue(enabled)
+        gameplay("shop_gate_message", 0f) { s ->
+            val g = s.engine
+            g.debugJumpToLevel(6)
+            clearToPortal(g)
+            g.offerShop()
+        }
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

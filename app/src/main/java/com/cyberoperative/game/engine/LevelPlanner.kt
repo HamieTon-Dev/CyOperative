@@ -15,7 +15,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
-enum class LevelKind { NORMAL, BOSS, EVENT }
+/** SHOP: the rare upgrade shop room between levels (no threats). */
+enum class LevelKind { NORMAL, BOSS, EVENT, SHOP }
 
 data class SpawnSpec(val def: EnemyDef, val elite: EliteModifier?)
 

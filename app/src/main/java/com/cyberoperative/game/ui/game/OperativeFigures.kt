@@ -1,5 +1,11 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.core.MathUtil
+
+import androidx.compose.ui.graphics.toArgb
+
+import androidx.compose.ui.graphics.nativeCanvas
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.CornerRadius
@@ -130,6 +136,21 @@ object OperativeFigures {
 
     /** The icon's shield face: green edge, mint >_<, near-black plate. */
     private val neonFace = OperativeSkin("neon_face", "", "", 0xFF19E07A, 0xFF46FFB4, 0xFF02140C, SkinEffect.NEON)
+    /** Blank shield (face drawn as text) for the shopkeeper. */
+    private val keeperFace = OperativeSkin("keeper_face", "", "", 0xFFFFD426, 0xFF140F02, 0xFF140F02, SkinEffect.NONE)
+    private val keeperPaint = android.graphics.Paint().apply {
+        isAntiAlias = true
+        textAlign = android.graphics.Paint.Align.CENTER
+        typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+    }
+
+    /**
+     * The upgrade-shop keeper (owner, 2026-10-08): the main-menu hooded operative,
+     * but with a gold-rimmed shield and the face X,.,.X instead of >_<.
+     */
+    fun DrawScope.drawShopkeeper(x: Float, footY: Float, u: Float, time: Float) {
+        neonOperative(x, footY, u, MathUtil.PI / 2f, false, time, 1f, keeper = true)
+    }
 
     private val neonCyan = Color(0xFF22D3FF)
     private val neonHood = Color(0xFF1B3F9A)
@@ -150,7 +171,7 @@ object OperativeFigures {
         path.close()
     }
 
-    private fun DrawScope.neonOperative(x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float) {
+    private fun DrawScope.neonOperative(x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float, keeper: Boolean = false) {
         val breathe = 0.7f + 0.3f * sin(time * 2.2f)
         val cyan = neonCyan.copy(alpha = alpha)
         val hood = neonHood.copy(alpha = alpha)
@@ -218,14 +239,23 @@ object OperativeFigures {
         // Hood opening (dark) holding the shield face.
         poly(hc.x, hc.y, u, 0f, -12f, 9f, -8f, 10.5f, 2f, 7f, 12f, -7f, 12f, -10.5f, 2f, -9f, -8f)
         drawPath(path, Color(0xFF040818).copy(alpha = alpha))
-        with(OperativeMark) { drawOperative(neonFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
+        if (keeper) {
+            with(OperativeMark) { drawOperative(keeperFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
+            val blink = ((time * 0.7f) % 1f) < 0.06f
+            keeperPaint.textSize = 6.2f * u
+            keeperPaint.color = (if (blink) Color(0xFFFFF3B0) else Color(0xFFFFD426)).toArgb()
+            drawContext.canvas.nativeCanvas.drawText(if (blink) "-,.,.-" else "X,.,.X", hc.x, hc.y + 3.5f * u, keeperPaint)
+        } else {
+            with(OperativeMark) { drawOperative(neonFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
+        }
 
         // Earpiece ring on the left of the hood.
         drawOval(hood, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u))
         drawOval(cyan, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u), style = Stroke(1.5f * u))
         drawOval(Color(0xFF040818).copy(alpha = alpha), Offset(hc.x - 16.4f * u, hc.y - 2.5f * u), Size(3.3f * u, 6f * u))
 
-        gun(x + dir * 12f * u, sh + 6f * u, u, facing, cyan, green, hood)
+        if (!keeper) gun(x + dir * 12f * u, sh + 6f * u, u, facing, cyan, green, hood)
+        else limb(Offset(x + 13f * u, sh + 3f * u), Offset(x + 15f * u, sh + 15f * u), 5f * u, hoodDark)
     }
 
     // --- FIELD AGENT -------------------------------------------------------

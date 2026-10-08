@@ -225,6 +225,7 @@ object ArenaGenerator {
         ObstacleKind.REACTOR -> 86f to 86f
         ObstacleKind.ENERGY_BARRIER -> 170f to 26f
         ObstacleKind.ANTENNA_TOWER -> 36f to 36f
+        ObstacleKind.SHOP_COUNTER -> 320f to 50f
     }
 
     private fun decor(height: Float, obstacles: List<ObstacleSpec>, rng: Random): List<DecorSpec> {
@@ -251,6 +252,35 @@ object ArenaGenerator {
         }
         // Decor never sits under an obstacle (it would be hidden anyway).
         return out.filter { d -> obstacles.none { it.rect.contains(d.x + d.w / 2f, d.y + d.h / 2f) } }
+    }
+
+    /**
+     * The upgrade shop (owner, 2026-10-08): a small, roughly square room with
+     * the shopkeeper's counter near the top and a few random fixtures along the
+     * walls. Always leaves a clear walk to the exit gate.
+     */
+    fun shopRoom(rng: Random): ArenaTemplate {
+        repeat(20) {
+            val height = 820f + rng.nextInt(0, 3) * 40f
+            val placed = ArrayList<ObstacleSpec>()
+            placed += ObstacleSpec(Rect(W / 2f - 160f, 250f, W / 2f + 160f, 300f), ObstacleKind.SHOP_COUNTER)
+            val fixtures = listOf(ObstacleKind.CRATES, ObstacleKind.SMALL_SERVER, ObstacleKind.REACTOR, ObstacleKind.ANTENNA_TOWER, ObstacleKind.COOLANT_PIPES, ObstacleKind.POWER_UNIT)
+            var tries = 0
+            while (placed.size < 4 + rng.nextInt(3) && tries++ < 60) {
+                val k = fixtures[rng.nextInt(fixtures.size)]
+                val (w, h) = sizeOf(k, rng).let { (a, b) -> minOf(a, 110f) to minOf(b, 110f) }
+                val left = rng.nextBoolean()
+                val cx = if (left) MARGIN + 20f + w / 2f else W - MARGIN - 20f - w / 2f
+                val cy = 380f + rng.nextFloat() * (height - 640f)
+                val r = Rect(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f)
+                if (placed.any { o -> r.intersectsRect(o.rect.left - GAP, o.rect.top - GAP, o.rect.right + GAP, o.rect.bottom + GAP) }) continue
+                placed += ObstacleSpec(r, k)
+            }
+            val t = ArenaTemplate("shop", "UPGRADE SHOP", height, placed.toList(), decor = decor(height, placed, rng))
+            val a = Arena(t)
+            if (a.isFree(a.spawnX, a.spawnY, 40f) && a.isFree(a.portalX, a.portalY, 50f) && reachable(a)) return t
+        }
+        return ArenaTemplate("shop", "UPGRADE SHOP", 820f, listOf(ObstacleSpec(Rect(W / 2f - 160f, 250f, W / 2f + 160f, 300f), ObstacleKind.SHOP_COUNTER)))
     }
 
     /** Grid flood fill: can the operative walk from spawn to the gate? */

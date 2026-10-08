@@ -333,6 +333,28 @@ class ArenaRenderer {
         drawLine(wall.copy(alpha = 0.8f), Offset(0f, 0f), Offset(0f, h), 3f)
         drawLine(wall.copy(alpha = 0.8f), Offset(w, 0f), Offset(w, h), 3f)
         drawLine(wall.copy(alpha = 0.5f), Offset(0f, h), Offset(w, h), 3f)
+        if (g.shopGateOpen) drawShopGate(g, time)
+    }
+
+    /** The side gate to the upgrade shop: a gold doorway in the left wall with chevrons pointing in. */
+    private fun DrawScope.drawShopGate(g: GameEngine, time: Float) {
+        val cy = g.shopGateY
+        val half = GameEngine.SHOP_GATE_HALF
+        val p = 0.5f + 0.5f * sin(time * 4f)
+        drawRect(Color(0xFF0A0802), Offset(-14f, cy - half), Size(20f, half * 2f))
+        drawRect(Palette.Gold.copy(alpha = 0.25f + 0.2f * p), Offset(-14f, cy - half), Size(20f, half * 2f))
+        drawRect(Palette.Gold, Offset(-14f, cy - half - 6f), Size(26f, 6f))
+        drawRect(Palette.Gold, Offset(-14f, cy + half), Size(26f, 6f))
+        drawOval(Palette.Gold.copy(alpha = 0.12f + 0.08f * p), Offset(-60f, cy - half * 1.3f), Size(160f, half * 2.6f))
+        for (k in 0 until 3) {
+            val xx = 70f - ((time * 50f + k * 24f) % 72f)
+            shapePath.reset()
+            shapePath.moveTo(xx + 12f, cy - 16f); shapePath.lineTo(xx, cy); shapePath.lineTo(xx + 12f, cy + 16f)
+            drawPath(shapePath, Palette.Gold.copy(alpha = 0.75f), style = Stroke(4f))
+        }
+        tagPaint.textSize = 14f
+        tagPaint.color = Palette.Gold.toArgb()
+        drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint)
     }
 
     private fun mix(a: Color, b: Color, t: Float) =
@@ -556,6 +578,7 @@ class ArenaRenderer {
         ObstacleKind.REACTOR -> 96f
         ObstacleKind.ENERGY_BARRIER -> 22f
         ObstacleKind.ANTENNA_TOWER -> 128f
+        ObstacleKind.SHOP_COUNTER -> 40f
     }
 
     private data class Look(val top: Color, val front: Color, val trim: Color)
@@ -578,6 +601,7 @@ class ArenaRenderer {
             ObstacleKind.REACTOR -> Look(Color(0xFF242A36), Color(0xFF161B24), Palette.Green)
             ObstacleKind.ENERGY_BARRIER -> Look(Color(0xFF331018), Color(0xFF220A10), Palette.Red)
             ObstacleKind.ANTENNA_TOWER -> Look(Color(0xFF26303F), Color(0xFF181F2A), Palette.Red)
+            ObstacleKind.SHOP_COUNTER -> Look(Color(0xFF2B2416), Color(0xFF1C170D), Palette.Gold)
         }
     }
 
@@ -597,6 +621,8 @@ class ArenaRenderer {
 
     private fun DrawScope.drawObstacle(g: GameEngine, o: ObstacleSpec, index: Int, time: Float) {
         val r = o.rect
+        // The shopkeeper stands behind the counter (drawn first so the counter hides the legs).
+        if (o.kind == ObstacleKind.SHOP_COUNTER) with(OperativeFigures) { drawShopkeeper(r.centerX, r.top + 8f, 1.9f, time) }
         val h = heightOf(o.kind)
         val vault = g.plan.rules.vault && index == g.arena.obstacles.lastIndex
         val look = if (vault) lookOf(o.kind, true) else themed(lookOf(o.kind, false), o.kind, g)
@@ -778,6 +804,34 @@ class ArenaRenderer {
                 val on = ((time * 2f).toInt() + index) % 2 == 0
                 drawCircle(Palette.Red.copy(alpha = if (on) 0.35f else 0.08f), 12f, Offset(r.centerX, topY - 6f))
                 drawCircle(Palette.Red.copy(alpha = if (on) 1f else 0.25f), 4f, Offset(r.centerX, topY - 6f))
+            }
+            ObstacleKind.SHOP_COUNTER -> {
+                // Glowing gold edge and the mods for sale laid out on the counter.
+                drawLine(Palette.Gold.copy(alpha = 0.5f), Offset(r.left + 4f, topY + 2f), Offset(r.right - 4f, topY + 2f), 2f)
+                val items = g.shopItems
+                val n = items.size.coerceAtLeast(1)
+                for ((i, it) in items.withIndex()) {
+                    val cx = r.left + r.width * (i + 0.5f) / n
+                    val cy = topY + r.height / 2f
+                    val col = Color(it.def.rarity.color)
+                    val bob = sin(time * 2.4f + i) * 2f
+                    if (!it.sold) {
+                        drawCircle(col.copy(alpha = 0.22f), 22f, Offset(cx, cy - 10f + bob))
+                        drawRoundRect(Color(0xFF0A0D14), Offset(cx - 16f, cy - 26f + bob), Size(32f, 26f), CornerRadius(4f))
+                        drawRoundRect(col, Offset(cx - 16f, cy - 26f + bob), Size(32f, 26f), CornerRadius(4f), style = Stroke(2f))
+                        tagPaint.textSize = 10f
+                        tagPaint.color = col.toArgb()
+                        drawContext.canvas.nativeCanvas.drawText(it.def.glyph.take(5), cx, cy - 9f + bob, tagPaint)
+                    } else {
+                        tagPaint.textSize = 10f
+                        tagPaint.color = Palette.TextMuted.toArgb()
+                        drawContext.canvas.nativeCanvas.drawText("SOLD", cx, cy - 9f, tagPaint)
+                    }
+                    // Price tag on the counter front.
+                    tagPaint.textSize = 11f
+                    tagPaint.color = (if (it.sold) Palette.TextMuted else Palette.Euro).toArgb()
+                    drawContext.canvas.nativeCanvas.drawText(if (it.sold) "---" else "€${it.price}", cx, frontTop + h * 0.7f, tagPaint)
+                }
             }
             ObstacleKind.CRATES -> {
                 // Reinforced hardware crate: X braces on top and front.

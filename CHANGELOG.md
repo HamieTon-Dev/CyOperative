@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 (versionCode 10) — 2026-10-08
+### Added
+- Upgrade shop: after a cleared level's upgrades are picked there is a 1-in-20 chance the
+  shopkeeper calls in — a terminal-style "> RECEIVING MESSAGE … > UPGRADE SHOP AVAILABLE"
+  pop-up types out and a gold side gate opens in the left wall. It leads to a small, randomly
+  furnished shop room (no threats). The shopkeeper is the main-menu hooded operative with a gold
+  shield and the face X,.,.X. Four GOLDEN / TITANIUM mods sit on the counter (GOLDEN from €1,000,
+  TITANIUM from €2,500, +€25/+€50 per level); stand at the counter and tap one to buy it with this
+  run's €. Leave through the top gate to the next level. Saving is paused inside the shop.
+
 ## 0.8.0 (versionCode 9) — 2026-10-08
 ### Added
 - Environments (data/Environments.kt): 12 colour themes (Cyan Grid, Emerald Dataworks,

@@ -4,7 +4,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.8.0 (versionCode 9) |
+| Version | 0.9.0 (versionCode 10) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | Key-art visual pass, PLASMA BEAM, NEON OPERATIVE |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |

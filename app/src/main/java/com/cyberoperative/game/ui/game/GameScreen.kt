@@ -203,6 +203,29 @@ fun GameScreen(
             )
         }
 
+        if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
+            Text(
+                "◄ SHOP GATE OPEN — LEFT WALL",
+                color = Palette.Gold, style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 152.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
+                    .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+        // Upgrade shop: buy panel at the counter, and the terminal message when a shop appears.
+        if (hud.inShop && hud.atShopCounter) {
+            ShopPanel(
+                hud.shopItems, hud.euros, onBuy = { session.buyShopItem(it) },
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
+            )
+        }
+        ShopMessage(hud.shopMessageSerial, Modifier.align(Alignment.Center).padding(horizontal = 20.dp))
         if (hud.phase == Phase.UPGRADE) {
             UpgradeOverlay(session)
         }
@@ -245,6 +268,8 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
                 LevelKind.BOSS -> Palette.Red
                 LevelKind.EVENT -> Color(h.eventAccent)
                 LevelKind.NORMAL -> Palette.Cyan
+        LevelKind.SHOP -> Palette.Gold
+                LevelKind.SHOP -> Palette.Gold
             }
             Text(if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}", color = levelColor, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.width(10.dp))
@@ -281,7 +306,7 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
                 Spacer(Modifier.width(6.dp))
                 Box(Modifier.weight(1f)) { Bar(h.xpPercent / 100f, Palette.Green, null, 0f, 5) }
             }
-        } else if (h.kind != LevelKind.BOSS && h.timedSeconds < 0) {
+        } else if (h.kind != LevelKind.BOSS && h.kind != LevelKind.SHOP && h.timedSeconds < 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("THREATS ${h.levelKills}/${h.levelThreats}", color = Palette.Red, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.width(6.dp))
@@ -340,6 +365,7 @@ private fun Banner(h: HudSnapshot, modifier: Modifier) {
         LevelKind.BOSS -> Palette.Red
         LevelKind.EVENT -> Color(h.eventAccent)
         LevelKind.NORMAL -> Palette.Cyan
+        LevelKind.SHOP -> Palette.Gold
     }
     Column(
         modifier
