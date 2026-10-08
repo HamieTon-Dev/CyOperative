@@ -29,7 +29,7 @@ object StoreCatalog {
 
     const val SKIN_PRICE = 100
 
-    /** NEON OPERATIVE (the app-icon operative). Owner to confirm the price. */
+    /** NEON OPERATIVE (the app-icon operative): ◇100 alone, or included in the skin pack. */
     const val NEON_OPERATIVE_PRICE = 100
     const val ALL_SKINS_PRICE = 300
 

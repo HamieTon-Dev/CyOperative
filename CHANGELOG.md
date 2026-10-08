@@ -5,7 +5,7 @@
 - NEON OPERATIVE — a fourth full-body operative built on the app icon's geometry:
   faceted neon-blue hood with a pointed crown, glowing green >_< shield face, antenna with a
   lit tip, ring earpiece, shoulder plate with the green power button, raised collar, cyan
-  neon aura. Bought in STORE → OPERATIVES (◇100, provisional) and selected on OPERATIVE.
+  neon aura. Bought in STORE → OPERATIVES (◇100) or included in the ◇300 skin pack; selected on OPERATIVE.
 ### Changed
 - Package name confirmed final: com.cyberoperative.game.
 

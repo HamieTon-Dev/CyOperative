@@ -20,13 +20,16 @@ object StoreManager {
         return p.copy(diamonds = p.diamonds - StoreCatalog.SKIN_PRICE, ownedSkins = p.ownedSkins + skinId, selectedSkin = skinId)
     }
 
-    fun allSkinsOwned(p: PlayerProfile): Boolean = OperativeSkins.paid.all { it.id in p.ownedSkins }
+    /** The ◇300 skin pack covers every colour skin and the NEON OPERATIVE (owner, 2026-10-08). */
+    fun allSkinsOwned(p: PlayerProfile): Boolean =
+        OperativeSkins.paid.all { it.id in p.ownedSkins } && NEON_OPERATIVE_ID in p.ownedOperatives
 
     fun buyAllSkins(p: PlayerProfile): PlayerProfile? {
         if (allSkinsOwned(p) || p.diamonds < StoreCatalog.ALL_SKINS_PRICE) return null
         return p.copy(
             diamonds = p.diamonds - StoreCatalog.ALL_SKINS_PRICE,
-            ownedSkins = p.ownedSkins + OperativeSkins.all.map { it.id }
+            ownedSkins = p.ownedSkins + OperativeSkins.all.map { it.id },
+            ownedOperatives = p.ownedOperatives + NEON_OPERATIVE_ID
         )
     }
 

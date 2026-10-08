@@ -68,4 +68,14 @@ class StoreTest {
         assertNull("can't buy twice", StoreManager.buyNeonOperative(p))
         assertNotNull(StoreManager.equipBody(p, "agent", premium = false))
     }
+
+    @Test fun skinPackIncludesNeonOperative() {
+        val p = StoreManager.buyAllSkins(PlayerProfile(diamonds = 300))!!
+        assertTrue(StoreManager.NEON_OPERATIVE_ID in p.ownedOperatives)
+        assertTrue(StoreManager.allSkinsOwned(p))
+        assertNull(StoreManager.buyNeonOperative(p.copy(diamonds = 999)))
+        // Owning every colour skin but not the operative still offers the pack.
+        val skinsOnly = p.copy(ownedOperatives = setOf("operative"))
+        assertTrue(!StoreManager.allSkinsOwned(skinsOnly))
+    }
 }

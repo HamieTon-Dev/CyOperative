@@ -94,7 +94,7 @@ device, tune balance, then fill out the store/meta phases.
 - CO-102 Music tempo by state (1.25x levels, 1.5x bosses)
 - CO-103 Big boss health bar + boss entrance (bar grow, name glitch, growl)
 - CO-104 Release signing + RELEASING.md
-- CO-106 NEON OPERATIVE: 4th full-body operative from the app icon (store, ◇100)
+- CO-106 NEON OPERATIVE: 4th full-body operative from the app icon (◇100 or in the ◇300 skin pack)
 - CO-107 Package name finalized: com.cyberoperative.game
 
 ## FUTURE IDEAS
@@ -104,7 +104,6 @@ device, tune balance, then fill out the store/meta phases.
 - Boss rush mode
 
 ## USER DECISIONS REQUIRED
-2. **NEON OPERATIVE price** (provisional ◇100).
 3. **Living background price**: currently provisional ◇150 each / ◇600 all.
 3. **Power-up names, icons and boss-drop rule**: pick on the Power-Up Board
    (https://claude.ai/artifact/8fjDBEvGFPJp68SNZUZgQP).
