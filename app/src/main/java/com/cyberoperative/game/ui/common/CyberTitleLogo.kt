@@ -9,6 +9,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
@@ -195,7 +196,9 @@ private fun glyphWidth(ch: Char, s: Float): Float = when (ch) {
 private fun buildWord(text: String, k: Float, top: Float, h: Float, s: Float): Path {
     val total = text.sumOf { glyphWidth(it, s).toDouble() }.toFloat() + LETTER_GAP * (text.length - 1)
     var x = (LOGO_W - total * h) / 2f
-    val word = Path()
+    // Glyphs never overlap and each is already a merged outline, so even-odd
+    // keeps the counters (holes in O, P, R, A, B) open after addPath.
+    val word = Path().apply { fillType = PathFillType.EvenOdd }
     for (ch in text) {
         val pen = Pen(x * k, top * k, h * k)
         word.addPath(glyph(ch, pen, s))
