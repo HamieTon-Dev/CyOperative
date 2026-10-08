@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.scale
 import com.cyberoperative.game.data.OperativeSkin
+import com.cyberoperative.game.data.OperativeSkins
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -95,6 +96,31 @@ private val bits = listOf(
     Triple(23f, 87f, NeonBlue), Triple(73f, 88f, NeonBlue)
 )
 
+// Face shield traced from the app icon: peaked top, straight sides, angular point.
+private val shield = path(52f, 25.5f, 69f, 32.5f, 69f, 51f, 52f, 67f, 35f, 51f, 35f, 32.5f)
+private val shieldFacet = path(35f, 32.5f, 52f, 25.5f, 52f, 38f, 35f, 43f)
+private val eyeLeft = path(40f, 40.5f, 45.8f, 45.8f, 40f, 51.1f, closed = false)
+private val mouthLine = path(48.6f, 50.6f, 55.4f, 50.6f, closed = false)
+private val eyeRight = path(64f, 40.5f, 58.2f, 45.8f, 64f, 51.1f, closed = false)
+private val IconGreen = Color(0xFF2BEA8C)
+private val IconFace = Color(0xFF55F5A8)
+
+private fun DrawScope.drawFaceShield(skin: OperativeSkin, time: Float, pulse: Float) {
+    // The default skin wears the icon's own neon green; any other skin tints it.
+    val c = OperativeMark.colors(skin, time)
+    val isDefault = skin.id == OperativeSkins.DEFAULT.id
+    val edge = if (isDefault) IconGreen else c.edge
+    val face = if (isDefault) IconFace else c.face
+    glowStroke(shield, edge, 2.2f, pulse * 0.8f, layers = 3)
+    drawPath(shield, Brush.verticalGradient(listOf(Color(0xFF07231A), Color(0xFF020A07)), startY = 25f, endY = 67f))
+    drawPath(shieldFacet, Color.White.copy(alpha = 0.035f))
+    drawPath(shield, edge, style = Stroke(2.2f, join = StrokeJoin.Round))
+    for (p in listOf(eyeLeft, mouthLine, eyeRight)) {
+        drawPath(p, face.copy(alpha = 0.16f * pulse), style = Stroke(4.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawPath(p, face, style = Stroke(2.7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
 private fun DrawScope.glowStroke(p: Path, color: Color, width: Float, glow: Float, layers: Int = 5) {
     for (i in layers downTo 1) {
         drawPath(p, color.copy(alpha = 0.07f * glow), style = Stroke(width + width * 0.9f * i, join = StrokeJoin.Round, cap = StrokeCap.Round))
@@ -138,7 +164,7 @@ private fun DrawScope.drawEmblem(skin: OperativeSkin, time: Float) {
     }
 
     // The player's skin as the face shield.
-    with(OperativeMark) { drawOperative(skin, time, Offset(51.5f, 49f), 33f) }
+    drawFaceShield(skin, time, pulse)
 
     // Collar button.
     drawCircle(Mint.copy(alpha = 0.25f * pulse), 6f, Offset(41f, 76f))
