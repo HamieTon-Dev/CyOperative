@@ -3,14 +3,16 @@ package com.cyberoperative.game.audio
 import com.cyberoperative.game.R
 
 /** Where a track came from in CyOps TD, which decides where it plays by default. */
-enum class TrackGroup { MENU, LEVEL, AMBIENT }
+enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT }
 
 /** One owned CyOps TD soundtrack piece, titled with the owner's CyOps TD naming. */
 data class MusicTrack(val id: String, val res: Int, val title: String, val group: TrackGroup)
 
 /**
  * The full CyOps TD soundtrack (owner, 2026-10-07: "use all of the music
- * assets"). 20 level tracks, 2 menu tracks and the 2 "Liminal" tracks.
+ * assets"). 20 level tracks, 2 menu tracks, the 2 "Liminal" tracks and the
+ * BOSS 2 variants (owner, 2026-10-08). Stored as Ogg Vorbis (~92 kbps) to keep
+ * the download small.
  */
 object MusicLibrary {
 
@@ -30,6 +32,10 @@ object MusicLibrary {
         level(8, 1, R.raw.track_level8), level(8, 2, R.raw.track_level8_2),
         level(9, 1, R.raw.track_level9), level(9, 2, R.raw.track_level9_2),
         level(10, 1, R.raw.track_level10), level(10, 2, R.raw.track_level10_2),
+        MusicTrack("boss2_1", R.raw.track_boss2_1, "CyOps - Boss 2 (1)", TrackGroup.BOSS),
+        MusicTrack("boss2_2", R.raw.track_boss2_2, "CyOps - Boss 2 (2)", TrackGroup.BOSS),
+        MusicTrack("boss2_remix_1", R.raw.track_boss2_remix_1, "CyOps - Boss 2 Remix (1)", TrackGroup.BOSS),
+        MusicTrack("boss2_remix_2", R.raw.track_boss2_remix_2, "CyOps - Boss 2 Remix (2)", TrackGroup.BOSS),
         MusicTrack("liminal_space", R.raw.track_liminal_space, "CyOps TD - Liminal Space", TrackGroup.AMBIENT),
         MusicTrack("liminal_haze", R.raw.track_liminal_haze, "CyOps TD - Liminal Haze", TrackGroup.AMBIENT)
     )
@@ -42,8 +48,8 @@ object MusicLibrary {
         MusicState.MENU -> all.filter { it.group == TrackGroup.MENU }
         // In a run, the whole soundtrack shuffles.
         MusicState.COMBAT, MusicState.EVENT -> all
-        // Bosses get the two heaviest pieces (CyOps TD's level-10 tracks).
-        MusicState.BOSS -> all.filter { it.id.startsWith("level10") }
+        // Bosses get the heaviest pieces: CyOps TD's level-10 tracks and the BOSS 2 variants.
+        MusicState.BOSS -> all.filter { it.id.startsWith("level10") || it.group == TrackGroup.BOSS }
         MusicState.GAME_OVER -> all.filter { it.group == TrackGroup.AMBIENT }
     }
 }

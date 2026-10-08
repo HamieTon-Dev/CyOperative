@@ -68,6 +68,6 @@ testing → create track → same steps. Start this early.
 Increase `versionCode`, rebuild (`bundleRelease`), and create a new release on the same track.
 
 ## Notes
-- The bundle is ~120 MB (full original CyOps TD soundtrack); Play's limit is 200 MB per
-  download, so this is fine. Size reduction is backlogged.
+- The bundle is ~60 MB (full soundtrack as Ogg Vorbis ~92 kbps); Play's limit is 200 MB per
+  download, so this is fine. Music was re-encoded to Ogg Vorbis in 0.9.6 (about half the old size).
 - Google Play Billing (◇ packs) is not connected yet; in release builds the ◇ buttons say so.

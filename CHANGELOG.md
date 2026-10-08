@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.6 (versionCode 16) — 2026-10-08
+### Added
+- Four BOSS 2 music variants (Boss 2, Boss 2 alt, Boss 2 Remix ×2). They join the boss rotation
+  with the level-10 tracks and shuffle into normal combat like every other track.
+### Changed
+- Smaller download: the whole soundtrack is re-encoded from MP3 (~195 kbps, with embedded cover
+  art) to Ogg Vorbis (~92 kbps, no artwork). Music went from ~116 MB (24 tracks) to ~56 MB
+  (28 tracks); the debug APK dropped from ~137 MB to ~73 MB.
+
 ## 0.9.5 (versionCode 15) — 2026-10-08
 ### Changed
 - Fullscreen gameplay: the status bar is hidden while playing (swipe down from the top edge to

@@ -4,7 +4,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.9.5 (versionCode 15) |
+| Version | 0.9.6 (versionCode 16) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,7 +14,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 ## Known issues / caveats
 - Not yet run on a physical device or emulator (no emulator in the cloud session).
   Rendering was verified with Robolectric native graphics (docs/screenshots/).
-- Release .aab is ~120 MB: the full original 24-track soundtrack. Fine for Play (< 200 MB).
+- Release .aab is ~60 MB: the full 28-track soundtrack as Ogg Vorbis (~92 kbps, re-encoded from the MP3 masters in 0.9.6).
 - The minified (R8) release build compiles but has not been run on a device yet.
 - Bosses all draw as a rotating hexagon with their tag; unique silhouettes pending (CO-063).
 - ◇ packs: debug builds grant test ◇; release shows "billing not connected" until CO-070.

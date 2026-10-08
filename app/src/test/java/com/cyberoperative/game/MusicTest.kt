@@ -12,11 +12,16 @@ import kotlin.random.Random
 class MusicTest {
 
     @Test fun wholeCyOpsSoundtrackIsIncluded() {
-        assertEquals(24, MusicLibrary.all.size)
-        assertEquals(24, MusicLibrary.all.map { it.id }.toSet().size)
-        assertEquals(24, MusicLibrary.poolFor(MusicState.COMBAT).size)
+        assertEquals(28, MusicLibrary.all.size)
+        assertEquals(28, MusicLibrary.all.map { it.id }.toSet().size)
+        assertEquals(28, MusicLibrary.poolFor(MusicState.COMBAT).size)
         assertTrue(MusicLibrary.poolFor(MusicState.MENU).isNotEmpty())
         assertTrue(MusicLibrary.poolFor(MusicState.BOSS).isNotEmpty())
+    }
+
+    @Test fun bossPoolHasLevel10AndBoss2Variants() {
+        val ids = MusicLibrary.poolFor(MusicState.BOSS).map { it.id }.toSet()
+        assertEquals(setOf("level10_1", "level10_2", "boss2_1", "boss2_2", "boss2_remix_1", "boss2_remix_2"), ids)
     }
 
     @Test fun shufflePlaysEveryTrackBeforeRepeating() {
