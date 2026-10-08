@@ -34,6 +34,19 @@ enum class Phase {
     DEAD
 }
 
+/** The co-op partner's own permanent progression (their base stats, rerolls, card quality). */
+data class AllyConfig(
+    val baseStats: RunStats = RunStats(),
+    val rerolls: Int = 0,
+    val upgradeQuality: Float = 0f,
+    val startingUpgrades: Int = 0,
+    val opLevel: Int = 1
+)
+
+const val COOP_HP_MUL = 1.4f
+const val COOP_BOSS_HP_MUL = 1.7f
+const val COOP_EXTRA_THREATS = 0.35f
+
 /** Everything a run starts with: the operative's base stats + permanent progression. */
 data class RunConfig(
     val baseStats: RunStats = RunStats(),
@@ -49,8 +62,15 @@ data class RunConfig(
     val opLevel: Int = 1,
     /** How much permanent-upgrade mastery multiplied damage output / staying power (1 = none). */
     val masteryDpsRatio: Float = 1f,
-    val masterySurvivalRatio: Float = 1f
+    val masterySurvivalRatio: Float = 1f,
+    /** Co-op partner (owner, 2026-10-08), or null for a solo run. */
+    val ally: AllyConfig? = null
 ) {
+    val coop: Boolean get() = ally != null
+    /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
+    val coopHpMul: Float get() = if (coop) COOP_HP_MUL else 1f
+    val coopBossHpMul: Float get() = if (coop) COOP_BOSS_HP_MUL else 1f
+
     /**
      * Threat HP from OP level: +2% per level up to OP 101 (×3), then it keeps
      * climbing on a log curve (×7 at OP 1,000, ×11 at OP 9,999), times the
@@ -128,32 +148,40 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     lateinit var arena: Arena
         private set
     val mode: GameMode get() = config.mode
-    val build = RunBuild(config.baseStats).also {
-        it.qualityBonus = config.upgradeQuality
+    /** The operatives on the field: [0] is the host / solo player, [1] the co-op partner. */
+    private val ops = ArrayList<Operative>(2).apply {
+        add(Operative(0, config.baseStats).also { it.rerollsLeft = config.rerolls; it.build.qualityBonus = config.upgradeQuality })
+        config.ally?.let { a -> add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality }) }
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
-        if (config.mode == GameMode.CAMPAIGN) it.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
+        if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
     }
+    val operatives: List<Operative> get() = ops
+    /** The operative the rules are being applied to right now (outside [update]: the host / solo player). */
+    private var cur: Operative = ops[0]
+    val coop: Boolean get() = ops.size > 1
+    val build: RunBuild get() = cur.build
     val stats: RunStats get() = build.stats
 
     var runLevel = 1
         private set
     var xp = 0f
         private set
-    var pendingUpgrades = 0
-        private set
-    var offer: List<UpgradeOffer> = emptyList()
-        private set(value) {
-            field = value
-            offerSerial++
-        }
+    var pendingUpgrades: Int
+        get() = cur.pendingUpgrades
+        private set(v) { cur.pendingUpgrades = v }
+    var offer: List<UpgradeOffer>
+        get() = cur.offer
+        private set(v) { cur.offer = v }
     /** Bumped whenever [offer] changes so the UI knows to redraw the cards. */
-    var offerSerial = 0
-        private set
+    val offerSerial: Int get() = cur.offerSerial
     /** Rewards in the current pick streak (e.g. 3 after a boss) and how many are taken. */
-    var rewardBatchTotal = 0
-        private set
-    var rewardBatchTaken = 0
-        private set
+    var rewardBatchTotal: Int
+        get() = cur.rewardBatchTotal
+        private set(v) { cur.rewardBatchTotal = v }
+    var rewardBatchTaken: Int
+        get() = cur.rewardBatchTaken
+        private set(v) { cur.rewardBatchTaken = v }
+
     /** Rarity luck of the current offers (level + difficulty + boss bonus). */
     var offerLuck = 0f
         private set
@@ -214,8 +242,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     /** X of the gate's mouth: where the operative has to stand to go through. */
     val shopGateX: Float get() = if (shopGateRight) arena.width else 0f
-    var rerollsLeft = config.rerolls
-        private set
+    var rerollsLeft: Int
+        get() = cur.rerollsLeft
+        private set(v) { cur.rerollsLeft = v }
     var revivesLeft = config.freeRevives
         private set
     var revivesUsed = 0
@@ -258,65 +287,108 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var previousArenaId: String? = null
     private var previousEvent = false
 
-    // --- Player -------------------------------------------------------------
-    var px = 0f
-        private set
-    var py = 0f
-        private set
+    // --- Player (the current operative; see [Operative]) ------------------------
     val playerRadius = 20f
-    var hp = 100f
-        private set
-    var firewall = 0f
-        private set
-    var facing = -MathUtil.PI / 2f
-        private set
-    var moving = false
-        private set
-    var invuln = 0f
-        private set
-    var hurtFlash = 0f
-        private set
-    private var inputX = 0f
-    private var inputY = 0f
-    private var fireCooldown = 0f
-    private var stillTime = 0f
-    private var followUpLeft = 0
-    private var followUpTimer = 0f
-    private var lanceTimer = 0f
-    private var empTimer = 0f
-    private var sinceDamage = 99f
-    private var firewallWasUp = false
-    var orbAngle = 0f
-        private set
-    var bladeAngle = 0f
-        private set
-    private var orbBoltTimer = 0f
-    var targetUid = -1
-        private set
-
-    /** Plasma Beam (upgrade weapon): live this frame, and where it ends. */
-    var beamActive = false
-        private set
-    var beamX2 = 0f
-        private set
-    var beamY2 = 0f
-        private set
+    var px: Float
+        get() = cur.px
+        private set(v) { cur.px = v }
+    var py: Float
+        get() = cur.py
+        private set(v) { cur.py = v }
+    var hp: Float
+        get() = cur.hp
+        private set(v) { cur.hp = v }
+    var firewall: Float
+        get() = cur.firewall
+        private set(v) { cur.firewall = v }
+    var facing: Float
+        get() = cur.facing
+        private set(v) { cur.facing = v }
+    var moving: Boolean
+        get() = cur.moving
+        private set(v) { cur.moving = v }
+    var invuln: Float
+        get() = cur.invuln
+        private set(v) { cur.invuln = v }
+    var hurtFlash: Float
+        get() = cur.hurtFlash
+        private set(v) { cur.hurtFlash = v }
+    var orbAngle: Float
+        get() = cur.orbAngle
+        private set(v) { cur.orbAngle = v }
+    var bladeAngle: Float
+        get() = cur.bladeAngle
+        private set(v) { cur.bladeAngle = v }
+    var targetUid: Int
+        get() = cur.targetUid
+        private set(v) { cur.targetUid = v }
+    var beamActive: Boolean
+        get() = cur.beamActive
+        private set(v) { cur.beamActive = v }
+    var beamX2: Float
+        get() = cur.beamX2
+        private set(v) { cur.beamX2 = v }
+    var beamY2: Float
+        get() = cur.beamY2
+        private set(v) { cur.beamY2 = v }
+    var beamHeat: Float
+        get() = cur.beamHeat
+        private set(v) { cur.beamHeat = v }
+    var beamCooldown: Float
+        get() = cur.beamCooldown
+        private set(v) { cur.beamCooldown = v }
+    private var inputX: Float
+        get() = cur.inputX
+        set(v) { cur.inputX = v }
+    private var inputY: Float
+        get() = cur.inputY
+        set(v) { cur.inputY = v }
+    private var fireCooldown: Float
+        get() = cur.fireCooldown
+        set(v) { cur.fireCooldown = v }
+    private var stillTime: Float
+        get() = cur.stillTime
+        set(v) { cur.stillTime = v }
+    private var followUpLeft: Int
+        get() = cur.followUpLeft
+        set(v) { cur.followUpLeft = v }
+    private var followUpTimer: Float
+        get() = cur.followUpTimer
+        set(v) { cur.followUpTimer = v }
+    private var lanceTimer: Float
+        get() = cur.lanceTimer
+        set(v) { cur.lanceTimer = v }
+    private var empTimer: Float
+        get() = cur.empTimer
+        set(v) { cur.empTimer = v }
+    private var sinceDamage: Float
+        get() = cur.sinceDamage
+        set(v) { cur.sinceDamage = v }
+    private var firewallWasUp: Boolean
+        get() = cur.firewallWasUp
+        set(v) { cur.firewallWasUp = v }
+    private var orbBoltTimer: Float
+        get() = cur.orbBoltTimer
+        set(v) { cur.orbBoltTimer = v }
+    private var beamTick: Float
+        get() = cur.beamTick
+        set(v) { cur.beamTick = v }
+    private var mineTimer: Float
+        get() = cur.mineTimer
+        set(v) { cur.mineTimer = v }
+    private var missileTimer: Float
+        get() = cur.missileTimer
+        set(v) { cur.missileTimer = v }
+    private var arcTimer: Float
+        get() = cur.arcTimer
+        set(v) { cur.arcTimer = v }
+    private var railTimer: Float
+        get() = cur.railTimer
+        set(v) { cur.railTimer = v }
+    private var strikeTimer: Float
+        get() = cur.strikeTimer
+        set(v) { cur.strikeTimer = v }
     val beamWidth: Float get() = 14f + 5f * stats.beamLevel
-    private var beamTick = 0f
-    /**
-     * Plasma Beam heat (owner, 2026-10-08: "too overpowered"): seconds of
-     * damage dealt so far; at [BEAM_MAX_FIRE] it overheats into a
-     * [BEAM_COOLDOWN] lockout. Heat bleeds off slowly while not firing.
-     */
-    var beamHeat = 0f
-        private set
-    var beamCooldown = 0f
-        private set
-    private var mineTimer = 0f
-    private var missileTimer = 0f
-    private var arcTimer = 0f
-    private var railTimer = 0f
-    private var strikeTimer = 0f
 
     // --- Entities -----------------------------------------------------------
     val enemies = Pool(96, { Enemy() }) { it.active }
@@ -361,22 +433,116 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** True while the upgrade screen was opened before combat (starting upgrades). */
     private var upgradeReturnsToCombat = false
 
-    /** Flow field toward the player for enemy navigation. */
-    val path = Pathfinder()
+    /** Flow field toward the current operative for enemy navigation. */
+    val path: Pathfinder get() = cur.path
     private val ai = EnemyAi(this)
     private val bossBrain = BossBrain(this)
 
     init {
-        build.recompute()
-        hp = stats.maxHp
-        firewall = stats.firewallMax
+        for (o in ops) {
+            o.build.recompute()
+            o.hp = o.build.stats.maxHp
+            o.firewall = o.build.stats.firewallMax
+        }
         if (restore != null) applySnapshot(restore)
         else startLevel(level, null, false)
-        if (restore == null && config.startingUpgrades > 0) {
+        if (restore == null) {
             // Starting Weapon Power: pick free upgrades before the first fight.
-            pendingUpgrades = config.startingUpgrades
-            openUpgrades(resumeCombat = true)
+            ops[0].pendingUpgrades = config.startingUpgrades
+            if (ops.size > 1) ops[1].pendingUpgrades = config.ally?.startingUpgrades ?: 0
+            if (ops.any { it.pendingUpgrades > 0 }) openUpgrades(resumeCombat = true)
         }
+    }
+
+    // ======================================================================
+    // Co-op (owner, 2026-10-08)
+    // ======================================================================
+
+    /** Runs [block] with each operative still on the field as the current one. */
+    private inline fun forEachAlive(block: (Operative) -> Unit) {
+        for (o in ops) {
+            if (!o.alive) continue
+            cur = o
+            block(o)
+        }
+        cur = ops[0]
+    }
+
+    /** Points the rules at the living operative closest to (x, y): who a threat chases and shoots at. */
+    internal fun focusNearest(x: Float, y: Float) {
+        if (ops.size == 1) return
+        var best: Operative? = null
+        var bd = Float.MAX_VALUE
+        for (o in ops) {
+            if (!o.alive) continue
+            val d = MathUtil.dist2(x, y, o.px, o.py)
+            if (d < bd) { bd = d; best = o }
+        }
+        if (best != null) cur = best
+    }
+
+    internal fun focusHost() { cur = ops[0] }
+
+    /** Co-op partner's stick. */
+    fun setInputFor(index: Int, x: Float, y: Float) {
+        val o = ops.getOrNull(index) ?: return
+        o.inputX = x
+        o.inputY = y
+    }
+
+    /** The partner left the game: the run carries on with whoever is still here. */
+    fun removeOperative(index: Int) {
+        val o = ops.getOrNull(index) ?: return
+        if (index == 0 || o.gone) return
+        o.gone = true
+        o.downed = false
+        o.pendingUpgrades = 0
+        o.offer = emptyList()
+        o.beamActive = false
+        showBanner("PARTNER DISCONNECTED", "Continuing solo", 2f)
+        if (phase == Phase.UPGRADE && ops.all { it.gone || it.pendingUpgrades <= 0 }) finishUpgrades()
+    }
+
+    /** Downed operatives, revives by standing close, and game over when nobody is left up. True = run ended. */
+    private fun updateCoop(dt: Float): Boolean {
+        for (o in ops) {
+            if (o.gone || o.downed || o.hp > 0f) continue
+            o.downed = true
+            o.hp = 0f
+            o.reviveProgress = 0f
+            o.beamActive = false
+            o.moving = false
+            addPulse(o.px, o.py, 200f, 0.7f, 0xFFFF2D55)
+            showBanner("OPERATIVE DOWN", "Stand next to your partner to revive", 2f)
+            sound(GameSound.GAME_OVER)
+        }
+        if (ops.none { it.alive }) {
+            die()
+            return true
+        }
+        for (o in ops) {
+            if (!o.downed || o.gone) continue
+            val helped = ops.any { it.alive && MathUtil.dist(it.px, it.py, o.px, o.py) < REVIVE_RADIUS }
+            o.reviveProgress = if (helped) o.reviveProgress + dt else max(0f, o.reviveProgress - dt * 0.5f)
+            if (o.reviveProgress >= REVIVE_SECONDS) reviveOperative(o)
+        }
+        return false
+    }
+
+    private fun reviveOperative(o: Operative) {
+        o.downed = false
+        o.reviveProgress = 0f
+        o.hp = o.build.stats.maxHp * 0.5f
+        o.firewall = o.build.stats.firewallMax
+        o.invuln = 2f
+        addPulse(o.px, o.py, 200f, 0.6f, 0xFF00FF9C)
+        addText(o.px, o.py - 40f, "REVIVED", TextKind.HEAL)
+        sound(GameSound.REVIVE)
+    }
+
+    /** Every operative still in the run gets a level-up pick. */
+    private fun grantPick(n: Int = 1) {
+        for (o in ops) if (!o.gone) o.pendingUpgrades += n
     }
 
     // ======================================================================
@@ -385,8 +551,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Joystick vector; magnitude 0..1. */
     fun setInput(x: Float, y: Float) {
-        inputX = x
-        inputY = y
+        ops[0].inputX = x
+        ops[0].inputY = y
     }
 
     fun update(delta: Float) {
@@ -423,30 +589,41 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         runSeconds += dt
         if (phase == Phase.COMBAT) levelSeconds += dt
 
-        updatePlayer(dt)
-        updateOrbit(dt)
+        forEachAlive { updatePlayer(dt); updateOrbit(dt) }
         if (phase == Phase.COMBAT) {
             if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
             updateEventRules(dt)
         }
-        if (phase == Phase.COMBAT) path.update(arena, px, py, dt)
+        if (phase == Phase.COMBAT) forEachAlive { path.update(arena, px, py, dt) }
         ai.update(dt)
         bossBrain.update(dt)
+        cur = ops[0]
         updateProjectiles(dt)
         updateZaps(dt)
         updateHazards(dt)
-        if (hp <= 0f) {
+        cur = ops[0]
+        if (coop) {
+            if (updateCoop(dt)) return
+        } else if (hp <= 0f) {
             die()
             return
         }
 
-        updateVault(dt)
+        forEachAlive { updateVault(dt) }
         when (phase) {
             Phase.COMBAT -> if (mode == GameMode.ENDLESS) {
-                if (pendingUpgrades > 0) openUpgrades(resumeCombat = true)
+                if (ops.any { it.pendingUpgrades > 0 }) openUpgrades(resumeCombat = true)
             } else checkCleared()
             Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
-            Phase.PORTAL -> if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
+            Phase.PORTAL -> forEachAlive { portalCheck() }
+            else -> {}
+        }
+    }
+
+    /** The current operative walking into the top gate or the shop's side gate. */
+    private fun portalCheck() {
+        if (phase != Phase.PORTAL) return
+        if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
                 if (shopGateOpen) {
                     // A shop is on offer: ask before letting them skip it, and step them back off the gate.
                     if (!skipShopPrompt) {
@@ -465,8 +642,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 phaseTimer = 0f
                 goingToShop = true
             }
-            else -> {}
-        }
     }
 
     // ======================================================================
@@ -491,9 +666,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
-        px = arena.spawnX
-        py = arena.spawnY
-        facing = -MathUtil.PI / 2f
+        for (o in ops) {
+            if (o.gone) continue
+            // Partners start side by side; anyone downed is back up at half HP.
+            arena.pushOut(arena.spawnX + if (coop) (o.index * 2 - 1) * 42f else 0f, arena.spawnY, playerRadius)
+            o.px = arena.out[0]
+            o.py = arena.out[1]
+            o.facing = -MathUtil.PI / 2f
+            o.invuln = 1.0f
+            if (o.downed) {
+                o.downed = false
+                o.reviveProgress = 0f
+                o.hp = o.build.stats.maxHp * 0.5f
+                o.firewall = o.build.stats.firewallMax
+            }
+        }
         phase = Phase.COMBAT
         phaseTimer = 0f
         portalOpen = false
@@ -510,7 +697,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         timedRemaining = plan.rules.timedSeconds
         boss = null
         bossPhaseLabel = ""
-        invuln = 1.0f
         when (plan.kind) {
             LevelKind.BOSS -> {
                 val b = plan.boss!!
@@ -552,7 +738,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             timedRemaining -= dt
             spawnTimer -= dt
             if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
-                spawnTimer = max(0.35f, rules.spawnInterval - level * 0.006f)
+                spawnTimer = max(0.35f, rules.spawnInterval - level * 0.006f) / (if (coop) 1f + COOP_EXTRA_THREATS else 1f)
                 val pool = Enemies.pool(level)
                 spawnEnemy(LevelPlanner.weightedPick(pool, rng), null, telegraph = true)
             }
@@ -567,6 +753,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for (spec in plan.waves[waveIndex]) {
                 if (aliveCount() >= Scaling.MAX_ALIVE) break
                 spawnEnemy(spec.def, spec.elite, telegraph = true)
+                // Co-op: about a third more threats per wave.
+                if (coop && aliveCount() < Scaling.MAX_ALIVE && rng.nextFloat() < COOP_EXTRA_THREATS) spawnEnemy(spec.def, spec.elite, telegraph = true)
             }
             waveIndex++
             waveTimer = 0f
@@ -617,24 +805,24 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             eventsCompleted++
             plan.event?.let { completedEventIds += it.id }
             if (plan.rules.diamondChance > 0f && rng.nextFloat() < plan.rules.diamondChance) diamondsEarned += 1
-            pendingUpgrades++
+            grantPick()
         }
         // Campaign: every cleared level earns a power-up, and deeper levels
         // roll for bonus rewards (owner, 2026-10-08: "higher levels give more").
-        pendingUpgrades++
-        if (rng.nextFloat() < min(0.45f, (level - 1) * 0.012f)) pendingUpgrades++
-        if (level >= 25 && rng.nextFloat() < min(0.3f, (level - 24) * 0.01f)) pendingUpgrades++
+        grantPick()
+        if (rng.nextFloat() < min(0.45f, (level - 1) * 0.012f)) grantPick()
+        if (level >= 25 && rng.nextFloat() < min(0.3f, (level - 24) * 0.01f)) grantPick()
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // Firewall fully restores between arenas.
-        firewall = stats.firewallMax
+        for (o in ops) if (o.alive) o.firewall = o.build.stats.firewallMax
         showBanner(if (plan.kind == LevelKind.EVENT) "EVENT COMPLETE" else "THREATS ELIMINATED", "", 1.2f)
         sound(GameSound.LEVEL_COMPLETE)
         sound(GameSound.CURRENCY)
     }
 
     private fun afterClear() {
-        if (pendingUpgrades > 0) {
+        if (ops.any { it.pendingUpgrades > 0 }) {
             openUpgrades()
         } else {
             openPortal()
@@ -646,12 +834,18 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level * 0.015f + config.difficulty.luck + (if (bossLuckPending) 1.2f else 0f)
 
     private fun openUpgrades(resumeCombat: Boolean = false) {
-        rewardBatchTotal = pendingUpgrades
-        rewardBatchTaken = 0
         offerLuck = currentLuck()
-        offer = build.rollOffer(rng, luck = offerLuck)
-        if (offer.isEmpty()) {
-            pendingUpgrades = 0
+        // Each operative rolls and picks its own cards (owner, 2026-10-08).
+        var any = false
+        for (o in ops) {
+            cur = o
+            rewardBatchTotal = if (o.gone) 0 else pendingUpgrades
+            rewardBatchTaken = 0
+            offer = if (o.gone || pendingUpgrades <= 0) emptyList() else build.rollOffer(rng, luck = offerLuck)
+            if (offer.isEmpty()) pendingUpgrades = 0 else any = true
+        }
+        cur = ops[0]
+        if (!any) {
             if (!resumeCombat) openPortal()
             return
         }
@@ -661,12 +855,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun finishUpgrades() {
-        offer = emptyList()
+        for (o in ops) {
+            o.offer = emptyList()
+            o.rewardBatchTotal = 0
+            o.rewardBatchTaken = 0
+            o.pendingUpgrades = 0
+        }
         bossLuckPending = false
-        rewardBatchTotal = 0
-        rewardBatchTaken = 0
-        // 1 in 20: the shopkeeper sends a message and a side gate opens.
-        if (!upgradeReturnsToCombat && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
+        // 1 in 20: the shopkeeper sends a message and a side gate opens (solo only).
+        if (!coop && !upgradeReturnsToCombat && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
         if (upgradeReturnsToCombat) {
             upgradeReturnsToCombat = false
             phase = Phase.COMBAT
@@ -677,8 +874,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** UI: the player picked card [index]. */
-    fun chooseUpgrade(index: Int) {
+    fun chooseUpgrade(index: Int) = chooseUpgradeFor(0, index)
+
+    /** Operative [opIndex] picked card [index] (co-op: each picks their own). */
+    fun chooseUpgradeFor(opIndex: Int, index: Int) {
         if (phase != Phase.UPGRADE) return
+        val o = ops.getOrNull(opIndex) ?: return
+        if (o.gone) return
+        cur = o
+        try { takeOffered(index) } finally { cur = ops[0] }
+        if (ops.all { it.gone || it.pendingUpgrades <= 0 }) finishUpgrades()
+    }
+
+    private fun takeOffered(index: Int) {
         val choice = offer.getOrNull(index) ?: return
         val wasMaxHp = stats.maxHp
         val instant = build.take(choice.def)
@@ -713,17 +921,20 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             rewardBatchTotal = max(rewardBatchTotal, rewardBatchTaken + pendingUpgrades)
             offerLuck = currentLuck()
             offer = build.rollOffer(rng, luck = offerLuck)
-            if (offer.isEmpty()) { pendingUpgrades = 0; finishUpgrades() }
+            if (offer.isEmpty()) pendingUpgrades = 0
         } else {
-            finishUpgrades()
+            offer = emptyList()
         }
     }
 
     /** UI: spend a reroll (permanent progression) to redraw the cards. */
-    fun reroll(): Boolean {
-        if (phase != Phase.UPGRADE || rerollsLeft <= 0) return false
-        rerollsLeft--
-        offer = build.rollOffer(rng, luck = offerLuck)
+    fun reroll(): Boolean = rerollFor(0)
+
+    fun rerollFor(opIndex: Int): Boolean {
+        val o = ops.getOrNull(opIndex) ?: return false
+        if (phase != Phase.UPGRADE || o.rerollsLeft <= 0 || o.pendingUpgrades <= 0) return false
+        o.rerollsLeft--
+        o.offer = o.build.rollOffer(rng, luck = offerLuck)
         sound(GameSound.UI_CLICK)
         return true
     }
@@ -964,7 +1175,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         sound(GameSound.GAME_OVER)
     }
 
-    val canRevive: Boolean get() = phase == Phase.DEAD && revivesLeft > 0
+    val canRevive: Boolean get() = !coop && phase == Phase.DEAD && revivesLeft > 0
 
     /**
      * Revive in place (§34): half HP, full firewall, a long grace period and
@@ -1017,6 +1228,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val saveBlockReason: String?
         get() = when {
             phase == Phase.DEAD -> "OPERATIVE DOWN"
+            coop -> "CO-OP RUNS CAN'T BE SAVED"
             bossActive -> "[BOSS] SAVE BLOCKED"
             phase == Phase.TRANSITION || slideIn > 0f -> "ENTERING NEXT ROOM"
             inShop -> "UPGRADE SHOP · SAVE AFTER LEAVING"
@@ -1279,6 +1491,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Every projectile comes from here so pooled fields never leak between uses. */
     private fun newProjectile(): Projectile? {
         val p = projectiles.obtain() ?: return null
+        p.owner = cur.index
         p.tint = 0L
         p.returning = false
         p.armTimer = 0f
@@ -1290,12 +1503,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     // Arsenal: data-driven auto-weapons (data/Weapons.kt)
     // ======================================================================
 
-    private val weaponTimers = HashMap<String, Float>()
+    private val weaponTimers: HashMap<String, Float> get() = cur.weaponTimers
 
     private class SpiralBurst(val spec: WeaponSpec, val damage: Float, var left: Int, var angle: Float, val step: Float) {
         var timer = 0f
     }
-    private val spirals = ArrayList<SpiralBurst>()
+    @Suppress("UNCHECKED_CAST")
+    private val spirals: ArrayList<SpiralBurst> get() = cur.spirals as ArrayList<SpiralBurst>
 
     private fun updateArsenal(dt: Float) {
         val s = stats
@@ -1698,8 +1912,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val orbs = s.orbCount
         for (e in enemies.items) {
             if (!e.targetable) continue
-            if (e.orbHitCooldown > 0f) e.orbHitCooldown -= dt
-            if (e.bladeHitCooldown > 0f) e.bladeHitCooldown -= dt
+            // Hit cooldowns tick once per step, not once per operative.
+            if (cur === firstAlive()) {
+                if (e.orbHitCooldown > 0f) e.orbHitCooldown -= dt
+                if (e.bladeHitCooldown > 0f) e.bladeHitCooldown -= dt
+            }
             if (e.orbHitCooldown <= 0f) {
                 for (i in 0 until orbs) {
                     val a = orbAngle + MathUtil.TWO_PI * i / orbs
@@ -1752,6 +1969,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
+    private fun firstAlive(): Operative? = ops.firstOrNull { it.alive }
+
     fun nearestEnemy(x: Float, y: Float, maxDist: Float, exceptUid: Int = -1): Enemy? {
         var best: Enemy? = null
         var bd = maxDist * maxDist
@@ -1769,6 +1988,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     fun damagePlayer(amount: Float, sourceX: Float, sourceY: Float, ignoreInvuln: Boolean = false) {
         if (phase == Phase.DEAD || phase == Phase.TRANSITION) return
+        if (!cur.alive) return
         if (!ignoreInvuln && invuln > 0f) return
         val s = stats
         if (s.dodge > 0f && rng.nextFloat() < s.dodge) {
@@ -1890,7 +2110,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         while (xp >= need) {
             xp -= need
             runLevel++
-            pendingUpgrades++
+            grantPick()
             need = Scaling.xpToNext(runLevel)
         }
     }
@@ -1954,7 +2174,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul * adaptiveHp *
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul * adaptiveHp * config.coopHpMul *
             (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
@@ -2008,9 +2228,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     // ======================================================================
 
     private fun updateProjectiles(dt: Float) {
-        val s = stats
         for (p in projectiles.items) {
             if (!p.active) continue
+            // Friendly shots act for whoever fired them; hostile ones chase the closest operative.
+            if (p.friendly) cur = ops.getOrNull(p.owner)?.takeIf { !it.gone } ?: ops[0]
+            else focusNearest(p.x, p.y)
             p.life -= dt
             if (p.life <= 0f) { p.active = false; continue }
             if (p.kind == ProjKind.MINE) {
@@ -2096,29 +2318,38 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     break
                 }
             } else {
-                // Encryption Blades block hostile packets.
-                if (s.bladeCount > 0) {
-                    var blocked = false
-                    for (i in 0 until s.bladeCount) {
-                        val a = bladeAngle + MathUtil.TWO_PI * i / s.bladeCount
-                        val bx = px + cos(a) * s.bladeRadius
-                        val by = py + sin(a) * s.bladeRadius
-                        val rr = 16f + p.radius
-                        if (MathUtil.dist2(bx, by, p.x, p.y) < rr * rr) { blocked = true; break }
-                    }
-                    if (blocked) {
-                        p.active = false
-                        addParticle(p.x, p.y, 0xFF00E5FF, 120f, 0.25f, 2f)
-                        sound(GameSound.SHIELD_BLOCK)
-                        continue
-                    }
-                }
-                val rr = playerRadius * 0.8f + p.radius
-                if (MathUtil.dist2(p.x, p.y, px, py) < rr * rr) {
-                    p.active = false
-                    damagePlayer(p.damage, p.x, p.y)
+                for (o in ops) {
+                    if (!o.alive || !p.active) continue
+                    cur = o
+                    hostileShotVsOperative(p)
                 }
             }
+        }
+        cur = ops[0]
+    }
+
+    /** A hostile packet against the current operative: blocked by its blades, or a hit. */
+    private fun hostileShotVsOperative(p: Projectile) {
+        val s = stats
+        // Encryption Blades block hostile packets.
+        if (s.bladeCount > 0) {
+            for (i in 0 until s.bladeCount) {
+                val a = bladeAngle + MathUtil.TWO_PI * i / s.bladeCount
+                val bx = px + cos(a) * s.bladeRadius
+                val by = py + sin(a) * s.bladeRadius
+                val rr = 16f + p.radius
+                if (MathUtil.dist2(bx, by, p.x, p.y) < rr * rr) {
+                    p.active = false
+                    addParticle(p.x, p.y, 0xFF00E5FF, 120f, 0.25f, 2f)
+                    sound(GameSound.SHIELD_BLOCK)
+                    return
+                }
+            }
+        }
+        val rr = playerRadius * 0.8f + p.radius
+        if (MathUtil.dist2(p.x, p.y, px, py) < rr * rr) {
+            p.active = false
+            damagePlayer(p.damage, p.x, p.y)
         }
     }
 
@@ -2164,7 +2395,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.active = true; h.kind = HazardKind.LINE
         h.x = x; h.y = y; h.x2 = x2; h.y2 = y2
         h.timer = 0f; h.duration = duration; h.color = color; h.ownerUid = ownerUid
-        h.radius = 3f; h.damage = 0f; h.hitPlayer = false
+        h.radius = 3f; h.damage = 0f; h.hitMask = 0
         return h
     }
 
@@ -2173,7 +2404,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.active = true; h.kind = HazardKind.BLAST
         h.x = x; h.y = y; h.radius = radius
         h.timer = 0f; h.duration = delay; h.damage = damage; h.color = color
-        h.hitPlayer = false; h.ownerUid = -1
+        h.hitMask = 0; h.ownerUid = -1
     }
 
     fun addZone(x: Float, y: Float, radius: Float, duration: Float, dps: Float, color: Long, telegraph: Float) {
@@ -2181,7 +2412,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.active = true; h.kind = HazardKind.ZONE
         h.x = x; h.y = y; h.radius = radius
         h.timer = 0f; h.windup = telegraph; h.duration = telegraph + duration
-        h.damage = dps; h.color = color; h.tick = 0f; h.hitPlayer = false; h.ownerUid = -1
+        h.damage = dps; h.color = color; h.tick = 0f; h.hitMask = 0; h.ownerUid = -1
     }
 
     fun addShockRing(x: Float, y: Float, maxRadius: Float, speed: Float, damage: Float, color: Long) {
@@ -2189,7 +2420,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.active = true; h.kind = HazardKind.SHOCK_RING
         h.x = x; h.y = y; h.radius = 10f; h.maxRadius = maxRadius
         h.timer = 0f; h.duration = maxRadius / speed; h.damage = damage; h.color = color
-        h.hitPlayer = false; h.ownerUid = -1
+        h.hitMask = 0; h.ownerUid = -1
     }
 
     fun addBeam(x: Float, y: Float, angle: Float, length: Float, width: Float, windup: Float, active: Float, damage: Float, color: Long) {
@@ -2199,7 +2430,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.x2 = x + cos(angle) * length; h.y2 = y + sin(angle) * length
         h.radius = width; h.windup = windup
         h.timer = 0f; h.duration = windup + active; h.damage = damage; h.color = color
-        h.hitPlayer = false; h.ownerUid = -1
+        h.hitMask = 0; h.ownerUid = -1
     }
 
     private fun updateHazards(dt: Float) {
@@ -2210,8 +2441,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 HazardKind.LINE -> if (h.timer >= h.duration) h.active = false
                 HazardKind.BLAST -> if (h.timer >= h.duration) {
                     h.active = false
-                    if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) {
-                        damagePlayer(h.damage, h.x, h.y)
+                    forEachAlive {
+                        if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) {
+                            damagePlayer(h.damage, h.x, h.y)
+                        }
                     }
                     addPulse(h.x, h.y, h.radius, 0.3f, h.color)
                 }
@@ -2219,28 +2452,38 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     if (h.timer >= h.duration) { h.active = false; continue }
                     if (h.timer >= h.windup) {
                         h.tick -= dt
-                        if (h.tick <= 0f && MathUtil.dist2(px, py, h.x, h.y) < h.radius * h.radius) {
-                            h.tick = 0.5f
-                            damagePlayer(h.damage * 0.5f, h.x, h.y, ignoreInvuln = true)
+                        if (h.tick <= 0f) {
+                            var hit = false
+                            forEachAlive {
+                                if (MathUtil.dist2(px, py, h.x, h.y) < h.radius * h.radius) {
+                                    hit = true
+                                    damagePlayer(h.damage * 0.5f, h.x, h.y, ignoreInvuln = true)
+                                }
+                            }
+                            if (hit) h.tick = 0.5f
                         }
                     }
                 }
                 HazardKind.SHOCK_RING -> {
                     h.radius = 10f + (h.maxRadius - 10f) * (h.timer / h.duration)
                     if (h.timer >= h.duration) { h.active = false; continue }
-                    if (!h.hitPlayer) {
-                        val d = MathUtil.dist(px, py, h.x, h.y)
-                        if (kotlin.math.abs(d - h.radius) < RING_THICKNESS + playerRadius * 0.5f) {
-                            h.hitPlayer = true
-                            damagePlayer(h.damage, h.x, h.y)
+                    forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit == 0) {
+                            val d = MathUtil.dist(px, py, h.x, h.y)
+                            if (kotlin.math.abs(d - h.radius) < RING_THICKNESS + playerRadius * 0.5f) {
+                                h.hitMask = h.hitMask or bit
+                                damagePlayer(h.damage, h.x, h.y)
+                            }
                         }
                     }
                 }
                 HazardKind.BEAM -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
-                    if (h.timer >= h.windup && !h.hitPlayer) {
-                        if (distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
-                            h.hitPlayer = true
+                    if (h.timer >= h.windup) forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit == 0 && distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
+                            h.hitMask = h.hitMask or bit
                             damagePlayer(h.damage, h.x, h.y)
                         }
                     }
@@ -2314,7 +2557,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         eurosEarned += (eurosReward * stats.euroMul * difficultyReward).toInt()
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
-        pendingUpgrades += 2 + level / 20 + bonusPicks
+        grantPick(2 + level / 20 + bonusPicks)
         bossLuckPending = true
         purgeHostiles()
     }
@@ -2353,7 +2596,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (boss != null) return
         spawnTimer -= dt
         if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
-            spawnTimer = max(0.35f, 1.5f - level * 0.03f)
+            spawnTimer = max(0.35f, 1.5f - level * 0.03f) / (if (coop) 1f + COOP_EXTRA_THREATS else 1f)
             val pool = Enemies.pool(level)
             val elite = if (rng.nextFloat() < Scaling.eliteChance(level)) EliteModifier.entries[rng.nextInt(EliteModifier.entries.size)] else null
             spawnEnemy(LevelPlanner.weightedPick(pool, rng), elite, telegraph = true)
@@ -2381,6 +2624,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     companion object {
+        /** Co-op: how close the partner must stand, and for how long, to revive. */
+        const val REVIVE_RADIUS = 70f
+        const val REVIVE_SECONDS = 3f
         const val STEP = 1f / 120f
         const val MAX_FRAME = 0.1f
         const val MOVE_DEADZONE = 0.12f

@@ -90,6 +90,8 @@ class Projectile {
     var tint = 0L
     /** BOOMERANG: on its way back. */
     var returning = false
+    /** Operative index that fired it (co-op credit and stats). */
+    var owner = 0
 }
 
 enum class ZapKind {
@@ -171,7 +173,8 @@ class Hazard {
     var damage = 0f
     var color = 0L
     var ownerUid = -1
-    var hitPlayer = false
+    /** Which operatives this hazard has already hit (bit per operative index). */
+    var hitMask = 0
     var windup = 0f
     var tick = 0f
 }

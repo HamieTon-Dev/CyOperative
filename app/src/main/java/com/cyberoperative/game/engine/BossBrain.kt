@@ -67,7 +67,7 @@ class BossBrain(private val g: GameEngine) {
         e.stateTimer = INTRO_SECONDS
         val st = BossState(b, cycle)
         e.boss = st
-        e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.config.opHpMul * g.adaptiveHp
+        e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.config.opHpMul * g.adaptiveHp * g.config.coopBossHpMul
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
@@ -89,6 +89,7 @@ class BossBrain(private val g: GameEngine) {
         if (!e.active) return
         if (g.phase != Phase.COMBAT) return
         val st = e.boss ?: return
+        g.focusNearest(e.x, e.y)
         if (e.state == AiState.SPAWNING) {
             // Entrance: the bar fills, the name appears, then the growl.
             if (!st.growled && INTRO_SECONDS - e.stateTimer >= INTRO_GROWL_AT) {

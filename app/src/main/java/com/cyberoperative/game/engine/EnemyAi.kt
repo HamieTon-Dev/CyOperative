@@ -25,6 +25,8 @@ class EnemyAi(private val g: GameEngine) {
         if (phase != Phase.COMBAT) return
         for (e in g.enemies.items) {
             if (!e.active) continue
+            // Co-op: each threat goes after the closest operative still standing.
+            g.focusNearest(e.x, e.y)
             if (e.hitFlash > 0f) e.hitFlash -= dt
             if (e.contactCooldown > 0f) e.contactCooldown -= dt
             if (e.state == AiState.SPAWNING) {
