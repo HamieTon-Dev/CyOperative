@@ -20,7 +20,7 @@ class CampaignTest {
         assertEquals(8, Scaling.campaignThreats(1))
         assertEquals(14, Scaling.campaignThreats(2))
         for (l in 2..500) assertTrue(Scaling.campaignThreats(l) >= Scaling.campaignThreats(l - 1))
-        assertTrue(Scaling.campaignThreats(10_000) <= 45)
+        assertTrue(Scaling.campaignThreats(10_000) <= 70)
         val plan = LevelPlanner.plan(2, Random(4), null, previousWasEvent = true)
         if (plan.event == null) assertEquals(14, plan.enemyCount)
     }

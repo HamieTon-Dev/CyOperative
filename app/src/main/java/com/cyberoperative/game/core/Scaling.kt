@@ -68,7 +68,9 @@ object Scaling {
      */
     fun campaignThreats(level: Int): Int {
         if (level <= 1) return 8
-        return min(45, (8.0 + 6.0 * Math.pow((level - 1).toDouble(), 0.6)).toInt())
+        val base = min(45, (8.0 + 6.0 * Math.pow((level - 1).toDouble(), 0.6)).toInt())
+        // Owner, 2026-10-08: past level 50 the rooms keep getting busier (to 70).
+        return if (level > 50) min(70, base + (level - 50) / 2) else base
     }
 
     /** Campaign waves: one screen-full at a time. */
@@ -92,8 +94,26 @@ object Scaling {
     const val MAX_ALIVE = 32
 
     /** Chance that a spawned enemy is an elite variant. */
-    fun eliteChance(level: Int): Float =
-        if (level < 6) 0f else min(0.35f, 0.02f * (level - 5))
+    fun eliteChance(level: Int): Float = when {
+        level < 6 -> 0f
+        level <= 50 -> min(0.35f, 0.02f * (level - 5))
+        // Deep runs: more elites, up to half of all threats.
+        else -> min(0.5f, 0.35f + 0.005f * (level - 50))
+    }
+
+    /**
+     * Adaptive threat (owner, 2026-10-08: "levels 50+ scale too slowly if you
+     * have many weapons"). Build size — upgrade picks and the number of weapons
+     * fighting for you — raises threat HP and damage. It fades in from level 21
+     * (full by 40), so early levels are untouched, and is fixed per level.
+     */
+    fun adaptiveHp(level: Int, picks: Int, weapons: Int): Float =
+        1f + adaptiveRamp(level) * (0.015f * picks.coerceIn(0, 400) + 0.10f * weapons.coerceIn(0, 40))
+
+    fun adaptiveDamage(level: Int, picks: Int, weapons: Int): Float =
+        1f + adaptiveRamp(level) * (0.006f * picks.coerceIn(0, 400) + 0.035f * weapons.coerceIn(0, 40))
+
+    fun adaptiveRamp(level: Int): Float = ((level - 20) / 20f).coerceIn(0f, 1f)
 
     /** Boss HP multiplier: tracks enemy HP but with a gentle extra per boss cycle. */
     fun bossHp(level: Int): Float {

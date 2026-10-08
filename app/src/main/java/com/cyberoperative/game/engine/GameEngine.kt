@@ -125,6 +125,26 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Rarity luck of the current offers (level + difficulty + boss bonus). */
     var offerLuck = 0f
         private set
+    /** Adaptive threat multipliers for the current level (see [Scaling.adaptiveHp]). */
+    var adaptiveHp = 1f
+        private set
+    var adaptiveDamage = 1f
+        private set
+
+    /** Weapons fighting for the operative besides the primary gun. */
+    fun weaponCount(): Int {
+        val s = stats
+        return s.weapons.size + listOf(s.coneLevel, s.lanceLevel, s.beamLevel, s.empLevel, s.mineLevel, s.missileLevel,
+            s.arcLevel, s.railLevel, s.strikeLevel, s.bladeCount).count { it > 0 } + (s.orbCount - 1).coerceAtLeast(0) / 2
+    }
+
+    private fun updateAdaptive() {
+        val picks = build.owned().values.sum()
+        val weapons = weaponCount()
+        adaptiveHp = Scaling.adaptiveHp(level, picks, weapons)
+        adaptiveDamage = Scaling.adaptiveDamage(level, picks, weapons)
+    }
+
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false
 
@@ -414,6 +434,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
+        updateAdaptive()
         vaultCracked = false
         vaultOpening = 0f
         shopGateOpen = false
@@ -465,6 +486,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 // A new environment theme every 3 levels gets announced.
                 if (com.cyberoperative.game.data.Environments.isNewTheme(level))
                     "${plan.enemyCount} THREATS · ENTERING ${com.cyberoperative.game.data.Environments.forLevel(level, config.seed).name}"
+                else if (adaptiveHp >= 1.5f) "${plan.enemyCount} THREATS · ADAPTED TO YOUR ARSENAL ×${"%.1f".format(adaptiveHp)}"
                 else "${plan.enemyCount} THREATS · ${plan.arena.name}",
                 1.6f
             )
@@ -951,6 +973,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         arena = Arena(plan.arena, extra)
         clearAll()
         build.restore(r.upgrades)
+        updateAdaptive()
         runLevel = r.runLevel; xp = r.xp
         pendingUpgrades = r.pendingUpgrades
         rewardBatchTotal = r.rewardBatchTotal; rewardBatchTaken = r.rewardBatchTaken
@@ -1839,13 +1862,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul *
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul * adaptiveHp *
             (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
         e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
         e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
-        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * config.opDamageMul
+        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
@@ -2226,6 +2249,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (stageTimer >= Scaling.ENDLESS_STAGE_SECONDS) {
             stageTimer = 0f
             level++
+            updateAdaptive()
             if (Scaling.isBossLevel(level) && boss == null) {
                 val b = com.cyberoperative.game.data.Bosses.forLevel(level)
                 sound(GameSound.BOSS_SPAWN)

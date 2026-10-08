@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.3 (versionCode 13) — 2026-10-08
+### Changed
+- Adaptive threat (owner: "levels 50+ scale too slowly if you have many weapons"): threat and
+  boss HP rise +1.5% per upgrade pick and +10% per weapon fighting for you; damage +0.6% per pick
+  and +3.5% per weapon. Fades in from level 21 (full by 40); levels 1–20 are unchanged. Fixed per
+  level; the level banner shows "ADAPTED TO YOUR ARSENAL ×N" when it is significant.
+- Deep levels are busier: threat count keeps rising past level 50 (to 70 per level), and the
+  elite chance climbs from 35% toward 50%.
+
 ## 0.9.2 (versionCode 12) — 2026-10-08
 ### Fixed
 - The shop's side gate can no longer be blocked: when a shop is offered the game picks a spot on

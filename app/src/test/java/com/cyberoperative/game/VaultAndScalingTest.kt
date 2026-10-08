@@ -63,4 +63,22 @@ class VaultAndScalingTest {
         assertEquals(1.5f, hp(26) / hp(1), 0.01f)
         assertEquals(3f, RunConfig(opLevel = 500).opHpMul, 0.001f)
     }
+
+    @Test fun threatsAdaptToBigBuildsOnlyLater() {
+        assertEquals(1f, Scaling.adaptiveHp(15, 200, 30), 0.0001f)
+        assertTrue(Scaling.adaptiveHp(30, 100, 17) > 1.5f)
+        assertTrue(Scaling.adaptiveHp(60, 100, 17) > Scaling.adaptiveHp(60, 20, 2))
+        assertEquals(70, Scaling.campaignThreats(200))
+        assertTrue(Scaling.eliteChance(90) > Scaling.eliteChance(50))
+
+        fun hpWith(weapons: List<String>): Float {
+            val g = GameEngine(RunConfig(seed = 2L))
+            for (id in weapons) g.build.take(com.cyberoperative.game.data.Upgrades.byId(id))
+            g.debugJumpToLevel(60)
+            return g.spawnEnemyAt(Enemies.MALWARE, null, 200f, 300f, telegraph = false)!!.maxHp
+        }
+        val lean = hpWith(emptyList())
+        val stacked = hpWith(com.cyberoperative.game.data.Weapons.all.take(15).map { it.id })
+        assertTrue("stacked build should face tougher threats ($stacked vs $lean)", stacked > lean * 2f)
+    }
 }
