@@ -22,7 +22,20 @@ enum class ObstacleKind(val label: String) {
     /** Small blinking server unit (procedural arenas). */
     SMALL_SERVER("SERVER UNIT"),
     /** Stack of hardware crates. */
-    CRATES("HARDWARE CRATES")
+    CRATES("HARDWARE CRATES"),
+    // --- New wall types (owner, 2026-10-08) ---
+    /** Armoured bulkhead: long, tall, riveted. */
+    BLAST_WALL("BLAST WALL"),
+    /** Bundle of coolant pipes with flowing liquid. */
+    COOLANT_PIPES("COOLANT PIPES"),
+    /** Translucent hologram wall that flickers. */
+    HOLO_WALL("HOLO WALL"),
+    /** Round reactor core with a pulsing heart. */
+    REACTOR("REACTOR CORE"),
+    /** Low, glowing energy barrier. */
+    ENERGY_BARRIER("ENERGY BARRIER"),
+    /** Thin, tall antenna mast with a blinking beacon. */
+    ANTENNA_TOWER("ANTENNA TOWER")
 }
 
 /** Non-colliding floor decoration (procedural arenas). */

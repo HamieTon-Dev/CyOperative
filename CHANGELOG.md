@@ -1,6 +1,18 @@
 # Changelog
 
 ## 0.8.0 (versionCode 9) — 2026-10-08
+### Added
+- Environments (data/Environments.kt): 12 colour themes (Cyan Grid, Emerald Dataworks,
+  Amethyst Core, Magma Forge, Arctic Server Farm, Toxic Lab, Rose Neon District, Golden Vault,
+  Deep Ocean Relay, Solar Flare Array, Ghost Protocol, Ultraviolet Mainframe), each with its own
+  floor, plate, light, trench, wall and trim colours. The theme changes every 3 levels in a
+  per-run shuffled order ("ENTERING MAGMA FORGE" on the banner).
+- 8 floor tile patterns (plates, hex, grid, circuit, diamond, brick, perforated dots, grooves);
+  every level also rolls its own tile size, trench spacing, flow direction and shade.
+- 6 new wall types: Blast Wall, Coolant Pipes, Holo Wall, Reactor Core, Energy Barrier,
+  Antenna Tower, used by 5 new room kits and mixed into corridor/row layouts. Existing walls
+  and racks take on each theme's tone and trim colour.
+- BUFFS bar: blue-green outline with a "BUFFS:" label.
 ### Changed
 - Upgrade icons are smaller (24dp) and sit under the HP bar instead of over the joystick area;
   the arena, banners and the boss bar move down to make room. Hold an icon: details pop up below.

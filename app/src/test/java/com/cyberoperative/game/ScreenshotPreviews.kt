@@ -314,6 +314,22 @@ class ScreenshotPreviews {
         }
     }
 
+    @Test fun env0() { assumeTrue(enabled); envShot("env_0", 2) }
+    @Test fun env1() { assumeTrue(enabled); envShot("env_1", 5) }
+    @Test fun env2() { assumeTrue(enabled); envShot("env_2", 8) }
+    @Test fun env3() { assumeTrue(enabled); envShot("env_3", 11) }
+    @Test fun env4() { assumeTrue(enabled); envShot("env_4", 14) }
+    @Test fun env5() { assumeTrue(enabled); envShot("env_5", 17) }
+    @Test fun env6() { assumeTrue(enabled); envShot("env_6", 20) }
+    @Test fun env7() { assumeTrue(enabled); envShot("env_7", 23) }
+
+    private fun envShot(name: String, lvl: Int) = gameplay(name, 0f) { s ->
+        s.engine.debugJumpToLevel(lvl)
+        for (e in s.engine.enemies.items) e.active = false
+        repeat(200) { s.engine.update(1f / 60f) }
+        for (e in s.engine.enemies.items) e.active = false
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

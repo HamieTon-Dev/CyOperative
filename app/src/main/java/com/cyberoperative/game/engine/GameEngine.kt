@@ -401,7 +401,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 sound(GameSound.EVENT_START)
             }
             LevelKind.NORMAL -> if (mode == GameMode.ENDLESS) showBanner("ENDLESS", "Survive as long as you can", 2f)
-            else showBanner("LEVEL $level", "${plan.enemyCount} THREATS · ${plan.arena.name}", 1.6f)
+            else showBanner(
+                "LEVEL $level",
+                // A new environment theme every 3 levels gets announced.
+                if (com.cyberoperative.game.data.Environments.isNewTheme(level))
+                    "${plan.enemyCount} THREATS · ENTERING ${com.cyberoperative.game.data.Environments.forLevel(level, config.seed).name}"
+                else "${plan.enemyCount} THREATS · ${plan.arena.name}",
+                1.6f
+            )
         }
     }
 

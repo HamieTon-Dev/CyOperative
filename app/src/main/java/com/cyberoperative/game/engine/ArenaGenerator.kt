@@ -112,7 +112,13 @@ object ArenaGenerator {
                     for (s in 0 until segs) {
                         if (rng.nextFloat() > 0.85f) continue
                         val cx = W * (s + 0.5f) / segs
-                        add(box(cx, y, W / segs - 120f, 46f), if (rng.nextBoolean()) ObstacleKind.SERVER_RACK else kit[0])
+                        val rowKind = when (rng.nextInt(5)) {
+                            0 -> ObstacleKind.COOLANT_PIPES
+                            1 -> ObstacleKind.HOLO_WALL
+                            2 -> kit[0]
+                            else -> ObstacleKind.SERVER_RACK
+                        }
+                        add(box(cx, y, W / segs - 120f, 46f), rowKind)
                     }
                 }
                 repeat((3 * density).toInt()) { randomPiece(60f + rng.nextFloat() * (W - 120f), top + rng.nextFloat() * (bottom - top)) }
@@ -137,14 +143,19 @@ object ArenaGenerator {
                     val leftSide = i % 2 == 0
                     val len = 220f + rng.nextFloat() * 160f
                     val r = if (leftSide) Rect(MARGIN + 1f, y - 22f, MARGIN + 1f + len, y + 22f) else Rect(W - MARGIN - 1f - len, y - 22f, W - MARGIN - 1f, y + 22f)
-                    add(r, if (rng.nextFloat() < 0.4f) ObstacleKind.FIREWALL_NODE else ObstacleKind.SERVER_RACK)
+                    add(r, when (rng.nextInt(6)) {
+                        0, 1 -> ObstacleKind.FIREWALL_NODE
+                        2 -> ObstacleKind.BLAST_WALL
+                        3 -> ObstacleKind.ENERGY_BARRIER
+                        else -> ObstacleKind.SERVER_RACK
+                    })
                 }
                 repeat((2 * density).toInt() + 1) { randomPiece(80f + rng.nextFloat() * (W - 160f), top + rng.nextFloat() * (bottom - top)) }
             }
             Style.RING -> {
                 val cx = W / 2f
                 val cy = (top + bottom) / 2f
-                add(box(cx, cy, 120f, 100f), ObstacleKind.POWER_UNIT)
+                add(box(cx, cy, 120f, 100f), if (rng.nextBoolean()) ObstacleKind.POWER_UNIT else ObstacleKind.REACTOR)
                 val n = 6 + rng.nextInt(3)
                 for (i in 0 until n) {
                     val a = i * (Math.PI * 2 / n).toFloat() + rng.nextFloat() * 0.2f
@@ -184,7 +195,12 @@ object ArenaGenerator {
     }
 
     /** Which hardware a room is built from (a kit gives each room a character). */
-    private fun kit(rng: Random): List<ObstacleKind> = when (rng.nextInt(5)) {
+    private fun kit(rng: Random): List<ObstacleKind> = when (rng.nextInt(10)) {
+        5 -> listOf(ObstacleKind.BLAST_WALL, ObstacleKind.REACTOR, ObstacleKind.ANTENNA_TOWER)
+        6 -> listOf(ObstacleKind.COOLANT_PIPES, ObstacleKind.COOLING_UNIT, ObstacleKind.REACTOR, ObstacleKind.SMALL_SERVER)
+        7 -> listOf(ObstacleKind.HOLO_WALL, ObstacleKind.TERMINAL, ObstacleKind.ANTENNA_TOWER, ObstacleKind.DATA_PILLAR)
+        8 -> listOf(ObstacleKind.ENERGY_BARRIER, ObstacleKind.BLAST_WALL, ObstacleKind.POWER_UNIT, ObstacleKind.CRATES)
+        9 -> listOf(ObstacleKind.SERVER_RACK, ObstacleKind.COOLANT_PIPES, ObstacleKind.HOLO_WALL, ObstacleKind.ENERGY_BARRIER)
         0 -> listOf(ObstacleKind.SERVER_RACK, ObstacleKind.SMALL_SERVER, ObstacleKind.COOLING_UNIT)
         1 -> listOf(ObstacleKind.FIREWALL_NODE, ObstacleKind.ROUTER, ObstacleKind.DATA_PILLAR)
         2 -> listOf(ObstacleKind.TERMINAL, ObstacleKind.CRATES, ObstacleKind.SMALL_SERVER)
@@ -203,6 +219,12 @@ object ArenaGenerator {
         ObstacleKind.FIBER_JUNCTION -> if (rng.nextBoolean()) 40f to 180f else 180f to 40f
         ObstacleKind.SMALL_SERVER -> 40f to 40f
         ObstacleKind.CRATES -> 70f to 60f
+        ObstacleKind.BLAST_WALL -> if (rng.nextBoolean()) 200f to 40f else 44f to 170f
+        ObstacleKind.COOLANT_PIPES -> if (rng.nextBoolean()) 190f to 44f else 44f to 160f
+        ObstacleKind.HOLO_WALL -> 160f to 30f
+        ObstacleKind.REACTOR -> 86f to 86f
+        ObstacleKind.ENERGY_BARRIER -> 170f to 26f
+        ObstacleKind.ANTENNA_TOWER -> 36f to 36f
     }
 
     private fun decor(height: Float, obstacles: List<ObstacleSpec>, rng: Random): List<DecorSpec> {
