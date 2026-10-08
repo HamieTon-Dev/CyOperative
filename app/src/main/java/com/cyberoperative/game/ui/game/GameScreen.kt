@@ -119,7 +119,7 @@ fun GameScreen(
     ) {
         // The big boss bar makes the HUD taller; keep the boss out from under it.
         // The upgrade icon row lives under the HP bar, so the arena starts lower when it is shown.
-        val iconRow = if (hud.owned.isNotEmpty()) 28.dp else 0.dp
+        val iconRow = if (hud.owned.isNotEmpty()) 36.dp else 0.dp
         val topInsetPx = with(density) { ((if (hud.bossName != null) 210.dp else 118.dp) + iconRow).toPx() }
         val bottomInsetPx = with(density) { 150.dp.toPx() }
         val restX = constraints.maxWidth / 2f
@@ -189,7 +189,7 @@ fun GameScreen(
         GameHud(hud, onPause = { session.paused = true })
 
         if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
-            Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp + if (hud.owned.isNotEmpty()) 28.dp else 0.dp))
+            Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp))
         }
         if (hud.phase == Phase.PORTAL) {
             Text(
@@ -197,7 +197,7 @@ fun GameScreen(
                 color = Palette.Green, style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 128.dp + if (hud.owned.isNotEmpty()) 28.dp else 0.dp)
+                    .padding(top = 128.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
                     .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             )

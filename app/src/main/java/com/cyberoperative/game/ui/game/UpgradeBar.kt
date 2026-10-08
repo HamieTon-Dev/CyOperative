@@ -50,7 +50,21 @@ import com.cyberoperative.game.ui.theme.Palette
 fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
     if (h.owned.isEmpty()) return
     var held by remember { mutableStateOf<String?>(null) }
-    Box(modifier) {
+    // Solid blue-green frame around the buffs bar (owner, 2026-10-08).
+    val frame = RoundedCornerShape(6.dp)
+    Box(
+        modifier
+            .background(Palette.Background.copy(alpha = 0.6f), frame)
+            .border(1.5.dp, BUFF_BAR_OUTLINE, frame)
+            .padding(horizontal = 4.dp, vertical = 3.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+        // "BUFFS:" label, icons to its right (owner, 2026-10-08).
+        Text(
+            "BUFFS:", color = BUFF_BAR_OUTLINE, fontSize = 10.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            modifier = Modifier.padding(start = 2.dp, end = 6.dp)
+        )
         Row(
             Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -71,15 +85,19 @@ fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
                 )
             }
         }
+        }
         // Details float below the row while an icon is held, so nothing in the HUD moves.
         val heldDef = held?.let { id -> Upgrades.all.firstOrNull { it.id == id } }
         if (heldDef != null) {
-            Popup(offset = IntOffset(0, with(LocalDensity.current) { 30.dp.roundToPx() })) {
+            Popup(offset = IntOffset(0, with(LocalDensity.current) { 34.dp.roundToPx() })) {
                 UpgradeTooltip(heldDef, h.owned.firstOrNull { it.first == heldDef.id }?.second ?: 1)
             }
         }
     }
 }
+
+/** Blue-green (teal) outline of the buffs bar. */
+private val BUFF_BAR_OUTLINE = Color(0xFF00D4B4)
 
 @Composable
 private fun UpgradeIcon(def: UpgradeDef, level: Int, beamHeat: Float, beamCooldown: Float, modifier: Modifier) {
