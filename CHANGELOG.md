@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.1 (versionCode 8) — unreleased
+- Next upload. 0.6.0 (versionCode 7) went to the Play closed test on 2026-10-08.
+
 ## 0.6.0 — 2026-10-08
 ### Added
 - Visual pass to match the key art (no false advertising): bevelled metal floor panels,
