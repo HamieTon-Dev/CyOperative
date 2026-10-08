@@ -20,6 +20,8 @@
   GOLDEN PROTOCOL.
 - Owned-upgrade icon bar along the bottom of the screen; press and hold an icon for details.
 ### Changed
+- Slow mix: each normal round (not boss or event levels) has a 20% chance to play its music
+  at 0.75x instead of 1.25x. Endless rolls per stage.
 - PLASMA BEAM is now TITANIUM (ultra rare) and overheats after 5 s of hits into a 3 s
   cooldown, shown on its icon and above the bar.
 ### Fixed

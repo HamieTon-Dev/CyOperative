@@ -119,6 +119,9 @@ class GameSession(
     private var committedDiamonds = 0
     private var committedRun = false
     private var lastPhase = Phase.COMBAT
+    // Declared before init {} (which calls updateMusic).
+    private var musicRoundLevel = -1
+    private val musicRng = kotlin.random.Random(System.nanoTime())
 
     val skin = OperativeSkins.byId(save.current.selectedSkin)
     val background = LivingBackground.byId(save.current.selectedBackground)
@@ -163,6 +166,13 @@ class GameSession(
     }
 
     private fun updateMusic() {
+        // Each new normal round rolls for the slow (0.75x) mix.
+        if (engine.level != musicRoundLevel) {
+            musicRoundLevel = engine.level
+            audio.slowRound = engine.plan.kind == LevelKind.NORMAL &&
+                !com.cyberoperative.game.core.Scaling.isBossLevel(engine.level) &&
+                musicRng.nextFloat() < AudioManager.SLOW_ROUND_CHANCE
+        }
         val state = when {
             engine.phase == Phase.DEAD -> MusicState.GAME_OVER
             // The whole boss level (and any Endless boss) runs on boss music.
@@ -287,6 +297,7 @@ class GameSession(
 
     /** Called when leaving the run (menu / new operation / abort from pause). Ends the run for good. */
     fun finish() {
+        audio.slowRound = false
         commitProgress(final = true)
         save.update { it.copy(savedRun = null) }
     }

@@ -42,5 +42,9 @@ class MusicTest {
         assertEquals(1f, am.speedFor(MusicState.MENU), 0f)
         assertEquals(1.25f, am.speedFor(MusicState.COMBAT), 0f)
         assertEquals(1.5f, am.speedFor(MusicState.BOSS), 0f)
+        // Slow rounds only change normal combat music.
+        assertEquals(0.75f, am.speedFor(MusicState.COMBAT, slowRound = true), 0f)
+        assertEquals(1.5f, am.speedFor(MusicState.BOSS, slowRound = true), 0f)
+        assertEquals(1.25f, am.speedFor(MusicState.EVENT, slowRound = true), 0f)
     }
 }

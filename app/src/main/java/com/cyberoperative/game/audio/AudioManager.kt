@@ -246,6 +246,14 @@ class AudioManager(private val context: Context) {
         speedDirty = true
     }
 
+    /** This normal round plays at [SLOW_ROUND_SPEED]; set by the game each round. */
+    var slowRound = false
+        set(value) {
+            if (field == value) return
+            field = value
+            speedDirty = true
+        }
+
     private var speedDirty = false
     private var lastSpeedCheck = 0L
 
@@ -259,7 +267,7 @@ class AudioManager(private val context: Context) {
         try {
             // Only while playing: setting a speed on a paused player starts it.
             if (!mp.isPlaying) return
-            val want = speedFor(state)
+            val want = speedFor(state, slowRound)
             if (kotlin.math.abs(mp.playbackParams.speed - want) < 0.01f) { speedDirty = false; return }
             applySpeed(mp)
         } catch (t: Throwable) {
@@ -269,7 +277,7 @@ class AudioManager(private val context: Context) {
 
     private fun applySpeed(mp: MediaPlayer) {
         try {
-            mp.playbackParams = mp.playbackParams.setSpeed(speedFor(state)).setPitch(1f)
+            mp.playbackParams = mp.playbackParams.setSpeed(speedFor(state, slowRound)).setPitch(1f)
         } catch (t: Throwable) {
             Log.w(TAG, "playback speed unsupported", t)
         }
@@ -393,11 +401,20 @@ class AudioManager(private val context: Context) {
     companion object {
         private const val TAG = "CyberOpAudio"
 
-        fun speedFor(s: MusicState): Float = when (s) {
-            MusicState.COMBAT, MusicState.EVENT -> 1.25f
+        /**
+         * [slowRound]: owner, 2026-10-08 — some normal rounds play their music
+         * at 0.75x instead of the usual 1.25x for a change of mood.
+         */
+        fun speedFor(s: MusicState, slowRound: Boolean = false): Float = when (s) {
+            MusicState.COMBAT -> if (slowRound) SLOW_ROUND_SPEED else 1.25f
+            MusicState.EVENT -> 1.25f
             MusicState.BOSS -> 1.5f
             else -> 1f
         }
+
+        const val SLOW_ROUND_SPEED = 0.75f
+        /** Chance that a normal round gets the slow mix. */
+        const val SLOW_ROUND_CHANCE = 0.2f
 
     }
 }
