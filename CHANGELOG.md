@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.4 (versionCode 14) — 2026-10-08
+### Changed
+- NEON OPERATIVE and the shopkeeper are now traced from the app icon at its exact proportions —
+  the same hood, face shield, headset/antenna, shoulders, strap, collar tab and button as the
+  main-menu emblem (shared drawing code) — standing on a tapered robe with sleeves and legs.
+- Shopkeeper looks match the rarest stock on the counter: all GOLDEN → gold; one TITANIUM →
+  titanium silver; two or three TITANIUM → menacing black with blood-red trim; all four
+  TITANIUM → cycling spectrum. Shop stock is now drawn by rarity weight, so TITANIUM stays rare.
+- Skip-shop prompt: walking into the top gate while a shop is on offer asks "SKIP THE UPGRADE
+  SHOP?" — green [NO] locks the top gate red and flashes a gold arrow toward the shop gate;
+  red [YES] moves on to the next level and closes the shop.
+### Fixed
+- Shop gate placement verified clear in generated, Data Vault and boss rooms (tests).
+
 ## 0.9.3 (versionCode 13) — 2026-10-08
 ### Changed
 - Adaptive threat (owner: "levels 50+ scale too slowly if you have many weapons"): threat and

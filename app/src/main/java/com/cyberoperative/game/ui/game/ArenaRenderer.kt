@@ -335,6 +335,26 @@ class ArenaRenderer {
         drawLine(wall.copy(alpha = 0.8f), Offset(w, 0f), Offset(w, h), 3f)
         drawLine(wall.copy(alpha = 0.5f), Offset(0f, h), Offset(w, h), 3f)
         if (g.shopGateOpen) drawShopGate(g, time)
+        if (g.shopArrowFlash > 0f) drawShopArrow(g, time)
+    }
+
+    /** After NO on "skip the shop?": a big gold arrow by the operative blinks toward the shop gate. */
+    private fun DrawScope.drawShopArrow(g: GameEngine, time: Float) {
+        if (((g.shopArrowFlash * 4f).toInt() % 2) == 1) return
+        val tx = g.shopGateX
+        val ty = g.shopGateY
+        val ang = kotlin.math.atan2(ty - g.py, tx - g.px)
+        val cx = g.px + cos(ang) * 70f
+        val cy = g.py - 24f + sin(ang) * 70f
+        rotate(Math.toDegrees(ang.toDouble()).toFloat(), Offset(cx, cy)) {
+            shapePath.reset()
+            shapePath.moveTo(cx - 30f, cy - 9f); shapePath.lineTo(cx + 4f, cy - 9f); shapePath.lineTo(cx + 4f, cy - 22f)
+            shapePath.lineTo(cx + 32f, cy); shapePath.lineTo(cx + 4f, cy + 22f); shapePath.lineTo(cx + 4f, cy + 9f)
+            shapePath.lineTo(cx - 30f, cy + 9f); shapePath.close()
+            drawPath(shapePath, Palette.Gold.copy(alpha = 0.3f), style = Stroke(10f))
+            drawPath(shapePath, Palette.Gold)
+            drawPath(shapePath, Color(0xFF1A1200), style = Stroke(2f))
+        }
     }
 
     /** The side gate to the upgrade shop: a gold doorway in the left wall with chevrons pointing in. */
@@ -458,8 +478,8 @@ class ArenaRenderer {
         }
         drawLine((if (boss) Palette.Red else Color(env.wallTrim)).copy(alpha = 0.8f), Offset(-14f, 0f), Offset(w + 14f, 0f), 3f)
 
-        // Gate.
-        val open = g.portalOpen
+        // Gate. Locked red after the player declined to skip the shop.
+        val open = g.portalOpen && !g.topGateLocked
         val gw = gateR - gateL
         drawRect(Color(0xFF02050A), Offset(gateL, -WALL_HEIGHT), Size(gw, WALL_HEIGHT))
         val frame = if (open) Palette.Green else Palette.Red
@@ -645,7 +665,15 @@ class ArenaRenderer {
     private fun DrawScope.drawObstacleBody(g: GameEngine, o: ObstacleSpec, index: Int, time: Float, vault: Boolean, opening: Float) {
         val r = o.rect
         // The shopkeeper stands behind the counter (drawn first so the counter hides the legs).
-        if (o.kind == ObstacleKind.SHOP_COUNTER) with(OperativeFigures) { drawShopkeeper(r.centerX, r.top + 8f, 1.9f, time) }
+        if (o.kind == ObstacleKind.SHOP_COUNTER) with(OperativeFigures) {
+            val look = when (g.keeperLook) {
+                com.cyberoperative.game.engine.KeeperLook.GOLD -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_GOLD
+                com.cyberoperative.game.engine.KeeperLook.TITANIUM -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_TITANIUM
+                com.cyberoperative.game.engine.KeeperLook.BLACK -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_BLACK
+                com.cyberoperative.game.engine.KeeperLook.SPECTRUM -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_SPECTRUM
+            }
+            drawShopkeeper(r.centerX, r.top + 8f, 1.6f, time, look)
+        }
         val h = heightOf(o.kind)
         val look = if (vault) lookOf(o.kind, true) else themed(lookOf(o.kind, false), o.kind, g)
         val cr = CornerRadius(5f)

@@ -54,6 +54,24 @@ data class RunConfig(
     val opDamageMul: Float get() = 1f + 0.012f * (opLevel - 1).coerceIn(0, 100)
 }
 
+/**
+ * The shopkeeper's look, matched to the rarest stock on the counter
+ * (owner, 2026-10-08): GOLD → TITANIUM → menacing BLACK → SPECTRUM.
+ */
+enum class KeeperLook { GOLD, TITANIUM, BLACK, SPECTRUM;
+    companion object {
+        fun forStock(items: List<ShopItem>): KeeperLook {
+            val ti = items.count { it.def.rarity == com.cyberoperative.game.data.Rarity.TITANIUM }
+            return when {
+                ti >= 4 -> SPECTRUM
+                ti >= 2 -> BLACK
+                ti == 1 -> TITANIUM
+                else -> GOLD
+            }
+        }
+    }
+}
+
 /** One mod on the shop counter. */
 data class ShopItem(val def: com.cyberoperative.game.data.UpgradeDef, val nextLevel: Int, val price: Int, val sold: Boolean)
 
@@ -415,9 +433,18 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             } else checkCleared()
             Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
             Phase.PORTAL -> if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
-                phase = Phase.TRANSITION
-                phaseTimer = 0f
-                goingToShop = false
+                if (shopGateOpen) {
+                    // A shop is on offer: ask before letting them skip it, and step them back off the gate.
+                    if (!skipShopPrompt) {
+                        skipShopPrompt = true
+                        sound(GameSound.UI_CLICK)
+                    }
+                    py = arena.portalY + PORTAL_RADIUS + 46f
+                } else {
+                    phase = Phase.TRANSITION
+                    phaseTimer = 0f
+                    goingToShop = false
+                }
             } else if (shopGateOpen && kotlin.math.abs(px - shopGateX) < playerRadius + 14f && kotlin.math.abs(py - shopGateY) < SHOP_GATE_HALF) {
                 // Through the side gate into the upgrade shop.
                 phase = Phase.TRANSITION
@@ -435,6 +462,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         updateAdaptive()
+        skipShopPrompt = false
+        topGateLocked = false
+        shopArrowFlash = 0f
         vaultCracked = false
         vaultOpening = 0f
         shopGateOpen = false
@@ -689,6 +719,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * shakes for [VAULT_OPEN_SECONDS], then bursts and pays out [vaultPayout].
      */
     private fun updateVault(dt: Float) {
+        if (shopArrowFlash > 0f) shopArrowFlash = max(0f, shopArrowFlash - dt)
         if (!vaultPresent) return
         if (vaultOpening > 0f) {
             vaultOpening -= dt
@@ -811,6 +842,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun enterShop() {
         goingToShop = false
         shopGateOpen = false
+        skipShopPrompt = false
+        topGateLocked = false
+        shopArrowFlash = 0f
         val room = ArenaGenerator.shopRoom(Random(rng.nextLong()))
         plan = LevelPlan(level, LevelKind.SHOP, room, emptyList())
         arena = Arena(room)
@@ -820,17 +854,61 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         facing = -MathUtil.PI / 2f
         phaseTimer = 0f
         shopItems = rollShopItems()
+        keeperLook = KeeperLook.forStock(shopItems)
         phase = Phase.PORTAL
         portalOpen = true
         invuln = 1f
         showBanner("UPGRADE SHOP", "GOLDEN & TITANIUM MODS · PAY WITH RUN €", 2f)
     }
 
-    /** Four distinct GOLDEN-or-better mods the build can still take, priced by rarity and depth. */
+    /**
+     * Four distinct GOLDEN-or-better mods the build can still take, priced by
+     * rarity and depth. Drawn by rarity weight, so TITANIUM stays the rare find.
+     */
     private fun rollShopItems(): List<ShopItem> {
-        val pool = Upgrades.all.filter { !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) }
-            .shuffled(rng).take(4)
-        return pool.map { ShopItem(it, build.level(it.id) + 1, shopPrice(it.rarity, level), sold = false) }
+        val pool = Upgrades.all.filter { !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) }.toMutableList()
+        val picked = ArrayList<com.cyberoperative.game.data.UpgradeDef>()
+        while (picked.size < 4 && pool.isNotEmpty()) {
+            val total = pool.sumOf { it.rarity.weight.toDouble() }.toFloat()
+            var roll = rng.nextFloat() * total
+            var chosen = pool.last()
+            for (d in pool) { roll -= d.rarity.weight; if (roll <= 0f) { chosen = d; break } }
+            pool.remove(chosen)
+            picked += chosen
+        }
+        return picked.map { ShopItem(it, build.level(it.id) + 1, shopPrice(it.rarity, level), sold = false) }
+    }
+
+    /** How the shopkeeper looks this visit (fixed when the shop opens). */
+    var keeperLook = KeeperLook.GOLD
+        private set
+
+    // --- "Skip the shop?" (owner, 2026-10-08) -----------------------------------
+    /** The top gate was touched while a shop is on offer: ask before skipping it. */
+    var skipShopPrompt = false
+        private set
+    /** The player said NO: the top gate shows locked (red) until they change their mind. */
+    var topGateLocked = false
+        private set
+    /** Seconds left of the flashing arrow pointing at the shop gate. */
+    var shopArrowFlash = 0f
+        private set
+
+    /** UI: answer the skip prompt. YES leaves for the next level; NO locks the gate and points at the shop. */
+    fun answerSkipShop(skip: Boolean) {
+        if (!skipShopPrompt) return
+        skipShopPrompt = false
+        if (skip) {
+            shopGateOpen = false
+            topGateLocked = false
+            phase = Phase.TRANSITION
+            phaseTimer = 0f
+            goingToShop = false
+        } else {
+            topGateLocked = true
+            shopArrowFlash = SHOP_ARROW_SECONDS
+            sound(GameSound.UI_BACK)
+        }
     }
 
     /** UI: buy table item [index] with this run's €. */
@@ -2315,6 +2393,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         /** Owner: €1,000 and up, €100 per level (level 70 → €7,000). */
         fun vaultPayout(level: Int): Int = maxOf(1000, 100 * level)
         const val SHOP_GATE_HALF = 70f
+        const val SHOP_ARROW_SECONDS = 2.4f
 
         /** GOLDEN from €1,000, TITANIUM from €2,500, a little more each level. */
         fun shopPrice(rarity: com.cyberoperative.game.data.Rarity, level: Int): Int = when (rarity) {

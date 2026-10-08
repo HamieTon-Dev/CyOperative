@@ -193,8 +193,9 @@ fun GameScreen(
         }
         if (hud.phase == Phase.PORTAL) {
             Text(
-                "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
-                color = Palette.Green, style = MaterialTheme.typography.labelMedium,
+                if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
+                color = if (hud.topGateLocked) Palette.Red else Palette.Green,
+                style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 128.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
@@ -236,7 +237,14 @@ fun GameScreen(
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             )
         }
-        ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp))
+        if (hud.skipShopPrompt) {
+            SkipShopDialog(
+                onNo = { session.answerSkipShop(false) },
+                onYes = { session.answerSkipShop(true) },
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 28.dp)
+            )
+        }
+        ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt)
         if (hud.phase == Phase.UPGRADE) {
             UpgradeOverlay(session)
         }

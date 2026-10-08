@@ -1,5 +1,13 @@
 package com.cyberoperative.game.ui.game
 
+import androidx.compose.ui.graphics.drawscope.withTransform
+
+import com.cyberoperative.game.ui.common.drawHeroFigure
+
+import com.cyberoperative.game.ui.common.HeroFace
+
+import com.cyberoperative.game.ui.common.HeroPalette
+
 import com.cyberoperative.game.core.MathUtil
 
 import androidx.compose.ui.graphics.toArgb
@@ -135,27 +143,17 @@ object OperativeFigures {
     // --- NEON OPERATIVE (the app icon) ----------------------------------------
 
     /** The icon's shield face: green edge, mint >_<, near-black plate. */
-    private val neonFace = OperativeSkin("neon_face", "", "", 0xFF19E07A, 0xFF46FFB4, 0xFF02140C, SkinEffect.NEON)
-    /** Blank shield (face drawn as text) for the shopkeeper. */
-    private val keeperFace = OperativeSkin("keeper_face", "", "", 0xFFFFD426, 0xFF140F02, 0xFF140F02, SkinEffect.NONE)
-    private val keeperPaint = android.graphics.Paint().apply {
-        isAntiAlias = true
-        textAlign = android.graphics.Paint.Align.CENTER
-        typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
-    }
 
     /**
      * The upgrade-shop keeper (owner, 2026-10-08): the main-menu hooded operative,
      * but with a gold-rimmed shield and the face X,.,.X instead of >_<.
      */
-    fun DrawScope.drawShopkeeper(x: Float, footY: Float, u: Float, time: Float) {
-        neonOperative(x, footY, u, MathUtil.PI / 2f, false, time, 1f, keeper = true)
+    fun DrawScope.drawShopkeeper(x: Float, footY: Float, u: Float, time: Float, palette: HeroPalette = HeroPalette.KEEPER_GOLD) {
+        neonOperative(x, footY, u, MathUtil.PI / 2f, false, time, 1f, keeper = true, palette = palette)
     }
 
     private val neonCyan = Color(0xFF22D3FF)
     private val neonHood = Color(0xFF1B3F9A)
-    private val neonHoodDark = Color(0xFF0E2560)
-    private val neonHoodShade = Color(0xFF0A1A46)
     private val neonGreen = Color(0xFF1FF29A)
 
     /** Polygon helper in design units relative to ([ox], [oy]). */
@@ -171,91 +169,44 @@ object OperativeFigures {
         path.close()
     }
 
-    private fun DrawScope.neonOperative(x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float, keeper: Boolean = false) {
+    /** Emblem units → world: the traced hero is 118 units to the feet; 0.66u per unit. */
+    private const val HERO_SCALE = 0.66f
+
+    /**
+     * NEON OPERATIVE (and the shopkeeper): the app-icon hero traced to the
+     * icon's exact proportions — the same geometry as the main-menu emblem —
+     * standing on a cloak and legs. Mirrors to face left.
+     */
+    private fun DrawScope.neonOperative(
+        x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float,
+        keeper: Boolean = false, palette: HeroPalette = HeroPalette.ICON
+    ) {
         val breathe = 0.7f + 0.3f * sin(time * 2.2f)
-        val cyan = neonCyan.copy(alpha = alpha)
-        val hood = neonHood.copy(alpha = alpha)
-        val hoodDark = neonHoodDark.copy(alpha = alpha)
-        val green = neonGreen.copy(alpha = alpha)
-        val dir = if (cos(facing) < 0f) -1f else 1f
+        val dir = if (keeper) 1f else if (cos(facing) < 0f) -1f else 1f
         val walk = if (moving) sin(time * 12f) else 0f
         val bob = if (moving) abs(sin(time * 12f)) * 1.4f * u else sin(time * 2f) * 0.5f * u
         val f = foot - bob
-
-        // Floor shadow and neon aura.
-        drawOval(Color.Black.copy(alpha = 0.35f * alpha), Offset(x - 16f * u, foot - 4f * u), Size(32f * u, 9f * u))
-        drawOval(cyan.copy(alpha = 0.22f * breathe * alpha), Offset(x - 22f * u, foot - 7f * u), Size(44f * u, 14f * u))
-        drawCircle(cyan.copy(alpha = 0.08f * breathe * alpha), 36f * u, Offset(x, f - 36f * u))
-
-        // Legs (dark armour, cyan boots).
-        val hip = f - 13f * u
-        limb(Offset(x - 5f * u, hip), Offset(x - 5f * u - walk * 3f * u, f - (if (walk > 0) walk * 2f * u else 0f)), 6.5f * u, hoodDark)
-        limb(Offset(x + 5f * u, hip), Offset(x + 5f * u + walk * 3f * u, f - (if (walk < 0) -walk * 2f * u else 0f)), 6.5f * u, hood)
-        drawCircle(cyan, 2.8f * u, Offset(x - 5f * u - walk * 3f * u, f))
-        drawCircle(cyan, 2.8f * u, Offset(x + 5f * u + walk * 3f * u, f))
-
-        // Cloak / torso: tapered, faceted like the hood.
-        val sh = f - 36f * u // shoulder line
-        poly(x, sh, u, -15f, 0f, 15f, 0f, 12f, 23f, -12f, 23f)
-        drawPath(path, hoodDark)
-        poly(x, sh, u, -15f, 0f, 0f, 2f, 0f, 23f, -12f, 23f)
-        drawPath(path, neonHoodShade.copy(alpha = alpha))
-        poly(x, sh, u, -15f, 0f, 15f, 0f, 12f, 23f, -12f, 23f)
-        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
-        drawLine(cyan.copy(alpha = 0.6f * alpha), Offset(x, sh + 3f * u), Offset(x, sh + 21f * u), 1.3f * u)
-
-        // Off arm, then the blaster arm on the facing side.
-        limb(Offset(x - dir * 13f * u, sh + 3f * u), Offset(x - dir * 15f * u, sh + 15f * u), 5f * u, hoodDark)
-
-        // Shoulder plate (left) with the green power button, raised collar (right).
-        poly(x, sh, u, -19f, -2f, -5f, -5f, -3f, 5f, -17f, 7f)
-        drawPath(path, hood)
-        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
-        drawCircle(Color(0xFF041A10).copy(alpha = alpha), 3.6f * u, Offset(x - 11f * u, sh + 1.5f * u))
-        drawCircle(green, 2.7f * u, Offset(x - 11f * u, sh + 1.5f * u))
-        drawCircle(Color.White.copy(alpha = 0.5f * alpha), 0.9f * u, Offset(x - 11.8f * u, sh + 0.6f * u))
-        poly(x, sh, u, 5f, -8f, 16f, -5f, 18f, 6f, 6f, 4f)
-        drawPath(path, hood)
-        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
-
-        // Antenna (behind the hood, left), with a glowing tip.
-        val hc = Offset(x, sh - 15f * u) // hood centre
-        drawLine(cyan, Offset(hc.x - 11f * u, hc.y - 10f * u), Offset(hc.x - 15f * u, hc.y - 26f * u), 1.8f * u, cap = StrokeCap.Round)
-        drawCircle(cyan.copy(alpha = 0.25f * breathe * alpha), 5.5f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u))
-        drawCircle(cyan, 3.4f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u), style = Stroke(1.4f * u))
-        drawCircle(Color(0xFFE6FBFF).copy(alpha = alpha), 2f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u))
-
-        // Hood: faceted, pointed top, broad base.
-        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, -7f, 15f, -13f, 10f, -15f, -3f, -11f, -15f)
-        drawPath(path, cyan.copy(alpha = 0.18f * breathe * alpha), style = Stroke(6f * u, join = StrokeJoin.Round))
-        drawPath(path, hood)
-        // Facets: a darker right flank and a lit left crown.
-        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, 3f, -6f)
-        drawPath(path, hoodDark)
-        poly(hc.x, hc.y, u, 0f, -20f, -11f, -15f, -6f, -9f)
-        drawPath(path, Color(0xFF2A5BC4).copy(alpha = alpha))
-        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, -7f, 15f, -13f, 10f, -15f, -3f, -11f, -15f)
-        drawPath(path, cyan, style = Stroke(1.8f * u, join = StrokeJoin.Round))
-        // Hood opening (dark) holding the shield face.
-        poly(hc.x, hc.y, u, 0f, -12f, 9f, -8f, 10.5f, 2f, 7f, 12f, -7f, 12f, -10.5f, 2f, -9f, -8f)
-        drawPath(path, Color(0xFF040818).copy(alpha = alpha))
-        if (keeper) {
-            with(OperativeMark) { drawOperative(keeperFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
-            val blink = ((time * 0.7f) % 1f) < 0.06f
-            keeperPaint.textSize = 6.2f * u
-            keeperPaint.color = (if (blink) Color(0xFFFFF3B0) else Color(0xFFFFD426)).toArgb()
-            drawContext.canvas.nativeCanvas.drawText(if (blink) "-,.,.-" else "X,.,.X", hc.x, hc.y + 3.5f * u, keeperPaint)
-        } else {
-            with(OperativeMark) { drawOperative(neonFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
+        val p = palette.at(time)
+        // Floor shadow and aura in the hero's glow colour.
+        drawOval(Color.Black.copy(alpha = 0.35f * alpha), Offset(x - 18f * u, foot - 4f * u), Size(36f * u, 9f * u))
+        drawOval(p.glow.copy(alpha = 0.22f * breathe * alpha), Offset(x - 24f * u, foot - 7f * u), Size(48f * u, 14f * u))
+        drawCircle(p.glow.copy(alpha = 0.07f * breathe * alpha), 38f * u, Offset(x, f - 38f * u))
+        val k = HERO_SCALE * u
+        val layer = alpha < 0.99f
+        if (layer) drawContext.canvas.saveLayer(
+            androidx.compose.ui.geometry.Rect(x - 60f * u, f - 90f * u, x + 60f * u, foot + 10f * u),
+            androidx.compose.ui.graphics.Paint().apply { this.alpha = alpha }
+        )
+        withTransform({
+            translate(x, f)
+            scale(dir * k, k, Offset.Zero)
+            translate(-52f, -118f)
+        }) {
+            drawHeroFigure(palette, if (keeper) HeroFace.KEEPER else HeroFace.ICON, time, walk)
         }
-
-        // Earpiece ring on the left of the hood.
-        drawOval(hood, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u))
-        drawOval(cyan, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u), style = Stroke(1.5f * u))
-        drawOval(Color(0xFF040818).copy(alpha = alpha), Offset(hc.x - 16.4f * u, hc.y - 2.5f * u), Size(3.3f * u, 6f * u))
-
-        if (!keeper) gun(x + dir * 12f * u, sh + 6f * u, u, facing, cyan, green, hood)
-        else limb(Offset(x + 13f * u, sh + 3f * u), Offset(x + 15f * u, sh + 15f * u), 5f * u, hoodDark)
+        if (layer) drawContext.canvas.restore()
+        // Blaster on the facing side, at the icon's right shoulder.
+        if (!keeper) gun(x + dir * 21f * k, f - 44f * k, u, facing, neonCyan.copy(alpha = alpha), neonGreen.copy(alpha = alpha), neonHood.copy(alpha = alpha))
     }
 
     // --- FIELD AGENT -------------------------------------------------------

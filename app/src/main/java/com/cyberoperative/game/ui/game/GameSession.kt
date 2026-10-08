@@ -76,6 +76,8 @@ data class HudSnapshot(
     val atShopCounter: Boolean = false,
     val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
     val shopGateRight: Boolean = false,
+    val skipShopPrompt: Boolean = false,
+    val topGateLocked: Boolean = false,
     /** Data Vault: the cleared room's cache is waiting to be cracked. */
     val vaultReady: Boolean = false
 )
@@ -246,7 +248,9 @@ class GameSession(
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
             vaultReady = g.vaultReady,
-            shopGateRight = g.shopGateRight
+            shopGateRight = g.shopGateRight,
+            skipShopPrompt = g.skipShopPrompt,
+            topGateLocked = g.topGateLocked
         )
     }
 
@@ -282,6 +286,8 @@ class GameSession(
     fun reroll() = engine.reroll()
 
     fun buyShopItem(i: Int) = engine.buyShopItem(i)
+
+    fun answerSkipShop(skip: Boolean) = engine.answerSkipShop(skip)
 
     /** Paid (token / ◇) revives used this run; capped so a run can't be infinite. */
     private var paidRevives = 0

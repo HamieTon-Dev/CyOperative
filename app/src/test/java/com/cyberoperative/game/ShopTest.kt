@@ -3,6 +3,7 @@ package com.cyberoperative.game
 import com.cyberoperative.game.data.Rarity
 import com.cyberoperative.game.engine.GameEngine
 import com.cyberoperative.game.engine.LevelKind
+import com.cyberoperative.game.engine.LevelPlanner
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.engine.RunConfig
 import com.cyberoperative.game.engine.RunStats
@@ -118,5 +119,89 @@ class ShopTest {
             assertTrue("seed $seed: could not walk into the shop gate", g.inShop)
         }
         assertTrue("only $offered rooms offered a shop", offered >= 120)
+    }
+
+    private fun clearToPortal(g: GameEngine) {
+        var guard = 0
+        while (g.phase != Phase.PORTAL && guard++ < 8000) {
+            for (e in g.enemies.items) if (e.active) g.killEnemy(e)
+            if (g.phase == Phase.UPGRADE) g.chooseUpgrade(0)
+            g.update(1f / 60f)
+        }
+    }
+
+    @Test fun topGateAsksBeforeSkippingTheShop() {
+        val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = 8L, freeRevives = 0))
+        g.debugJumpToLevel(5)
+        clearToPortal(g)
+        g.offerShop()
+        assertTrue(g.shopGateOpen)
+        // Walk into the regular gate: a prompt, not the next level.
+        walk(g, g.arena.portalX, 0f) { g.skipShopPrompt }
+        assertTrue(g.skipShopPrompt)
+        repeat(30) { g.update(1f / 60f) }
+        assertEquals(5, g.level)
+        // NO: the gate locks and an arrow points at the shop.
+        g.answerSkipShop(false)
+        assertFalse(g.skipShopPrompt)
+        assertTrue(g.topGateLocked)
+        assertTrue(g.shopArrowFlash > 0f)
+        assertTrue(g.shopGateOpen)
+        // Trying again asks again; YES moves on and closes the shop.
+        walk(g, g.arena.portalX, 0f) { g.skipShopPrompt }
+        g.answerSkipShop(true)
+        repeat(90) { g.update(1f / 60f) }
+        assertEquals(6, g.level)
+        assertFalse(g.shopGateOpen)
+        assertFalse(g.topGateLocked)
+    }
+
+    @Test fun keeperLookMatchesRarestStockAndTitaniumStaysRare() {
+        val gold = com.cyberoperative.game.data.Upgrades.GOLDEN_PROTOCOL
+        val ti = com.cyberoperative.game.data.Upgrades.OMEGA_OVERCLOCK
+        fun look(vararg t: com.cyberoperative.game.data.UpgradeDef) =
+            com.cyberoperative.game.engine.KeeperLook.forStock(t.map { com.cyberoperative.game.engine.ShopItem(it, 1, 1000, false) })
+        assertEquals(com.cyberoperative.game.engine.KeeperLook.GOLD, look(gold, gold, gold, gold))
+        assertEquals(com.cyberoperative.game.engine.KeeperLook.TITANIUM, look(ti, gold, gold, gold))
+        assertEquals(com.cyberoperative.game.engine.KeeperLook.BLACK, look(ti, ti, gold, gold))
+        assertEquals(com.cyberoperative.game.engine.KeeperLook.SPECTRUM, look(ti, ti, ti, ti))
+
+        // Over many shops, most stock is GOLDEN.
+        var tiCount = 0
+        var total = 0
+        val looks = HashSet<com.cyberoperative.game.engine.KeeperLook>()
+        for (seed in 1L..60L) {
+            val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = seed, freeRevives = 0))
+            clearToPortal(g)
+            g.offerShop()
+            if (!g.shopGateOpen) continue
+            walk(g, g.shopGateX, g.shopGateY) { g.inShop }
+            repeat(40) { g.update(1f / 60f) }
+            if (!g.inShop) continue
+            total += g.shopItems.size
+            tiCount += g.shopItems.count { it.def.rarity == Rarity.TITANIUM }
+            looks += g.keeperLook
+            assertEquals(com.cyberoperative.game.engine.KeeperLook.forStock(g.shopItems), g.keeperLook)
+        }
+        assertTrue("titanium share ${tiCount * 100 / total}%", tiCount * 2 < total)
+        assertTrue(looks.size >= 2)
+    }
+
+    @Test fun shopGateClearInVaultAndBossRoomsToo() {
+        for (seed in 1L..30L) {
+            for (kind in 0..1) {
+                val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = seed, freeRevives = 0))
+                if (kind == 0) g.debugStartPlan(LevelPlanner.eventPlan(25, kotlin.random.Random(seed), com.cyberoperative.game.data.Events.DATA_VAULT, null))
+                else g.debugStartPlan(LevelPlanner.bossPlan(20, kotlin.random.Random(seed)))
+                clearToPortal(g)
+                g.offerShop()
+                assertTrue("seed $seed kind $kind: no clear gate spot", g.shopGateOpen)
+                val a = g.arena
+                for (d in listOf(-60f, -30f, 0f, 30f, 60f)) for (depth in listOf(20f, 50f, 80f)) {
+                    val x = if (g.shopGateRight) a.width - depth else depth
+                    assertTrue(a.obstacleAt(x, g.shopGateY + d, 2f) < 0)
+                }
+            }
+        }
     }
 }

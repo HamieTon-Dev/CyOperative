@@ -18,6 +18,9 @@ import com.cyberoperative.game.ui.menu.MainMenuScreen
 import com.cyberoperative.game.ui.splash.BootTerminal
 import com.cyberoperative.game.ui.theme.CyberOperativeTheme
 import org.junit.Assume.assumeTrue
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -364,6 +367,72 @@ class ScreenshotPreviews {
             g.debugJumpToLevel(6)
             clearToPortal(g)
             g.offerShop()
+        }
+    }
+
+    @Test fun heroLineup() {
+        assumeTrue(enabled)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CyberOperativeTheme {
+                androidx.compose.foundation.layout.Column(
+                    androidx.compose.ui.Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF060A12))
+                ) {
+                    androidx.compose.foundation.layout.Row {
+                        com.cyberoperative.game.ui.common.OperativeEmblem(
+                            com.cyberoperative.game.data.OperativeSkins.DEFAULT,
+                            androidx.compose.ui.Modifier.size(200.dp), animate = false
+                        )
+                        androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.size(200.dp)) {
+                            with(com.cyberoperative.game.ui.game.OperativeFigures) {
+                                drawFigure(com.cyberoperative.game.ui.game.BodyStyle.NEON, com.cyberoperative.game.data.OperativeSkins.DEFAULT,
+                                    size.width / 2f, size.height * 0.92f, 5.2f, 0f, false, 1f)
+                            }
+                        }
+                    }
+                    androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.fillMaxWidth().size(220.dp)) {
+                        val looks = listOf(
+                            com.cyberoperative.game.ui.common.HeroPalette.KEEPER_GOLD,
+                            com.cyberoperative.game.ui.common.HeroPalette.KEEPER_TITANIUM,
+                            com.cyberoperative.game.ui.common.HeroPalette.KEEPER_BLACK,
+                            com.cyberoperative.game.ui.common.HeroPalette.KEEPER_SPECTRUM
+                        )
+                        for ((i, p) in looks.withIndex()) with(com.cyberoperative.game.ui.game.OperativeFigures) {
+                            drawShopkeeper(size.width * (i + 0.5f) / 4f, size.height * 0.92f, 3.6f, 1.3f, p)
+                        }
+                    }
+                }
+            }
+        }
+        compose.mainClock.advanceTimeBy(100)
+        save("hero_lineup")
+    }
+
+    private fun toSkipPrompt(g: com.cyberoperative.game.engine.GameEngine) {
+        g.debugJumpToLevel(7)
+        clearToPortal(g)
+        g.offerShop()
+        var guard = 0
+        while (!g.skipShopPrompt && guard++ < 1500) {
+            val a = g.arena
+            if (a.lineOfSight(g.px, g.py, a.portalX, 0f, g.playerRadius)) g.setInput(a.portalX - g.px, -g.py)
+            else { g.path.update(a, a.portalX, 30f, 1f); if (g.path.steer(g.px, g.py, g.playerRadius)) g.setInput(g.path.dir[0], g.path.dir[1]) }
+            g.update(1f / 60f)
+        }
+        g.setInput(0f, 0f)
+    }
+
+    @Test fun skipShopPrompt() {
+        assumeTrue(enabled)
+        gameplay("shop_skip_prompt", 0f) { s -> toSkipPrompt(s.engine) }
+    }
+
+    @Test fun skipShopDeclined() {
+        assumeTrue(enabled)
+        gameplay("shop_skip_declined", 0f) { s ->
+            toSkipPrompt(s.engine)
+            s.engine.answerSkipShop(false)
+            repeat(5) { s.engine.update(1f / 60f) }
         }
     }
 

@@ -47,7 +47,7 @@ private val TERMINAL_LINES = listOf(
  * Never blocks input.
  */
 @Composable
-fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier) {
+fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidden: Boolean = false) {
     val lines = TERMINAL_LINES.dropLast(1) + (TERMINAL_LINES.last() + if (right) "  [ RIGHT WALL >> ]" else "  [ << LEFT WALL ]")
     var shown by remember { mutableIntStateOf(0) }
     var chars by remember { mutableIntStateOf(0) }
@@ -65,7 +65,7 @@ fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier) {
         delay(3200)
         visible = false
     }
-    if (!visible) return
+    if (!visible || hidden) return
     var left = chars
     Column(
         modifier
@@ -149,5 +149,43 @@ fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier:
         }
         Spacer(Modifier.height(4.dp))
         Text("Exit through the gate at the top when you're done.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/** Shown when the player walks into the top gate while a shop is on offer. */
+@Composable
+fun SkipShopDialog(onNo: () -> Unit, onYes: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .background(Color(0xF0080A10), RoundedCornerShape(10.dp))
+            .border(1.5.dp, Palette.Gold, RoundedCornerShape(10.dp))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("SKIP THE UPGRADE SHOP?", color = Palette.Gold, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(4.dp))
+        Text("The shop gate closes once you move on.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(14.dp))
+        Row {
+            DialogBox("NO", "TAKE ME TO THE SHOP", Palette.Green, onNo, Modifier.weight(1f))
+            Spacer(Modifier.width(10.dp))
+            DialogBox("YES", "SKIP IT", Palette.Red, onYes, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun DialogBox(label: String, sub: String, color: Color, onClick: () -> Unit, modifier: Modifier) {
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        modifier
+            .background(color.copy(alpha = 0.16f), shape)
+            .border(2.dp, color, shape)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("[ $label ]", color = color, style = MaterialTheme.typography.titleLarge)
+        Text(sub, color = color.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
     }
 }
