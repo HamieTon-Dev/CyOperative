@@ -158,6 +158,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val operatives: List<Operative> get() = ops
     /** The operative the rules are being applied to right now (outside [update]: the host / solo player). */
     private var cur: Operative = ops[0]
+    /** The operative this device plays: 0 on the host / solo, 1 on a co-op guest. */
+    var primary = 0
+        private set
     val coop: Boolean get() = ops.size > 1
     val build: RunBuild get() = cur.build
     val stats: RunStats get() = build.stats
@@ -465,7 +468,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             cur = o
             block(o)
         }
-        cur = ops[0]
+        cur = ops[primary]
     }
 
     /** Points the rules at the living operative closest to (x, y): who a threat chases and shoots at. */
@@ -481,7 +484,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (best != null) cur = best
     }
 
-    internal fun focusHost() { cur = ops[0] }
+    internal fun focusHost() { cur = ops[primary] }
 
     /** Co-op partner's stick. */
     fun setInputFor(index: Int, x: Float, y: Float) {
@@ -493,7 +496,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** The partner left the game: the run carries on with whoever is still here. */
     fun removeOperative(index: Int) {
         val o = ops.getOrNull(index) ?: return
-        if (index == 0 || o.gone) return
+        if (index == primary || o.gone) return
         o.gone = true
         o.downed = false
         o.pendingUpgrades = 0
@@ -551,8 +554,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Joystick vector; magnitude 0..1. */
     fun setInput(x: Float, y: Float) {
-        ops[0].inputX = x
-        ops[0].inputY = y
+        ops[primary].inputX = x
+        ops[primary].inputY = y
     }
 
     fun update(delta: Float) {
@@ -597,11 +600,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (phase == Phase.COMBAT) forEachAlive { path.update(arena, px, py, dt) }
         ai.update(dt)
         bossBrain.update(dt)
-        cur = ops[0]
+        cur = ops[primary]
         updateProjectiles(dt)
         updateZaps(dt)
         updateHazards(dt)
-        cur = ops[0]
+        cur = ops[primary]
         if (coop) {
             if (updateCoop(dt)) return
         } else if (hp <= 0f) {
@@ -844,7 +847,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             offer = if (o.gone || pendingUpgrades <= 0) emptyList() else build.rollOffer(rng, luck = offerLuck)
             if (offer.isEmpty()) pendingUpgrades = 0 else any = true
         }
-        cur = ops[0]
+        cur = ops[primary]
         if (!any) {
             if (!resumeCombat) openPortal()
             return
@@ -874,7 +877,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** UI: the player picked card [index]. */
-    fun chooseUpgrade(index: Int) = chooseUpgradeFor(0, index)
+    fun chooseUpgrade(index: Int) = chooseUpgradeFor(primary, index)
 
     /** Operative [opIndex] picked card [index] (co-op: each picks their own). */
     fun chooseUpgradeFor(opIndex: Int, index: Int) {
@@ -882,7 +885,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val o = ops.getOrNull(opIndex) ?: return
         if (o.gone) return
         cur = o
-        try { takeOffered(index) } finally { cur = ops[0] }
+        try { takeOffered(index) } finally { cur = ops[primary] }
         if (ops.all { it.gone || it.pendingUpgrades <= 0 }) finishUpgrades()
     }
 
@@ -928,7 +931,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** UI: spend a reroll (permanent progression) to redraw the cards. */
-    fun reroll(): Boolean = rerollFor(0)
+    fun reroll(): Boolean = rerollFor(primary)
 
     fun rerollFor(opIndex: Int): Boolean {
         val o = ops.getOrNull(opIndex) ?: return false
@@ -1353,10 +1356,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
         }
 
-        // Movement.
+        // Movement. A co-op guest moves its own operative and reports where it is.
         val mag = sqrt(inputX * inputX + inputY * inputY)
-        moving = mag > MOVE_DEADZONE
-        if (moving) {
+        moving = if (cur.remote) cur.netMoving else mag > MOVE_DEADZONE
+        if (cur.remote) {
+            arena.pushOut(cur.netX, cur.netY, playerRadius)
+            px = arena.out[0]
+            py = arena.out[1]
+            if (moving) {
+                facing = cur.netFacing
+                stillTime = 0f
+                followUpLeft = 0
+            } else stillTime += dt
+        } else if (moving) {
             val m = min(1f, mag)
             val speed = s.moveSpeed * m
             val nx = px + inputX / mag * speed * dt
@@ -2231,7 +2243,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (p in projectiles.items) {
             if (!p.active) continue
             // Friendly shots act for whoever fired them; hostile ones chase the closest operative.
-            if (p.friendly) cur = ops.getOrNull(p.owner)?.takeIf { !it.gone } ?: ops[0]
+            if (p.friendly) cur = ops.getOrNull(p.owner)?.takeIf { !it.gone } ?: ops[primary]
             else focusNearest(p.x, p.y)
             p.life -= dt
             if (p.life <= 0f) { p.active = false; continue }
@@ -2325,7 +2337,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 }
             }
         }
-        cur = ops[0]
+        cur = ops[primary]
     }
 
     /** A hostile packet against the current operative: blocked by its blades, or a hit. */
@@ -2621,6 +2633,354 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Test hook: start a specific plan (e.g. a given event or boss). */
     fun debugStartPlan(forced: LevelPlan) {
         startLevel(forced.level, null, true, forced)
+    }
+
+    // ======================================================================
+    // Co-op networking: host snapshot, guest mirror (see CoopNet.kt)
+    // ======================================================================
+
+    /** True on a co-op guest: this engine only shows what the host sends. */
+    var mirror = false
+        private set
+    /** Host: last input seen from the guest. */
+    private var lastPickSerial = 0
+    private var lastRerollSerial = 0
+
+    /** Host: the guest's latest movement and picks. */
+    fun applyInput(index: Int, c: CoopInput) {
+        val o = ops.getOrNull(index) ?: return
+        if (o.gone) return
+        o.remote = true
+        if (o.alive && c.level == level && phase != Phase.TRANSITION && slideIn <= 0f) {
+            o.netX = c.x; o.netY = c.y; o.netFacing = c.facing; o.netMoving = c.moving
+        } else {
+            // Still in the previous room on the guest's side: hold the spawn spot.
+            o.netX = o.px; o.netY = o.py; o.netMoving = false
+        }
+        if (c.pickSerial > lastPickSerial) {
+            lastPickSerial = c.pickSerial
+            chooseUpgradeFor(index, c.pickIndex)
+        }
+        if (c.rerollSerial > lastRerollSerial) {
+            lastRerollSerial = c.rerollSerial
+            rerollFor(index)
+        }
+    }
+
+    private val upgradeIndex: Map<String, Int> by lazy { Upgrades.all.withIndex().associate { it.value.id to it.index } }
+    private val enemyIndex: Map<String, Int> by lazy { Enemies.all.withIndex().associate { it.value.id to it.index } }
+
+    /** Host: everything the guest needs to draw this moment of the run. [sounds] = sounds since the last snapshot. */
+    fun captureWorld(seq: Int, sounds: List<GameSound>): CoopWorld {
+        val w = CoopWorld()
+        w.seq = seq
+        w.level = level; w.levelSeed = levelSeed; w.previousArenaId = previousArenaId; w.previousEvent = previousEvent
+        w.vaultCracked = vaultCracked; w.vaultOpening = vaultOpening
+        w.phase = phase; w.phaseTimer = phaseTimer; w.slideIn = slideIn
+        w.score = score; w.kills = kills; w.euros = eurosEarned; w.diamonds = diamondsEarned
+        w.bosses = bossesDefeated; w.elites = elitesDefeated; w.events = eventsCompleted
+        w.levelKills = levelKills; w.levelSpawned = levelSpawned; w.waveIndex = waveIndex
+        w.runLevel = runLevel; w.xp = xp; w.runSeconds = runSeconds; w.timedRemaining = timedRemaining
+        w.portalOpen = portalOpen
+        w.banner = banner; w.bannerSub = bannerSub; w.bannerTimer = bannerTimer
+        w.bossPhaseLabel = bossPhaseLabel; w.bossUid = boss?.uid ?: -1
+        for (o in ops) {
+            val n = NetOp()
+            n.x = o.px; n.y = o.py; n.hp = o.hp; n.firewall = o.firewall; n.facing = o.facing
+            n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
+            n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
+            n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
+            n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
+            n.pending = o.pendingUpgrades; n.rerolls = o.rerollsLeft; n.batchTotal = o.rewardBatchTotal; n.batchTaken = o.rewardBatchTaken
+            for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
+            for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
+            w.ops += n
+        }
+        for (e in enemies.items) {
+            if (!e.active) continue
+            val n = NetEnemy()
+            n.uid = e.uid
+            val b = e.boss
+            if (b != null) {
+                n.bossIndex = com.cyberoperative.game.data.Bosses.roster.indexOf(b.def)
+                n.bossCycle = b.cycle; n.bossPhase = b.phaseIndex; n.bossGlitched = b.glitched
+            } else {
+                n.def = enemyIndex[e.def.id] ?: continue
+                n.elite = e.elite?.ordinal ?: -1
+            }
+            n.x = e.x; n.y = e.y; n.hp = e.hp; n.maxHp = e.maxHp; n.radius = e.radius
+            n.state = e.state; n.stateTimer = e.stateTimer; n.hitFlash = e.hitFlash
+            w.enemies += n
+        }
+        var hostile = 0
+        var friendly = 0
+        for (p in projectiles.items) {
+            if (!p.active) continue
+            if (p.friendly) { if (friendly++ >= CoopCodec.MAX_FRIENDLY_SHOTS) continue } else if (hostile++ >= CoopCodec.MAX_HOSTILE_SHOTS) continue
+            val n = NetShot()
+            n.kind = p.kind; n.friendly = p.friendly; n.x = p.x; n.y = p.y; n.vx = p.vx; n.vy = p.vy
+            n.radius = p.radius; n.crit = p.crit; n.homing = p.homing > 0f; n.tint = p.tint; n.armTimer = p.armTimer
+            n.life = p.life; n.owner = p.owner
+            w.shots += n
+        }
+        for (h in hazards.items) {
+            if (!h.active) continue
+            val n = NetHazard()
+            n.kind = h.kind; n.x = h.x; n.y = h.y; n.x2 = h.x2; n.y2 = h.y2; n.radius = h.radius; n.maxRadius = h.maxRadius
+            n.timer = h.timer; n.duration = h.duration; n.windup = h.windup; n.color = h.color
+            w.hazards += n
+        }
+        for (z in zaps.items) {
+            if (!z.active) continue
+            val n = NetZap()
+            n.kind = z.kind; n.x = z.x; n.y = z.y; n.x2 = z.x2; n.y2 = z.y2; n.radius = z.radius
+            n.timer = z.timer; n.duration = z.duration; n.landed = z.landed; n.seed = z.seed; n.color = z.color
+            w.zaps += n
+        }
+        for (t in texts.items) {
+            if (!t.active || w.texts.size >= CoopCodec.MAX_TEXTS) continue
+            val n = NetText()
+            n.x = t.x; n.y = t.y; n.text = t.text; n.kind = t.kind; n.life = t.life
+            w.texts += n
+        }
+        for (p in pulses.items) {
+            if (!p.active) continue
+            val n = NetPulse()
+            n.x = p.x; n.y = p.y; n.radius = p.radius; n.maxRadius = p.maxRadius; n.life = p.life; n.maxLife = p.maxLife; n.color = p.color
+            w.pulses += n
+        }
+        w.sounds += sounds.take(16)
+        return w
+    }
+
+    /** Guest: from now on this engine only mirrors the host's snapshots for operative [localIndex]. */
+    fun enterMirror(localIndex: Int) {
+        mirror = true
+        primary = localIndex.coerceIn(0, ops.size - 1)
+        cur = ops[primary]
+        for (o in ops) { o.pendingUpgrades = 0; o.offer = emptyList() }
+        clearAll()
+        boss = null
+    }
+
+    private var mirrorSeq = -1
+    /** Where each mirrored enemy should be (smoothed toward between snapshots). */
+    private val netTargets = HashMap<Int, FloatArray>()
+
+    /** Guest: apply one host snapshot. Older or duplicate snapshots are ignored. */
+    fun applyWorld(w: CoopWorld) {
+        if (!mirror || w.seq <= mirrorSeq) return
+        mirrorSeq = w.seq
+        val newRoom = w.level != level || w.levelSeed != levelSeed
+        if (newRoom) {
+            level = w.level
+            levelSeed = w.levelSeed
+            previousArenaId = w.previousArenaId
+            previousEvent = w.previousEvent
+            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode)
+            vaultCracked = false
+            val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
+            arena = Arena(plan.arena, extra)
+            netTargets.clear()
+            for (e in enemies.items) e.active = false
+        }
+        if (w.vaultCracked && !vaultCracked) {
+            vaultCracked = true
+            arena = Arena(plan.arena)
+        }
+        vaultOpening = w.vaultOpening
+        phase = w.phase; phaseTimer = w.phaseTimer; slideIn = w.slideIn
+        score = w.score; kills = w.kills; eurosEarned = w.euros; diamondsEarned = w.diamonds
+        bossesDefeated = w.bosses; elitesDefeated = w.elites; eventsCompleted = w.events
+        levelKills = w.levelKills; levelSpawned = w.levelSpawned; waveIndex = w.waveIndex
+        runLevel = w.runLevel; xp = w.xp; runSeconds = w.runSeconds; timedRemaining = w.timedRemaining
+        portalOpen = w.portalOpen
+        if (w.banner != banner || w.bannerTimer > bannerTimer + 0.2f) { banner = w.banner; bannerSub = w.bannerSub }
+        bannerTimer = w.bannerTimer
+        bossPhaseLabel = w.bossPhaseLabel
+
+        for ((i, n) in w.ops.withIndex()) {
+            val o = ops.getOrNull(i) ?: continue
+            val local = i == primary
+            // The guest drives its own position (except on a new room, while down, or between rooms);
+            // everything else comes from the host.
+            val hostPlaces = !local || newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
+            if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
+            o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
+            if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
+            o.targetUid = n.targetUid
+            o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
+            o.downed = n.downed; o.reviveProgress = n.reviveProgress; o.gone = n.gone
+            o.pendingUpgrades = n.pending; o.rerollsLeft = n.rerolls; o.rewardBatchTotal = n.batchTotal; o.rewardBatchTaken = n.batchTaken
+            val owned = HashMap<String, Int>()
+            for ((k, l) in n.owned) Upgrades.all.getOrNull(k)?.let { owned[it.id] = l }
+            if (owned != o.build.owned()) o.build.restore(owned)
+            val offer = n.offer.mapNotNull { (k, l) -> Upgrades.all.getOrNull(k)?.let { UpgradeOffer(it, l) } }
+            if (offer.map { it.def.id to it.nextLevel } != o.offer.map { it.def.id to it.nextLevel }) o.offer = offer
+        }
+
+        // Enemies by uid: keep the ones still alive (smoothly moved), add new, burst the vanished.
+        val seen = HashSet<Int>(w.enemies.size * 2)
+        var bossRef: Enemy? = null
+        for (n in w.enemies) {
+            seen += n.uid
+            var e = enemies.items.firstOrNull { it.active && it.uid == n.uid }
+            if (e == null) {
+                e = enemies.obtain() ?: continue
+                e.active = true
+                e.uid = n.uid
+                e.x = n.x; e.y = n.y
+                if (n.bossIndex >= 0) {
+                    val bd = com.cyberoperative.game.data.Bosses.roster.getOrNull(n.bossIndex) ?: continue
+                    e.def = bossBrain.defFor(bd)
+                    e.boss = BossState(bd, n.bossCycle).also { it.glitched = n.bossGlitched; it.growled = true }
+                    e.elite = null
+                } else {
+                    e.def = Enemies.all.getOrNull(n.def) ?: continue
+                    e.boss = null
+                    e.elite = if (n.elite >= 0) EliteModifier.entries.getOrNull(n.elite) else null
+                }
+            }
+            e.boss?.phaseIndex = n.bossPhase.coerceIn(0, (e.boss?.def?.phases?.size ?: 1) - 1)
+            e.hp = n.hp; e.maxHp = n.maxHp; e.radius = n.radius
+            e.state = n.state; e.stateTimer = n.stateTimer; e.hitFlash = n.hitFlash
+            netTargets.getOrPut(n.uid) { FloatArray(2) }.let { it[0] = n.x; it[1] = n.y }
+            if (n.uid == w.bossUid) bossRef = e
+        }
+        for (e in enemies.items) {
+            if (!e.active || e.uid in seen) continue
+            e.active = false
+            netTargets.remove(e.uid)
+            // Killed on the host: the same burst the host shows.
+            repeat(if (e.isElite) 14 else 8) { addParticle(e.x, e.y, e.def.color, 200f, 0.5f, 3f) }
+        }
+        boss = bossRef
+
+        for (p in projectiles.items) p.active = false
+        for (n in w.shots) {
+            val p = projectiles.obtain() ?: break
+            p.active = true; p.kind = n.kind; p.friendly = n.friendly; p.x = n.x; p.y = n.y; p.vx = n.vx; p.vy = n.vy
+            p.radius = n.radius; p.crit = n.crit; p.homing = if (n.homing) 1f else 0f; p.tint = n.tint; p.armTimer = n.armTimer
+            p.life = n.life; p.owner = n.owner; p.returning = false; p.splash = 0f
+        }
+        for (h in hazards.items) h.active = false
+        for (n in w.hazards) {
+            val h = hazards.obtain() ?: break
+            h.active = true; h.kind = n.kind; h.x = n.x; h.y = n.y; h.x2 = n.x2; h.y2 = n.y2; h.radius = n.radius; h.maxRadius = n.maxRadius
+            h.timer = n.timer; h.duration = n.duration; h.windup = n.windup; h.color = n.color; h.hitMask = 0; h.ownerUid = -1
+        }
+        for (z in zaps.items) z.active = false
+        for (n in w.zaps) {
+            val z = zaps.obtain() ?: break
+            z.active = true; z.kind = n.kind; z.x = n.x; z.y = n.y; z.x2 = n.x2; z.y2 = n.y2; z.radius = n.radius
+            z.timer = n.timer; z.duration = n.duration; z.landed = n.landed; z.seed = n.seed; z.color = n.color
+        }
+        for (t in texts.items) t.active = false
+        for (n in w.texts) {
+            val t = texts.obtain() ?: break
+            t.active = true; t.x = n.x; t.y = n.y; t.text = n.text; t.kind = n.kind; t.life = n.life
+        }
+        for (p in pulses.items) p.active = false
+        for (n in w.pulses) {
+            val p = pulses.obtain() ?: break
+            p.active = true; p.x = n.x; p.y = n.y; p.radius = n.radius; p.maxRadius = n.maxRadius; p.life = n.life; p.maxLife = n.maxLife; p.color = n.color
+        }
+        sounds += w.sounds
+        frame++
+    }
+
+    /**
+     * Guest frame: move its own operative from the stick (no waiting on the
+     * network), glide enemies toward their last reported spot, fly shots on
+     * their velocity, and age the effects.
+     */
+    fun mirrorTick(delta: Float) {
+        if (!mirror) return
+        val dt = delta.coerceIn(0f, MAX_FRAME)
+        cur = ops[primary]
+        if (bannerTimer > 0f) bannerTimer -= dt
+        updateEffects(dt)
+        if (slideIn > 0f) slideIn = max(0f, slideIn - dt)
+        val me = ops[primary]
+        if (me.alive && phase != Phase.UPGRADE && phase != Phase.DEAD && phase != Phase.TRANSITION && slideIn <= 0f) {
+            val mag = sqrt(me.inputX * me.inputX + me.inputY * me.inputY)
+            me.moving = mag > MOVE_DEADZONE
+            if (me.moving) {
+                val speed = stats.moveSpeed * min(1f, mag)
+                arena.pushOut(me.px + me.inputX / mag * speed * dt, me.py + me.inputY / mag * speed * dt, playerRadius)
+                me.px = arena.out[0]
+                me.py = arena.out[1]
+                me.facing = atan2(me.inputY, me.inputX)
+            }
+        } else me.moving = false
+        me.orbAngle = (me.orbAngle + stats.orbAngularSpeed * dt) % MathUtil.TWO_PI
+        me.bladeAngle = (me.bladeAngle - 3.4f * dt) % MathUtil.TWO_PI
+        val k = min(1f, dt * 14f)
+        for (e in enemies.items) {
+            if (!e.active) continue
+            val t = netTargets[e.uid] ?: continue
+            e.x += (t[0] - e.x) * k
+            e.y += (t[1] - e.y) * k
+            if (e.hitFlash > 0f) e.hitFlash -= dt
+        }
+        for (p in projectiles.items) {
+            if (!p.active) continue
+            p.x += p.vx * dt
+            p.y += p.vy * dt
+            p.life -= dt
+            if (p.life <= 0f) p.active = false
+        }
+        for (h in hazards.items) {
+            if (!h.active) continue
+            h.timer += dt
+            if (h.kind == HazardKind.SHOCK_RING && h.duration > 0f) h.radius = 10f + (h.maxRadius - 10f) * (h.timer / h.duration).coerceAtMost(1f)
+        }
+        for (z in zaps.items) if (z.active) z.timer += dt
+    }
+
+    /** Guest: this device's movement, for [CoopInput]. */
+    val localX: Float get() = ops[primary].px
+    val localY: Float get() = ops[primary].py
+    val localFacing: Float get() = ops[primary].facing
+    val localMoving: Boolean get() = ops[primary].moving
+    val localLevel: Int get() = level
+
+    /**
+     * Guest: the host left. This mirror becomes a real solo run from the last
+     * snapshot: the host's operative leaves the field and the threats pick up
+     * from where they were.
+     */
+    fun promoteToSolo() {
+        if (!mirror) return
+        mirror = false
+        for (o in ops) if (o.index != primary) { o.gone = true; o.downed = false; o.pendingUpgrades = 0; o.offer = emptyList() }
+        val me = ops[primary]
+        me.remote = false
+        if (me.downed || me.hp <= 0f) { me.downed = false; me.hp = me.build.stats.maxHp * 0.5f }
+        cur = me
+        for (e in enemies.items) {
+            if (!e.active) continue
+            val d = e.def
+            e.vx = 0f; e.vy = 0f
+            if (e.boss == null) {
+                e.speed = d.baseSpeed * Scaling.enemySpeed(level)
+                e.damageMul = Scaling.enemyDamage(level) * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
+            } else {
+                e.speed = (e.boss!!.def.speed) * (1f + 0.05f * e.boss!!.cycle)
+                e.damageMul = Scaling.enemyDamage(level) * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
+                e.boss!!.anchorX = e.x; e.boss!!.anchorY = e.y
+            }
+            e.attackRateMul = 1f; e.damageTakenMul = 1f; e.rewardMul = 1f
+            if (e.state != AiState.SPAWNING) e.state = AiState.MOVE
+            e.attackTimer = d.attackCooldown * (0.6f + rng.nextFloat() * 0.6f)
+            e.strafeDir = if (rng.nextBoolean()) 1f else -1f
+            e.navValid = false; e.lastX = e.x; e.lastY = e.y
+        }
+        for (p in projectiles.items) if (p.active && p.friendly) p.active = false
+        if (phase == Phase.UPGRADE && me.pendingUpgrades > 0 && me.offer.isEmpty()) me.offer = build.rollOffer(rng, luck = currentLuck())
+        if (phase == Phase.UPGRADE && me.pendingUpgrades <= 0) finishUpgrades()
+        me.invuln = 2f
+        showBanner("HOST DISCONNECTED", "Continuing solo", 2f)
     }
 
     companion object {

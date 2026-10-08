@@ -52,6 +52,9 @@ class BossBrain(private val g: GameEngine) {
 
     private val defCache = HashMap<String, EnemyDef>()
 
+    /** The enemy body a boss uses (also for co-op mirrors). */
+    internal fun defFor(b: BossDef): EnemyDef = enemyDefFor(b)
+
     private fun enemyDefFor(b: BossDef): EnemyDef = defCache.getOrPut(b.id) {
         EnemyDef(
             id = "boss_" + b.id, name = b.name, tag = b.tag, codex = b.codex,

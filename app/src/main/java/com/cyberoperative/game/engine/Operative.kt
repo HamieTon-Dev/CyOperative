@@ -70,5 +70,12 @@ class Operative(val index: Int, baseStats: RunStats) {
     /** Partner left the game: removed from the field for good. */
     var gone = false
 
+    /** Moved by a remote device (co-op guest): [netX]/[netY] is where it says it is. */
+    var remote = false
+    var netX = 0f
+    var netY = 0f
+    var netFacing = 0f
+    var netMoving = false
+
     val alive: Boolean get() = !downed && !gone
 }
