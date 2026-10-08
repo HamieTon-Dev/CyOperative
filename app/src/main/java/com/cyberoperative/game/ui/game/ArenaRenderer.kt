@@ -781,10 +781,20 @@ class ArenaRenderer {
         drawBeam(g, time, lift)
         for (p in g.projectiles.items) {
             if (!p.active) continue
-            if (p.kind == ProjKind.MINE) { drawMine(p.x, p.y, p.armTimer > 0f, time); continue }
+            if (p.kind == ProjKind.MINE) { drawMine(p.x, p.y, p.armTimer > 0f, time, p.tint); continue }
             drawCircle(Color.Black.copy(alpha = 0.25f), p.radius * 0.8f, Offset(p.x, p.y))
             val c = Offset(p.x, p.y - lift)
             if (p.kind == ProjKind.MISSILE) { drawMissile(c, p.vx, p.vy, time); continue }
+            if (p.kind == ProjKind.BOOMERANG) {
+                val col = if (p.tint != 0L) Color(p.tint) else Palette.Green
+                rotate(time * 900f % 360f, c) {
+                    drawCircle(col.copy(alpha = 0.25f), p.radius * 1.8f, c)
+                    drawArc(col, 20f, 140f, false, Offset(c.x - p.radius, c.y - p.radius), Size(p.radius * 2f, p.radius * 2f), style = Stroke(4f))
+                    drawArc(col, 200f, 140f, false, Offset(c.x - p.radius, c.y - p.radius), Size(p.radius * 2f, p.radius * 2f), style = Stroke(4f))
+                    drawCircle(Color.White, p.radius * 0.3f, c)
+                }
+                continue
+            }
             if (p.kind == ProjKind.RAIL) {
                 val tail = Offset(p.x - p.vx * 0.06f, p.y - lift - p.vy * 0.06f)
                 drawLine(Color(0xFFB98CFF).copy(alpha = 0.25f), c, tail, p.radius * 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
@@ -793,7 +803,7 @@ class ArenaRenderer {
                 continue
             }
             if (p.friendly) {
-                val col = when (p.kind) {
+                val col = if (p.tint != 0L) Color(p.tint) else when (p.kind) {
                     ProjKind.LANCE -> Palette.Green
                     ProjKind.CONE -> Palette.Blue
                     ProjKind.NODE_BOLT, ProjKind.COUNTER -> Palette.Cyan
@@ -822,10 +832,10 @@ class ArenaRenderer {
     }
 
     /** Logic Bomb on the floor: a dark puck whose light blinks faster once armed. */
-    private fun DrawScope.drawMine(x: Float, y: Float, arming: Boolean, time: Float) {
+    private fun DrawScope.drawMine(x: Float, y: Float, arming: Boolean, time: Float, tint: Long = 0L) {
         val c = Offset(x, y)
         val blink = if (arming) 0.35f else 0.5f + 0.5f * sin(time * 12f + x)
-        val col = Color(0xFFFF9A1A)
+        val col = if (tint != 0L) Color(tint) else Color(0xFFFF9A1A)
         drawCircle(Color.Black.copy(alpha = 0.35f), 13f, c)
         drawCircle(Color(0xFF1B1F2A), 10f, c)
         drawCircle(col.copy(alpha = 0.7f), 10f, c, style = Stroke(2f))
@@ -867,14 +877,40 @@ class ArenaRenderer {
                         path.lineTo(x0 + (x1 - x0) * t + nx / nl * j, y0 + (y1 - y0) * t + ny / nl * j)
                     }
                     path.lineTo(x1, y1)
-                    drawPath(path, Color(0xFFA259FF).copy(alpha = 0.35f * fade), style = Stroke(9f))
+                    val arcCol = if (z.color != 0L) Color(z.color) else Color(0xFFA259FF)
+                    drawPath(path, arcCol.copy(alpha = 0.35f * fade), style = Stroke(9f))
                     drawPath(path, Color(0xFFD9BFFF).copy(alpha = 0.9f * fade), style = Stroke(3f))
                     drawPath(path, Color.White.copy(alpha = fade), style = Stroke(1.2f))
                     drawCircle(Color(0xFFD9BFFF).copy(alpha = 0.5f * fade), 14f, Offset(x1, y1))
                 }
+                com.cyberoperative.game.engine.ZapKind.LASER -> {
+                    val fade = (1f - z.timer / z.duration).coerceIn(0f, 1f)
+                    val col = Color(z.color)
+                    val a = Offset(z.x, z.y - lift)
+                    val b = Offset(z.x2, z.y2 - lift)
+                    drawLine(col.copy(alpha = 0.25f * fade), a, b, z.radius * 3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    drawLine(col.copy(alpha = 0.85f * fade), a, b, z.radius, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    drawLine(Color.White.copy(alpha = fade), a, b, z.radius * 0.35f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                }
+                com.cyberoperative.game.engine.ZapKind.FIELD -> {
+                    val col = Color(z.color)
+                    val life = (1f - z.timer / z.duration).coerceIn(0f, 1f)
+                    val fadeIn = (z.timer / 0.2f).coerceIn(0f, 1f)
+                    val a = life * fadeIn
+                    val c = Offset(z.x, z.y)
+                    drawCircle(col.copy(alpha = 0.14f * a), z.radius, c)
+                    drawCircle(col.copy(alpha = 0.6f * a), z.radius, c, style = Stroke(2.5f))
+                    // Bubbling cells inside the zone.
+                    for (k in 0 until 7) {
+                        val ang = z.seed * 0.37f + k * 0.9f + time * 0.6f
+                        val rr = z.radius * (0.25f + 0.1f * k)
+                        val pulse = 0.5f + 0.5f * sin(time * 6f + k)
+                        drawCircle(col.copy(alpha = 0.35f * a * pulse), 4f + 2f * pulse, Offset(z.x + cos(ang) * rr * 0.9f, z.y + sin(ang) * rr * 0.5f))
+                    }
+                }
                 com.cyberoperative.game.engine.ZapKind.STRIKE -> {
                     val c = Offset(z.x, z.y)
-                    val ti = Color(0xFFDCE8F2)
+                    val ti = if (z.color != 0L) Color(z.color) else Color(0xFFDCE8F2)
                     if (!z.landed) {
                         val f = (z.timer / z.duration).coerceIn(0f, 1f)
                         drawCircle(ti.copy(alpha = 0.12f), z.radius, c)

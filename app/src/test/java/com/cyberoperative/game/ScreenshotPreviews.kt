@@ -269,6 +269,20 @@ class ScreenshotPreviews {
         }
     }
 
+    @Test fun arsenal() {
+        assumeTrue(enabled)
+        gameplay("arsenal_weapons", 0f) { s ->
+            val g = s.engine
+            g.debugJumpToLevel(12)
+            for (id in listOf("subnet_laser", "malware_swamp", "golden_boomerang", "chain_storm", "seeker_swarm", "captcha_mines", "heartbeat_pulse"))
+                g.build.take(com.cyberoperative.game.data.Upgrades.byId(id))
+            for (e in g.enemies.items) if (e.active) { e.hp = 1e6f; e.maxHp = 1e6f }
+            val bot = Bot(g, dodge = true)
+            var t = 0f
+            while (t < 5.2f) { bot.step(1f / 30f); t += 1f / 30f; for (e in g.enemies.items) if (e.active && e.hp < 1e5f) { e.hp = 1e6f; e.maxHp = 1e6f } }
+        }
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

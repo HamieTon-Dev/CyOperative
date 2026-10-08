@@ -342,7 +342,7 @@ object Upgrades {
         SYSTEM_RESTORE, CRYPTO_CACHE, DATA_DUMP,
         LOGIC_BOMBS, MALWARE_MISSILES, ARC_DISCHARGE, QUANTUM_RAILGUN, ORBITAL_STRIKE,
         TITANIUM_CHASSIS, OMEGA_OVERCLOCK, GOLDEN_PROTOCOL
-    )
+    ) + Weapons.upgrades
 
     private val byId = all.associateBy { it.id }
 

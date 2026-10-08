@@ -7,6 +7,9 @@ import com.cyberoperative.game.data.Enemies
 import com.cyberoperative.game.data.EnemyDef
 import com.cyberoperative.game.data.EventRules
 import com.cyberoperative.game.data.Upgrades
+import com.cyberoperative.game.data.WeaponKind
+import com.cyberoperative.game.data.WeaponSpec
+import com.cyberoperative.game.data.Weapons
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
@@ -820,6 +823,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
 
         updateAutoWeapons(dt)
+        updateArsenal(dt)
 
         // STOP = SHOOT.
         if (moving || stillTime < STOP_TO_FIRE_DELAY) {
@@ -916,23 +920,190 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
+    /** Every projectile comes from here so pooled fields never leak between uses. */
+    private fun newProjectile(): Projectile? {
+        val p = projectiles.obtain() ?: return null
+        p.tint = 0L
+        p.returning = false
+        p.armTimer = 0f
+        p.splash = 0f
+        return p
+    }
+
+    // ======================================================================
+    // Arsenal: data-driven auto-weapons (data/Weapons.kt)
+    // ======================================================================
+
+    private val weaponTimers = HashMap<String, Float>()
+
+    private class SpiralBurst(val spec: WeaponSpec, val damage: Float, var left: Int, var angle: Float, val step: Float) {
+        var timer = 0f
+    }
+    private val spirals = ArrayList<SpiralBurst>()
+
+    private fun updateArsenal(dt: Float) {
+        val s = stats
+        if (spirals.isNotEmpty()) {
+            val it = spirals.iterator()
+            while (it.hasNext()) {
+                val b = it.next()
+                b.timer -= dt
+                while (b.timer <= 0f && b.left > 0) {
+                    arsenalBolt(b.spec, b.angle, b.damage, ProjKind.BOLT)
+                    b.angle += b.step
+                    b.left--
+                    b.timer += 0.045f
+                }
+                if (b.left <= 0) it.remove()
+            }
+        }
+        if (s.weapons.isEmpty()) return
+        for ((id, level) in s.weapons) {
+            val w = Weapons.byId(id) ?: continue
+            if (w.stillOnly && moving) continue
+            val t = (weaponTimers[id] ?: (0.4f + rng.nextFloat() * 0.8f)) - dt
+            if (t > 0f) { weaponTimers[id] = t; continue }
+            weaponTimers[id] = if (fireWeapon(w, level)) w.cooldownAt(level) else 0.25f
+        }
+    }
+
+    /** Fires one use of an arsenal weapon. False when it had nothing to shoot at. */
+    private fun fireWeapon(w: WeaponSpec, level: Int): Boolean {
+        val s = stats
+        val dmg = s.damage * w.damageAt(level)
+        val n = w.countAt(level)
+        val target = nearestEnemy(px, py, 680f)
+        val spread = Math.toRadians(w.spreadDegrees.toDouble()).toFloat()
+        fun fanAngle(base: Float, i: Int) = if (n <= 1) base else base + spread * (i / (n - 1f) - 0.5f)
+        when (w.kind) {
+            WeaponKind.VOLLEY -> {
+                val t = target ?: return false
+                val base = atan2(t.y - py, t.x - px)
+                val kind = if (w.splash > 0f) ProjKind.MISSILE else ProjKind.BOLT
+                for (i in 0 until n) arsenalBolt(w, fanAngle(base, i) + if (spread == 0f && n > 1) (i - (n - 1) / 2f) * 0.08f else 0f, dmg, kind)
+            }
+            WeaponKind.RING -> {
+                if (target == null) return false
+                val off = rng.nextFloat() * MathUtil.TWO_PI
+                for (i in 0 until n) arsenalBolt(w, off + MathUtil.TWO_PI * i / n, dmg, ProjKind.BOLT)
+            }
+            WeaponKind.SPIRAL -> {
+                val t = target ?: return false
+                spirals += SpiralBurst(w, dmg, n, atan2(t.y - py, t.x - px), MathUtil.TWO_PI * 1.5f / n)
+            }
+            WeaponKind.NOVA -> {
+                var hit = false
+                for (e in enemies.items) {
+                    if (!e.targetable) continue
+                    val r = w.radius + e.radius
+                    if (MathUtil.dist2(px, py, e.x, e.y) < r * r) {
+                        damageEnemy(e, dmg * plan.rules.playerDamageMul, false, ProjKind.BOLT, quiet = true)
+                        hit = true
+                    }
+                }
+                if (!hit) return false
+                addPulse(px, py, w.radius, 0.45f, w.color)
+                addPulse(px, py, w.radius * 0.6f, 0.3f, 0xFFFFFFFF)
+                sound(GameSound.EMP)
+            }
+            WeaponKind.LASER -> {
+                val t = target ?: return false
+                val base = atan2(t.y - py, t.x - px)
+                for (i in 0 until n) fireLaser(fanAngle(base, i), w, dmg)
+                sound(GameSound.LANCE)
+            }
+            WeaponKind.ARC -> if (!fireArcs(n, dmg, w.color)) return false
+            WeaponKind.STRIKE -> if (!callOrbitalStrikes(n, dmg, w.radius, w.color)) return false
+            WeaponKind.MINES -> {
+                if (target == null) return false
+                repeat(n) { dropMine(n + 2, dmg * plan.rules.playerDamageMul, w.splash, w.color, jitter = it > 0) }
+            }
+            WeaponKind.FIELD -> {
+                if (nearestEnemy(px, py, w.radius + 260f) == null) return false
+                val z = zaps.obtain() ?: return false
+                z.active = true; z.kind = ZapKind.FIELD
+                z.x = px; z.y = py; z.radius = w.radius
+                z.timer = 0f; z.duration = 3f; z.damage = dmg * plan.rules.playerDamageMul
+                z.color = w.color; z.tick = 0f; z.seed = rng.nextInt()
+            }
+            WeaponKind.BOOMERANG -> {
+                val t = target ?: return false
+                val base = atan2(t.y - py, t.x - px)
+                for (i in 0 until n) {
+                    val p = arsenalBolt(w, fanAngle(base, i), dmg, ProjKind.BOOMERANG) ?: break
+                    p.pierceLeft = 999
+                    p.ghost = true
+                    p.radius = 11f
+                    p.armTimer = 0.6f
+                    p.life = 3.5f
+                }
+            }
+        }
+        return true
+    }
+
+    private fun arsenalBolt(w: WeaponSpec, angle: Float, damage: Float, kind: ProjKind): Projectile? {
+        val p = spawnBolt(px, py, angle, kind, damage) ?: return null
+        p.vx *= w.speed; p.vy *= w.speed
+        p.pierceLeft = w.pierce
+        p.bounceLeft = 0
+        p.chainLeft = 0
+        p.homing = w.homing
+        p.splash = w.splash
+        p.tint = w.color
+        if (kind == ProjKind.MISSILE) { p.radius = 9f; p.life = 3f }
+        return p
+    }
+
+    /** Instant beam: damages every threat along it; stops at cover unless [WeaponSpec.throughWalls]. */
+    private fun fireLaser(angle: Float, w: WeaponSpec, damage: Float) {
+        val dx = cos(angle)
+        val dy = sin(angle)
+        var len = 0f
+        while (len < w.length) {
+            val nx = px + dx * (len + 10f)
+            val ny = py + dy * (len + 10f)
+            if (nx < 0f || ny < 0f || nx > arena.width || ny > arena.height) break
+            if (!w.throughWalls && arena.obstacleAt(nx, ny, 2f) >= 0) break
+            len += 10f
+        }
+        val x2 = px + dx * len
+        val y2 = py + dy * len
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            if (distToSegment(e.x, e.y, px, py, x2, y2) < e.radius + 8f) {
+                damageEnemy(e, damage * plan.rules.playerDamageMul, false, ProjKind.LANCE, quiet = true)
+            }
+        }
+        val z = zaps.obtain() ?: return
+        z.active = true; z.kind = ZapKind.LASER
+        z.x = px; z.y = py; z.x2 = x2; z.y2 = y2
+        z.timer = 0f; z.duration = 0.25f; z.color = w.color; z.radius = if (w.rarity.highTier >= 2) 9f else 6f
+    }
+
     private fun dropMine() {
         val s = stats
+        dropMine(2 + 2 * s.mineLevel, s.damage * (1.6f + 0.4f * s.mineLevel) * plan.rules.playerDamageMul, 85f, 0L, jitter = false)
+    }
+
+    private fun dropMine(maxLive: Int, damage: Float, splash: Float, tint: Long, jitter: Boolean) {
         var live = 0
-        for (p in projectiles.items) if (p.active && p.kind == ProjKind.MINE) live++
-        if (live >= 2 + 2 * s.mineLevel) return
-        val p = projectiles.obtain() ?: return
+        for (p in projectiles.items) if (p.active && p.kind == ProjKind.MINE && p.tint == tint) live++
+        if (live >= maxLive) return
+        val p = newProjectile() ?: return
         p.active = true; p.friendly = true; p.kind = ProjKind.MINE
-        p.x = px; p.y = py; p.vx = 0f; p.vy = 0f
+        p.x = px + (if (jitter) (rng.nextFloat() - 0.5f) * 60f else 0f)
+        p.y = py + (if (jitter) (rng.nextFloat() - 0.5f) * 60f else 0f)
+        p.vx = 0f; p.vy = 0f
         p.radius = 9f; p.crit = false
-        p.damage = s.damage * (1.6f + 0.4f * s.mineLevel) * plan.rules.playerDamageMul
+        p.damage = damage
         p.life = 25f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
         p.lastHitUid = -1; p.ghost = true; p.homing = 0f
-        p.armTimer = 0.5f; p.splash = 85f
+        p.armTimer = 0.5f; p.splash = splash; p.tint = tint
     }
 
     /** Arc Discharge: instant lightning to the [count] nearest threats. Returns false if none. */
-    private fun fireArcs(count: Int, damage: Float): Boolean {
+    private fun fireArcs(count: Int, damage: Float, color: Long = 0xFFA259FF): Boolean {
         var hit = 0
         var fromX = px
         var fromY = py
@@ -951,7 +1122,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (z != null) {
                 z.active = true; z.kind = ZapKind.ARC
                 z.x = fromX; z.y = fromY; z.x2 = e.x; z.y2 = e.y
-                z.timer = 0f; z.duration = 0.22f; z.seed = rng.nextInt()
+                z.timer = 0f; z.duration = 0.22f; z.seed = rng.nextInt(); z.color = color
             }
             damageEnemy(e, damage * plan.rules.playerDamageMul, false, ProjKind.NODE_BOLT, quiet = true)
             fromX = e.x; fromY = e.y
@@ -962,13 +1133,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** Orbital Strike: marks up to [count] random threats; each strike lands after a telegraph. */
-    private fun callOrbitalStrikes(count: Int, damage: Float): Boolean {
+    private fun callOrbitalStrikes(count: Int, damage: Float, radius: Float = 90f, color: Long = 0xFFDCE8F2): Boolean {
         val targets = enemies.items.filter { it.targetable }.shuffled(rng).take(count)
         if (targets.isEmpty()) return false
         for (e in targets) {
             val z = zaps.obtain() ?: break
             z.active = true; z.kind = ZapKind.STRIKE
-            z.x = e.x; z.y = e.y; z.radius = 90f
+            z.x = e.x; z.y = e.y; z.radius = radius; z.color = color
             z.timer = 0f; z.duration = 0.75f; z.damage = damage * plan.rules.playerDamageMul
             z.landed = false; z.seed = rng.nextInt()
         }
@@ -1004,10 +1175,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (z in zaps.items) {
             if (!z.active) continue
             z.timer += dt
+            if (z.kind == ZapKind.FIELD) {
+                z.tick -= dt
+                if (z.tick <= 0f) {
+                    z.tick = 0.25f
+                    for (e in enemies.items) {
+                        if (!e.targetable) continue
+                        val r = z.radius + e.radius * 0.5f
+                        if (MathUtil.dist2(z.x, z.y, e.x, e.y) < r * r) damageEnemy(e, z.damage * 0.25f, false, ProjKind.BOLT, quiet = true, showText = false)
+                    }
+                }
+            }
             if (z.kind == ZapKind.STRIKE && !z.landed && z.timer >= z.duration) {
                 z.landed = true
                 detonate(z.x, z.y, z.radius, z.damage)
-                addPulse(z.x, z.y, z.radius * 1.4f, 0.5f, 0xFFDCE8F2)
+                addPulse(z.x, z.y, z.radius * 1.4f, 0.5f, if (z.color != 0L) z.color else 0xFFDCE8F2)
             }
             val end = if (z.kind == ZapKind.STRIKE) z.duration + 0.3f else z.duration
             if (z.timer >= end) z.active = false
@@ -1125,7 +1307,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun spawnBolt(x: Float, y: Float, angle: Float, kind: ProjKind, damage: Float): Projectile? {
-        val p = projectiles.obtain() ?: return null
+        val p = newProjectile() ?: return null
         val s = stats
         p.active = true
         p.friendly = true
@@ -1202,7 +1384,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     val oy = py + sin(a) * s.orbRadius
                     val t = nearestEnemy(ox, oy, 420f) ?: continue
                     val ang = atan2(t.y - oy, t.x - ox)
-                    val p = projectiles.obtain() ?: break
+                    val p = newProjectile() ?: break
                     p.active = true; p.friendly = true; p.kind = ProjKind.NODE_BOLT
                     p.x = ox; p.y = oy
                     p.vx = cos(ang) * 520f; p.vy = sin(ang) * 520f
@@ -1444,7 +1626,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     fun fireEnemyProjectile(x: Float, y: Float, angle: Float, speed: Float, damage: Float, radius: Float, kind: ProjKind): Projectile? {
-        val p = projectiles.obtain() ?: return null
+        val p = newProjectile() ?: return null
         p.active = true
         p.friendly = false
         p.kind = kind
@@ -1488,7 +1670,20 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 }
                 continue
             }
-            if (p.homing > 0f && p.friendly) {
+            if (p.kind == ProjKind.BOOMERANG) {
+                if (!p.returning) {
+                    p.armTimer -= dt
+                    if (p.armTimer <= 0f) { p.returning = true; p.lastHitUid = -1 }
+                } else {
+                    val dx = px - p.x
+                    val dy = py - p.y
+                    val d = sqrt(dx * dx + dy * dy)
+                    if (d < playerRadius + 12f) { p.active = false; continue }
+                    val sp = sqrt(p.vx * p.vx + p.vy * p.vy).coerceAtLeast(300f)
+                    p.vx = dx / d * sp
+                    p.vy = dy / d * sp
+                }
+            } else if (p.homing > 0f && p.friendly) {
                 val t = nearestEnemy(p.x, p.y, 600f)
                 if (t != null) {
                     val want = atan2(t.y - p.y, t.x - p.x)
@@ -1588,7 +1783,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (p.chainLeft > 0) {
             val next = nearestEnemy(e.x, e.y, 220f, exceptUid = e.uid)
             if (next != null) {
-                val c = projectiles.obtain()
+                val c = newProjectile()
                 if (c != null) {
                     val ang = atan2(next.y - e.y, next.x - e.x)
                     c.active = true; c.friendly = true; c.kind = ProjKind.NODE_BOLT

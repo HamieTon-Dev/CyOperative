@@ -30,8 +30,17 @@
   or blink + spread). Sentries and other aimed turrets now track the player.
 - *GLITCHED* bosses: 12% of bosses from L20 on. +35% HP, extra random volleys, colour/shape
   flicker, "*GLITCHED*" in the boss bar, ×1.5 €/score and one extra reward pick.
+- Arsenal (data/Weapons.kt): 30 new auto-weapons, five per rarity, built on ten behaviours
+  (volley, ring, spiral, nova, laser, arc, strike, mines, field, boomerang).
+  COMMON: Ping Blaster, Spam Shotgun, Bit Spinner, Static Shock, Cable Whip.
+  UNCOMMON: Heartbeat Pulse, Captcha Mines, Traceroute, Packet Fire, Boomerang Byte.
+  BLUE: Bluescreen Nova, Subnet Laser, Cluster Bomb, Data Spiral, Tesla Relay.
+  PURPLE: Helix Cannon, Malware Swamp, Seeker Swarm, Shockwave, Satellite Lance.
+  GOLDEN: Supernova, Prism Laser, Golden Boomerang, Chain Storm, Carpet Bomb.
+  TITANIUM: Black Ice, Root Access, Titan Railstorm, Doomsday Daemon, Kernel Panic.
 - Owned-upgrade icon bar along the bottom of the screen; press and hold an icon for details.
 ### Changed
+- Base movement speed +15% (240 → 276).
 - Slow mix: each normal round (not boss or event levels) has a 20% chance to play its music
   at 0.75x instead of 1.25x. Endless rolls per stage.
 - PLASMA BEAM is now TITANIUM (ultra rare) and overheats after 5 s of hits into a 3 s

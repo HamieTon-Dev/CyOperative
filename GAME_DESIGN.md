@@ -90,6 +90,9 @@ lightning), Quantum Railgun (golden, pierces walls), Orbital Strike (titanium), 
 Chassis, Omega Overclock, Golden Protocol. Plasma Beam is TITANIUM and overheats after 5 s
 of hits (3 s cooldown).
 
+Arsenal (data/Weapons.kt): 30 auto-weapons, 5 per rarity, each a row on one of ten behaviours;
+cooldown −12% and damage +35% per level. Base move speed 276 (owner: +15%).
+
 ## 8b. Difficulty & saving
 New runs pick EASY / MEDIUM / HARD: threat HP ×0.7 / 1 / 1.45, damage ×0.65 / 1 / 1.4,
 € and score ×0.8 / 1 / 1.5. SAVE & EXIT (pause) stores the level seed, threats, player

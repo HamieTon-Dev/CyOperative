@@ -41,7 +41,8 @@ class RunStats {
     var eliteDamageMul = 1f
 
     // Movement
-    var moveSpeed = 240f
+    // Owner, 2026-10-08: base speed +15% (was 240) — runs started a little slow.
+    var moveSpeed = 276f
 
     // Orbiting Packet Nodes (always active)
     var orbCount = 1
@@ -66,6 +67,8 @@ class RunStats {
     var arcLevel = 0
     var railLevel = 0
     var strikeLevel = 0
+    /** Auto-weapon levels by [com.cyberoperative.game.data.Weapons] id. */
+    val weapons = HashMap<String, Int>()
 
     // Economy
     var xpMul = 1f
@@ -90,6 +93,7 @@ class RunStats {
         coneLevel = o.coneLevel; lanceLevel = o.lanceLevel; beamLevel = o.beamLevel; empLevel = o.empLevel
         mineLevel = o.mineLevel; missileLevel = o.missileLevel; arcLevel = o.arcLevel
         railLevel = o.railLevel; strikeLevel = o.strikeLevel
+        weapons.clear(); weapons.putAll(o.weapons)
         xpMul = o.xpMul; euroMul = o.euroMul
     }
 
