@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.5 (versionCode 15) — 2026-10-08
+### Changed
+- Fullscreen gameplay: the status bar is hidden while playing (swipe down from the top edge to
+  peek at it; a second swipe still opens notifications / Quick Settings). Navigation bar and
+  gestures are untouched; menus get the normal bars back.
+- New compact HUD: one header row (LVL · SCORE · € | device clock · pause), thin CORE HP and
+  THREATS bars with labels and values, buff chips in one scrolling row with a "+N" counter for
+  chips out of view. Tap a chip for its name, effect, description and duration.
+- Pull handle under the HUD folds it to a small pill (health diamond + clock + pause) for more
+  battlefield; tap it again to unfold. The HUD fades out while the notification shade is open,
+  and stays visible over the pause menu (its button turns into ▶ RESUME there).
+- The arena now starts right under the HUD as measured (no fixed pixel offsets), so it gains
+  space on every phone; gate / shop / vault hints and banners stack below the HUD.
+- The HUD keeps clear of camera cutouts on all sides.
+
 ## 0.9.4 (versionCode 14) — 2026-10-08
 ### Changed
 - NEON OPERATIVE and the shopkeeper are now traced from the app icon at its exact proportions —

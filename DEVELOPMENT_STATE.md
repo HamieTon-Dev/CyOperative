@@ -4,9 +4,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.9.4 (versionCode 14) |
+| Version | 0.9.5 (versionCode 15) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
-| Last completed | Key-art visual pass, PLASMA BEAM, NEON OPERATIVE |
+| Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
 | Build status | `./gradlew :app:assembleDebug` ✅ |
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
@@ -21,6 +21,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 - Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).
 - Balance: a simple dodging bot with no permanent upgrades averages ~level 6 in campaign.
 - The top wall/gate sits under the translucent HUD until the player walks up.
+- HUD 0.9.5: immersive mode, notification-shade fade and chip tooltips (Popup) can't be seen in
+  Robolectric renders; confirm on a device. Previews: hud_upgrade_bar, hud_collapsed,
+  hud_narrow_320dp, hud_upgrade_bar_boss, pause_save.
 
 ## Important architecture decisions
 - **Same stack as CyOps TD**: Kotlin + Compose; no game engine. Arena drawn on a Compose

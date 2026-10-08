@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +29,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +41,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +67,7 @@ fun GameScreen(
     onNewOperation: () -> Unit
 ) {
     val view = LocalView.current
+    ImmersiveGameplay()
     DisposableEffect(Unit) {
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
@@ -111,16 +115,19 @@ fun GameScreen(
     var knobX by remember { mutableFloatStateOf(0f) }
     var knobY by remember { mutableFloatStateOf(0f) }
     val stickRadiusPx = with(density) { 56.dp.toPx() }
+    // HUD folded to the small pill (pull handle); its measured height sets where the arena starts.
+    var hudCollapsed by rememberSaveable { mutableStateOf(false) }
+    var hudHeightPx by remember { mutableIntStateOf(0) }
 
     BoxWithConstraints(
         Modifier
             .fillMaxSize()
             .background(Palette.SurfaceSunken)
     ) {
-        // The big boss bar makes the HUD taller; keep the boss out from under it.
-        // The upgrade icon row lives under the HP bar, so the arena starts lower when it is shown.
-        val iconRow = if (hud.owned.isNotEmpty()) 36.dp else 0.dp
-        val topInsetPx = with(density) { ((if (hud.bossName != null) 210.dp else 118.dp) + iconRow).toPx() }
+        // The arena starts right under the HUD as measured (it grows with the buff row and
+        // the boss bar, shrinks when folded); before the first measure, a safe estimate.
+        val hudHeightDp = with(density) { if (hudHeightPx > 0) hudHeightPx.toDp() else 96.dp }
+        val topInsetPx = with(density) { (hudHeightDp + 4.dp).toPx() }
         val bottomInsetPx = with(density) { 150.dp.toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
@@ -186,45 +193,29 @@ fun GameScreen(
             )
         }
 
-        GameHud(hud, onPause = { session.paused = true })
-
-        if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
-            Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp))
-        }
-        if (hud.phase == Phase.PORTAL) {
-            Text(
-                if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
-                color = if (hud.topGateLocked) Palette.Red else Palette.Green,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 128.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
-                    .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            )
-        }
-
-        if (hud.vaultReady) {
-            Text(
-                "◆ WALK UP TO THE DATA CACHE TO CRACK IT",
-                color = Palette.Gold, style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 176.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
-                    .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            )
-        }
-        if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
-            Text(
-                if (hud.shopGateRight) "SHOP GATE OPEN — RIGHT WALL ►" else "◄ SHOP GATE OPEN — LEFT WALL",
-                color = Palette.Gold, style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 152.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
-                    .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
-            )
+        // Hints and banners stack under the HUD instead of sitting at fixed offsets.
+        Column(
+            Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = hudHeightDp + HUD_HINT_GAP, start = 12.dp, end = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
+        ) {
+            if (hud.phase == Phase.PORTAL) {
+                HintChip(
+                    if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
+                    if (hud.topGateLocked) Palette.Red else Palette.Green
+                )
+            }
+            if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
+                HintChip(if (hud.shopGateRight) "SHOP GATE OPEN — RIGHT WALL ►" else "◄ SHOP GATE OPEN — LEFT WALL", Palette.Gold)
+            }
+            if (hud.vaultReady) {
+                HintChip("◆ WALK UP TO THE DATA CACHE TO CRACK IT", Palette.Gold)
+            }
+            if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
+                Banner(hud, Modifier.padding(top = 6.dp))
+            }
         }
         // Upgrade shop: buy panel at the counter, and the terminal message when a shop appears.
         if (hud.inShop && hud.atShopCounter) {
@@ -260,6 +251,7 @@ fun GameScreen(
         }
         if (session.paused && hud.phase != Phase.DEAD) {
             PauseOverlay(
+                topPadding = hudHeightDp,
                 audio = session.audio,
                 saveBlocked = hud.saveBlockReason,
                 onResume = { session.paused = false },
@@ -270,112 +262,31 @@ fun GameScreen(
         if (session.showTutorial) {
             TutorialOverlay(onDone = { session.dismissTutorial() })
         }
-    }
-}
-
-@Composable
-private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Palette.Background.copy(alpha = 0.82f))
-            .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            val levelColor = when (h.kind) {
-                LevelKind.BOSS -> Palette.Red
-                LevelKind.EVENT -> Color(h.eventAccent)
-                LevelKind.NORMAL -> Palette.Cyan
-        LevelKind.SHOP -> Palette.Gold
-                LevelKind.SHOP -> Palette.Gold
-            }
-            Text(if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}", color = levelColor, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text("SCORE ${"%,d".format(h.score)}", color = Palette.TextPrimary, style = MaterialTheme.typography.labelMedium)
-                Text("€ ${h.euros}", color = Palette.Euro, style = MaterialTheme.typography.labelMedium)
-            }
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .border(1.dp, Palette.Divider, RoundedCornerShape(6.dp))
-                    .clickable(onClick = onPause),
-                contentAlignment = Alignment.Center
-            ) { Text("II", color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium) }
-        }
-        Spacer(Modifier.height(4.dp))
-        // HP bar with firewall overlay
-        Bar(
-            fraction = h.hp / h.maxHp.coerceAtLeast(1).toFloat(),
-            color = Palette.healthColor(h.hp / h.maxHp.coerceAtLeast(1).toFloat()),
-            label = "HP ${h.hp}/${h.maxHp}" + if (h.firewallMax > 0) "   FW ${h.firewall}/${h.firewallMax}" else "",
-            overlay = if (h.firewallMax > 0) h.firewall / h.firewallMax.toFloat() else 0f,
-            height = 14
-        )
-        // Owned upgrades, right under the HP bar (owner, 2026-10-08: off the joystick area).
-        if (h.owned.isNotEmpty()) {
-            Spacer(Modifier.height(3.dp))
-            UpgradeBar(h, Modifier.fillMaxWidth())
-        }
-        Spacer(Modifier.height(3.dp))
-        if (h.mode == GameMode.ENDLESS) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("DATA ${h.runLevel}", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.width(6.dp))
-                Box(Modifier.weight(1f)) { Bar(h.xpPercent / 100f, Palette.Green, null, 0f, 5) }
-            }
-        } else if (h.kind != LevelKind.BOSS && h.kind != LevelKind.SHOP && h.timedSeconds < 0) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("THREATS ${h.levelKills}/${h.levelThreats}", color = Palette.Red, style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.width(6.dp))
-                Box(Modifier.weight(1f)) { Bar(h.levelKills / h.levelThreats.coerceAtLeast(1).toFloat(), Palette.Red, null, 0f, 5) }
-            }
-        }
-        val boss = h.bossName
-        if (boss != null) {
-            Spacer(Modifier.height(6.dp))
-            BossHealthBar(h)
-        } else if (h.eventName != null) {
-            Spacer(Modifier.height(3.dp))
-            Text(
-                h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
-                color = Color(h.eventAccent), style = MaterialTheme.typography.labelMedium
+        // Drawn last so it stays readable over the pause menu; full-screen panels
+        // (upgrade pick, game over, briefing) cover it as before.
+        val coveredByPanel = hud.phase == Phase.UPGRADE || hud.phase == Phase.DEAD || session.showTutorial
+        if (session.paused || !coveredByPanel) {
+            GameHud(
+                hud,
+                paused = session.paused,
+                collapsed = hudCollapsed,
+                onToggleCollapsed = { hudCollapsed = !hudCollapsed },
+                onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
+                modifier = Modifier.onSizeChanged { hudHeightPx = it.height }
             )
         }
     }
 }
 
 @Composable
-private fun Bar(fraction: Float, color: Color, label: String?, overlay: Float, height: Int) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(height.dp)
-            .background(Palette.SurfaceRaised, RoundedCornerShape(3.dp))
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .height(height.dp)
-                .background(color, RoundedCornerShape(3.dp))
-        )
-        if (overlay > 0f) {
-            Box(
-                Modifier
-                    .fillMaxWidth(overlay.coerceIn(0f, 1f))
-                    .height((height / 3).coerceAtLeast(2).dp)
-                    .align(Alignment.BottomStart)
-                    .background(Palette.Orange)
-            )
-        }
-        if (label != null) {
-            Text(
-                label, color = Color.Black, style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
-    }
+private fun HintChip(text: String, color: Color) {
+    Text(
+        text, color = color, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
+        modifier = Modifier
+            .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    )
 }
 
 @Composable
@@ -441,6 +352,7 @@ val TUTORIAL_LINES = listOf(
 
 @Composable
 private fun PauseOverlay(
+    topPadding: androidx.compose.ui.unit.Dp,
     audio: com.cyberoperative.game.audio.AudioManager,
     saveBlocked: String?,
     onResume: () -> Unit,
@@ -451,13 +363,13 @@ private fun PauseOverlay(
         Modifier
             .fillMaxSize()
             .background(Color(0xCC000000))
-            .clickable(enabled = true, onClick = {}),
+            .clickable(enabled = true, onClick = {})
+            .padding(top = topPadding),
         contentAlignment = Alignment.Center
     ) {
         Column(
             Modifier
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .safeDrawingPadding()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
                 .background(Palette.Surface, RoundedCornerShape(10.dp))
                 .border(1.dp, Palette.Cyan, RoundedCornerShape(10.dp))
@@ -512,7 +424,7 @@ private const val GLITCH_CHARS = "#%&@!?01<>/\\=+*$"
  * a white trail drains behind each hit.
  */
 @Composable
-private fun BossHealthBar(h: HudSnapshot) {
+internal fun BossHealthBar(h: HudSnapshot) {
     val color = if (h.bossColor != 0L) Color(h.bossColor) else Palette.Red
     val intro = h.bossIntro
     val barEnd = com.cyberoperative.game.engine.BossBrain.INTRO_BAR_END

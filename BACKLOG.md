@@ -68,7 +68,7 @@ device, tune balance, then fill out the store/meta phases.
 - CO-015 Weapons: cone, lance, blades, EMP, chain, split, multishot, bounce, pierce
 - CO-016 Firewall system + evolution chain
 - CO-017 Elite modifiers
-- CO-018 HUD (HP/firewall/data/score/€/boss bar/event label)
+- CO-018 HUD (HP/firewall/data/score/€/boss bar/event label) — redesigned 0.9.5: fullscreen, one-row header, thin bars, buff chips, clock, fold handle
 - CO-019 Damage numbers
 - CO-020 Game over + free limited revive + restart
 - CO-021 Boss architecture, 12 bosses × 3 phases, boss every 10 levels, boss music/reward

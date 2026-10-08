@@ -9,6 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.save.SaveRepository
@@ -166,6 +169,7 @@ class ScreenshotPreviews {
     private fun gameplay(
         name: String, simulateSeconds: Float,
         profileSetup: (com.cyberoperative.game.save.PlayerProfile) -> com.cyberoperative.game.save.PlayerProfile = { it },
+        interact: () -> Unit = {},
         setup: (GameSession) -> Unit = {}
     ) {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
@@ -180,6 +184,8 @@ class ScreenshotPreviews {
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { GameScreen(session, true, {}, {}) } }
         compose.mainClock.advanceTimeBy(100)
+        interact()
+        compose.mainClock.advanceTimeBy(400)
         save(name)
     }
 
@@ -207,6 +213,30 @@ class ScreenshotPreviews {
     @Test fun pauseSave() {
         assumeTrue(enabled)
         gameplay("pause_save", 1f) { s -> s.paused = true }
+    }
+
+    private fun manyBuffs(s: GameSession) {
+        val U = com.cyberoperative.game.data.Upgrades
+        for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
+    }
+
+    @Test fun hudCollapsed() {
+        assumeTrue(enabled)
+        gameplay("hud_collapsed", 3f, setup = ::manyBuffs, interact = {
+            compose.onNodeWithContentDescription("Hide HUD").performClick()
+        })
+    }
+
+    @Test fun hudChipDetails() {
+        assumeTrue(enabled)
+        gameplay("hud_chip_details", 3f, setup = ::manyBuffs, interact = {
+            compose.onAllNodesWithContentDescription("PLASMA", substring = true)[0].performClick()
+        })
+    }
+
+    @Test @Config(qualifiers = "w320dp-h640dp-hdpi") fun hudNarrow() {
+        assumeTrue(enabled)
+        gameplay("hud_narrow_320dp", 3f, setup = ::manyBuffs)
     }
 
     @Test fun upgradeBar() {
