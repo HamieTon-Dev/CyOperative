@@ -44,8 +44,15 @@ data class RunConfig(
     val startingUpgrades: Int = 0,
     val startLevel: Int = 1,
     val mode: GameMode = GameMode.CAMPAIGN,
-    val difficulty: Difficulty = Difficulty.MEDIUM
-)
+    val difficulty: Difficulty = Difficulty.MEDIUM,
+    /** Account OP level (owner, 2026-10-08: veterans face tougher threats and bosses). */
+    val opLevel: Int = 1
+) {
+    /** Threat HP from OP level: +2% per level above 1, up to ×3 (OP 101). */
+    val opHpMul: Float get() = 1f + 0.02f * (opLevel - 1).coerceIn(0, 100)
+    /** Threat damage from OP level: +1.2% per level above 1, up to ×2.2. */
+    val opDamageMul: Float get() = 1f + 0.012f * (opLevel - 1).coerceIn(0, 100)
+}
 
 /** One mod on the shop counter. */
 data class ShopItem(val def: com.cyberoperative.game.data.UpgradeDef, val nextLevel: Int, val price: Int, val sold: Boolean)
@@ -137,6 +144,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         get() = inShop && arena.obstacles.firstOrNull { it.kind == com.cyberoperative.game.data.ObstacleKind.SHOP_COUNTER }?.let {
             px > it.rect.left - 40f && px < it.rect.right + 40f && py < it.rect.bottom + 150f
         } == true
+    // --- Data Vault cache (owner, 2026-10-08) ------------------------------------
+    /** The cache block still stands in the middle of a Data Vault room. */
+    val vaultPresent: Boolean get() = plan.rules.vault && !vaultCracked
+    private var vaultCracked = false
+    /** Seconds left of the open-and-shake before the cache bursts (0 = not opening). */
+    var vaultOpening = 0f
+        private set
+    /** True once the room is clear and the cache can be cracked by walking up to it. */
+    val vaultReady: Boolean get() = vaultPresent && vaultOpening <= 0f && phase != Phase.COMBAT && phase != Phase.DEAD
+
     /** Side gate on the left wall, halfway down the room. */
     val shopGateY: Float get() = arena.height * 0.5f
     var rerollsLeft = config.rerolls
@@ -365,6 +382,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             return
         }
 
+        updateVault(dt)
         when (phase) {
             Phase.COMBAT -> if (mode == GameMode.ENDLESS) {
                 if (pendingUpgrades > 0) openUpgrades(resumeCombat = true)
@@ -390,6 +408,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
+        vaultCracked = false
+        vaultOpening = 0f
         shopGateOpen = false
         goingToShop = false
         shopItems = emptyList()
@@ -634,6 +654,47 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         offer = build.rollOffer(rng, luck = offerLuck)
         sound(GameSound.UI_CLICK)
         return true
+    }
+
+    /**
+     * Data Vault: once the room is clear, walking up to the cache opens it — it
+     * shakes for [VAULT_OPEN_SECONDS], then bursts and pays out [vaultPayout].
+     */
+    private fun updateVault(dt: Float) {
+        if (!vaultPresent) return
+        if (vaultOpening > 0f) {
+            vaultOpening -= dt
+            if (rng.nextFloat() < dt * 30f) addParticle(arena.width / 2f, arena.height / 2f, 0xFFFFD426, 140f, 0.4f, 3f)
+            if (vaultOpening <= 0f) crackVault()
+            return
+        }
+        if (phase == Phase.COMBAT || phase == Phase.DEAD) return
+        val r = Arena.vaultObstacle(plan.arena).rect
+        val nx = MathUtil.clamp(px, r.left, r.right)
+        val ny = MathUtil.clamp(py, r.top, r.bottom)
+        if (MathUtil.dist(px, py, nx, ny) < playerRadius + 34f) {
+            vaultOpening = VAULT_OPEN_SECONDS
+            showBanner("DATA CACHE", "DECRYPTING…", VAULT_OPEN_SECONDS)
+            sound(GameSound.ACCESS_GRANTED)
+        }
+    }
+
+    private fun crackVault() {
+        vaultOpening = 0f
+        vaultCracked = true
+        // The block is gone: rebuild the room without it.
+        arena = Arena(plan.arena)
+        val cx = arena.width / 2f
+        val cy = arena.height / 2f
+        val payout = vaultPayout(level)
+        eurosEarned += payout
+        addPulse(cx, cy, 260f, 0.7f, 0xFFFFD426)
+        addPulse(cx, cy, 140f, 0.45f, 0xFFFFFFFF)
+        repeat(70) { addParticle(cx, cy, if (it % 3 == 0) 0xFFFFFFFF else 0xFFFFD426, 420f, 1.1f, 4f) }
+        addText(cx, cy - 30f, "+€$payout", TextKind.INFO)
+        showBanner("DATA CACHE CRACKED", "+€${"%,d".format(payout)}", 2f)
+        sound(GameSound.ELITE_DEATH)
+        sound(GameSound.CURRENCY)
     }
 
     /** Opens the side gate to the shop for this room (also a test hook). */
@@ -1697,13 +1758,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp *
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul *
             (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
         e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
         e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
-        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage
+        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * config.opDamageMul
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
@@ -2144,6 +2205,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val BEAM_MAX_FIRE = 5f
         const val SHOT_CLEARANCE = 4f
         const val SHOP_CHANCE = 1f / 20f
+        const val VAULT_OPEN_SECONDS = 1.3f
+
+        /** Owner: €1,000 and up, €100 per level (level 70 → €7,000). */
+        fun vaultPayout(level: Int): Int = maxOf(1000, 100 * level)
         const val SHOP_GATE_HALF = 70f
 
         /** GOLDEN from €1,000, TITANIUM from €2,500, a little more each level. */

@@ -234,7 +234,7 @@ class ScreenshotPreviews {
             CyberOperativeTheme {
                 com.cyberoperative.game.ui.menu.DifficultyPicker(
                     com.cyberoperative.game.engine.GameMode.CAMPAIGN, com.cyberoperative.game.engine.Difficulty.MEDIUM,
-                    "LEVEL 12 · HARD", {}, {}
+                    "LEVEL 12 · HARD", opLevel = 11, onStart = {}, onCancel = {}
                 )
             }
         }

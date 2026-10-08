@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.1 (versionCode 11) — 2026-10-08
+### Added
+- Data Vault cache: once the vault room is clear, walk up to the gold cache block in the middle —
+  it glows, opens (light leaking through cracks), shakes harder and harder for 1.3 s, then bursts
+  in a gold explosion and pays out €100 × level (minimum €1,000; level 70 → €7,000).
+### Changed
+- Harder late game (owner: "after level 60 I feel invincible"): from level 31 enemy HP compounds
+  +3% per level and damage +2.2% per level on top of the old curve (level 60: HP ×25.8 instead of
+  ×10.6, damage ×8.2 instead of ×4.3). Bosses follow the same curve.
+- OP level scaling: every account OP level above 1 adds +2% threat HP and +1.2% threat damage,
+  bosses included (up to ×3 / ×2.2 at OP 101). The difficulty picker shows the current bonus.
+
 ## 0.9.0 (versionCode 10) — 2026-10-08
 ### Added
 - Upgrade shop: after a cleared level's upgrades are picked there is a 1-in-20 chance the

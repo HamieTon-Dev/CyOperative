@@ -203,6 +203,17 @@ fun GameScreen(
             )
         }
 
+        if (hud.vaultReady) {
+            Text(
+                "◆ WALK UP TO THE DATA CACHE TO CRACK IT",
+                color = Palette.Gold, style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 176.dp + if (hud.owned.isNotEmpty()) 36.dp else 0.dp)
+                    .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
         if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
             Text(
                 "◄ SHOP GATE OPEN — LEFT WALL",

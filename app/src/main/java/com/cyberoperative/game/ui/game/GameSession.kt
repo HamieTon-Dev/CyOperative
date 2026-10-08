@@ -74,7 +74,9 @@ data class HudSnapshot(
     val shopGateOpen: Boolean = false,
     val inShop: Boolean = false,
     val atShopCounter: Boolean = false,
-    val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList()
+    val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
+    /** Data Vault: the cleared room's cache is waiting to be cracked. */
+    val vaultReady: Boolean = false
 )
 
 /** Outcome of the finished run for the game-over screen. */
@@ -142,7 +144,7 @@ class GameSession(
     init {
         val p = save.current
         val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
-            .copy(mode = this.mode, difficulty = this.difficulty)
+            .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         engine = GameEngine(config, restore)
         if (restore != null) {
             // Everything up to the save was already banked when it was taken.
@@ -241,7 +243,8 @@ class GameSession(
             shopGateOpen = g.shopGateOpen,
             inShop = g.inShop,
             atShopCounter = g.atShopCounter,
-            shopItems = g.shopItems
+            shopItems = g.shopItems,
+            vaultReady = g.vaultReady
         )
     }
 

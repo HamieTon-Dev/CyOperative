@@ -45,6 +45,7 @@ fun DifficultyPicker(
     mode: GameMode,
     initial: Difficulty,
     savedRunLabel: String?,
+    opLevel: Int = 1,
     onStart: (Difficulty) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -72,6 +73,13 @@ fun DifficultyPicker(
                 color = Palette.Cyan, style = MaterialTheme.typography.titleLarge
             )
             Text("SELECT DIFFICULTY", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            if (opLevel > 1) {
+                val cfg = com.cyberoperative.game.engine.RunConfig(opLevel = opLevel)
+                Text(
+                    "OP LVL $opLevel: threats +${((cfg.opHpMul - 1f) * 100).toInt()}% HP, +${((cfg.opDamageMul - 1f) * 100).toInt()}% damage",
+                    color = Palette.Red, style = MaterialTheme.typography.labelSmall
+                )
+            }
             Spacer(Modifier.height(14.dp))
             for (d in Difficulty.entries) {
                 val c = Color(d.color)

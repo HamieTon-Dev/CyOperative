@@ -13,16 +13,28 @@ import kotlin.math.min
  */
 object Scaling {
 
-    /** Enemy HP multiplier. L1=1.0, L10≈2.1, L50≈8.6, L100≈20.7, L1000≈1008. */
+    /** Enemy HP multiplier. L1=1.0, L10≈2.1, L30≈4.9, L60≈25.7, L100≈164 (late ramp from L31). */
     fun enemyHp(level: Int): Float {
         val n = (level - 1).coerceAtLeast(0).toFloat()
-        return 1f + 0.11f * n + 0.0009f * n * n
+        return (1f + 0.11f * n + 0.0009f * n * n) * lateRamp(level, 1.03)
     }
+
+    /**
+     * Owner, 2026-10-08: "after level 60 it feels too easy" — builds snowball
+     * (100+ picks, a dozen auto-weapons), so past level 30 threats compound
+     * on top of the polynomial curve. Capped so very deep runs stay finite.
+     */
+    fun lateRamp(level: Int, perLevel: Double): Float {
+        val over = (level - LATE_RAMP_FROM).coerceIn(0, 300)
+        return Math.pow(perLevel, over.toDouble()).toFloat()
+    }
+
+    const val LATE_RAMP_FROM = 30
 
     /** Enemy damage multiplier. Grows slower than HP so deaths stay understandable. */
     fun enemyDamage(level: Int): Float {
         val n = (level - 1).coerceAtLeast(0).toFloat()
-        return 1f + 0.045f * n + 0.00018f * n * n
+        return (1f + 0.045f * n + 0.00018f * n * n) * lateRamp(level, 1.022)
     }
 
     /** Enemy movement multiplier: approaches +30% asymptotically (never impossible). */

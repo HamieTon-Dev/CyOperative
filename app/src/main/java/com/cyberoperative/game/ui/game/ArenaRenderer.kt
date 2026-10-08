@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -620,11 +621,23 @@ class ArenaRenderer {
     }
 
     private fun DrawScope.drawObstacle(g: GameEngine, o: ObstacleSpec, index: Int, time: Float) {
+        val vault = g.vaultPresent && index == g.arena.obstacles.lastIndex
+        // Opening cache: it shakes harder and harder until it bursts.
+        if (vault && g.vaultOpening > 0f) {
+            val k = 1f - g.vaultOpening / GameEngine.VAULT_OPEN_SECONDS
+            val sx = sin(time * 70f) * (2f + 7f * k)
+            val sy = cos(time * 53f) * (1f + 4f * k)
+            translate(sx, sy) { drawObstacleBody(g, o, index, time, vault, k) }
+            return
+        }
+        drawObstacleBody(g, o, index, time, vault, 0f)
+    }
+
+    private fun DrawScope.drawObstacleBody(g: GameEngine, o: ObstacleSpec, index: Int, time: Float, vault: Boolean, opening: Float) {
         val r = o.rect
         // The shopkeeper stands behind the counter (drawn first so the counter hides the legs).
         if (o.kind == ObstacleKind.SHOP_COUNTER) with(OperativeFigures) { drawShopkeeper(r.centerX, r.top + 8f, 1.9f, time) }
         val h = heightOf(o.kind)
-        val vault = g.plan.rules.vault && index == g.arena.obstacles.lastIndex
         val look = if (vault) lookOf(o.kind, true) else themed(lookOf(o.kind, false), o.kind, g)
         val cr = CornerRadius(5f)
         val topY = r.top - h
@@ -720,6 +733,19 @@ class ArenaRenderer {
                 if (r.height > r.width) drawCircle(look.trim, 4f, Offset(r.centerX, topY + f * r.height))
                 else drawCircle(look.trim, 4f, Offset(r.left + f * r.width, topY + r.height / 2f))
                 if (vault) {
+                    // Ready to crack: a pulsing gold halo; opening: light leaks through cracks.
+                    if (g.vaultReady) {
+                        val p = 0.5f + 0.5f * sin(time * 5f)
+                        drawRoundRect(Palette.Gold.copy(alpha = 0.25f + 0.25f * p), Offset(r.left - 8f, topY - 8f), Size(r.width + 16f, r.height + 16f), CornerRadius(8f), style = Stroke(4f))
+                    }
+                    if (opening > 0f) {
+                        val c = Offset(r.centerX, topY + r.height / 2f)
+                        drawCircle(Palette.Gold.copy(alpha = 0.25f + 0.5f * opening), r.width * (0.6f + 0.6f * opening), c)
+                        for (k in 0 until 6) {
+                            val a = k * 1.05f + 0.3f
+                            drawLine(Color.White.copy(alpha = 0.4f + 0.6f * opening), c, Offset(c.x + cos(a) * r.width * 0.55f, c.y + sin(a) * r.height * 0.55f), 2.5f)
+                        }
+                    }
                     tagPaint.textSize = 18f
                     tagPaint.color = Palette.Gold.toArgb()
                     drawContext.canvas.nativeCanvas.drawText("[\$\$\$]", r.centerX, topY + r.height / 2f + 6f, tagPaint)
