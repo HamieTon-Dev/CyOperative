@@ -38,6 +38,12 @@
   PURPLE: Helix Cannon, Malware Swamp, Seeker Swarm, Shockwave, Satellite Lance.
   GOLDEN: Supernova, Prism Laser, Golden Boomerang, Chain Storm, Carpet Bomb.
   TITANIUM: Black Ice, Root Access, Titan Railstorm, Doomsday Daemon, Kernel Panic.
+- Upgrades level to 10,000: past a card's designed max (which still unlocks evolutions) every
+  pick adds a MASTERY level (weapon +6% damage, orbit +8% node/blade damage, defense +6% HP &
+  Firewall, stat +5% damage +1.5% attack speed, utility +5% € and data). Arsenal weapons keep
+  scaling damage every level; cooldown and projectile counts level off so the screen stays readable.
+- Threat visibility: a faint red ring under every enemy, and enemies hidden behind racks or
+  crates show as a pulsing outline on top (x-ray).
 - Owned-upgrade icon bar along the bottom of the screen; press and hold an icon for details.
 ### Changed
 - Base movement speed +15% (240 → 276).

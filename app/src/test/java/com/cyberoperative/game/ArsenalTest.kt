@@ -48,3 +48,28 @@ class ArsenalTest {
         assertEquals(240f * 1.15f, RunStats().moveSpeed, 0.01f)
     }
 }
+
+class MasteryTest {
+    @Test fun upgradesLevelToTenThousandAndEvolutionsStillUnlock() {
+        val b = com.cyberoperative.game.engine.RunBuild(RunStats())
+        val U = Upgrades
+        repeat(3) { b.take(U.PACKET_NODES) }
+        // Evolutions unlock at the designed max, as before.
+        assertTrue(b.isEligible(U.ENHANCED_NODES))
+        // ...and the base card keeps going as mastery levels.
+        assertTrue(b.isEligible(U.PACKET_NODES))
+        val dmg0 = b.stats.damage
+        repeat(20) { b.take(U.PAYLOAD_BOOST) }
+        assertEquals(20, b.level(U.PAYLOAD_BOOST.id))
+        assertTrue(b.stats.damage > dmg0 * 3f)
+        // Straight to the cap: stats stay finite and the card stops being offered.
+        b.restore(mapOf(U.PAYLOAD_BOOST.id to 10000, U.EXPLOIT_LANCE.id to 10000, "ping_blaster" to 10000))
+        assertTrue(b.stats.damage.isFinite() && b.stats.damage > 0f)
+        assertEquals(3, b.stats.lanceLevel)
+        assertTrue(!b.isEligible(U.PAYLOAD_BOOST))
+        val w = com.cyberoperative.game.data.Weapons.byId("ping_blaster")!!
+        assertTrue(w.cooldownAt(10000) >= 0.25f && w.countAt(10000) <= 40)
+        val offer = com.cyberoperative.game.engine.UpgradeOffer(U.PAYLOAD_BOOST, 7)
+        assertTrue(offer.mastery && offer.effect.startsWith("MASTERY 2"))
+    }
+}

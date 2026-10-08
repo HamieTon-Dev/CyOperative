@@ -99,7 +99,7 @@ class DataTest {
             for (o in offer) assertTrue(b.isEligible(o.def))
             b.take(offer[rng.nextInt(offer.size)].def)
         }
-        for ((id, lvl) in b.owned()) assertTrue(lvl <= Upgrades.byId(id).maxLevel)
+        for ((id, lvl) in b.owned()) assertTrue(lvl <= Upgrades.byId(id).levelCap)
     }
 
     @Test fun evolutionIsGatedByMaxLevel() {

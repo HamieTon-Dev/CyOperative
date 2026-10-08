@@ -44,8 +44,54 @@ data class UpgradeDef(
     val evolvesFrom: String? = null,
     val alsoRequires: String? = null,
     /** Repeatable filler (e.g. a heal) that never counts toward the build. */
-    val instant: Boolean = false
-)
+    val instant: Boolean = false,
+    /** Arsenal weapons scale every level themselves (no mastery formula needed). */
+    val scalesForever: Boolean = false
+) {
+    /**
+     * Owner, 2026-10-08: every upgrade can keep levelling to [MAX_LEVEL].
+     * [maxLevel] is the designed ("core") range: it still gates evolutions.
+     * Levels past it are MASTERY levels that add a steady category bonus.
+     */
+    val levelCap: Int get() = if (instant) maxLevel else MAX_LEVEL
+
+    fun applyLevel(stats: RunStats, level: Int) {
+        if (scalesForever) { apply(stats, level); return }
+        apply(stats, minOf(level, maxLevel))
+        val extra = level - maxLevel
+        if (extra > 0) applyMastery(stats, extra)
+    }
+
+    private fun applyMastery(s: RunStats, extra: Int) {
+        val e = extra.toFloat()
+        when (category) {
+            UpgradeCategory.WEAPON -> s.damage *= 1f + 0.06f * e
+            UpgradeCategory.ORBIT -> { s.orbDamage *= 1f + 0.08f * e; s.bladeDamage *= 1f + 0.08f * e }
+            UpgradeCategory.DEFENSE -> {
+                s.maxHp *= 1f + 0.06f * e
+                if (s.firewallMax > 0f) s.firewallMax *= 1f + 0.06f * e
+            }
+            UpgradeCategory.STAT -> { s.damage *= 1f + 0.05f * e; s.fireRate *= 1f + 0.015f * e }
+            UpgradeCategory.UTILITY -> { s.euroMul += 0.05f * e; s.xpMul += 0.05f * e }
+        }
+    }
+
+    /** Card text for [level], including mastery levels. */
+    fun effectAt(level: Int): String {
+        if (scalesForever || instant || level <= maxLevel) return effect(level)
+        return "MASTERY ${level - maxLevel}: " + when (category) {
+            UpgradeCategory.WEAPON -> "+6% damage"
+            UpgradeCategory.ORBIT -> "+8% node & blade damage"
+            UpgradeCategory.DEFENSE -> "+6% max HP & Firewall"
+            UpgradeCategory.STAT -> "+5% damage, +1.5% attack speed"
+            UpgradeCategory.UTILITY -> "+5% € and data"
+        }
+    }
+
+    companion object {
+        const val MAX_LEVEL = 10000
+    }
+}
 
 object Upgrades {
 

@@ -283,6 +283,28 @@ class ScreenshotPreviews {
         }
     }
 
+    @Test fun xray() {
+        assumeTrue(enabled)
+        gameplay("xray_behind_cover", 0f) { s ->
+            val g = s.engine
+            var lvl = 5
+            while (g.arena.obstacles.count { it.kind == com.cyberoperative.game.data.ObstacleKind.SERVER_RACK } < 2 && lvl < 80) g.debugJumpToLevel(++lvl)
+            for (e in g.enemies.items) e.active = false
+            val defs = listOf(com.cyberoperative.game.data.Enemies.TROJAN, com.cyberoperative.game.data.Enemies.MALWARE, com.cyberoperative.game.data.Enemies.SQL_INJECTOR)
+            var i = 0
+            for (o in g.arena.obstacles.sortedByDescending { it.rect.bottom }) {
+                if (i >= 5) break
+                val d = defs[i % defs.size]
+                val x = (o.rect.left + o.rect.right) / 2f
+                val y = o.rect.top - d.radius - 4f
+                if (!g.arena.isFree(x, y, d.radius)) continue
+                g.spawnEnemyAt(d, null, x, y, telegraph = false)?.speed = 0f
+                i++
+            }
+            repeat(10) { g.update(1f / 60f) }
+        }
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

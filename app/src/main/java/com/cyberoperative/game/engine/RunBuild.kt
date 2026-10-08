@@ -7,8 +7,9 @@ import kotlin.random.Random
 
 /** One card on the level-up screen. */
 data class UpgradeOffer(val def: UpgradeDef, val nextLevel: Int) {
-    val title: String get() = if (def.instant || def.maxLevel == 1) def.name else "${def.name} ${Upgrades.roman(nextLevel)}"
-    val effect: String get() = def.effect(nextLevel)
+    val title: String get() = if (def.instant || nextLevel <= 1) def.name else "${def.name} ${Upgrades.roman(nextLevel)}"
+    val effect: String get() = def.effectAt(nextLevel)
+    val mastery: Boolean get() = !def.instant && nextLevel > def.maxLevel
     val isEvolution: Boolean get() = def.evolvesFrom != null
 }
 
@@ -37,7 +38,7 @@ class RunBuild(private val base: RunStats) {
     fun isEligible(def: UpgradeDef): Boolean {
         if (def.id in excluded) return false
         if (def.instant) return true
-        if (level(def.id) >= def.maxLevel) return false
+        if (level(def.id) >= def.levelCap) return false
         val from = def.evolvesFrom
         if (from != null) {
             val parent = Upgrades.byId(from)
@@ -58,7 +59,7 @@ class RunBuild(private val base: RunStats) {
 
     fun recompute() {
         stats.copyFrom(base)
-        for ((id, lvl) in levels) Upgrades.byId(id).apply(stats, lvl)
+        for ((id, lvl) in levels) Upgrades.byId(id).applyLevel(stats, lvl)
         stats.clampLimits()
     }
 

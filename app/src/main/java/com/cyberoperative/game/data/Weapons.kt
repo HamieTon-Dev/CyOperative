@@ -55,8 +55,9 @@ data class WeaponSpec(
     val stillOnly: Boolean = false,
     val color: Long
 ) {
-    fun cooldownAt(level: Int): Float = cooldown * Math.pow(0.88, (level - 1).toDouble()).toFloat()
-    fun countAt(level: Int): Int = count + countPerLevel * (level - 1)
+    // Levels go to 10,000: cooldown and count level off so the screen stays readable.
+    fun cooldownAt(level: Int): Float = (cooldown * Math.pow(0.88, (minOf(level, 12) - 1).toDouble()).toFloat()).coerceAtLeast(0.25f)
+    fun countAt(level: Int): Int = minOf(count + countPerLevel * (level - 1), maxOf(count, 40))
     fun damageAt(level: Int): Float = damage * (1f + 0.35f * (level - 1))
 
     fun effect(level: Int): String {
@@ -187,7 +188,8 @@ object Weapons {
     val upgrades: List<UpgradeDef> = all.map { w ->
         UpgradeDef(
             w.id, w.name, w.glyph, w.rarity, UpgradeCategory.WEAPON, w.maxLevel,
-            w.description, { l -> w.effect(l) }, { s, l -> s.weapons[w.id] = l }
+            w.description, { l -> w.effect(l) }, { s, l -> s.weapons[w.id] = l },
+            scalesForever = true
         )
     }
 }

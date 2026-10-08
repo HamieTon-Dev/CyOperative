@@ -175,9 +175,12 @@ private fun UpgradeCard(o: UpgradeOffer, time: Float, onClick: () -> Unit) {
                     else -> tier.label
                 }
                 Text(tag, color = rarity, style = MaterialTheme.typography.labelSmall)
-                if (!o.def.instant && o.def.maxLevel > 1) {
+                if (!o.def.instant) {
                     Spacer(Modifier.width(8.dp))
-                    Text("LV ${o.nextLevel - 1} → ${o.nextLevel}/${o.def.maxLevel}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        "LV ${o.nextLevel - 1} → ${o.nextLevel}" + if (o.mastery) " · MASTERY" else " / ${o.def.maxLevel}",
+                        color = if (o.mastery) Palette.Gold else Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+                    )
                 }
             }
             Text(o.title, color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)

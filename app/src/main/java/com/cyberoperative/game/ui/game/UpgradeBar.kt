@@ -124,9 +124,9 @@ private fun UpgradeIcon(def: UpgradeDef, level: Int, beamHeat: Float, beamCooldo
             fontSize = if (beamCooldown > 0f) 13.sp else 8.sp,
             maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center
         )
-        if (def.maxLevel > 1) {
+        if (level > 1) {
             Text(
-                "$level", color = Palette.TextPrimary, fontSize = 8.sp,
+                if (level >= 1000) "${level / 1000}k" else "$level", color = Palette.TextPrimary, fontSize = 8.sp,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(1.dp)
@@ -153,8 +153,11 @@ private fun UpgradeTooltip(def: UpgradeDef, level: Int) {
             Spacer(Modifier.width(8.dp))
             Text(def.rarity.label, color = c, style = MaterialTheme.typography.labelSmall)
         }
-        if (def.maxLevel > 1) Text("LEVEL $level / ${def.maxLevel}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
-        Text(def.effect(level), color = Palette.Green, style = MaterialTheme.typography.bodySmall)
+        Text(
+            if (level > def.maxLevel) "LEVEL $level · MASTERY ${level - def.maxLevel}" else "LEVEL $level / ${def.maxLevel} (then mastery to ${UpgradeDef.MAX_LEVEL})",
+            color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+        )
+        Text(def.effectAt(level), color = Palette.Green, style = MaterialTheme.typography.bodySmall)
         Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
     }
 }

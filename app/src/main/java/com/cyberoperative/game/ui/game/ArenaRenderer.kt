@@ -105,7 +105,9 @@ class ArenaRenderer {
             drawHazardsUnder(g, time)
             drawPulses(g)
             drawShadows(g)
+            drawEnemyMarkers(g, time)
             drawSorted(g, time, skin, body)
+            drawXray(g, time)
             drawOrbitFront(g, time)
             drawProjectiles(g, time)
             drawZaps(g, time)
@@ -387,6 +389,46 @@ class ArenaRenderer {
     private fun push(kind: Int, index: Int, key: Float) {
         if (sortCount >= MAX_ITEMS) return
         sortKind[sortCount] = kind; sortIndex[sortCount] = index; sortKey[sortCount] = key; sortCount++
+    }
+
+    /** Faint red ground ring under every threat so they read against busy floors. */
+    private fun DrawScope.drawEnemyMarkers(g: GameEngine, time: Float) {
+        for (e in g.enemies.items) {
+            if (!e.active || e.state == AiState.SPAWNING || e.state == AiState.HIDDEN) continue
+            val col = if (e.boss != null) Color(e.boss!!.def.color) else Palette.Red
+            drawOval(col.copy(alpha = 0.32f), Offset(e.x - e.radius * 1.15f, e.y - e.radius * 0.32f), Size(e.radius * 2.3f, e.radius * 0.75f), style = Stroke(2f))
+        }
+    }
+
+    /**
+     * X-ray (owner, 2026-10-08): a threat hidden behind a rack or crate is drawn
+     * again on top as a translucent outline, so cover never hides it completely.
+     */
+    private fun DrawScope.drawXray(g: GameEngine, time: Float) {
+        val obstacles = g.arena.obstacles
+        for (e in g.enemies.items) {
+            if (!e.active || e.state == AiState.SPAWNING || e.state == AiState.HIDDEN) continue
+            val lift = if (e.boss != null) 18f else 12f
+            val sx = e.x
+            val sy = e.y - lift
+            var hidden = false
+            for (o in obstacles) {
+                val r = o.rect
+                if (e.y >= r.bottom) continue // in front of it
+                if (sx < r.left - e.radius * 0.4f || sx > r.right + e.radius * 0.4f) continue
+                if (sy + e.radius * 0.5f < r.top - heightOf(o.kind) || sy - e.radius * 0.5f > r.bottom) continue
+                hidden = true
+                break
+            }
+            if (!hidden) continue
+            val pulse = 0.75f + 0.25f * sin(time * 5f + e.uid)
+            val col = if (e.boss != null) Color(e.boss!!.def.color) else Color(0xFFFF4A6A)
+            val c = Offset(sx, sy)
+            drawShape(e.def.shape, c, e.radius, col.copy(alpha = 0.16f * pulse), 0f)
+            drawShape(e.def.shape, c, e.radius, col.copy(alpha = 0.75f * pulse), 0f, stroke = 2f)
+            drawCircle(col.copy(alpha = 0.8f * pulse), max(1.5f, e.radius * 0.1f), Offset(sx - e.radius * 0.28f, sy - e.radius * 0.05f))
+            drawCircle(col.copy(alpha = 0.8f * pulse), max(1.5f, e.radius * 0.1f), Offset(sx + e.radius * 0.28f, sy - e.radius * 0.05f))
+        }
     }
 
     private fun heightOf(k: ObstacleKind): Float = when (k) {
