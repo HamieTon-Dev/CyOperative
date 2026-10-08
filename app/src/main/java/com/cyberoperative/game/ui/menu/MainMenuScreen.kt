@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.save.PlayerProfile
 import com.cyberoperative.game.ui.common.CurrencyChip
 import com.cyberoperative.game.ui.common.CyberButton
+import com.cyberoperative.game.ui.common.CyberTitleLogo
 import com.cyberoperative.game.ui.common.LivingBackground
 import com.cyberoperative.game.ui.common.OperativeMarkIcon
 import com.cyberoperative.game.ui.theme.Palette
@@ -92,26 +93,8 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                     .scale(1f + 0.03f * sin(t * 2f))
             )
             Spacer(Modifier.height(10.dp))
-            // Neon title, as in the key art.
-            val glow = 0.7f + 0.3f * sin(t * 2.4f)
-            Text(
-                "CYBER", color = Color(0xFFE6FBFF),
-                style = MaterialTheme.typography.displayLarge.copy(
-                    shadow = Shadow(Palette.Cyan.copy(alpha = glow), Offset(0f, 0f), 28f)
-                )
-            )
-            Text(
-                "OPERATIVE", color = Palette.Green,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    shadow = Shadow(Palette.Green.copy(alpha = glow), Offset(0f, 0f), 22f)
-                )
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "—  ENDLESS CYBER ROGUELIKE ACTION  —",
-                color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium,
-                textAlign = TextAlign.Center
-            )
+            // Neon wordmark, as in the key art (vector, scales to any width).
+            CyberTitleLogo(Modifier.fillMaxWidth(), glow = 0.75f + 0.25f * sin(t * 2.4f))
             Spacer(Modifier.height(10.dp))
             if (profile.highestLevel > 0) {
                 Text(

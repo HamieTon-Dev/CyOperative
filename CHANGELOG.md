@@ -9,6 +9,10 @@
   hostile streaks); neon CYBER OPERATIVE title with the "ENDLESS CYBER ROGUELIKE ACTION" line.
 - PLASMA BEAM (Rare weapon upgrade, 3 levels): an arm cannon that pours a continuous,
   piercing cyan beam into the target while the operative stands still; stopped by cover.
+- CYBER OPERATIVE wordmark (`ui/common/CyberTitleLogo.kt`): vector letterforms with
+  gradient faces, scan cuts, extruded depth, neon halo and a circuit-trace frame; scales to
+  any size and pulses on the main menu. PNG exports in `docs/brand/` (3200x1344, transparent
+  and on dark) via `LogoRender` (`-PrenderPreviews`).
 
 ## 0.5.1 — 2026-10-08
 ### Added
