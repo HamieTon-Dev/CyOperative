@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the icon art's own background so the feathered edge is invisible. -->
+    <color name="ic_launcher_background">#010716</color>
+</resources>

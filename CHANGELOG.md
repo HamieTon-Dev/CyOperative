@@ -2,6 +2,11 @@
 
 ## 0.6.1 (versionCode 8) — unreleased
 - Next upload. 0.6.0 (versionCode 7) went to the Play closed test on 2026-10-08.
+### Changed
+- Launcher icon is now the store icon art (hooded operative in a neon hexagon) instead of
+  the old CyOps-TD-style PCB shield: adaptive icon (art inset to the safe zone on its own
+  background colour, feathered edge), themed monochrome layer, and legacy square/round
+  PNGs for Android 7. Master art in `docs/brand/app_icon_master.png` (+ 512 px copy).
 
 ## 0.6.0 — 2026-10-08
 ### Added
