@@ -68,15 +68,15 @@ private fun hexagon(cx: Float, cy: Float, r: Float) = Path().apply {
     close()
 }
 
-private val outerHex = hexagon(50f, 50f, 44f)
-private val innerHex = hexagon(50f, 50f, 39.5f)
+private val outerHex = hexagon(50f, 47.5f, 44f)
+private val innerHex = hexagon(50f, 47.5f, 39.5f)
 
-private val hood = path(50f, 12f, 67f, 21f, 75f, 33f, 79f, 54f, 75f, 68f, 50f, 74f, 27f, 68f, 24f, 52f, 28f, 33f)
-private val hoodFacet = path(50f, 12f, 61f, 18f, 52f, 25f, 40f, 26f)
-private val hoodOpening = path(51f, 25f, 66f, 31f, 71f, 47f, 69f, 63f, 59f, 71f, 44f, 71f, 34f, 63f, 32f, 47f, 37f, 31f)
-private val shoulders = path(8f, 80f, 24f, 66f, 40f, 69f, 51f, 79f, 61f, 69f, 77f, 66f, 92f, 80f, 92f, 100f, 8f, 100f)
-private val strap = path(20f, 72f, 28f, 67f, 46f, 73f, 45f, 80f, 27f, 75f)
-private val collarTab = path(63f, 71f, 75f, 68f, 77.5f, 76f, 65.5f, 79f)
+private val hood = path(49.4f, 11.8f, 61f, 19f, 76f, 29f, 80.5f, 45f, 80.5f, 57f, 74f, 66f, 56f, 72f, 30f, 64f, 24f, 50f, 27f, 33f, 36f, 20f)
+private val hoodFacet = path(49.4f, 11.8f, 61f, 19f, 58.6f, 23f, 40f, 28f, 36f, 20f)
+private val hoodOpening = path(58.6f, 23f, 75f, 30f, 79f, 50f, 72f, 62f, 56f, 69f, 41f, 62f, 31.5f, 48f, 33f, 34f)
+private val shoulders = path(8f, 82f, 19f, 66f, 26f, 59f, 47f, 67f, 51f, 78f, 62f, 69f, 76f, 62f, 92f, 76f, 92f, 100f, 8f, 100f)
+private val strap = path(19f, 68f, 27f, 62f, 47f, 69f, 46f, 77f, 27f, 72f)
+private val collarTab = path(63f, 68f, 75f, 63f, 77f, 66.5f, 65.4f, 77f)
 
 private val traces = listOf(
     path(10f, 37f, 4f, 43f, 4f, 55f, closed = false),
@@ -97,11 +97,11 @@ private val bits = listOf(
 )
 
 // Face shield traced from the app icon: peaked top, straight sides, angular point.
-private val shield = path(52f, 25.5f, 69f, 32.5f, 69f, 51f, 52f, 67f, 35f, 51f, 35f, 32.5f)
-private val shieldFacet = path(35f, 32.5f, 52f, 25.5f, 52f, 38f, 35f, 43f)
-private val eyeLeft = path(40f, 40.5f, 45.8f, 45.8f, 40f, 51.1f, closed = false)
-private val mouthLine = path(48.6f, 50.6f, 55.4f, 50.6f, closed = false)
-private val eyeRight = path(64f, 40.5f, 58.2f, 45.8f, 64f, 51.1f, closed = false)
+private val shield = path(58.6f, 27.5f, 73f, 33.9f, 70.2f, 53f, 55.4f, 65.8f, 38.3f, 56.2f, 37.1f, 34.3f)
+private val shieldFacet = path(37.1f, 34.3f, 58.6f, 27.5f, 58.6f, 38f, 37.4f, 44f)
+private val eyeLeft = path(42.7f, 41.5f, 47.4f, 45.9f, 42.5f, 50.3f, closed = false)
+private val mouthLine = path(50.6f, 50.2f, 58.3f, 50.2f, closed = false)
+private val eyeRight = path(67.3f, 41.5f, 62f, 46.1f, 66.9f, 50.5f, closed = false)
 private val IconGreen = Color(0xFF2BEA8C)
 private val IconFace = Color(0xFF55F5A8)
 
@@ -111,10 +111,10 @@ private fun DrawScope.drawFaceShield(skin: OperativeSkin, time: Float, pulse: Fl
     val isDefault = skin.id == OperativeSkins.DEFAULT.id
     val edge = if (isDefault) IconGreen else c.edge
     val face = if (isDefault) IconFace else c.face
-    glowStroke(shield, edge, 2.2f, pulse * 0.8f, layers = 3)
-    drawPath(shield, Brush.verticalGradient(listOf(Color(0xFF07231A), Color(0xFF020A07)), startY = 25f, endY = 67f))
+    glowStroke(shield, edge, 2.8f, pulse * 0.8f, layers = 3)
+    drawPath(shield, Brush.verticalGradient(listOf(Color(0xFF07231A), Color(0xFF020A07)), startY = 27f, endY = 66f))
     drawPath(shieldFacet, Color.White.copy(alpha = 0.035f))
-    drawPath(shield, edge, style = Stroke(2.2f, join = StrokeJoin.Round))
+    drawPath(shield, edge, style = Stroke(2.8f, join = StrokeJoin.Round))
     for (p in listOf(eyeLeft, mouthLine, eyeRight)) {
         drawPath(p, face.copy(alpha = 0.16f * pulse), style = Stroke(4.6f, cap = StrokeCap.Round, join = StrokeJoin.Round))
         drawPath(p, face, style = Stroke(2.7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
@@ -147,9 +147,9 @@ private fun DrawScope.drawEmblem(skin: OperativeSkin, time: Float) {
 
     // Hood.
     glowStroke(hood, NeonBlue, 0.9f, pulse * 0.7f, layers = 3)
-    drawPath(hood, Brush.verticalGradient(listOf(Color(0xFF2A55C8), Color(0xFF15307F), Color(0xFF0D1F5A)), startY = 11f, endY = 74f))
+    drawPath(hood, Brush.verticalGradient(listOf(Color(0xFF2048B0), Color(0xFF122A70), Color(0xFF0A1A4A)), startY = 11f, endY = 74f))
     drawPath(hoodFacet, Color(0xFF3A6BE0).copy(alpha = 0.55f))
-    drawPath(hood, NeonBlue, style = Stroke(0.9f, join = StrokeJoin.Round))
+    drawPath(hood, NeonBlue, style = Stroke(1.4f, join = StrokeJoin.Round))
     drawPath(hoodOpening, Color(0xFF040A16))
     drawPath(hoodOpening, Color(0xFF1B3C9A), style = Stroke(0.8f, join = StrokeJoin.Round))
 
@@ -167,17 +167,17 @@ private fun DrawScope.drawEmblem(skin: OperativeSkin, time: Float) {
     drawFaceShield(skin, time, pulse)
 
     // Collar button.
-    drawCircle(Mint.copy(alpha = 0.25f * pulse), 6f, Offset(41f, 76f))
-    drawCircle(Color(0xFF0B2A2A), 4.4f, Offset(41f, 76f))
-    drawCircle(Brush.radialGradient(listOf(Color(0xFFB8FFE2), Mint), Offset(40.2f, 75.2f), 4f), 3.4f, Offset(41f, 76f))
+    drawCircle(Mint.copy(alpha = 0.25f * pulse), 6f, Offset(42.7f, 73f))
+    drawCircle(Color(0xFF0B2A2A), 4.4f, Offset(42.7f, 73f))
+    drawCircle(Brush.radialGradient(listOf(Color(0xFFB8FFE2), Mint), Offset(41.9f, 72.2f), 4f), 3.4f, Offset(42.7f, 73f))
 
     // Headset: ear cup, then the antenna with its glowing tip.
-    drawLine(NeonBlue, Offset(25.5f, 40f), Offset(25.8f, 19f), 1.6f, StrokeCap.Round)
-    drawLine(Color(0xFF0D1F5A), Offset(25.5f, 40f), Offset(25.8f, 19f), 0.7f, StrokeCap.Round)
-    drawOval(Color(0xFF0C1C4C), Offset(19f, 38f), Size(9f, 15f))
-    drawOval(NeonBlue, Offset(19f, 38f), Size(9f, 15f), style = Stroke(0.9f))
-    drawOval(Mint.copy(alpha = 0.2f * pulse), Offset(19.6f, 40f), Size(6f, 11f), style = Stroke(2.6f))
-    drawOval(Mint, Offset(20.4f, 41f), Size(4.6f, 9f), style = Stroke(1.2f))
+    drawLine(NeonBlue, Offset(26.3f, 34f), Offset(26f, 19f), 1.6f, StrokeCap.Round)
+    drawLine(Color(0xFF0D1F5A), Offset(26.3f, 34f), Offset(26f, 19f), 0.7f, StrokeCap.Round)
+    drawOval(Color(0xFF0C1C4C), Offset(19f, 35f), Size(9f, 14f))
+    drawOval(NeonBlue, Offset(19f, 35f), Size(9f, 14f), style = Stroke(0.9f))
+    drawOval(Mint.copy(alpha = 0.2f * pulse), Offset(19.8f, 37f), Size(6f, 10f), style = Stroke(2.6f))
+    drawOval(Mint, Offset(20.6f, 37.6f), Size(4.4f, 8.8f), style = Stroke(1.2f))
     val blink = 0.75f + 0.25f * sin(time * 4f)
     drawCircle(Cyan.copy(alpha = 0.18f * blink), 7f, Offset(26f, 17f))
     drawCircle(Cyan.copy(alpha = 0.3f * blink), 5f, Offset(26f, 17f))
