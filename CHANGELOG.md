@@ -13,6 +13,9 @@
   gradient faces, scan cuts, extruded depth, neon halo and a circuit-trace frame; scales to
   any size and pulses on the main menu. PNG exports in `docs/brand/` (3200x1344, transparent
   and on dark) via `LogoRender` (`-PrenderPreviews`).
+- Main-menu emblem (`ui/common/OperativeEmblem.kt`) after the app icon: hooded operative
+  with headset and antenna in a neon hexagon with circuit traces; the face shield is the
+  equipped skin. Replaces the bare shield above the title. Export: `docs/brand/menu_emblem.png`.
 
 ## 0.5.1 — 2026-10-08
 ### Added

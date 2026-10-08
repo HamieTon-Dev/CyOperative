@@ -38,7 +38,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 - Router: sealed `Screen` + one state value (`ui/AppRoot.kt`), as in CyOps TD.
 
 ## Files recently modified
-Latest: `ui/common/CyberTitleLogo.kt` (vector wordmark, used on the main menu; PNGs in `docs/brand/`).
+Latest: `ui/common/OperativeEmblem.kt` (menu emblem), `ui/common/CyberTitleLogo.kt` (vector wordmark, used on the main menu; PNGs in `docs/brand/`).
 Everything (initial build). Key files: `engine/GameEngine.kt`, `engine/EnemyAi.kt`,
 `engine/BossBrain.kt`, `engine/LevelPlanner.kt`, `data/*.kt`, `ui/game/*`.
 

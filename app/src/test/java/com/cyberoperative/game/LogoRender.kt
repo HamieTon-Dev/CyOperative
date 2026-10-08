@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -53,6 +55,27 @@ class LogoRender {
         val h = (bmp.width * 420f / 1000f).toInt().coerceAtMost(bmp.height)
         val out = Bitmap.createBitmap(bmp, 0, 0, bmp.width, h)
         File(outDir, "$name.png").outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    @Test fun emblem() {
+        assumeTrue(enabled)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            Box(Modifier.background(Color(0xFF04080F))) {
+                com.cyberoperative.game.ui.common.OperativeEmblem(
+                    com.cyberoperative.game.data.OperativeSkins.byId("neon_operative_skin_unused"),
+                    Modifier.size(400.dp), animate = false
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(100)
+        outDir.mkdirs()
+        val content = compose.activity.window.decorView.findViewById<android.view.View>(android.R.id.content)
+        val bmp = Bitmap.createBitmap(content.width, content.height, Bitmap.Config.ARGB_8888)
+        compose.runOnUiThread { content.draw(Canvas(bmp)) }
+        val side = minOf(bmp.width, bmp.height)
+        val out = Bitmap.createBitmap(bmp, 0, 0, side, side)
+        File(outDir, "menu_emblem.png").outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     @Test fun transparent() = render("title_logo", null)
