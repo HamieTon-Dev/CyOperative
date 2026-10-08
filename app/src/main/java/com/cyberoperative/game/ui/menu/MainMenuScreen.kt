@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cyberoperative.game.engine.RunSnapshot
 import com.cyberoperative.game.save.PlayerProfile
 import com.cyberoperative.game.ui.common.CurrencyChip
 import com.cyberoperative.game.ui.common.CyberButton
@@ -45,7 +46,7 @@ import kotlin.math.sin
 enum class MenuTarget(val label: String) {
     PLAY("PLAY"), OPERATIVE("OPERATIVE"), UPGRADES("UPGRADES"), ARMORY("ARMORY"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
-    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE")
+    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE")
 }
 
 /** Main menu (§6). One big PLAY, the rest in a compact two-column grid. */
@@ -103,11 +104,27 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 )
             }
             Spacer(Modifier.height(20.dp))
-            CyberButton(
-                "PLAY", primary = true, accent = Palette.Green,
-                subtitle = "START OPERATION",
-                modifier = Modifier.fillMaxWidth()
-            ) { onSelect(MenuTarget.PLAY) }
+            // A saved operation turns PLAY into CONTINUE (owner, 2026-10-08).
+            val saved = remember(profile.savedRun) { RunSnapshot.decodeOrNull(profile.savedRun) }
+            if (saved != null) {
+                CyberButton(
+                    "CONTINUE", primary = true, accent = Palette.Green,
+                    subtitle = saved.label,
+                    modifier = Modifier.fillMaxWidth()
+                ) { onSelect(MenuTarget.CONTINUE) }
+                Spacer(Modifier.height(10.dp))
+                CyberButton(
+                    "NEW OPERATION", accent = Palette.Cyan,
+                    subtitle = "START OVER",
+                    modifier = Modifier.fillMaxWidth()
+                ) { onSelect(MenuTarget.PLAY) }
+            } else {
+                CyberButton(
+                    "PLAY", primary = true, accent = Palette.Green,
+                    subtitle = "START OPERATION",
+                    modifier = Modifier.fillMaxWidth()
+                ) { onSelect(MenuTarget.PLAY) }
+            }
             Spacer(Modifier.height(10.dp))
             CyberButton(
                 "ENDLESS MODE", accent = Palette.Purple,
@@ -115,7 +132,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.ENDLESS) }
             Spacer(Modifier.height(14.dp))
-            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS }
+            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE }
             for (row in rest.chunked(2)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     for (item in row) {

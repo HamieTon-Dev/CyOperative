@@ -107,6 +107,7 @@ class ArenaRenderer {
             drawSorted(g, time, skin, body)
             drawOrbitFront(g, time)
             drawProjectiles(g, time)
+            drawZaps(g, time)
             drawHazardsOver(g)
             drawParticles(g)
             if (showNumbers) drawTexts(g)
@@ -703,8 +704,17 @@ class ArenaRenderer {
         drawBeam(g, time, lift)
         for (p in g.projectiles.items) {
             if (!p.active) continue
+            if (p.kind == ProjKind.MINE) { drawMine(p.x, p.y, p.armTimer > 0f, time); continue }
             drawCircle(Color.Black.copy(alpha = 0.25f), p.radius * 0.8f, Offset(p.x, p.y))
             val c = Offset(p.x, p.y - lift)
+            if (p.kind == ProjKind.MISSILE) { drawMissile(c, p.vx, p.vy, time); continue }
+            if (p.kind == ProjKind.RAIL) {
+                val tail = Offset(p.x - p.vx * 0.06f, p.y - lift - p.vy * 0.06f)
+                drawLine(Color(0xFFB98CFF).copy(alpha = 0.25f), c, tail, p.radius * 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Color(0xFFE7D4FF).copy(alpha = 0.8f), c, tail, p.radius * 1.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Color.White, c, tail, p.radius * 0.45f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                continue
+            }
             if (p.friendly) {
                 val col = when (p.kind) {
                     ProjKind.LANCE -> Palette.Green
@@ -730,6 +740,78 @@ class ArenaRenderer {
                 drawCircle(col, p.radius, c)
                 drawCircle(Color(0xFFFFE6D0), p.radius * 0.45f, c)
                 if (p.homing > 0f) drawCircle(col.copy(alpha = 0.4f), p.radius + 6f, c, style = Stroke(1.5f))
+            }
+        }
+    }
+
+    /** Logic Bomb on the floor: a dark puck whose light blinks faster once armed. */
+    private fun DrawScope.drawMine(x: Float, y: Float, arming: Boolean, time: Float) {
+        val c = Offset(x, y)
+        val blink = if (arming) 0.35f else 0.5f + 0.5f * sin(time * 12f + x)
+        val col = Color(0xFFFF9A1A)
+        drawCircle(Color.Black.copy(alpha = 0.35f), 13f, c)
+        drawCircle(Color(0xFF1B1F2A), 10f, c)
+        drawCircle(col.copy(alpha = 0.7f), 10f, c, style = Stroke(2f))
+        drawCircle(col.copy(alpha = 0.25f * blink), 22f, c)
+        drawCircle(col.copy(alpha = 0.6f + 0.4f * blink), 3.5f, c)
+    }
+
+    /** Malware Missile: a small warhead with an orange exhaust plume. */
+    private fun DrawScope.drawMissile(c: Offset, vx: Float, vy: Float, time: Float) {
+        val sp = max(1f, kotlin.math.hypot(vx, vy))
+        val dx = vx / sp
+        val dy = vy / sp
+        val tail = Offset(c.x - dx * 26f, c.y - dy * 26f)
+        val flick = 0.8f + 0.2f * sin(time * 50f)
+        drawLine(Color(0xFFFF7A1A).copy(alpha = 0.25f), c, tail, 12f * flick, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Color(0xFFFFC14D).copy(alpha = 0.7f), c, Offset(c.x - dx * 16f, c.y - dy * 16f), 5f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Color(0xFFE6EEF6), Offset(c.x - dx * 6f, c.y - dy * 6f), Offset(c.x + dx * 7f, c.y + dy * 7f), 7f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawCircle(Palette.Red, 3f, Offset(c.x + dx * 6f, c.y + dy * 6f))
+    }
+
+    /** Arc Discharge lightning and Orbital Strike target marks / beams. */
+    private fun DrawScope.drawZaps(g: GameEngine, time: Float) {
+        val lift = 22f
+        for (z in g.zaps.items) {
+            if (!z.active) continue
+            when (z.kind) {
+                com.cyberoperative.game.engine.ZapKind.ARC -> {
+                    val fade = (1f - z.timer / z.duration).coerceIn(0f, 1f)
+                    val path = Path()
+                    val segs = 7
+                    val r = kotlin.random.Random(z.seed + (time * 30f).toInt())
+                    val x0 = z.x; val y0 = z.y - lift; val x1 = z.x2; val y1 = z.y2 - lift
+                    val nx = -(y1 - y0); val ny = x1 - x0
+                    val nl = max(1f, kotlin.math.hypot(nx, ny))
+                    path.moveTo(x0, y0)
+                    for (i in 1 until segs) {
+                        val t = i / segs.toFloat()
+                        val j = (r.nextFloat() - 0.5f) * 26f
+                        path.lineTo(x0 + (x1 - x0) * t + nx / nl * j, y0 + (y1 - y0) * t + ny / nl * j)
+                    }
+                    path.lineTo(x1, y1)
+                    drawPath(path, Color(0xFFA259FF).copy(alpha = 0.35f * fade), style = Stroke(9f))
+                    drawPath(path, Color(0xFFD9BFFF).copy(alpha = 0.9f * fade), style = Stroke(3f))
+                    drawPath(path, Color.White.copy(alpha = fade), style = Stroke(1.2f))
+                    drawCircle(Color(0xFFD9BFFF).copy(alpha = 0.5f * fade), 14f, Offset(x1, y1))
+                }
+                com.cyberoperative.game.engine.ZapKind.STRIKE -> {
+                    val c = Offset(z.x, z.y)
+                    val ti = Color(0xFFDCE8F2)
+                    if (!z.landed) {
+                        val f = (z.timer / z.duration).coerceIn(0f, 1f)
+                        drawCircle(ti.copy(alpha = 0.12f), z.radius, c)
+                        drawCircle(ti.copy(alpha = 0.8f), z.radius * (1f - 0.6f * f), c, style = Stroke(2.5f))
+                        drawLine(ti.copy(alpha = 0.7f), Offset(z.x - 14f, z.y), Offset(z.x + 14f, z.y), 2f)
+                        drawLine(ti.copy(alpha = 0.7f), Offset(z.x, z.y - 14f), Offset(z.x, z.y + 14f), 2f)
+                    } else {
+                        val f = ((z.timer - z.duration) / 0.3f).coerceIn(0f, 1f)
+                        val a = 1f - f
+                        drawLine(ti.copy(alpha = 0.3f * a), Offset(z.x, z.y - 900f), c, 60f * a + 10f)
+                        drawLine(Color.White.copy(alpha = 0.95f * a), Offset(z.x, z.y - 900f), c, 16f * a + 2f)
+                        drawCircle(Color.White.copy(alpha = 0.6f * a), z.radius * 0.6f, c)
+                    }
+                }
             }
         }
     }

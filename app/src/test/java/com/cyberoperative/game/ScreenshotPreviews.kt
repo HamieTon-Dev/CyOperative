@@ -180,6 +180,68 @@ class ScreenshotPreviews {
         save(name)
     }
 
+    @Test fun bossRewards() {
+        assumeTrue(enabled)
+        gameplay("reward_counter_boss", 0f) { s ->
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(20, kotlin.random.Random(2)))
+            repeat(240) { s.engine.update(1f / 60f) }
+            s.engine.killEnemy(s.engine.boss!!)
+            var guard = 0
+            while (s.engine.phase != com.cyberoperative.game.engine.Phase.UPGRADE && guard++ < 600) s.engine.update(1f / 60f)
+            s.chooseUpgrade(0)
+        }
+    }
+
+    @Test fun pauseBossBlocked() {
+        assumeTrue(enabled)
+        gameplay("pause_boss_save_blocked", 0f) { s ->
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(10, kotlin.random.Random(1)))
+            repeat(60) { s.engine.update(1f / 60f) }
+            s.paused = true
+        }
+    }
+
+    @Test fun pauseSave() {
+        assumeTrue(enabled)
+        gameplay("pause_save", 1f) { s -> s.paused = true }
+    }
+
+    @Test fun upgradeBar() {
+        assumeTrue(enabled)
+        gameplay("hud_upgrade_bar", 3f) { s ->
+            val U = com.cyberoperative.game.data.Upgrades
+            for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
+        }
+    }
+
+    @Test fun menuContinue() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        val g = com.cyberoperative.game.engine.GameEngine(com.cyberoperative.game.engine.RunConfig(difficulty = com.cyberoperative.game.engine.Difficulty.HARD))
+        g.debugJumpToLevel(12)
+        repo.update { it.copy(savedRun = g.snapshot()!!.encode()) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { MainMenuScreen(repo.current) {} } }
+        compose.mainClock.advanceTimeBy(500)
+        save("menu_continue")
+    }
+
+    @Test fun difficultyPicker() {
+        assumeTrue(enabled)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CyberOperativeTheme {
+                com.cyberoperative.game.ui.menu.DifficultyPicker(
+                    com.cyberoperative.game.engine.GameMode.CAMPAIGN, com.cyberoperative.game.engine.Difficulty.MEDIUM,
+                    "LEVEL 12 · HARD", {}, {}
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(100)
+        save("difficulty_picker")
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

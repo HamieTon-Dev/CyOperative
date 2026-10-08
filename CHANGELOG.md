@@ -1,7 +1,30 @@
 # Changelog
 
-## 0.6.1 (versionCode 8) — unreleased
+## 0.7.0 (versionCode 8) — unreleased
 - Next upload. 0.6.0 (versionCode 7) went to the Play closed test on 2026-10-08.
+### Added
+- SAVE & EXIT from the pause menu; the main menu's PLAY becomes CONTINUE (level, room,
+  every threat's position and HP, player HP/Firewall and the whole build are restored).
+  Autosaves when the app is backgrounded. Saving is locked during boss fights
+  ("[BOSS] SAVE BLOCKED") until the boss is defeated. A save is consumed on CONTINUE and
+  cleared when a run ends.
+- Difficulty picker (EASY / MEDIUM / HARD) for every new run: threat HP and damage,
+  € / score payout (x0.8 / x1 / x1.5) and mod luck.
+- Mod tiers: BLUE RARE, then PURPLE, GOLDEN and the new TITANIUM, each rarer than the last.
+  Luck from depth, difficulty and boss rewards compounds per tier. GOLDEN/TITANIUM cards shimmer.
+- More rewards: bosses pay 2 + level/20 picks (plus the level clear) with extra luck; deeper
+  levels roll bonus picks. The upgrade screen shows "REWARD 2 OF 4 · 2 more to pick".
+- New weapons: LOGIC BOMBS (mines while moving), MALWARE MISSILES (homing, splash),
+  ARC DISCHARGE (purple chain lightning), QUANTUM RAILGUN (golden, pierces walls),
+  ORBITAL STRIKE (titanium). New titanium/golden mods: TITANIUM CHASSIS, OMEGA OVERCLOCK,
+  GOLDEN PROTOCOL.
+- Owned-upgrade icon bar along the bottom of the screen; press and hold an icon for details.
+### Changed
+- PLASMA BEAM is now TITANIUM (ultra rare) and overheats after 5 s of hits into a 3 s
+  cooldown, shown on its icon and above the bar.
+### Fixed
+- Music tempo now reliably returns from boss speed (1.5x) once the boss falls; the rate is
+  re-checked until the player confirms it.
 ### Changed
 - Launcher icon is now the store icon art (hooded operative in a neon hexagon) instead of
   the old CyOps-TD-style PCB shield: adaptive icon (art inset to the safe zone on its own

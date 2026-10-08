@@ -61,6 +61,11 @@ class RunStats {
     var lanceLevel = 0
     var beamLevel = 0
     var empLevel = 0
+    var mineLevel = 0
+    var missileLevel = 0
+    var arcLevel = 0
+    var railLevel = 0
+    var strikeLevel = 0
 
     // Economy
     var xpMul = 1f
@@ -83,6 +88,8 @@ class RunStats {
         orbRadius = o.orbRadius; orbSize = o.orbSize; orbBoltInterval = o.orbBoltInterval
         bladeCount = o.bladeCount; bladeDamage = o.bladeDamage; bladeRadius = o.bladeRadius
         coneLevel = o.coneLevel; lanceLevel = o.lanceLevel; beamLevel = o.beamLevel; empLevel = o.empLevel
+        mineLevel = o.mineLevel; missileLevel = o.missileLevel; arcLevel = o.arcLevel
+        railLevel = o.railLevel; strikeLevel = o.strikeLevel
         xpMul = o.xpMul; euroMul = o.euroMul
     }
 

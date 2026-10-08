@@ -62,9 +62,13 @@ class RunBuild(private val base: RunStats) {
         stats.clampLimits()
     }
 
-    private fun weightOf(def: UpgradeDef): Float {
+    private fun weightOf(def: UpgradeDef, luck: Float): Float {
         var w = def.rarity.weight
         if (qualityBonus > 0f && def.rarity.ordinal >= Rarity.RARE.ordinal) w *= 1f + qualityBonus
+        // Luck (level, difficulty, boss rewards) makes each tier above BLUE
+        // compound more likely: luck 1 doubles PURPLE, x4 GOLDEN, x8 TITANIUM.
+        val tier = def.rarity.highTier
+        if (tier > 0 && luck > 0f) w *= Math.pow(1.0 + luck, tier.toDouble()).toFloat()
         // An unlocked evolution is the payoff for committing to a build:
         // make it very likely to be seen.
         if (def.evolvesFrom != null) w = maxOf(w, 60f)
@@ -73,21 +77,35 @@ class RunBuild(private val base: RunStats) {
         return w
     }
 
+    /** Odds of [def] appearing in one card slot of a fresh offer (tests, tuning). */
+    fun chanceOf(def: UpgradeDef, luck: Float = 0f): Float {
+        val pool = Upgrades.all.filter { isEligible(it) }
+        if (def !in pool) return 0f
+        return weightOf(def, luck) / pool.sumOf { weightOf(it, luck).toDouble() }.toFloat()
+    }
+
     /** Three distinct cards (fewer only if the pool is genuinely exhausted). */
-    fun rollOffer(rng: Random, count: Int = 3): List<UpgradeOffer> {
+    fun rollOffer(rng: Random, count: Int = 3, luck: Float = 0f): List<UpgradeOffer> {
         val pool = Upgrades.all.filter { isEligible(it) }.toMutableList()
         val result = ArrayList<UpgradeOffer>(count)
         while (result.size < count && pool.isNotEmpty()) {
-            val total = pool.sumOf { weightOf(it).toDouble() }.toFloat()
+            val total = pool.sumOf { weightOf(it, luck).toDouble() }.toFloat()
             var roll = rng.nextFloat() * total
             var chosen = pool.last()
             for (d in pool) {
-                roll -= weightOf(d)
+                roll -= weightOf(d, luck)
                 if (roll <= 0f) { chosen = d; break }
             }
             pool.remove(chosen)
             result += UpgradeOffer(chosen, if (chosen.instant) 1 else level(chosen.id) + 1)
         }
         return result
+    }
+
+    /** Restores owned levels from a saved run. Unknown ids (removed mods) are skipped. */
+    fun restore(owned: Map<String, Int>) {
+        levels.clear()
+        for ((id, l) in owned) if (Upgrades.all.any { it.id == id }) levels[id] = l
+        recompute()
     }
 }

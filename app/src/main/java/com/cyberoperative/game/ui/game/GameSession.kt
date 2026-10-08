@@ -7,7 +7,9 @@ import androidx.compose.runtime.setValue
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.audio.MusicState
 import com.cyberoperative.game.data.Operatives
+import com.cyberoperative.game.engine.Difficulty
 import com.cyberoperative.game.engine.GameEngine
+import com.cyberoperative.game.engine.RunSnapshot
 import com.cyberoperative.game.engine.GameMode
 import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
@@ -56,7 +58,17 @@ data class HudSnapshot(
     val offerSerial: Int = 0,
     val mode: GameMode = GameMode.CAMPAIGN,
     val levelKills: Int = 0,
-    val levelThreats: Int = 0
+    val levelThreats: Int = 0,
+    val rewardBatchTotal: Int = 0,
+    val rewardBatchTaken: Int = 0,
+    /** Null when the run can be saved; otherwise why not (e.g. "[BOSS] SAVE BLOCKED"). */
+    val saveBlockReason: String? = null,
+    val difficulty: Difficulty = Difficulty.MEDIUM,
+    /** Owned upgrade ids and levels, in the order they were taken (bottom icon bar). */
+    val owned: List<Pair<String, Int>> = emptyList(),
+    /** Plasma Beam: heat 0..1 while usable, and seconds of overheat lockout left (0 = ready). */
+    val beamHeat: Float = 0f,
+    val beamCooldown: Float = 0f
 )
 
 /** Outcome of the finished run for the game-over screen. */
@@ -81,8 +93,14 @@ data class RunResult(
 class GameSession(
     private val save: SaveRepository,
     val audio: AudioManager,
-    val mode: GameMode = GameMode.CAMPAIGN
+    mode: GameMode = GameMode.CAMPAIGN,
+    difficulty: Difficulty = Difficulty.MEDIUM,
+    /** Continue a saved operation instead of starting a new one. */
+    restore: RunSnapshot? = null
 ) {
+    val mode: GameMode = restore?.let { r -> GameMode.entries.firstOrNull { it.name == r.mode } } ?: mode
+    val difficulty: Difficulty = restore?.let { Difficulty.byName(it.difficulty) } ?: difficulty
+
 
     val engine: GameEngine
     var frameTick by mutableLongStateOf(0L)
@@ -90,7 +108,7 @@ class GameSession(
     var hud by mutableStateOf(HudSnapshot())
         private set
     var paused by mutableStateOf(false)
-    var showTutorial by mutableStateOf(!save.current.tutorialDone)
+    var showTutorial by mutableStateOf(!save.current.tutorialDone && restore == null)
     var result by mutableStateOf<RunResult?>(null)
         private set
 
@@ -114,10 +132,19 @@ class GameSession(
 
     init {
         val p = save.current
-        val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, System.nanoTime()).copy(mode = mode)
-        engine = GameEngine(config)
-        startBestLevel = if (mode == GameMode.CAMPAIGN) p.highestLevel else p.endlessBestStage
-        startBestScore = if (mode == GameMode.CAMPAIGN) p.bestScore else p.endlessBestScore
+        val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
+            .copy(mode = this.mode, difficulty = this.difficulty)
+        engine = GameEngine(config, restore)
+        if (restore != null) {
+            // Everything up to the save was already banked when it was taken.
+            val s = engine.summary()
+            committedEuros = s.euros; committedKills = s.kills; committedBosses = s.bosses
+            committedEvents = s.events; committedDiamonds = s.diamonds; committedRun = true
+            // A save is used once: continuing consumes it (autosave re-creates it).
+            save.update { it.copy(savedRun = null) }
+        }
+        startBestLevel = if (this.mode == GameMode.CAMPAIGN) p.highestLevel else p.endlessBestStage
+        startBestScore = if (this.mode == GameMode.CAMPAIGN) p.bestScore else p.endlessBestScore
         updateMusic()
     }
 
@@ -144,6 +171,7 @@ class GameSession(
             else -> MusicState.COMBAT
         }
         audio.setMusic(state)
+        audio.ensureSpeed()
     }
 
     private fun buildHud(): HudSnapshot {
@@ -185,11 +213,33 @@ class GameSession(
             offerSerial = g.offerSerial,
             mode = g.mode,
             levelKills = g.levelKills,
-            levelThreats = g.levelThreats
+            levelThreats = g.levelThreats,
+            rewardBatchTotal = g.rewardBatchTotal,
+            rewardBatchTaken = g.rewardBatchTaken,
+            saveBlockReason = g.saveBlockReason,
+            difficulty = difficulty,
+            owned = ownedList(),
+            beamHeat = (g.beamHeat / GameEngine.BEAM_MAX_FIRE * 20f).toInt() / 20f,
+            beamCooldown = (g.beamCooldown * 10f).toInt() / 10f
         )
     }
 
+    // Rebuilt only when the build changes, so the HUD snapshot stays cheap.
+    private var ownedCache: List<Pair<String, Int>> = emptyList()
+    private var ownedKey = -1
+    private fun ownedList(): List<Pair<String, Int>> {
+        val o = engine.build.owned()
+        val key = o.values.sum() * 31 + o.size
+        if (key != ownedKey) {
+            ownedKey = key
+            ownedCache = o.entries.map { it.key to it.value }
+        }
+        return ownedCache
+    }
+
     private fun onDeath() {
+        // A run that ended can't be continued from an earlier autosave.
+        save.update { it.copy(savedRun = null) }
         val newAch = commitProgress(final = false)
         val s = engine.summary()
         result = RunResult(
@@ -235,9 +285,29 @@ class GameSession(
         save.update { it.copy(tutorialDone = true) }
     }
 
-    /** Called when leaving the run (menu / new operation / quit from pause). */
+    /** Called when leaving the run (menu / new operation / abort from pause). Ends the run for good. */
     fun finish() {
         commitProgress(final = true)
+        save.update { it.copy(savedRun = null) }
+    }
+
+    /**
+     * SAVE & EXIT: banks progress so far and stores the run so the menu's
+     * CONTINUE picks it up exactly here. False while saving is blocked (boss).
+     */
+    fun saveAndExit(): Boolean {
+        val snap = engine.snapshot() ?: return false
+        commitProgress(final = false)
+        save.update { it.copy(savedRun = snap.encode()) }
+        return true
+    }
+
+    /** Silent save when the app goes to the background, so a killed app can still continue. */
+    fun autosave() {
+        if (result != null) return
+        val snap = engine.snapshot() ?: return
+        commitProgress(final = false)
+        save.update { it.copy(savedRun = snap.encode()) }
     }
 
     /**

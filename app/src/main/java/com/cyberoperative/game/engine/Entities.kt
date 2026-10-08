@@ -54,7 +54,7 @@ class Enemy {
     val isElite: Boolean get() = elite != null
 }
 
-enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS }
+enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS, MISSILE, MINE, RAIL }
 
 class Projectile {
     var active = false
@@ -75,6 +75,33 @@ class Projectile {
     /** Phase through obstacles (some boss patterns). */
     var ghost = false
     var homing = 0f
+    /** MINE: seconds until armed. */
+    var armTimer = 0f
+    /** MISSILE / MINE: blast radius on detonation (0 = no blast). */
+    var splash = 0f
+}
+
+enum class ZapKind {
+    /** Arc Discharge bolt from (x, y) to (x2, y2); damage already applied. */
+    ARC,
+    /** Orbital Strike: marked at (x, y), lands for [Zap.damage] when the timer runs out. */
+    STRIKE
+}
+
+/** Friendly weapon effects that are neither projectiles nor hostile hazards. */
+class Zap {
+    var active = false
+    var kind = ZapKind.ARC
+    var x = 0f
+    var y = 0f
+    var x2 = 0f
+    var y2 = 0f
+    var radius = 0f
+    var timer = 0f
+    var duration = 0f
+    var damage = 0f
+    var landed = false
+    var seed = 0
 }
 
 enum class TextKind { NORMAL, CRIT, BOSS, HEAL, SHIELD, PLAYER_HURT, INFO }

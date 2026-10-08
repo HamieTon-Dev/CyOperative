@@ -67,18 +67,34 @@ Spawns are telegraphed 0.85 s and never within 300 units of the player.
 - Boss HP = enemy HP × (1 + 0.08(cycle-1)) × (1 + 0.25·rosterLoop)
 
 ## 8. Run upgrades (data/Upgrades.kt)
-3 cards, pick 1. Campaign: one pick after every cleared level (+1 after bosses and events).
-Endless: data (XP) from kills; each data level-up opens a pick mid-fight. Rarity weights:
-Common 100, Uncommon 55, Rare 26, Epic 10, Legendary 4; evolutions weighted 60 when
-unlocked. Evolution = parent at max level (+ optional partner). Chains:
+3 cards, pick 1. Campaign: one pick after every cleared level, a bonus pick with chance
+min(45%, 1.2%·(L−1)) and from L25 another with min(30%, 1%·(L−24)); events +1; bosses
++2 + L/20 (rolled with +1.2 luck). Endless: data (XP) from kills; each data level-up opens a
+pick mid-fight. The screen shows "REWARD n OF N" when a drop has several picks.
+
+Tiers (owner, 2026-10-08): Common 100, Uncommon 55, BLUE RARE 26, PURPLE 7, GOLDEN 2.5,
+TITANIUM 0.8. Luck = 0.015·level + difficulty (Easy 0, Medium 0.1, Hard 0.35) + boss 1.2;
+each tier above BLUE is multiplied by (1+luck)^tier. Evolutions weighted 60 when unlocked.
+Evolution = parent at max level (+ optional partner). Chains:
 Packet Nodes → Enhanced Nodes → Sentinel Nodes (+Node Overclock) → Autonomous Defense Node;
 Firewall → Reinforced → Adaptive → Zero Trust Fortress. Instant fillers (System Restore,
-Crypto Cache, Data Dump) guarantee three cards.
+Crypto Cache, Data Dump) guarantee three cards. Owned mods show as icons along the bottom
+of the screen (hold for details).
 
 Categories: cone (Packet Scatter), long-range slow (Exploit Lance), rotating shield
 (Encryption Blades — block packets), orbs (Packet Nodes), firewall (recharging absorb),
 plus EMP Burst, Botnet Chain, Packet Split, Multishot, Diagonal Routing, Proxy Shot,
-Penetration, Packet Bounce and stat modules.
+Penetration, Packet Bounce and stat modules. Added 2026-10-08: Logic Bombs (uncommon,
+mines while moving), Malware Missiles (blue, homing + splash), Arc Discharge (purple, chain
+lightning), Quantum Railgun (golden, pierces walls), Orbital Strike (titanium), Titanium
+Chassis, Omega Overclock, Golden Protocol. Plasma Beam is TITANIUM and overheats after 5 s
+of hits (3 s cooldown).
+
+## 8b. Difficulty & saving
+New runs pick EASY / MEDIUM / HARD: threat HP ×0.7 / 1 / 1.45, damage ×0.65 / 1 / 1.4,
+€ and score ×0.8 / 1 / 1.5. SAVE & EXIT (pause) stores the level seed, threats, player
+and build (RunSnapshot); CONTINUE restores it once. Saving is blocked while a boss lives.
+Autosave on backgrounding.
 
 ## 9. Enemies (data/EnemyDefs.kt)
 Malware Crawler, SQL Injector, Bot Drone (packs), Exploit Runner (telegraphed charge),

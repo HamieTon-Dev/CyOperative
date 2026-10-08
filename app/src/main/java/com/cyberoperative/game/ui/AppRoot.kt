@@ -10,7 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.audio.MusicState
+import com.cyberoperative.game.engine.Difficulty
 import com.cyberoperative.game.engine.GameMode
+import com.cyberoperative.game.engine.RunSnapshot
 import com.cyberoperative.game.engine.GameSound
 import com.cyberoperative.game.save.SaveRepository
 import com.cyberoperative.game.ui.game.GameScreen
@@ -18,6 +20,7 @@ import com.cyberoperative.game.ui.game.GameSession
 import com.cyberoperative.game.ui.menu.AboutScreen
 import com.cyberoperative.game.ui.menu.AchievementsScreen
 import com.cyberoperative.game.ui.menu.ArmoryScreen
+import com.cyberoperative.game.ui.menu.DifficultyPicker
 import com.cyberoperative.game.ui.menu.SkinsScreen
 import com.cyberoperative.game.ui.menu.StoreScreen
 import com.cyberoperative.game.ui.menu.LeaderboardScreen
@@ -50,9 +53,28 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
         screen = Screen.Menu
     }
     var lastMode by remember { mutableStateOf(GameMode.CAMPAIGN) }
-    fun startRun(mode: GameMode = lastMode) {
+    var lastDifficulty by remember { mutableStateOf(Difficulty.byName(save.current.lastDifficulty)) }
+    /** Mode waiting on the difficulty picker, or null when it is closed. */
+    var picking by remember { mutableStateOf<GameMode?>(null) }
+    fun startRun(mode: GameMode = lastMode, difficulty: Difficulty = lastDifficulty) {
         lastMode = mode
-        session = GameSession(save, audio, mode)
+        lastDifficulty = difficulty
+        // A new run replaces any saved operation.
+        save.update { it.copy(savedRun = null, lastDifficulty = difficulty.name) }
+        session = GameSession(save, audio, mode, difficulty)
+        screen = Screen.Game
+    }
+    fun continueRun() {
+        val snap = RunSnapshot.decodeOrNull(save.current.savedRun)
+        if (snap == null) {
+            save.update { it.copy(savedRun = null) }
+            picking = GameMode.CAMPAIGN
+            return
+        }
+        val s = GameSession(save, audio, restore = snap)
+        lastMode = s.mode
+        lastDifficulty = s.difficulty
+        session = s
         screen = Screen.Game
     }
 
@@ -68,12 +90,26 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
     when (val s = screen) {
         Screen.DevSplash -> DeveloperSplash { screen = Screen.Boot }
         Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) { screen = Screen.Menu }
-        Screen.Menu -> MainMenuScreen(profile) { target ->
-            click()
-            when (target) {
-                MenuTarget.PLAY -> startRun(GameMode.CAMPAIGN)
-                MenuTarget.ENDLESS -> startRun(GameMode.ENDLESS)
-                else -> screen = Screen.Sub(target)
+        Screen.Menu -> {
+            MainMenuScreen(profile) { target ->
+                click()
+                when (target) {
+                    MenuTarget.PLAY -> picking = GameMode.CAMPAIGN
+                    MenuTarget.ENDLESS -> picking = GameMode.ENDLESS
+                    MenuTarget.CONTINUE -> continueRun()
+                    else -> screen = Screen.Sub(target)
+                }
+            }
+            val mode = picking
+            if (mode != null) {
+                BackHandler { picking = null }
+                DifficultyPicker(
+                    mode = mode,
+                    initial = lastDifficulty,
+                    savedRunLabel = RunSnapshot.decodeOrNull(profile.savedRun)?.label,
+                    onStart = { d -> click(); picking = null; startRun(mode, d) },
+                    onCancel = { audio.play(GameSound.UI_BACK); picking = null }
+                )
             }
         }
         Screen.Game -> {
@@ -104,7 +140,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                 MenuTarget.ABOUT -> AboutScreen(::back)
                 MenuTarget.SKINS -> SkinsScreen(save, audio, ::back)
                 MenuTarget.STORE -> StoreScreen(save, audio, ::back) { screen = Screen.Sub(MenuTarget.SKINS) }
-                MenuTarget.PLAY, MenuTarget.ENDLESS -> LaunchedEffect(Unit) { startRun() }
+                MenuTarget.PLAY, MenuTarget.ENDLESS, MenuTarget.CONTINUE -> LaunchedEffect(Unit) { screen = Screen.Menu }
             }
         }
     }

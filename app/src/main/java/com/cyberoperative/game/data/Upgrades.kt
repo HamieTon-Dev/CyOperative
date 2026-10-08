@@ -2,12 +2,21 @@ package com.cyberoperative.game.data
 
 import com.cyberoperative.game.engine.RunStats
 
+/**
+ * Mod tiers (owner, 2026-10-08): BLUE rares are the everyday "good" pull;
+ * PURPLE, GOLDEN and TITANIUM are progressively rarer. Their odds rise with
+ * level, difficulty and boss rewards (see RunBuild.rollOffer luck).
+ */
 enum class Rarity(val label: String, val color: Long, val weight: Float) {
     COMMON("COMMON", 0xFFB8C4D6, 100f),
     UNCOMMON("UNCOMMON", 0xFF00FF9C, 55f),
-    RARE("RARE", 0xFF2E9BFF, 26f),
-    EPIC("EPIC", 0xFFA259FF, 10f),
-    LEGENDARY("LEGENDARY", 0xFFFFD426, 4f)
+    RARE("BLUE RARE", 0xFF2E9BFF, 26f),
+    EPIC("PURPLE", 0xFFA259FF, 7f),
+    LEGENDARY("GOLDEN", 0xFFFFD426, 2.5f),
+    TITANIUM("TITANIUM", 0xFFDCE8F2, 0.8f);
+
+    /** 0 for BLUE and below; 1, 2, 3 for PURPLE, GOLDEN, TITANIUM. */
+    val highTier: Int get() = (ordinal - RARE.ordinal).coerceAtLeast(0)
 }
 
 enum class UpgradeCategory { WEAPON, ORBIT, DEFENSE, STAT, UTILITY }
@@ -119,8 +128,8 @@ object Upgrades {
         { s, l -> s.lanceLevel = l }
     )
     val PLASMA_BEAM = UpgradeDef(
-        "plasma_beam", "PLASMA BEAM", "=O=", Rarity.RARE, UpgradeCategory.WEAPON, 3,
-        "An arm cannon that pours a continuous beam into your target while you stand still. Pierces every threat in its path.",
+        "plasma_beam", "PLASMA BEAM", "=O=", Rarity.TITANIUM, UpgradeCategory.WEAPON, 3,
+        "An arm cannon that pours a continuous beam into your target while you stand still. Pierces every threat in its path. Overheats after 5s of hits, then cools for 3s.",
         { l -> "Beam ${(140 + 60 * l)}% damage/s" + if (l > 1) ", wider" else "" },
         { s, l -> s.beamLevel = l }
     )
@@ -177,6 +186,56 @@ object Upgrades {
         "Packets ricochet off walls and server racks.",
         { "+1 wall bounce" },
         { s, l -> s.bounce += l }
+    )
+
+    // --- More weapons (owner, 2026-10-08) -----------------------------------
+    val LOGIC_BOMBS = UpgradeDef(
+        "logic_bombs", "LOGIC BOMBS", "[o]", Rarity.UNCOMMON, UpgradeCategory.WEAPON, 3,
+        "Drop proximity mines while you move. They arm, wait, and detonate on the first threat that steps close.",
+        { l -> "Up to ${2 + 2 * l} mines, ${(160 + 40 * l)}% blast" },
+        { s, l -> s.mineLevel = l }
+    )
+    val MALWARE_MISSILES = UpgradeDef(
+        "malware_missiles", "MALWARE MISSILES", "->*", Rarity.RARE, UpgradeCategory.WEAPON, 3,
+        "Launches homing missiles at nearby threats, moving or not. Each bursts on impact.",
+        { l -> "${1 + l} missiles every ${"%.1f".format(2.8f - 0.4f * l)}s" },
+        { s, l -> s.missileLevel = l }
+    )
+    val ARC_DISCHARGE = UpgradeDef(
+        "arc_discharge", "ARC DISCHARGE", "~z~", Rarity.EPIC, UpgradeCategory.WEAPON, 3,
+        "Lightning leaps from you to several nearby threats at once. Ignores cover.",
+        { l -> "Hits ${2 + l} threats every ${"%.1f".format(2.4f - 0.4f * l)}s" },
+        { s, l -> s.arcLevel = l }
+    )
+    val QUANTUM_RAILGUN = UpgradeDef(
+        "quantum_railgun", "QUANTUM RAILGUN", "=|==>", Rarity.LEGENDARY, UpgradeCategory.WEAPON, 2,
+        "While you stand still, a rail slug tears through every threat AND every wall in its line.",
+        { l -> "${600 + 200 * l}% damage, every ${"%.1f".format(3.6f - 0.8f * l)}s" },
+        { s, l -> s.railLevel = l }
+    )
+    val ORBITAL_STRIKE = UpgradeDef(
+        "orbital_strike", "ORBITAL STRIKE", "\\V/", Rarity.TITANIUM, UpgradeCategory.WEAPON, 1,
+        "A satellite marks three threats and burns them from orbit every few seconds.",
+        { "3 strikes of 800% every 5s" },
+        { s, _ -> s.strikeLevel = 1 }
+    )
+    val TITANIUM_CHASSIS = UpgradeDef(
+        "titanium_chassis", "TITANIUM CHASSIS", "[TI]", Rarity.TITANIUM, UpgradeCategory.DEFENSE, 1,
+        "A titanium-plated frame. Shrugs off what would shred anyone else.",
+        { "+60% max HP, +12% armor, +60 Firewall" },
+        { s, _ -> s.maxHp *= 1.6f; s.armor += 0.12f; s.firewallMax += 60f }
+    )
+    val OMEGA_OVERCLOCK = UpgradeDef(
+        "omega_overclock", "OMEGA OVERCLOCK", "<<!>>", Rarity.TITANIUM, UpgradeCategory.STAT, 1,
+        "Every limiter removed. Everything you fire hits harder and faster.",
+        { "+40% damage, +30% attack speed, +50% crit dmg" },
+        { s, _ -> s.damage *= 1.4f; s.fireRate *= 1.3f; s.critMul += 0.5f }
+    )
+    val GOLDEN_PROTOCOL = UpgradeDef(
+        "golden_protocol", "GOLDEN PROTOCOL", "[$$]", Rarity.LEGENDARY, UpgradeCategory.UTILITY, 1,
+        "A gilded exploit chain: richer payouts and sharper hits.",
+        { "+50% €, +20% damage, +10% crit chance" },
+        { s, _ -> s.euroMul *= 1.5f; s.damage *= 1.2f; s.critChance += 0.1f }
     )
 
     // --- Stats ---------------------------------------------------------------
@@ -280,7 +339,9 @@ object Upgrades {
         KERNEL_OVERCLOCK, PAYLOAD_BOOST, CRITICAL_INJECTION, ZERO_DAY_STRIKE, EXPLOIT_CHANCE,
         THREAT_DETECTION, LOW_LATENCY, MEMORY_EXPANSION, SELF_REPAIR, DATA_LEECH,
         ENCRYPTION_ARMOR, PACKET_EVASION, INTRUSION_COUNTER, MALWARE_PURGE, DATA_COMPRESSION,
-        SYSTEM_RESTORE, CRYPTO_CACHE, DATA_DUMP
+        SYSTEM_RESTORE, CRYPTO_CACHE, DATA_DUMP,
+        LOGIC_BOMBS, MALWARE_MISSILES, ARC_DISCHARGE, QUANTUM_RAILGUN, ORBITAL_STRIKE,
+        TITANIUM_CHASSIS, OMEGA_OVERCLOCK, GOLDEN_PROTOCOL
     )
 
     private val byId = all.associateBy { it.id }

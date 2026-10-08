@@ -40,7 +40,8 @@ data class RunConfig(
     val upgradeQuality: Float = 0f,
     val startingUpgrades: Int = 0,
     val startLevel: Int = 1,
-    val mode: GameMode = GameMode.CAMPAIGN
+    val mode: GameMode = GameMode.CAMPAIGN,
+    val difficulty: Difficulty = Difficulty.MEDIUM
 )
 
 /** Final numbers of a run, for the game-over screen and the save. */
@@ -66,7 +67,7 @@ data class RunSummary(
  * - STOP = SHOOT: when the stick is released it auto-targets and fires.
  * - ORBITS = CONTINUOUS DAMAGE: Packet Nodes and Encryption Blades never stop.
  */
-class GameEngine(val config: RunConfig = RunConfig()) {
+class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = null) {
 
     val rng = Random(config.seed)
 
@@ -103,6 +104,16 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     /** Bumped whenever [offer] changes so the UI knows to redraw the cards. */
     var offerSerial = 0
         private set
+    /** Rewards in the current pick streak (e.g. 3 after a boss) and how many are taken. */
+    var rewardBatchTotal = 0
+        private set
+    var rewardBatchTaken = 0
+        private set
+    /** Rarity luck of the current offers (level + difficulty + boss bonus). */
+    var offerLuck = 0f
+        private set
+    /** Boss rewards roll with extra luck until they are all picked. */
+    private var bossLuckPending = false
     var rerollsLeft = config.rerolls
         private set
     var revivesLeft = config.freeRevives
@@ -142,6 +153,10 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         private set
     /** Endless mode: time into the current difficulty stage. */
     private var stageTimer = 0f
+    /** Seed the current room/plan was built from, so a saved run rebuilds the same room. */
+    private var levelSeed = 0L
+    private var previousArenaId: String? = null
+    private var previousEvent = false
 
     // --- Player -------------------------------------------------------------
     var px = 0f
@@ -188,6 +203,20 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         private set
     val beamWidth: Float get() = 14f + 5f * stats.beamLevel
     private var beamTick = 0f
+    /**
+     * Plasma Beam heat (owner, 2026-10-08: "too overpowered"): seconds of
+     * damage dealt so far; at [BEAM_MAX_FIRE] it overheats into a
+     * [BEAM_COOLDOWN] lockout. Heat bleeds off slowly while not firing.
+     */
+    var beamHeat = 0f
+        private set
+    var beamCooldown = 0f
+        private set
+    private var mineTimer = 0f
+    private var missileTimer = 0f
+    private var arcTimer = 0f
+    private var railTimer = 0f
+    private var strikeTimer = 0f
 
     // --- Entities -----------------------------------------------------------
     val enemies = Pool(96, { Enemy() }) { it.active }
@@ -196,6 +225,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     val particles = Pool(320, { Particle() }) { it.active }
     val hazards = Pool(64, { Hazard() }) { it.active }
     val pulses = Pool(24, { Pulse() }) { it.active }
+    val zaps = Pool(40, { Zap() }) { it.active }
     private var nextUid = 1
 
     // --- Level flow ---------------------------------------------------------
@@ -238,8 +268,9 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         build.recompute()
         hp = stats.maxHp
         firewall = stats.firewallMax
-        startLevel(level, null, false)
-        if (config.startingUpgrades > 0) {
+        if (restore != null) applySnapshot(restore)
+        else startLevel(level, null, false)
+        if (restore == null && config.startingUpgrades > 0) {
             // Starting Weapon Power: pick free upgrades before the first fight.
             pendingUpgrades = config.startingUpgrades
             openUpgrades(resumeCombat = true)
@@ -298,6 +329,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         ai.update(dt)
         bossBrain.update(dt)
         updateProjectiles(dt)
+        updateZaps(dt)
         updateHazards(dt)
         if (hp <= 0f) {
             die()
@@ -323,7 +355,10 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
-        plan = forced ?: LevelPlanner.plan(level, rng, previousArena, previousEvent, mode)
+        previousArenaId = previousArena
+        this.previousEvent = previousEvent
+        levelSeed = rng.nextLong()
+        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode)
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -370,6 +405,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         for (h in hazards.items) h.active = false
         for (t in texts.items) t.active = false
         for (p in pulses.items) p.active = false
+        for (z in zaps.items) z.active = false
     }
 
     private fun updateSpawning(dt: Float) {
@@ -436,8 +472,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
         for (h in hazards.items) h.active = false
         val eventMul = if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f
-        score += Scoring.levelClear(level, levelSeconds, levelEnemyTotal, levelDamageTaken, eventMul)
-        val euros = ((5 + level) * eventMul * stats.euroMul).toInt()
+        score += (Scoring.levelClear(level, levelSeconds, levelEnemyTotal, levelDamageTaken, eventMul) * difficultyReward).toLong()
+        val euros = ((5 + level) * eventMul * stats.euroMul * difficultyReward).toInt()
         eurosEarned += euros
         if (plan.kind == LevelKind.EVENT) {
             eventsCompleted++
@@ -445,8 +481,11 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             if (plan.rules.diamondChance > 0f && rng.nextFloat() < plan.rules.diamondChance) diamondsEarned += 1
             pendingUpgrades++
         }
-        // Campaign: every cleared level earns a power-up.
+        // Campaign: every cleared level earns a power-up, and deeper levels
+        // roll for bonus rewards (owner, 2026-10-08: "higher levels give more").
         pendingUpgrades++
+        if (rng.nextFloat() < min(0.45f, (level - 1) * 0.012f)) pendingUpgrades++
+        if (level >= 25 && rng.nextFloat() < min(0.3f, (level - 24) * 0.01f)) pendingUpgrades++
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // Firewall fully restores between arenas.
@@ -464,8 +503,15 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         }
     }
 
+    /** Rarity luck for the next offer: deeper levels, harder difficulty and boss rewards all help. */
+    private fun currentLuck(): Float =
+        level * 0.015f + config.difficulty.luck + (if (bossLuckPending) 1.2f else 0f)
+
     private fun openUpgrades(resumeCombat: Boolean = false) {
-        offer = build.rollOffer(rng)
+        rewardBatchTotal = pendingUpgrades
+        rewardBatchTaken = 0
+        offerLuck = currentLuck()
+        offer = build.rollOffer(rng, luck = offerLuck)
         if (offer.isEmpty()) {
             pendingUpgrades = 0
             if (!resumeCombat) openPortal()
@@ -478,6 +524,9 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
     private fun finishUpgrades() {
         offer = emptyList()
+        bossLuckPending = false
+        rewardBatchTotal = 0
+        rewardBatchTaken = 0
         if (upgradeReturnsToCombat) {
             upgradeReturnsToCombat = false
             phase = Phase.COMBAT
@@ -496,7 +545,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         if (instant) {
             when (choice.def.id) {
                 Upgrades.CRYPTO_CACHE.id -> {
-                    val euros = ((15 + 3 * level) * stats.euroMul).toInt()
+                    val euros = ((15 + 3 * level) * stats.euroMul * difficultyReward).toInt()
                     eurosEarned += euros
                     addText(px, py - 40f, "+$euros €", TextKind.INFO)
                     sound(GameSound.CURRENCY)
@@ -517,9 +566,13 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             }
         }
         pendingUpgrades--
+        rewardBatchTaken++
         sound(GameSound.UPGRADE_SELECTED)
         if (pendingUpgrades > 0) {
-            offer = build.rollOffer(rng)
+            // Endless can earn more data mid-streak; keep the counter honest.
+            rewardBatchTotal = max(rewardBatchTotal, rewardBatchTaken + pendingUpgrades)
+            offerLuck = currentLuck()
+            offer = build.rollOffer(rng, luck = offerLuck)
             if (offer.isEmpty()) { pendingUpgrades = 0; finishUpgrades() }
         } else {
             finishUpgrades()
@@ -530,7 +583,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     fun reroll(): Boolean {
         if (phase != Phase.UPGRADE || rerollsLeft <= 0) return false
         rerollsLeft--
-        offer = build.rollOffer(rng)
+        offer = build.rollOffer(rng, luck = offerLuck)
         sound(GameSound.UI_CLICK)
         return true
     }
@@ -587,6 +640,117 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         return true
     }
 
+    private val difficultyReward: Float get() = config.difficulty.rewardMul
+
+    // ======================================================================
+    // Save & continue (owner, 2026-10-08)
+    // ======================================================================
+
+    /** True while a boss is alive or its level is still being fought. */
+    val bossActive: Boolean
+        get() = boss != null || (plan.kind == LevelKind.BOSS && phase == Phase.COMBAT)
+
+    /**
+     * Why the run cannot be saved right now, or null when it can. A boss
+     * fight blocks saving until the boss is defeated.
+     */
+    val saveBlockReason: String?
+        get() = when {
+            phase == Phase.DEAD -> "OPERATIVE DOWN"
+            bossActive -> "[BOSS] SAVE BLOCKED"
+            phase == Phase.TRANSITION || slideIn > 0f -> "ENTERING NEXT ROOM"
+            else -> null
+        }
+
+    /** The run as it stands, for "save & exit". Null when [saveBlockReason] is set. */
+    fun snapshot(): RunSnapshot? {
+        if (saveBlockReason != null) return null
+        val saved = ArrayList<SavedEnemy>()
+        for (e in enemies.items) {
+            if (!e.active || e.boss != null) continue
+            saved += SavedEnemy(
+                def = e.def.id, elite = e.elite?.name, x = e.x, y = e.y, hp = e.hp, maxHp = e.maxHp,
+                radius = e.radius, speed = e.speed, damageMul = e.damageMul, attackRateMul = e.attackRateMul,
+                damageTakenMul = e.damageTakenMul, rewardMul = e.rewardMul, isChild = e.isChild
+            )
+        }
+        return RunSnapshot(
+            mode = mode.name, difficulty = config.difficulty.name, seed = config.seed,
+            level = level, levelSeed = levelSeed, previousArenaId = previousArenaId, previousEvent = previousEvent,
+            phase = phase.name, phaseTimer = phaseTimer,
+            px = px, py = py, hp = hp, firewall = firewall, facing = facing,
+            upgrades = HashMap(build.owned()), runLevel = runLevel, xp = xp,
+            pendingUpgrades = pendingUpgrades, rewardBatchTotal = rewardBatchTotal, rewardBatchTaken = rewardBatchTaken,
+            offerLuck = offerLuck, offer = offer.map { it.def.id }, upgradeReturnsToCombat = upgradeReturnsToCombat,
+            rerollsLeft = rerollsLeft, revivesLeft = revivesLeft, revivesUsed = revivesUsed,
+            score = score, kills = kills, bosses = bossesDefeated, elites = elitesDefeated, events = eventsCompleted,
+            completedEventIds = HashSet(completedEventIds), euros = eurosEarned, diamonds = diamondsEarned,
+            runSeconds = runSeconds, levelSeconds = levelSeconds, levelDamageTaken = levelDamageTaken,
+            levelEnemyTotal = levelEnemyTotal, levelKills = levelKills, levelSpawned = levelSpawned,
+            stageTimer = stageTimer, timedRemaining = timedRemaining, portalOpen = portalOpen,
+            waveIndex = waveIndex, waveTimer = waveTimer, spawnTimer = spawnTimer, hazardTimer = hazardTimer,
+            enemies = saved
+        )
+    }
+
+    private fun applySnapshot(r: RunSnapshot) {
+        level = r.level
+        levelSeed = r.levelSeed
+        previousArenaId = r.previousArenaId
+        previousEvent = r.previousEvent
+        // The same seed rebuilds the same room, waves and event rules.
+        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode)
+        val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
+        arena = Arena(plan.arena, extra)
+        clearAll()
+        build.restore(r.upgrades)
+        runLevel = r.runLevel; xp = r.xp
+        pendingUpgrades = r.pendingUpgrades
+        rewardBatchTotal = r.rewardBatchTotal; rewardBatchTaken = r.rewardBatchTaken
+        offerLuck = r.offerLuck
+        upgradeReturnsToCombat = r.upgradeReturnsToCombat
+        rerollsLeft = r.rerollsLeft; revivesLeft = r.revivesLeft; revivesUsed = r.revivesUsed
+        score = r.score; kills = r.kills; bossesDefeated = r.bosses; elitesDefeated = r.elites
+        eventsCompleted = r.events; completedEventIds += r.completedEventIds
+        eurosEarned = r.euros; diamondsEarned = r.diamonds; runSeconds = r.runSeconds
+        levelSeconds = r.levelSeconds; levelDamageTaken = r.levelDamageTaken; levelEnemyTotal = r.levelEnemyTotal
+        levelKills = r.levelKills; levelSpawned = r.levelSpawned; stageTimer = r.stageTimer
+        timedRemaining = r.timedRemaining; portalOpen = r.portalOpen
+        waveIndex = r.waveIndex; waveTimer = r.waveTimer; spawnTimer = r.spawnTimer; hazardTimer = r.hazardTimer
+        px = r.px; py = r.py; facing = r.facing
+        hp = r.hp.coerceIn(1f, stats.maxHp)
+        firewall = r.firewall.coerceIn(0f, stats.firewallMax)
+        for (se in r.enemies) {
+            val def = try { Enemies.byId(se.def) } catch (_: Exception) { continue }
+            val e = enemies.obtain() ?: break
+            e.active = true; e.uid = nextUid++; e.def = def
+            e.elite = se.elite?.let { n -> EliteModifier.entries.firstOrNull { it.name == n } }
+            e.boss = null; e.isChild = se.isChild
+            e.x = se.x; e.y = se.y; e.vx = 0f; e.vy = 0f
+            e.hp = se.hp; e.maxHp = se.maxHp; e.radius = se.radius; e.speed = se.speed
+            e.damageMul = se.damageMul; e.attackRateMul = se.attackRateMul
+            e.damageTakenMul = se.damageTakenMul; e.rewardMul = se.rewardMul
+            // A short spawn-in so nothing hits the moment the run resumes.
+            e.state = AiState.SPAWNING; e.stateTimer = SPAWN_TELEGRAPH
+            e.attackTimer = def.attackCooldown * (0.6f + rng.nextFloat() * 0.6f)
+            e.strafeDir = if (rng.nextBoolean()) 1f else -1f
+            e.wobble = rng.nextFloat() * MathUtil.TWO_PI
+            e.hitFlash = 0f; e.orbHitCooldown = 0f; e.bladeHitCooldown = 0f; e.contactCooldown = 0f
+            e.stuckTimer = 0f; e.detourTimer = 0f; e.lastX = e.x; e.lastY = e.y
+        }
+        phase = Phase.entries.firstOrNull { it.name == r.phase } ?: Phase.COMBAT
+        phaseTimer = r.phaseTimer
+        if (phase == Phase.UPGRADE) {
+            val restored = r.offer.mapNotNull { id ->
+                Upgrades.all.firstOrNull { it.id == id }?.let { UpgradeOffer(it, if (it.instant) 1 else build.level(it.id) + 1) }
+            }
+            offer = restored.ifEmpty { build.rollOffer(rng, luck = offerLuck) }
+            if (offer.isEmpty()) { pendingUpgrades = 0; finishUpgrades() }
+        }
+        invuln = 2f
+        showBanner("OPERATION RESUMED", if (mode == GameMode.ENDLESS) "STAGE $level" else "LEVEL $level", 1.6f)
+    }
+
     fun summary(): RunSummary = RunSummary(
         levelReached = level, score = score, kills = kills, bosses = bossesDefeated,
         elites = elitesDefeated, events = eventsCompleted, euros = eurosEarned,
@@ -635,6 +799,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
         fireCooldown -= dt
         lanceTimer -= dt
+        if (beamCooldown > 0f) beamCooldown = max(0f, beamCooldown - dt)
+        else if (!wasBeaming) beamHeat = max(0f, beamHeat - dt * 0.5f)
         if (phase != Phase.COMBAT) {
             targetUid = -1
             return
@@ -649,6 +815,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
                 sound(GameSound.EMP)
             }
         }
+
+        updateAutoWeapons(dt)
 
         // STOP = SHOOT.
         if (moving || stillTime < STOP_TO_FIRE_DELAY) {
@@ -681,9 +849,165 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             lanceTimer = 2.8f - 0.4f * s.lanceLevel
             fireLance(facing)
         }
-        if (s.beamLevel > 0) {
-            updateBeam(dt, target)
+        if (s.beamLevel > 0 && beamCooldown <= 0f) {
+            if (updateBeam(dt, target)) beamHeat += dt
             if (!wasBeaming) sound(GameSound.BEAM)
+            if (beamHeat >= BEAM_MAX_FIRE) {
+                beamHeat = 0f
+                beamCooldown = BEAM_COOLDOWN
+                addText(px, py - 44f, "BEAM OVERHEAT", TextKind.INFO)
+            }
+        }
+        if (s.railLevel > 0) {
+            railTimer -= dt
+            if (railTimer <= 0f) {
+                railTimer = 3.6f - 0.8f * s.railLevel
+                fireRail(facing)
+            }
+        }
+    }
+
+    // ======================================================================
+    // Extra weapons (owner, 2026-10-08)
+    // ======================================================================
+
+    /** Weapons that work whether or not the operative is moving. */
+    private fun updateAutoWeapons(dt: Float) {
+        val s = stats
+        if (s.mineLevel > 0 && moving) {
+            mineTimer -= dt
+            if (mineTimer <= 0f) {
+                mineTimer = 0.9f
+                dropMine()
+            }
+        }
+        if (s.missileLevel > 0) {
+            missileTimer -= dt
+            if (missileTimer <= 0f && nearestEnemy(px, py, 520f) != null) {
+                missileTimer = 2.8f - 0.4f * s.missileLevel
+                val n = 1 + s.missileLevel
+                for (i in 0 until n) {
+                    val a = facing + MathUtil.PI + (i - (n - 1) / 2f) * 0.55f
+                    val p = spawnBolt(px, py, a, ProjKind.MISSILE, s.damage * 1.1f) ?: break
+                    p.vx *= 0.45f; p.vy *= 0.45f
+                    p.homing = 7f
+                    p.radius = 7f
+                    p.life = 3f
+                    p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+                    p.splash = 60f
+                }
+                sound(GameSound.LANCE)
+            }
+        }
+        if (s.arcLevel > 0) {
+            arcTimer -= dt
+            if (arcTimer <= 0f) {
+                if (fireArcs(2 + s.arcLevel, s.damage * (1.3f + 0.3f * s.arcLevel))) arcTimer = 2.4f - 0.4f * s.arcLevel
+            }
+        }
+        if (s.strikeLevel > 0) {
+            strikeTimer -= dt
+            if (strikeTimer <= 0f) {
+                if (callOrbitalStrikes(3, s.damage * 8f)) strikeTimer = 5f
+            }
+        }
+    }
+
+    private fun dropMine() {
+        val s = stats
+        var live = 0
+        for (p in projectiles.items) if (p.active && p.kind == ProjKind.MINE) live++
+        if (live >= 2 + 2 * s.mineLevel) return
+        val p = projectiles.obtain() ?: return
+        p.active = true; p.friendly = true; p.kind = ProjKind.MINE
+        p.x = px; p.y = py; p.vx = 0f; p.vy = 0f
+        p.radius = 9f; p.crit = false
+        p.damage = s.damage * (1.6f + 0.4f * s.mineLevel) * plan.rules.playerDamageMul
+        p.life = 25f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+        p.lastHitUid = -1; p.ghost = true; p.homing = 0f
+        p.armTimer = 0.5f; p.splash = 85f
+    }
+
+    /** Arc Discharge: instant lightning to the [count] nearest threats. Returns false if none. */
+    private fun fireArcs(count: Int, damage: Float): Boolean {
+        var hit = 0
+        var fromX = px
+        var fromY = py
+        val used = HashSet<Int>()
+        while (hit < count) {
+            var best: Enemy? = null
+            var bd = 340f * 340f
+            for (e in enemies.items) {
+                if (!e.targetable || e.uid in used) continue
+                val d = MathUtil.dist2(px, py, e.x, e.y)
+                if (d < bd) { bd = d; best = e }
+            }
+            val e = best ?: break
+            used += e.uid
+            val z = zaps.obtain()
+            if (z != null) {
+                z.active = true; z.kind = ZapKind.ARC
+                z.x = fromX; z.y = fromY; z.x2 = e.x; z.y2 = e.y
+                z.timer = 0f; z.duration = 0.22f; z.seed = rng.nextInt()
+            }
+            damageEnemy(e, damage * plan.rules.playerDamageMul, false, ProjKind.NODE_BOLT, quiet = true)
+            fromX = e.x; fromY = e.y
+            hit++
+        }
+        if (hit > 0) sound(GameSound.EMP)
+        return hit > 0
+    }
+
+    /** Orbital Strike: marks up to [count] random threats; each strike lands after a telegraph. */
+    private fun callOrbitalStrikes(count: Int, damage: Float): Boolean {
+        val targets = enemies.items.filter { it.targetable }.shuffled(rng).take(count)
+        if (targets.isEmpty()) return false
+        for (e in targets) {
+            val z = zaps.obtain() ?: break
+            z.active = true; z.kind = ZapKind.STRIKE
+            z.x = e.x; z.y = e.y; z.radius = 90f
+            z.timer = 0f; z.duration = 0.75f; z.damage = damage * plan.rules.playerDamageMul
+            z.landed = false; z.seed = rng.nextInt()
+        }
+        return true
+    }
+
+    private fun fireRail(angle: Float) {
+        val s = stats
+        val p = spawnBolt(px, py, angle, ProjKind.RAIL, s.damage * (6f + 2f * s.railLevel)) ?: return
+        p.pierceLeft = 999
+        p.ghost = true
+        p.radius = 12f
+        p.vx *= 2.2f; p.vy *= 2.2f
+        p.life = 1.2f
+        p.bounceLeft = 0; p.chainLeft = 0
+        addPulse(px, py, 60f, 0.25f, 0xFFE7D4FF)
+        sound(GameSound.LANCE)
+    }
+
+    /** Missile / mine detonation: damages every threat in [radius]. */
+    private fun detonate(x: Float, y: Float, radius: Float, damage: Float) {
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            val r = radius + e.radius
+            if (MathUtil.dist2(x, y, e.x, e.y) < r * r) damageEnemy(e, damage, false, ProjKind.BOLT, quiet = true)
+        }
+        addPulse(x, y, radius, 0.35f, 0xFFFF9A1A)
+        repeat(8) { addParticle(x, y, 0xFFFFC14D, 220f, 0.35f, 3f) }
+        sound(GameSound.ELITE_DEATH)
+    }
+
+    private fun updateZaps(dt: Float) {
+        for (z in zaps.items) {
+            if (!z.active) continue
+            z.timer += dt
+            if (z.kind == ZapKind.STRIKE && !z.landed && z.timer >= z.duration) {
+                z.landed = true
+                detonate(z.x, z.y, z.radius, z.damage)
+                addPulse(z.x, z.y, z.radius * 1.4f, 0.5f, 0xFFDCE8F2)
+            }
+            val end = if (z.kind == ZapKind.STRIKE) z.duration + 0.3f else z.duration
+            if (z.timer >= end) z.active = false
         }
     }
 
@@ -691,7 +1015,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
      * Plasma Beam: a continuous ray toward the target, stopped by the first
      * obstacle it meets, damaging every threat along it ten times a second.
      */
-    private fun updateBeam(dt: Float, target: Enemy) {
+    /** Returns true while the beam is actually touching a threat (that is what builds heat). */
+    private fun updateBeam(dt: Float, target: Enemy): Boolean {
         val s = stats
         val ang = atan2(target.y - py, target.x - px)
         val dx = cos(ang)
@@ -709,8 +1034,9 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         beamActive = true
         beamX2 = sx + dx * len
         beamY2 = sy + dy * len
+        val touching = enemies.items.any { it.targetable && distToSegment(it.x, it.y, sx, sy, beamX2, beamY2) < it.radius + beamWidth * 0.5f }
         beamTick -= dt
-        if (beamTick > 0f) return
+        if (beamTick > 0f) return touching
         beamTick = 0.1f
         val dps = s.damage * (1.4f + 0.6f * s.beamLevel) * plan.rules.playerDamageMul
         val half = beamWidth * 0.5f
@@ -722,6 +1048,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
                 if (rng.nextFloat() < 0.3f) addParticle(e.x, e.y, 0xFF7DF9FF, 160f, 0.3f, 3f)
             }
         }
+        return touching
     }
 
     /**
@@ -813,6 +1140,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         p.lastHitUid = -1
         p.ghost = false
         p.homing = 0f
+        p.armTimer = 0f
+        p.splash = 0f
         return p
     }
 
@@ -979,8 +1308,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         val s = stats
         val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
         gainXp(e.def.xp * (if (e.isElite) EliteModifier.REWARD_MUL else 1f) * s.xpMul)
-        eurosEarned += max(1, (e.def.euros * rewardMul * s.euroMul).toInt())
-        score += Scoring.kill(e.def.score, level, e.isElite, e.isChild)
+        eurosEarned += max(1, (e.def.euros * rewardMul * s.euroMul * difficultyReward).toInt())
+        score += (Scoring.kill(e.def.score, level, e.isElite, e.isChild) * difficultyReward).toLong()
         if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
         if (s.firewallOnKill > 0f && s.firewallMax > 0f) firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallOnKill)
         repeat(if (e.isElite) 18 else 10) { addParticle(e.x, e.y, e.def.color, 200f, 0.5f, 3f) }
@@ -1082,13 +1411,13 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul *
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp *
             (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
         e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
         e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
-        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul
+        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
@@ -1124,6 +1453,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         p.lastHitUid = -1
         p.ghost = false
         p.homing = 0f
+        p.armTimer = 0f
+        p.splash = 0f
         return p
     }
 
@@ -1137,7 +1468,31 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             if (!p.active) continue
             p.life -= dt
             if (p.life <= 0f) { p.active = false; continue }
-            if (p.homing > 0f && !p.friendly) {
+            if (p.kind == ProjKind.MINE) {
+                if (p.armTimer > 0f) { p.armTimer -= dt; continue }
+                for (e in enemies.items) {
+                    if (!e.targetable) continue
+                    val rr = e.radius + 34f
+                    if (MathUtil.dist2(p.x, p.y, e.x, e.y) < rr * rr) {
+                        p.active = false
+                        detonate(p.x, p.y, p.splash, p.damage)
+                        break
+                    }
+                }
+                continue
+            }
+            if (p.homing > 0f && p.friendly) {
+                val t = nearestEnemy(p.x, p.y, 600f)
+                if (t != null) {
+                    val want = atan2(t.y - p.y, t.x - p.x)
+                    val cur = atan2(p.vy, p.vx)
+                    val turn = MathUtil.clamp(MathUtil.wrapAngle(want - cur), -p.homing * dt, p.homing * dt)
+                    // Missiles accelerate after launch.
+                    val sp = min(760f, sqrt(p.vx * p.vx + p.vy * p.vy) + 900f * dt)
+                    p.vx = cos(cur + turn) * sp
+                    p.vy = sin(cur + turn) * sp
+                }
+            } else if (p.homing > 0f && !p.friendly) {
                 val want = atan2(py - p.y, px - p.x)
                 val cur = atan2(p.vy, p.vx)
                 val diff = MathUtil.wrapAngle(want - cur)
@@ -1168,7 +1523,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
                     p.lastHitUid = -1
                 } else {
                     p.active = false
-                    addParticle(p.x, p.y, if (p.friendly) 0xFF00E5FF else 0xFFFF7A1A, 90f, 0.2f, 2f)
+                    if (p.kind == ProjKind.MISSILE) detonate(ox, oy, p.splash, p.damage * 0.6f)
+                    else addParticle(p.x, p.y, if (p.friendly) 0xFF00E5FF else 0xFFFF7A1A, 90f, 0.2f, 2f)
                 }
                 continue
             }
@@ -1217,6 +1573,11 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             damageEnemy(e, p.damage, p.crit, p.kind)
         }
         p.lastHitUid = e.uid
+        if (p.kind == ProjKind.MISSILE) {
+            p.active = false
+            detonate(p.x, p.y, p.splash, p.damage * 0.6f)
+            return
+        }
         if (p.chainLeft > 0) {
             val next = nearestEnemy(e.x, e.y, 220f, exceptUid = e.uid)
             if (next != null) {
@@ -1392,9 +1753,11 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     internal fun setBossPhaseLabel(label: String) { bossPhaseLabel = label }
     internal fun onBossDefeated(eurosReward: Int, scoreReward: Int) {
         bossesDefeated++
-        eurosEarned += (eurosReward * stats.euroMul).toInt()
-        score += scoreReward
-        pendingUpgrades++
+        eurosEarned += (eurosReward * stats.euroMul * difficultyReward).toInt()
+        score += (scoreReward * difficultyReward).toLong()
+        // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
+        pendingUpgrades += 2 + level / 20
+        bossLuckPending = true
         purgeHostiles()
     }
 
@@ -1474,6 +1837,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         const val PORTAL_RADIUS = 46f
         const val GATE_HALF_WIDTH = 80f
         const val RING_THICKNESS = 12f
+        const val BEAM_MAX_FIRE = 5f
+        const val BEAM_COOLDOWN = 3f
 
         private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")
 

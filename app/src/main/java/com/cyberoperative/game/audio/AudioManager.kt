@@ -201,8 +201,12 @@ class AudioManager(private val context: Context) {
     fun setMusic(next: MusicState) {
         if (next == state) return
         state = next
-        // Same track carrying on into a new state still changes tempo (e.g. a boss arrives).
-        player?.let { if (it.isPlaying) applySpeed(it) }
+        // Same track carrying on into a new state still changes tempo (e.g. a boss
+        // arrives, or falls). Re-checked every frame by [ensureSpeed] until the
+        // player reports the new rate: one call was not always honoured, which
+        // left the 1.5x boss tempo running until the song ended.
+        speedDirty = true
+        ensureSpeed()
         if (next == MusicState.NONE) { stopPlayer(); return }
         // A hand-picked track keeps playing through state changes.
         val keep = pinned
@@ -239,6 +243,28 @@ class AudioManager(private val context: Context) {
         // Applied after start(): setting a non-zero speed on a paused player
         // would itself start playback, which must only happen via canPlay().
         applySpeed(mp)
+        speedDirty = true
+    }
+
+    private var speedDirty = false
+    private var lastSpeedCheck = 0L
+
+    /** Called every frame by the game; cheap unless a tempo change is pending. */
+    fun ensureSpeed() {
+        if (!speedDirty) return
+        val now = System.nanoTime()
+        if (now - lastSpeedCheck < 150_000_000L) return
+        lastSpeedCheck = now
+        val mp = player ?: run { speedDirty = false; return }
+        try {
+            // Only while playing: setting a speed on a paused player starts it.
+            if (!mp.isPlaying) return
+            val want = speedFor(state)
+            if (kotlin.math.abs(mp.playbackParams.speed - want) < 0.01f) { speedDirty = false; return }
+            applySpeed(mp)
+        } catch (t: Throwable) {
+            speedDirty = false
+        }
     }
 
     private fun applySpeed(mp: MediaPlayer) {

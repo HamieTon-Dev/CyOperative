@@ -21,7 +21,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
+import com.cyberoperative.game.data.Rarity
+import kotlin.math.sin
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,6 +47,12 @@ import com.cyberoperative.game.ui.theme.Palette
 fun UpgradeOverlay(session: GameSession) {
     @Suppress("UNUSED_VARIABLE") val tick = session.hud
     val offer = session.engine.offer
+    // Drives the shimmer on GOLDEN and TITANIUM cards.
+    var time by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        val start = withFrameNanos { it }
+        while (true) withFrameNanos { time = (it - start) / 1e9f }
+    }
     Box(
         Modifier
             .fillMaxSize()
@@ -56,9 +72,15 @@ fun UpgradeOverlay(session: GameSession) {
             Text("SYSTEM UPGRADE", color = Palette.Green, style = MaterialTheme.typography.headlineMedium)
             Text("SELECT ONE MODULE", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(18.dp))
+            val hud = session.hud
             offer.forEachIndexed { i, o ->
-                UpgradeCard(o) { session.chooseUpgrade(i) }
+                UpgradeCard(o, time) { session.chooseUpgrade(i) }
                 Spacer(Modifier.height(12.dp))
+            }
+            // Reward counter (owner, 2026-10-08): how many were earned, and how many are left.
+            if (hud.rewardBatchTotal > 1) {
+                RewardCounter(hud.rewardBatchTaken, hud.rewardBatchTotal)
+                Spacer(Modifier.height(10.dp))
             }
             if (session.hud.rerolls > 0) {
                 Spacer(Modifier.height(4.dp))
@@ -69,14 +91,68 @@ fun UpgradeOverlay(session: GameSession) {
 }
 
 @Composable
-private fun UpgradeCard(o: UpgradeOffer, onClick: () -> Unit) {
-    val rarity = Color(o.def.rarity.color)
+private fun RewardCounter(taken: Int, total: Int) {
+    val left = total - taken
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            for (i in 0 until total) {
+                val done = i < taken
+                val current = i == taken
+                Box(
+                    Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(if (current) 16.dp else 12.dp)
+                        .background(
+                            when {
+                                done -> Palette.Green
+                                current -> Palette.Gold
+                                else -> Palette.Surface
+                            },
+                            RoundedCornerShape(3.dp)
+                        )
+                        .border(1.dp, if (done) Palette.Green else Palette.Gold, RoundedCornerShape(3.dp))
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "REWARD ${taken + 1} OF $total",
+            color = Palette.Gold, style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            if (left <= 1) "Last pick of this drop" else "${left - 1} more to pick after this one",
+            color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun UpgradeCard(o: UpgradeOffer, time: Float, onClick: () -> Unit) {
+    val tier = o.def.rarity
+    val high = tier.highTier
+    // GOLDEN and TITANIUM shimmer so a lucky roll is impossible to miss.
+    val base = Color(tier.color)
+    val rarity = when (tier) {
+        Rarity.TITANIUM -> lerp(Color(0xFFB9C7D4), Color(0xFFFFFFFF), 0.5f + 0.5f * sin(time * 3f))
+        Rarity.LEGENDARY -> lerp(base, Color(0xFFFFF3B0), 0.5f + 0.5f * sin(time * 2.4f))
+        else -> base
+    }
     val shape = RoundedCornerShape(10.dp)
+    val fill = when (tier) {
+        Rarity.TITANIUM -> Brush.linearGradient(
+            listOf(Color(0xFF1E2833), Color(0xFF3A4856), Color(0xFF1E2833)),
+            start = Offset(600f * ((time * 0.35f) % 1f) - 300f, 0f),
+            end = Offset(600f * ((time * 0.35f) % 1f) + 300f, 300f)
+        )
+        Rarity.LEGENDARY -> Brush.verticalGradient(listOf(Color(0xFF2A2208), Palette.Surface))
+        Rarity.EPIC -> Brush.verticalGradient(listOf(Color(0xFF1F1233), Palette.Surface))
+        else -> Brush.verticalGradient(listOf(Palette.Surface, Palette.Surface))
+    }
     Row(
         Modifier
             .fillMaxWidth()
-            .background(Palette.Surface, shape)
-            .border(if (o.isEvolution) 3.dp else 2.dp, rarity, shape)
+            .background(fill, shape)
+            .border(if (o.isEvolution || high >= 2) 3.dp else 2.dp, rarity, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -93,10 +169,12 @@ private fun UpgradeCard(o: UpgradeOffer, onClick: () -> Unit) {
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    if (o.isEvolution) "EVOLUTION · ${o.def.rarity.label}" else o.def.rarity.label,
-                    color = rarity, style = MaterialTheme.typography.labelSmall
-                )
+                val tag = when {
+                    o.isEvolution -> "EVOLUTION · ${tier.label}"
+                    high >= 2 -> "★ ${tier.label} ★"
+                    else -> tier.label
+                }
+                Text(tag, color = rarity, style = MaterialTheme.typography.labelSmall)
                 if (!o.def.instant && o.def.maxLevel > 1) {
                     Spacer(Modifier.width(8.dp))
                     Text("LV ${o.nextLevel - 1} → ${o.nextLevel}/${o.def.maxLevel}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)

@@ -4,7 +4,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.6.1 (versionCode 8), unreleased. 0.6.0 (7) is in Play closed testing |
+| Version | 0.7.0 (versionCode 8), unreleased. 0.6.0 (7) is in Play closed testing |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | Key-art visual pass, PLASMA BEAM, NEON OPERATIVE |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |

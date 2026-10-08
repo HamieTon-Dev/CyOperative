@@ -34,6 +34,13 @@ data class PlayerProfile(
     /** Revive tokens bought with ◇ (revive packs). */
     val reviveTokens: Int = 0,
     val tutorialDone: Boolean = false,
+    /**
+     * A saved operation (RunSnapshot JSON), or null. Kept as a string so a save
+     * from an older build can be dropped without breaking the whole profile.
+     */
+    val savedRun: String? = null,
+    /** Difficulty picked last time, preselected on the next new run. */
+    val lastDifficulty: String = "MEDIUM",
     val settings: GameSettings = GameSettings()
 )
 

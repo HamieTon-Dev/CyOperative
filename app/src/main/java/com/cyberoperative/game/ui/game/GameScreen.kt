@@ -74,6 +74,8 @@ fun GameScreen(
     DisposableEffect(lifecycle) {
         val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
             if (e == androidx.lifecycle.Lifecycle.Event.ON_PAUSE && session.engine.phase != Phase.DEAD) session.paused = true
+            // Backgrounded: keep a save so a killed app can still CONTINUE.
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_STOP) session.autosave()
         }
         lifecycle.addObserver(obs)
         onDispose { lifecycle.removeObserver(obs) }
@@ -183,6 +185,16 @@ fun GameScreen(
         }
 
         GameHud(hud, onPause = { session.paused = true })
+        if (hud.phase != Phase.UPGRADE && hud.phase != Phase.DEAD) {
+            UpgradeBar(
+                hud,
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 4.dp)
+            )
+        }
 
         if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
             Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
@@ -215,7 +227,9 @@ fun GameScreen(
         if (session.paused && hud.phase != Phase.DEAD) {
             PauseOverlay(
                 audio = session.audio,
+                saveBlocked = hud.saveBlockReason,
                 onResume = { session.paused = false },
+                onSave = { if (session.saveAndExit()) onExitToMenu() },
                 onQuit = { session.finish(); onExitToMenu() }
             )
         }
@@ -384,7 +398,13 @@ val TUTORIAL_LINES = listOf(
 )
 
 @Composable
-private fun PauseOverlay(audio: com.cyberoperative.game.audio.AudioManager, onResume: () -> Unit, onQuit: () -> Unit) {
+private fun PauseOverlay(
+    audio: com.cyberoperative.game.audio.AudioManager,
+    saveBlocked: String?,
+    onResume: () -> Unit,
+    onSave: () -> Unit,
+    onQuit: () -> Unit
+) {
     Box(
         Modifier
             .fillMaxSize()
@@ -408,9 +428,32 @@ private fun PauseOverlay(audio: com.cyberoperative.game.audio.AudioManager, onRe
             Spacer(Modifier.height(12.dp))
             MusicPlayerPanel(audio, Modifier.weight(1f, fill = false))
             Spacer(Modifier.height(12.dp))
+            if (saveBlocked == null) {
+                com.cyberoperative.game.ui.common.CyberButton(
+                    "SAVE & EXIT TO MENU", Modifier.fillMaxWidth(), accent = Palette.Cyan,
+                    subtitle = "CONTINUE FROM HERE LATER"
+                ) { onSave() }
+            } else {
+                // Boss fights can't be saved; the button is shown locked so the rule is clear.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Palette.Background, RoundedCornerShape(8.dp))
+                        .border(1.dp, Palette.Red.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                        .padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(saveBlocked, color = Palette.Red, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (saveBlocked.contains("BOSS")) "Defeat the boss to unlock saving" else "Try again in a moment",
+                        color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
             Spacer(Modifier.height(4.dp))
-            Text("Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text("Abort ends the run. Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
