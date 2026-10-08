@@ -10,6 +10,7 @@ device, tune balance, then fill out the store/meta phases.
 ## NEXT
 - CO-094 Owner chooses the default body design (A/B/C) — then polish that one
 - CO-090 Apply the owner's picks from the Power-Up Board (names, icons, boss-drop rule)
+- CO-110 Store screenshots / feature graphic captured from the real game (no false advertising)
 - CO-091 Boss signature weapons (12 proposed, see Power-Up Board) once approved
 - CO-061 Hit-stop / screen shake + richer death & hit effects
 - CO-062 Boss intro card (name, title, dossier) before the fight
@@ -96,6 +97,8 @@ device, tune balance, then fill out the store/meta phases.
 - CO-104 Release signing + RELEASING.md
 - CO-106 NEON OPERATIVE: 4th full-body operative from the app icon (◇100 or in the ◇300 skin pack)
 - CO-107 Package name finalized: com.cyberoperative.game
+- CO-108 Key-art visual pass (floor panels, server racks, glow, neon title)
+- CO-109 PLASMA BEAM weapon upgrade
 
 ## FUTURE IDEAS
 - Mythic / ZERO-DAY rarity tier

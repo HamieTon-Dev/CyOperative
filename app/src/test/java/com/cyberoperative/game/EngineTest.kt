@@ -190,4 +190,16 @@ class EngineTest {
         assertTrue(g.boss!!.targetable)
         assertEquals(-1f, g.bossIntroElapsed, 0f)
     }
+
+    @Test fun plasmaBeamDamagesWhileStationaryOnly() {
+        val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e6f; range = 3000f }, seed = 21L))
+        g.build.take(com.cyberoperative.game.data.Upgrades.PLASMA_BEAM)
+        repeat(90) { g.update(1f / 60f) }
+        g.setInput(0f, -1f)
+        repeat(20) { g.update(1f / 60f); assertFalse("no beam while moving", g.beamActive) }
+        g.setInput(0f, 0f)
+        var beamed = false
+        repeat(60) { g.update(1f / 60f); if (g.beamActive) beamed = true }
+        assertTrue(beamed)
+    }
 }

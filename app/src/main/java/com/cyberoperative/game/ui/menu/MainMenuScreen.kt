@@ -28,6 +28,9 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.save.PlayerProfile
@@ -89,11 +92,24 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                     .scale(1f + 0.03f * sin(t * 2f))
             )
             Spacer(Modifier.height(10.dp))
-            Text("CYBER", color = Palette.Cyan, style = MaterialTheme.typography.displayMedium)
-            Text("OPERATIVE", color = Palette.Green, style = MaterialTheme.typography.displayMedium)
+            // Neon title, as in the key art.
+            val glow = 0.7f + 0.3f * sin(t * 2.4f)
             Text(
-                "Enter the network. Eliminate digital threats.",
-                color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall,
+                "CYBER", color = Color(0xFFE6FBFF),
+                style = MaterialTheme.typography.displayLarge.copy(
+                    shadow = Shadow(Palette.Cyan.copy(alpha = glow), Offset(0f, 0f), 28f)
+                )
+            )
+            Text(
+                "OPERATIVE", color = Palette.Green,
+                style = MaterialTheme.typography.displayMedium.copy(
+                    shadow = Shadow(Palette.Green.copy(alpha = glow), Offset(0f, 0f), 22f)
+                )
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "—  ENDLESS CYBER ROGUELIKE ACTION  —",
+                color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(10.dp))

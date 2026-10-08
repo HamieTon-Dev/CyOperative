@@ -4,9 +4,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.5.1 (versionCode 6) |
+| Version | 0.6.0 (versionCode 7) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
-| Last completed | Music tempo, big boss bar + entrance, release signing / RELEASING.md |
+| Last completed | Key-art visual pass, PLASMA BEAM, NEON OPERATIVE |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
 | Build status | `./gradlew :app:assembleDebug` ✅ |
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |

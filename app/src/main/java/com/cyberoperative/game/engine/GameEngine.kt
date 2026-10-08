@@ -179,6 +179,16 @@ class GameEngine(val config: RunConfig = RunConfig()) {
     var targetUid = -1
         private set
 
+    /** Plasma Beam (upgrade weapon): live this frame, and where it ends. */
+    var beamActive = false
+        private set
+    var beamX2 = 0f
+        private set
+    var beamY2 = 0f
+        private set
+    val beamWidth: Float get() = 14f + 5f * stats.beamLevel
+    private var beamTick = 0f
+
     // --- Entities -----------------------------------------------------------
     val enemies = Pool(96, { Enemy() }) { it.active }
     val projectiles = Pool(480, { Projectile() }) { it.active }
@@ -589,6 +599,8 @@ class GameEngine(val config: RunConfig = RunConfig()) {
 
     private fun updatePlayer(dt: Float) {
         val s = stats
+        val wasBeaming = beamActive
+        beamActive = false
         if (invuln > 0f) invuln -= dt
         if (hurtFlash > 0f) hurtFlash -= dt
         sinceDamage += dt
@@ -668,6 +680,47 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         if (s.lanceLevel > 0 && lanceTimer <= 0f) {
             lanceTimer = 2.8f - 0.4f * s.lanceLevel
             fireLance(facing)
+        }
+        if (s.beamLevel > 0) {
+            updateBeam(dt, target)
+            if (!wasBeaming) sound(GameSound.BEAM)
+        }
+    }
+
+    /**
+     * Plasma Beam: a continuous ray toward the target, stopped by the first
+     * obstacle it meets, damaging every threat along it ten times a second.
+     */
+    private fun updateBeam(dt: Float, target: Enemy) {
+        val s = stats
+        val ang = atan2(target.y - py, target.x - px)
+        val dx = cos(ang)
+        val dy = sin(ang)
+        val sx = px + dx * (playerRadius + 6f)
+        val sy = py + dy * (playerRadius + 6f)
+        var len = 0f
+        val maxLen = s.range
+        while (len < maxLen) {
+            val nx = sx + dx * (len + 8f)
+            val ny = sy + dy * (len + 8f)
+            if (nx < 0f || ny < 0f || nx > arena.width || ny > arena.height || arena.obstacleAt(nx, ny, 2f) >= 0) break
+            len += 8f
+        }
+        beamActive = true
+        beamX2 = sx + dx * len
+        beamY2 = sy + dy * len
+        beamTick -= dt
+        if (beamTick > 0f) return
+        beamTick = 0.1f
+        val dps = s.damage * (1.4f + 0.6f * s.beamLevel) * plan.rules.playerDamageMul
+        val half = beamWidth * 0.5f
+        for (e in enemies.items) {
+            if (!e.targetable) continue
+            if (distToSegment(e.x, e.y, sx, sy, beamX2, beamY2) < e.radius + half) {
+                // No number per beam tick (ten a second would bury the screen).
+                damageEnemy(e, dps * 0.1f, false, ProjKind.LANCE, quiet = true, showText = false)
+                if (rng.nextFloat() < 0.3f) addParticle(e.x, e.y, 0xFF7DF9FF, 160f, 0.3f, 3f)
+            }
         }
     }
 
@@ -893,7 +946,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
         if (!quiet && real >= 1f) addText(px, py - 34f, "+${real.toInt()}", TextKind.HEAL)
     }
 
-    fun damageEnemy(e: Enemy, raw: Float, crit: Boolean, kind: ProjKind, quiet: Boolean = false) {
+    fun damageEnemy(e: Enemy, raw: Float, crit: Boolean, kind: ProjKind, quiet: Boolean = false, showText: Boolean = true) {
         if (!e.targetable) return
         var d = raw
         if (e.isElite || e.boss != null) d *= stats.eliteDamageMul
@@ -907,7 +960,7 @@ class GameEngine(val config: RunConfig = RunConfig()) {
             crit -> TextKind.CRIT
             else -> TextKind.NORMAL
         }
-        addText(e.x + (rng.nextFloat() - 0.5f) * 16f, e.y - e.radius, d.toInt().coerceAtLeast(1).toString(), textKind)
+        if (showText) addText(e.x + (rng.nextFloat() - 0.5f) * 16f, e.y - e.radius, d.toInt().coerceAtLeast(1).toString(), textKind)
         if (crit) sound(GameSound.CRIT) else if (!quiet) sound(GameSound.ENEMY_HIT)
         if (e.hp <= 0f) killEnemy(e)
     }

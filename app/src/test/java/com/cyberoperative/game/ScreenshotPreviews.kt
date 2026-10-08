@@ -141,6 +141,17 @@ class ScreenshotPreviews {
         gameplay("arena_neon_operative", 3f, profileSetup = { it.copy(operativeBody = "neon_operative", ownedOperatives = setOf("operative", "neon_operative")) })
     }
 
+    @Test fun keyArtMatch() {
+        assumeTrue(enabled)
+        gameplay("keyart_neon_beam", 3.2f, profileSetup = {
+            it.copy(operativeBody = "neon_operative", ownedOperatives = setOf("operative", "neon_operative"))
+        }, setup = { s ->
+            s.engine.build.take(com.cyberoperative.game.data.Upgrades.PLASMA_BEAM)
+            s.engine.build.take(com.cyberoperative.game.data.Upgrades.PLASMA_BEAM)
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.plan(6, kotlin.random.Random(11), null, true))
+        })
+    }
+
     @Test fun bootTerminal() {
         assumeTrue(enabled)
         compose.mainClock.autoAdvance = false

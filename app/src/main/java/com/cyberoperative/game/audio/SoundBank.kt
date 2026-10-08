@@ -42,6 +42,8 @@ object SoundBank {
     val recipes: Map<GameSound, Recipe> = mapOf(
         GameSound.PLAYER_SHOT to Recipe(0.08f, listOf(v(T, 1320f, 760f, 0.4f, 30f)), 0.22f),
         GameSound.LANCE to Recipe(0.32f, listOf(v(Q, 420f, 120f, 0.4f, 9f), v(N, 1f, 1f, 0.15f, 18f)), 0.5f),
+        // Plasma Beam ignition: a rising electric whine with a crackle.
+        GameSound.BEAM to Recipe(0.45f, listOf(v(Q, 180f, 720f, 0.35f, 4f), v(S, 360f, 1440f, 0.25f, 5f), v(N, 1f, 1f, 0.15f, 9f)), 0.45f),
         GameSound.ORB_HIT to Recipe(0.12f, listOf(v(S, 880f, 1320f, 0.45f, 22f)), 0.22f),
         GameSound.ENEMY_HIT to Recipe(0.06f, listOf(v(S, 360f, 300f, 0.3f, 40f, attack = 0.008f)), 0.12f),
         GameSound.ENEMY_DEATH to Recipe(0.38f, listOf(

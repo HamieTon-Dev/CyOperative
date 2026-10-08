@@ -118,6 +118,12 @@ object Upgrades {
         { l -> "Lance every ${"%.1f".format(2.8f - 0.4f * l)}s, ${(250 + 50 * l)}% dmg" },
         { s, l -> s.lanceLevel = l }
     )
+    val PLASMA_BEAM = UpgradeDef(
+        "plasma_beam", "PLASMA BEAM", "=O=", Rarity.RARE, UpgradeCategory.WEAPON, 3,
+        "An arm cannon that pours a continuous beam into your target while you stand still. Pierces every threat in its path.",
+        { l -> "Beam ${(140 + 60 * l)}% damage/s" + if (l > 1) ", wider" else "" },
+        { s, l -> s.beamLevel = l }
+    )
     val ENCRYPTION_BLADES = UpgradeDef(
         "encryption_blades", "ENCRYPTION BLADES", "/|\\", Rarity.RARE, UpgradeCategory.ORBIT, 3,
         "Close-orbit shields that cut enemies and block incoming packets.",
@@ -269,7 +275,7 @@ object Upgrades {
     val all: List<UpgradeDef> = listOf(
         PACKET_NODES, ENHANCED_NODES, SENTINEL_NODES, AUTONOMOUS_NODE, NODE_OVERCLOCK,
         FIREWALL, REINFORCED_FIREWALL, ADAPTIVE_FIREWALL, ZERO_TRUST,
-        PACKET_SCATTER, EXPLOIT_LANCE, ENCRYPTION_BLADES, EMP_BURST, BOTNET_CHAIN,
+        PACKET_SCATTER, EXPLOIT_LANCE, PLASMA_BEAM, ENCRYPTION_BLADES, EMP_BURST, BOTNET_CHAIN,
         PACKET_SPLIT, MULTISHOT, DIAGONAL_ROUTING, PROXY_SHOT, PENETRATION, PACKET_BOUNCE,
         KERNEL_OVERCLOCK, PAYLOAD_BOOST, CRITICAL_INJECTION, ZERO_DAY_STRIKE, EXPLOIT_CHANCE,
         THREAT_DETECTION, LOW_LATENCY, MEMORY_EXPANSION, SELF_REPAIR, DATA_LEECH,

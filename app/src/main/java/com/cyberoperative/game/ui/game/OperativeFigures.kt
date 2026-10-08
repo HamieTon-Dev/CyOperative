@@ -45,6 +45,9 @@ object OperativeFigures {
 
     private val path = Path()
 
+    /** Draw the Plasma Beam arm cannon instead of the sidearm (set per figure draw). */
+    private var heavy = false
+
     private fun shade(c: Color, k: Float) = Color(c.red * k, c.green * k, c.blue * k, c.alpha)
 
     private fun lighten(c: Color, k: Float) =
@@ -56,8 +59,9 @@ object OperativeFigures {
      */
     fun DrawScope.drawFigure(
         style: BodyStyle, skin: OperativeSkin, x: Float, footY: Float, u: Float,
-        facing: Float, moving: Boolean, time: Float, alpha: Float = 1f
+        facing: Float, moving: Boolean, time: Float, alpha: Float = 1f, bigGun: Boolean = false
     ) {
+        heavy = bigGun
         if (style == BodyStyle.NEON) {
             // Its own fixed look (the icon), independent of colour skins.
             neonOperative(x, footY, u, facing, moving, time, alpha)
@@ -98,11 +102,28 @@ object OperativeFigures {
     }
 
     private fun DrawScope.gun(sx: Float, sy: Float, u: Float, facing: Float, edge: Color, face: Color, armor: Color, length: Float = 15f) {
+        if (heavy) { cannon(sx, sy, u, facing, edge, armor); return }
         val ex = sx + cos(facing) * length * u
         val ey = sy + sin(facing) * length * u
         limb(Offset(sx, sy), Offset(ex, ey), 4.5f * u, armor)
         limb(Offset(sx + cos(facing) * 8f * u, sy + sin(facing) * 8f * u), Offset(ex + cos(facing) * 5f * u, ey + sin(facing) * 5f * u), 4f * u, edge)
         drawCircle(face.copy(alpha = face.alpha * 0.8f), 2.2f * u, Offset(ex + cos(facing) * 6f * u, ey + sin(facing) * 6f * u))
+    }
+
+    /** The Plasma Beam arm cannon: a thick barrel with glowing coils and a hot muzzle. */
+    private fun DrawScope.cannon(sx: Float, sy: Float, u: Float, facing: Float, edge: Color, armor: Color) {
+        val dx = cos(facing)
+        val dy = sin(facing)
+        val ex = sx + dx * 20f * u
+        val ey = sy + dy * 20f * u
+        limb(Offset(sx, sy), Offset(ex, ey), 9f * u, Color(0xFF0D1A3A).copy(alpha = armor.alpha))
+        limb(Offset(sx + dx * 2f * u, sy + dy * 2f * u), Offset(ex, ey), 6.5f * u, armor)
+        for (k in 1..3) {
+            val t = k / 4f
+            drawCircle(edge, 2.2f * u, Offset(sx + (ex - sx) * t, sy + (ey - sy) * t))
+        }
+        drawCircle(Color(0xFF22D3FF).copy(alpha = 0.3f * armor.alpha), 6f * u, Offset(ex, ey))
+        drawCircle(Color(0xFFE6FBFF).copy(alpha = armor.alpha), 3.2f * u, Offset(ex, ey))
     }
 
     // --- NEON OPERATIVE (the app icon) ----------------------------------------

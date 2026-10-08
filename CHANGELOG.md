@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0 — 2026-10-08
+### Added
+- Visual pass to match the key art (no false advertising): bevelled metal floor panels,
+  glowing cyan trenches with running packets, grates, lit service panels, bolts, light
+  pools under hardware, drifting data pixels; taller server racks with dense glowing LED
+  bays and neon edge trim; X-braced hardware crates; glowing projectile trails (red-orange
+  hostile streaks); neon CYBER OPERATIVE title with the "ENDLESS CYBER ROGUELIKE ACTION" line.
+- PLASMA BEAM (Rare weapon upgrade, 3 levels): an arm cannon that pours a continuous,
+  piercing cyan beam into the target while the operative stands still; stopped by cover.
+
 ## 0.5.1 — 2026-10-08
 ### Added
 - NEON OPERATIVE — a fourth full-body operative built on the app icon's geometry:

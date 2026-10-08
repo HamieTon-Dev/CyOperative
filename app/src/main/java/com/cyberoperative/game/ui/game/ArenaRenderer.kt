@@ -106,7 +106,7 @@ class ArenaRenderer {
             drawShadows(g)
             drawSorted(g, time, skin, body)
             drawOrbitFront(g, time)
-            drawProjectiles(g)
+            drawProjectiles(g, time)
             drawHazardsOver(g)
             drawParticles(g)
             if (showNumbers) drawTexts(g)
@@ -124,40 +124,107 @@ class ArenaRenderer {
 
     // --- Floor, decor and walls -------------------------------------------
 
+    /**
+     * Metal floor panels (owner's key art, 2026-10-08): bevelled plates with
+     * dark seams, every fourth seam a glowing cyan trench with packets running
+     * along it, the odd grate and lit service panel, and soft light pools.
+     */
     private fun DrawScope.drawFloor(g: GameEngine, time: Float) {
         val w = g.arena.width
         val h = g.arena.height
+        val boss = g.plan.kind == LevelKind.BOSS
         val event = g.plan.event
-        val floor = when {
-            g.plan.kind == LevelKind.BOSS -> Color(0xFF100810)
-            event != null -> mix(Color(event.accent), Palette.Background, 0.07f)
-            else -> Color(0xFF0A1220)
+        val base = when {
+            boss -> Color(0xFF0C0610)
+            event != null -> mix(Color(event.accent), Color(0xFF070D18), 0.06f)
+            else -> Color(0xFF070D18)
         }
-        drawRect(floor, Offset.Zero, Size(w, h))
-        // Floor plates (subtle bevel gives the floor a tiled, physical feel).
-        val step = 60f
-        val plate = if (g.plan.kind == LevelKind.BOSS) Palette.RedDeep.copy(alpha = 0.16f) else Color(0xFF16233A)
-        var x = 0f
-        while (x <= w) { drawLine(plate, Offset(x, 0f), Offset(x, h), 2f); x += step }
-        var y = 0f
-        while (y <= h) {
-            drawLine(plate, Offset(0f, y), Offset(w, y), 2f)
-            drawLine(Color(0x0DFFFFFF), Offset(0f, y + 2f), Offset(w, y + 2f), 1f)
-            y += step
+        val plateA = if (boss) Color(0xFF1A0E18) else Color(0xFF111D33)
+        val plateB = if (boss) Color(0xFF160B14) else Color(0xFF0F1A2E)
+        val hi = if (boss) Color(0x22FF6080) else Color(0x2A7DD3FF)
+        val lo = Color(0x66000000)
+        val accent = if (boss) Palette.Red else Palette.Cyan
+        drawRect(base, Offset.Zero, Size(w, h))
+        val step = TILE
+        val cols = (w / step).toInt()
+        val rows = (h / step).toInt() + 1
+        for (r in 0 until rows) {
+            val y = r * step
+            for (c in 0 until cols) {
+                val x = c * step
+                val hash = (c * 73856093) xor (r * 19349663) xor g.level * 83492791
+                val k = (hash ushr 3) and 31
+                drawRect(if (k % 3 == 0) plateB else plateA, Offset(x + 2f, y + 2f), Size(step - 4f, step - 4f))
+                // Bevel: lit top-left edge, shaded bottom-right edge.
+                drawLine(hi, Offset(x + 3f, y + 3f), Offset(x + step - 4f, y + 3f), 1.5f)
+                drawLine(hi, Offset(x + 3f, y + 3f), Offset(x + 3f, y + step - 4f), 1.5f)
+                drawLine(lo, Offset(x + 4f, y + step - 3f), Offset(x + step - 3f, y + step - 3f), 2f)
+                drawLine(lo, Offset(x + step - 3f, y + 4f), Offset(x + step - 3f, y + step - 3f), 2f)
+                when (k) {
+                    1, 2 -> { // grate
+                        var gy = y + 14f
+                        while (gy < y + step - 12f) { drawLine(Color(0xFF060A12), Offset(x + 12f, gy), Offset(x + step - 12f, gy), 3f); gy += 7f }
+                    }
+                    5 -> { // lit service panel
+                        val on = 0.5f + 0.5f * sin(time * 2f + c + r)
+                        drawRect(accent.copy(alpha = 0.10f + 0.12f * on), Offset(x + 10f, y + 10f), Size(step - 20f, step - 20f))
+                        drawRect(accent.copy(alpha = 0.35f), Offset(x + 10f, y + 10f), Size(step - 20f, step - 20f), style = Stroke(1.2f))
+                    }
+                    9 -> { // bolts
+                        val bc = Color(0x33A0C8FF)
+                        drawCircle(bc, 2f, Offset(x + 9f, y + 9f)); drawCircle(bc, 2f, Offset(x + step - 9f, y + 9f))
+                        drawCircle(bc, 2f, Offset(x + 9f, y + step - 9f)); drawCircle(bc, 2f, Offset(x + step - 9f, y + step - 9f))
+                    }
+                }
+            }
         }
-        // Packets running along the plate seams.
-        val pc = Palette.Cyan.copy(alpha = 0.25f)
-        for (i in 0 until 8) {
-            val lane = ((i * 5 + 1) % 12) * step
-            val p = ((time * (45f + i * 11f) + i * 137f) % (h + 200f)) - 100f
-            drawCircle(pc, 2.5f, Offset(lane, p))
+        // Glowing trenches every 4th seam, with packets running along them.
+        var tx = step * 2
+        var lane = 0
+        while (tx < w) {
+            drawLine(accent.copy(alpha = 0.10f), Offset(tx, 0f), Offset(tx, h), 7f)
+            drawLine(accent.copy(alpha = 0.32f), Offset(tx, 0f), Offset(tx, h), 1.8f)
+            for (k in 0 until 2) {
+                val py = ((time * (55f + lane * 13f) + k * h * 0.5f + lane * 211f) % (h + 120f)) - 60f
+                drawCircle(accent.copy(alpha = 0.18f), 7f, Offset(tx, py))
+                drawCircle(accent.copy(alpha = 0.85f), 2.6f, Offset(tx, py))
+            }
+            tx += step * 4
+            lane++
         }
-        // Side walls: a low raised kerb.
-        val wall = if (g.plan.kind == LevelKind.BOSS) Palette.Red else Palette.CyanDim
+        var ty = step * 3
+        while (ty < h) {
+            drawLine(accent.copy(alpha = 0.07f), Offset(0f, ty), Offset(w, ty), 6f)
+            drawLine(accent.copy(alpha = 0.22f), Offset(0f, ty), Offset(w, ty), 1.4f)
+            ty += step * 5
+        }
+        // Light pools in front of tall hardware.
+        for (o in g.arena.obstacles) {
+            if (o.kind != ObstacleKind.SERVER_RACK && o.kind != ObstacleKind.SMALL_SERVER && o.kind != ObstacleKind.DATA_PILLAR) continue
+            val r = o.rect
+            val col = if (o.kind == ObstacleKind.DATA_PILLAR) Palette.Cyan else Palette.Green
+            val cx = r.centerX
+            val cy = r.bottom + 14f
+            val rw = r.width * 0.8f + 40f
+            drawOval(col.copy(alpha = 0.05f), Offset(cx - rw, cy - 26f), Size(rw * 2f, 52f))
+            drawOval(col.copy(alpha = 0.06f), Offset(cx - rw * 0.6f, cy - 16f), Size(rw * 1.2f, 32f))
+        }
+        // Drifting data pixels (ambient, very faint).
+        for (i in 0 until 26) {
+            val px = ((i * 263) % 720).toFloat() + sin(time * 0.6f + i) * 12f
+            val pyy = (((i * 157) % 1000) - time * (12f + i % 5 * 4f)).mod(h)
+            val a = 0.15f + 0.15f * sin(time * 1.7f + i * 2.3f)
+            val col = if (i % 4 == 0) Palette.Green else accent
+            drawRect(col.copy(alpha = a), Offset(px, pyy), Size(5f, 5f))
+        }
+        // Side walls: a low raised kerb with a lit edge.
+        val wall = if (boss) Palette.Red else Palette.CyanDim
         drawRect(Color(0xFF0E1830), Offset(-14f, 0f), Size(14f, h))
         drawRect(Color(0xFF0E1830), Offset(w, 0f), Size(14f, h))
-        drawLine(wall.copy(alpha = 0.7f), Offset(0f, 0f), Offset(0f, h), 3f)
-        drawLine(wall.copy(alpha = 0.7f), Offset(w, 0f), Offset(w, h), 3f)
+        drawLine(wall.copy(alpha = 0.18f), Offset(0f, 0f), Offset(0f, h), 9f)
+        drawLine(wall.copy(alpha = 0.18f), Offset(w, 0f), Offset(w, h), 9f)
+        drawLine(wall.copy(alpha = 0.8f), Offset(0f, 0f), Offset(0f, h), 3f)
+        drawLine(wall.copy(alpha = 0.8f), Offset(w, 0f), Offset(w, h), 3f)
         drawLine(wall.copy(alpha = 0.5f), Offset(0f, h), Offset(w, h), 3f)
     }
 
@@ -321,8 +388,8 @@ class ArenaRenderer {
     }
 
     private fun heightOf(k: ObstacleKind): Float = when (k) {
-        ObstacleKind.SERVER_RACK -> 72f
-        ObstacleKind.SMALL_SERVER -> 46f
+        ObstacleKind.SERVER_RACK -> 104f
+        ObstacleKind.SMALL_SERVER -> 64f
         ObstacleKind.DATA_PILLAR -> 92f
         ObstacleKind.COOLING_UNIT -> 36f
         ObstacleKind.ROUTER -> 40f
@@ -346,7 +413,7 @@ class ArenaRenderer {
             ObstacleKind.TERMINAL -> Look(Color(0xFF2C1B40), Color(0xFF1C112C), Palette.Purple)
             ObstacleKind.POWER_UNIT -> Look(Color(0xFF332E14), Color(0xFF221E0C), Palette.Gold)
             ObstacleKind.FIBER_JUNCTION -> Look(Color(0xFF261B3C), Color(0xFF181128), Palette.Purple)
-            ObstacleKind.CRATES -> Look(Color(0xFF353B48), Color(0xFF222731), Color(0xFF93A6C4))
+            ObstacleKind.CRATES -> Look(Color(0xFF1C2D4F), Color(0xFF121E36), Color(0xFF6E9BE0))
         }
     }
 
@@ -359,21 +426,38 @@ class ArenaRenderer {
         val topY = r.top - h
         // Front face (from the top face's bottom edge down to the floor).
         drawRoundRect(look.front, Offset(r.left, r.bottom - h), Size(r.width, h), cr)
-        // Top face.
+        // Lit vertical edges on the front corners (neon trim).
+        drawLine(look.trim.copy(alpha = 0.15f), Offset(r.left + 1f, r.bottom - h), Offset(r.left + 1f, r.bottom), 6f)
+        drawLine(look.trim.copy(alpha = 0.15f), Offset(r.right - 1f, r.bottom - h), Offset(r.right - 1f, r.bottom), 6f)
+        drawLine(look.trim.copy(alpha = 0.7f), Offset(r.left + 1f, r.bottom - h), Offset(r.left + 1f, r.bottom - 2f), 1.6f)
+        drawLine(look.trim.copy(alpha = 0.7f), Offset(r.right - 1f, r.bottom - h), Offset(r.right - 1f, r.bottom - 2f), 1.6f)
+        // Top face with a glowing rim.
         drawRoundRect(look.top, Offset(r.left, topY), Size(r.width, r.height), cr)
-        drawRoundRect(look.trim.copy(alpha = 0.55f), Offset(r.left, topY), Size(r.width, r.height), cr, style = Stroke(2f))
-        drawLine(look.trim.copy(alpha = 0.35f), Offset(r.left + 3f, r.bottom - h), Offset(r.right - 3f, r.bottom - h), 2f)
+        drawRoundRect(Color.White.copy(alpha = 0.05f), Offset(r.left + 3f, topY + 3f), Size(r.width - 6f, r.height * 0.45f), cr)
+        drawRoundRect(look.trim.copy(alpha = 0.14f), Offset(r.left - 2f, topY - 2f), Size(r.width + 4f, r.height + 4f), cr, style = Stroke(6f))
+        drawRoundRect(look.trim.copy(alpha = 0.85f), Offset(r.left, topY), Size(r.width, r.height), cr, style = Stroke(2f))
+        drawLine(look.trim.copy(alpha = 0.45f), Offset(r.left + 3f, r.bottom - h), Offset(r.right - 3f, r.bottom - h), 2f)
 
         val frontTop = r.bottom - h
         when (o.kind) {
             ObstacleKind.SERVER_RACK, ObstacleKind.SMALL_SERVER -> {
-                // Blinking LED rows on the front face.
-                val cols = max(1, ((r.width - 10f) / 16f).toInt())
-                val rows = max(1, ((h - 12f) / 14f).toInt())
-                for (row in 0 until rows) for (c in 0 until cols) {
-                    val on = sin(time * (1.8f + (c % 3) * 0.9f) + c * 1.3f + row * 2.1f + index) > 0.25f
-                    val col = if ((c + row + index) % 5 == 0) Palette.ServerLedAmber else Palette.ServerLedGreen
-                    drawCircle(col.copy(alpha = if (on) 0.95f else 0.14f), 2.4f, Offset(r.left + 9f + c * 16f, frontTop + 9f + row * 14f))
+                // Rack units: dark bays, each with a row of blinking LEDs that glow.
+                val cols = max(1, ((r.width - 10f) / 11f).toInt())
+                val rows = max(1, ((h - 10f) / 11f).toInt())
+                for (row in 0 until rows) {
+                    val ry = frontTop + 6f + row * 11f
+                    drawRect(Color(0xFF0A1222), Offset(r.left + 4f, ry - 4f), Size(r.width - 8f, 8f))
+                    for (c in 0 until cols) {
+                        val on = sin(time * (1.8f + (c % 3) * 0.9f) + c * 1.3f + row * 2.1f + index) > 0.15f
+                        val col = when ((c * 7 + row * 3 + index) % 6) {
+                            0 -> Palette.ServerLedAmber
+                            1, 2 -> Palette.Cyan
+                            else -> Palette.ServerLedGreen
+                        }
+                        val cx = r.left + 9f + c * 11f
+                        if (on) drawCircle(col.copy(alpha = 0.22f), 5f, Offset(cx, ry))
+                        drawCircle(col.copy(alpha = if (on) 1f else 0.12f), 1.9f, Offset(cx, ry))
+                    }
                 }
             }
             ObstacleKind.FIREWALL_NODE -> {
@@ -438,9 +522,14 @@ class ArenaRenderer {
                 }
             }
             ObstacleKind.CRATES -> {
-                drawLine(Color(0xFF3A4252), Offset(r.left, frontTop + h / 2f), Offset(r.right, frontTop + h / 2f), 2f)
-                drawLine(Color(0xFF3A4252), Offset(r.centerX, frontTop), Offset(r.centerX, r.bottom), 2f)
-                drawLine(Palette.Gold.copy(alpha = 0.4f), Offset(r.left + 6f, topY + 6f), Offset(r.right - 6f, topY + r.height - 6f), 2f)
+                // Reinforced hardware crate: X braces on top and front.
+                val xc = Color(0xFF4B6FA8)
+                drawRect(Color(0xFF0E1830), Offset(r.left + 6f, topY + 6f), Size(r.width - 12f, r.height - 12f))
+                drawLine(xc, Offset(r.left + 6f, topY + 6f), Offset(r.right - 6f, topY + r.height - 6f), 4f)
+                drawLine(xc, Offset(r.right - 6f, topY + 6f), Offset(r.left + 6f, topY + r.height - 6f), 4f)
+                drawRect(Color(0xFF6E9BE0).copy(alpha = 0.6f), Offset(r.left + 6f, topY + 6f), Size(r.width - 12f, r.height - 12f), style = Stroke(1.5f))
+                drawLine(xc.copy(alpha = 0.7f), Offset(r.left + 5f, frontTop + 5f), Offset(r.right - 5f, r.bottom - 5f), 3f)
+                drawLine(xc.copy(alpha = 0.7f), Offset(r.right - 5f, frontTop + 5f), Offset(r.left + 5f, r.bottom - 5f), 3f)
             }
         }
     }
@@ -565,7 +654,7 @@ class ArenaRenderer {
         if (!g.moving && g.targetUid >= 0) {
             drawOval(Palette.Green.copy(alpha = 0.55f), Offset(g.px - r * 1.4f, g.py), Size(r * 2.8f, r * 1.1f), style = Stroke(2f))
         }
-        drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = if (blink) 0.35f else 1f)
+        drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = if (blink) 0.35f else 1f, bigGun = g.stats.beamLevel > 0)
     }
 
     private fun orbPos(g: GameEngine, i: Int, out: FloatArray) {
@@ -609,8 +698,9 @@ class ArenaRenderer {
 
     // --- Projectiles / hazards / effects -----------------------------------
 
-    private fun DrawScope.drawProjectiles(g: GameEngine) {
+    private fun DrawScope.drawProjectiles(g: GameEngine, time: Float) {
         val lift = 22f
+        drawBeam(g, time, lift)
         for (p in g.projectiles.items) {
             if (!p.active) continue
             drawCircle(Color.Black.copy(alpha = 0.25f), p.radius * 0.8f, Offset(p.x, p.y))
@@ -622,18 +712,55 @@ class ArenaRenderer {
                     ProjKind.NODE_BOLT, ProjKind.COUNTER -> Palette.Cyan
                     else -> if (p.crit) Palette.Gold else Palette.Cyan
                 }
-                val len = if (p.kind == ProjKind.LANCE) 0.06f else 0.025f
-                drawLine(col.copy(alpha = 0.45f), c, Offset(p.x - p.vx * len, p.y - lift - p.vy * len), p.radius * 1.4f)
+                val len = if (p.kind == ProjKind.LANCE) 0.07f else 0.035f
+                val tail = Offset(p.x - p.vx * len, p.y - lift - p.vy * len)
+                drawLine(col.copy(alpha = 0.18f), c, tail, p.radius * 3f)
+                drawLine(col.copy(alpha = 0.6f), c, tail, p.radius * 1.3f)
+                drawCircle(col.copy(alpha = 0.25f), p.radius * 2.2f, c)
                 drawCircle(col, p.radius, c)
-                drawCircle(Color.White.copy(alpha = 0.8f), p.radius * 0.45f, c)
+                drawCircle(Color.White.copy(alpha = 0.9f), p.radius * 0.5f, c)
             } else {
-                val col = if (p.kind == ProjKind.BOSS) Palette.Magenta else Palette.Orange
-                drawCircle(Color(0xFF1A0006), p.radius + 2.5f, c)
+                // Hostile packets: hot red-orange streaks with a glow (key art).
+                val col = if (p.kind == ProjKind.BOSS) Palette.Magenta else Color(0xFFFF4A2A)
+                val tail = Offset(p.x - p.vx * 0.09f, p.y - lift - p.vy * 0.09f)
+                drawLine(col.copy(alpha = 0.16f), c, tail, p.radius * 3f)
+                drawLine(col.copy(alpha = 0.55f), c, tail, p.radius * 1.2f)
+                drawCircle(col.copy(alpha = 0.25f), p.radius * 2.3f, c)
+                drawCircle(Color(0xFF1A0006), p.radius + 2f, c)
                 drawCircle(col, p.radius, c)
-                drawCircle(Color(0xFFFFE6D0), p.radius * 0.4f, c)
+                drawCircle(Color(0xFFFFE6D0), p.radius * 0.45f, c)
                 if (p.homing > 0f) drawCircle(col.copy(alpha = 0.4f), p.radius + 6f, c, style = Stroke(1.5f))
             }
         }
+    }
+
+    /** Plasma Beam: layered cyan glow with a white-hot core, muzzle flare and impact sparks. */
+    private fun DrawScope.drawBeam(g: GameEngine, time: Float, lift: Float) {
+        if (!g.beamActive) return
+        val ang = g.facing
+        val sx = g.px + cos(ang) * 30f
+        val sy = g.py - lift - 6f + sin(ang) * 30f
+        val ex = g.beamX2
+        val ey = g.beamY2 - lift
+        val w = g.beamWidth
+        val flick = 0.85f + 0.15f * sin(time * 60f)
+        val a = Offset(sx, sy)
+        val b = Offset(ex, ey)
+        drawLine(Palette.Cyan.copy(alpha = 0.10f), a, b, w * 2.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Palette.Cyan.copy(alpha = 0.30f * flick), a, b, w * 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Color(0xFF7DF9FF).copy(alpha = 0.85f), a, b, w * 0.75f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Color.White.copy(alpha = 0.95f * flick), a, b, w * 0.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        // Energy pulses travelling down the beam.
+        val len = kotlin.math.hypot(ex - sx, ey - sy)
+        if (len > 1f) for (k in 0 until 4) {
+            val t = ((time * 2.2f + k * 0.25f) % 1f)
+            drawCircle(Color.White.copy(alpha = 0.6f), w * 0.35f, Offset(sx + (ex - sx) * t, sy + (ey - sy) * t))
+        }
+        // Muzzle flare and impact.
+        drawCircle(Palette.Cyan.copy(alpha = 0.25f), w * 1.6f, a)
+        drawCircle(Color.White.copy(alpha = 0.9f), w * 0.6f, a)
+        drawCircle(Palette.Cyan.copy(alpha = 0.3f * flick), w * 1.4f, b)
+        drawCircle(Color.White.copy(alpha = 0.8f), w * 0.45f, b)
     }
 
     private fun DrawScope.drawHazardsUnder(g: GameEngine, time: Float) {
@@ -757,6 +884,7 @@ class ArenaRenderer {
 
     companion object {
         const val WALL_HEIGHT = 80f
+        const val TILE = 60f
         const val FIGURE_SCALE = 1.3f
         private const val MAX_ITEMS = 160
     }

@@ -59,6 +59,7 @@ class RunStats {
     // Abilities
     var coneLevel = 0
     var lanceLevel = 0
+    var beamLevel = 0
     var empLevel = 0
 
     // Economy
@@ -81,7 +82,7 @@ class RunStats {
         orbCount = o.orbCount; orbDamage = o.orbDamage; orbAngularSpeed = o.orbAngularSpeed
         orbRadius = o.orbRadius; orbSize = o.orbSize; orbBoltInterval = o.orbBoltInterval
         bladeCount = o.bladeCount; bladeDamage = o.bladeDamage; bladeRadius = o.bladeRadius
-        coneLevel = o.coneLevel; lanceLevel = o.lanceLevel; empLevel = o.empLevel
+        coneLevel = o.coneLevel; lanceLevel = o.lanceLevel; beamLevel = o.beamLevel; empLevel = o.empLevel
         xpMul = o.xpMul; euroMul = o.euroMul
     }
 
