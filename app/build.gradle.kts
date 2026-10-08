@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -14,17 +12,55 @@ plugins {
  * (`cyberop.keystore.path` -> `CYBEROP_KEYSTORE_PATH`). See RELEASING.md.
  */
 fun Project.secret(name: String): String? {
-    val local = rootProject.file("secrets.properties")
-    if (local.exists()) {
-        val p = Properties()
-        local.inputStream().use(p::load)
-        p.getProperty(name)?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
-    }
+    readSecretsFile()[name]?.let { return it }
     (findProperty(name) as String?)?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
     return System.getenv(name.uppercase().replace('.', '_'))?.trim()?.takeIf { it.isNotEmpty() }
 }
 
-val uploadKeystore: File? = project.secret("cyberop.keystore.path")?.let { file(it) }?.takeIf { it.isFile }
+/**
+ * Reads `secrets.properties` literally: one `key=value` per line, `#` comments.
+ * Not java.util.Properties, which eats backslashes (`C:\keys\x.jks` would
+ * become `C:keysx.jks`) — the usual reason a Windows build came out unsigned.
+ * Also tolerates a UTF-8 BOM from Notepad.
+ */
+fun Project.readSecretsFile(): Map<String, String> {
+    val local = rootProject.file("secrets.properties")
+    if (!local.exists()) return emptyMap()
+    return local.readText().removePrefix("\uFEFF").lines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && "=" in it }
+        .associate { it.substringBefore("=").trim() to it.substringAfter("=").trim().removeSurrounding("\"") }
+        .filterValues { it.isNotEmpty() }
+}
+
+val keystorePath: String? = project.secret("cyberop.keystore.path")
+val uploadKeystore: File? = keystorePath?.let { file(it) }?.takeIf { it.isFile }
+
+// A release build must never come out unsigned by accident: Play rejects it with
+// "All uploaded bundles must be signed". Fail loudly and say what is missing.
+gradle.taskGraph.whenReady {
+    val wantsRelease = allTasks.any { t ->
+        t.project == project && t.name.endsWith("Release") &&
+            (t.name.startsWith("bundle") || t.name.startsWith("assemble") || t.name.startsWith("package"))
+    }
+    if (wantsRelease && uploadKeystore == null && !project.hasProperty("allowUnsigned")) {
+        val secrets = rootProject.file("secrets.properties")
+        val why = when {
+            !secrets.exists() && keystorePath == null ->
+                "No ${secrets.path} found (and no cyberop.keystore.path property or CYBEROP_KEYSTORE_PATH variable)."
+            keystorePath == null ->
+                "${secrets.path} has no 'cyberop.keystore.path=' line (check spelling; it must be at the start of a line)."
+            else -> "The keystore file does not exist: '$keystorePath' (resolved to ${file(keystorePath).path})."
+        }
+        throw GradleException(
+            "Release signing is not set up, so the bundle would be unsigned.\n  $why\n" +
+                "  Fix secrets.properties (see RELEASING.md), or pass -PallowUnsigned to build unsigned on purpose."
+        )
+    }
+    if (wantsRelease && uploadKeystore != null) {
+        logger.lifecycle("Signing release with upload key: ${uploadKeystore.path}")
+    }
+}
 
 android {
     // FINAL application identity (owner, 2026-10-08). Never change it after the

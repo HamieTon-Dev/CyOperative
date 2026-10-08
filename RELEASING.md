@@ -23,8 +23,15 @@ cyberop.keystore.password=...
 cyberop.key.alias=cyberoperative-upload
 cyberop.key.password=...
 ```
+On Windows either slash style works (`C:/keys/cyberoperative-upload.jks` or `C:\keys\...`);
+the file is read literally, and a Notepad BOM is ignored.
 (Or put the same keys in `~/.gradle/gradle.properties`, or as env vars
 `CYBEROP_KEYSTORE_PATH`, `CYBEROP_KEYSTORE_PASSWORD`, …)
+
+A release build **fails** with a message naming what is missing when no usable key is
+configured, so it can never silently produce an unsigned bundle (Play: "All uploaded
+bundles must be signed"). The build prints `Signing release with upload key: …` when
+signing. Pass `-PallowUnsigned` to build unsigned on purpose.
 
 ## 3. Build the signed .aab
 Bump `versionCode` (+1 every upload) and `versionName` in `app/build.gradle.kts`, then:
@@ -32,6 +39,8 @@ Bump `versionCode` (+1 every upload) and `versionName` in `app/build.gradle.kts`
 ./gradlew :app:bundleRelease
 ```
 Output: `app/build/outputs/bundle/release/app-release.aab`.
+Check it: `jarsigner -verify app/build/outputs/bundle/release/app-release.aab` must print
+`jar verified.` ("no manifest." means unsigned).
 Android Studio alternative: **Build → Generate Signed App Bundle / APK → Android App Bundle**,
 choose the .jks, release variant.
 
