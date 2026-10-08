@@ -29,6 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,27 +50,10 @@ import com.cyberoperative.game.ui.theme.Palette
 fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
     if (h.owned.isEmpty()) return
     var held by remember { mutableStateOf<String?>(null) }
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        val heldDef = held?.let { id -> Upgrades.all.firstOrNull { it.id == id } }
-        if (heldDef != null) {
-            UpgradeTooltip(heldDef, h.owned.firstOrNull { it.first == heldDef.id }?.second ?: 1)
-            Spacer(Modifier.height(6.dp))
-        }
-        if (h.beamCooldown > 0f) {
-            Text(
-                "PLASMA BEAM COOLING · ${"%.1f".format(h.beamCooldown)}s",
-                color = Palette.Red, style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier
-                    .background(Palette.Background.copy(alpha = 0.8f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            )
-            Spacer(Modifier.height(4.dp))
-        }
+    Box(modifier) {
         Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             for ((id, level) in h.owned) {
                 val def = Upgrades.all.firstOrNull { it.id == id } ?: continue
@@ -85,6 +71,13 @@ fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
                 )
             }
         }
+        // Details float below the row while an icon is held, so nothing in the HUD moves.
+        val heldDef = held?.let { id -> Upgrades.all.firstOrNull { it.id == id } }
+        if (heldDef != null) {
+            Popup(offset = IntOffset(0, with(LocalDensity.current) { 30.dp.roundToPx() })) {
+                UpgradeTooltip(heldDef, h.owned.firstOrNull { it.first == heldDef.id }?.second ?: 1)
+            }
+        }
     }
 }
 
@@ -94,7 +87,7 @@ private fun UpgradeIcon(def: UpgradeDef, level: Int, beamHeat: Float, beamCooldo
     val shape = RoundedCornerShape(5.dp)
     Box(
         modifier
-            .size(32.dp)
+            .size(24.dp)
             .background(Palette.Background.copy(alpha = 0.85f), shape)
             .border(1.dp, c.copy(alpha = 0.8f), shape),
         contentAlignment = Alignment.Center
@@ -121,12 +114,12 @@ private fun UpgradeIcon(def: UpgradeDef, level: Int, beamHeat: Float, beamCooldo
         Text(
             if (beamCooldown > 0f) "%.0f".format(kotlin.math.ceil(beamCooldown)) else def.glyph,
             color = if (beamCooldown > 0f) Palette.Red else c,
-            fontSize = if (beamCooldown > 0f) 13.sp else 8.sp,
+            fontSize = if (beamCooldown > 0f) 11.sp else 7.sp,
             maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center
         )
         if (level > 1) {
             Text(
-                if (level >= 1000) "${level / 1000}k" else "$level", color = Palette.TextPrimary, fontSize = 8.sp,
+                if (level >= 1000) "${level / 1000}k" else "$level", color = Palette.TextPrimary, fontSize = 6.sp,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(1.dp)

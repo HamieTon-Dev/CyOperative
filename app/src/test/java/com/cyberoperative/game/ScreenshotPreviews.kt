@@ -305,6 +305,15 @@ class ScreenshotPreviews {
         }
     }
 
+    @Test fun bossWithUpgradeBar() {
+        assumeTrue(enabled)
+        gameplay("hud_upgrade_bar_boss", 5f) { s ->
+            val U = com.cyberoperative.game.data.Upgrades
+            for (d in listOf(U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.PLASMA_BEAM)) s.engine.build.take(d)
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(10, kotlin.random.Random(1)))
+        }
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

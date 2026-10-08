@@ -118,7 +118,9 @@ fun GameScreen(
             .background(Palette.SurfaceSunken)
     ) {
         // The big boss bar makes the HUD taller; keep the boss out from under it.
-        val topInsetPx = with(density) { (if (hud.bossName != null) 210.dp else 118.dp).toPx() }
+        // The upgrade icon row lives under the HP bar, so the arena starts lower when it is shown.
+        val iconRow = if (hud.owned.isNotEmpty()) 28.dp else 0.dp
+        val topInsetPx = with(density) { ((if (hud.bossName != null) 210.dp else 118.dp) + iconRow).toPx() }
         val bottomInsetPx = with(density) { 150.dp.toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
@@ -185,19 +187,9 @@ fun GameScreen(
         }
 
         GameHud(hud, onPause = { session.paused = true })
-        if (hud.phase != Phase.UPGRADE && hud.phase != Phase.DEAD) {
-            UpgradeBar(
-                hud,
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 4.dp)
-            )
-        }
 
         if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
-            Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp))
+            Banner(hud, Modifier.align(Alignment.TopCenter).padding(top = 170.dp + if (hud.owned.isNotEmpty()) 28.dp else 0.dp))
         }
         if (hud.phase == Phase.PORTAL) {
             Text(
@@ -205,7 +197,7 @@ fun GameScreen(
                 color = Palette.Green, style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 128.dp)
+                    .padding(top = 128.dp + if (hud.owned.isNotEmpty()) 28.dp else 0.dp)
                     .background(Palette.Background.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             )
@@ -277,6 +269,11 @@ private fun GameHud(h: HudSnapshot, onPause: () -> Unit) {
             overlay = if (h.firewallMax > 0) h.firewall / h.firewallMax.toFloat() else 0f,
             height = 14
         )
+        // Owned upgrades, right under the HP bar (owner, 2026-10-08: off the joystick area).
+        if (h.owned.isNotEmpty()) {
+            Spacer(Modifier.height(3.dp))
+            UpgradeBar(h, Modifier.fillMaxWidth())
+        }
         Spacer(Modifier.height(3.dp))
         if (h.mode == GameMode.ENDLESS) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -5,6 +5,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Online features (accounts, friends, co-op) use Firebase. The config file is
+// per-owner and git-ignored: without app/google-services.json the game still
+// builds and plays; the online screens explain how to enable them.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
 /**
  * A release-signing value that must never be committed. Looked up in an
  * untracked `secrets.properties` at the repo root, then Gradle properties
@@ -72,8 +77,8 @@ android {
         applicationId = "com.cyberoperative.game"
         minSdk = 24
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.7.0"
+        versionCode = 9
+        versionName = "0.8.0"
     }
 
     signingConfigs {
@@ -161,6 +166,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.kotlinx.serialization.json)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.database)
+    implementation(libs.kotlinx.coroutines.play.services)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

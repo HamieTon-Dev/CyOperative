@@ -1,7 +1,13 @@
 # Changelog
 
-## 0.7.0 (versionCode 8) — unreleased
-- Next upload. 0.6.0 (versionCode 7) went to the Play closed test on 2026-10-08.
+## 0.8.0 (versionCode 9) — 2026-10-08
+### Changed
+- Upgrade icons are smaller (24dp) and sit under the HP bar instead of over the joystick area;
+  the arena, banners and the boss bar move down to make room. Hold an icon: details pop up below.
+- Firebase libraries added for the upcoming accounts / friends / co-op (inactive until
+  app/google-services.json is added; the game builds and plays without it).
+
+## 0.7.0 (versionCode 8)
 ### Added
 - SAVE & EXIT from the pause menu; the main menu's PLAY becomes CONTINUE (level, room,
   every threat's position and HP, player HP/Firewall and the whole build are restored).
