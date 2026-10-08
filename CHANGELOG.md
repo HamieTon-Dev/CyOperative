@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2 (versionCode 12) — 2026-10-08
+### Fixed
+- The shop's side gate can no longer be blocked: when a shop is offered the game picks a spot on
+  the left or right wall whose doorway (and the space in front of it) is free of walls and blocks
+  and that the operative can walk to; mid-height first. The gate, hint and terminal message show
+  which wall. Tested on 150 generated rooms, walking in each time.
+
 ## 0.9.1 (versionCode 11) — 2026-10-08
 ### Added
 - Data Vault cache: once the vault room is clear, walk up to the gold cache block in the middle —

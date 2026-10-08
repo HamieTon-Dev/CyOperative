@@ -339,6 +339,13 @@ class ArenaRenderer {
 
     /** The side gate to the upgrade shop: a gold doorway in the left wall with chevrons pointing in. */
     private fun DrawScope.drawShopGate(g: GameEngine, time: Float) {
+        // Drawn for the left wall; mirrored for a right-wall gate.
+        if (g.shopGateRight) {
+            withTransform({ scale(-1f, 1f, Offset(g.arena.width / 2f, 0f)) }) { drawShopGateLeft(g, time, mirrored = true) }
+        } else drawShopGateLeft(g, time, mirrored = false)
+    }
+
+    private fun DrawScope.drawShopGateLeft(g: GameEngine, time: Float, mirrored: Boolean) {
         val cy = g.shopGateY
         val half = GameEngine.SHOP_GATE_HALF
         val p = 0.5f + 0.5f * sin(time * 4f)
@@ -355,7 +362,9 @@ class ArenaRenderer {
         }
         tagPaint.textSize = 14f
         tagPaint.color = Palette.Gold.toArgb()
-        drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint)
+        // Text must not read backwards on the mirrored side.
+        if (mirrored) withTransform({ scale(-1f, 1f, Offset(46f, 0f)) }) { drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint) }
+        else drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint)
     }
 
     private fun mix(a: Color, b: Color, t: Float) =

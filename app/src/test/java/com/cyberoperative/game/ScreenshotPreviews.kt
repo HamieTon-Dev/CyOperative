@@ -348,7 +348,7 @@ class ScreenshotPreviews {
             clearToPortal(g)
             g.offerShop()
             var guard = 0
-            while (!g.inShop && guard++ < 1500) { g.setInput(-1f, (g.shopGateY - g.py) / 200f); g.update(1f / 60f) }
+            while (!g.inShop && guard++ < 1500) { g.setInput((g.shopGateX - g.px) / 200f, (g.shopGateY - g.py) / 200f); g.update(1f / 60f) }
             g.debugGrantEuros(3000)
             guard = 0
             while (!g.atShopCounter && guard++ < 1200) { g.setInput((g.arena.width / 2f - g.px) / 100f, -1f); g.update(1f / 60f) }

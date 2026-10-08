@@ -75,6 +75,7 @@ data class HudSnapshot(
     val inShop: Boolean = false,
     val atShopCounter: Boolean = false,
     val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
+    val shopGateRight: Boolean = false,
     /** Data Vault: the cleared room's cache is waiting to be cracked. */
     val vaultReady: Boolean = false
 )
@@ -244,7 +245,8 @@ class GameSession(
             inShop = g.inShop,
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
-            vaultReady = g.vaultReady
+            vaultReady = g.vaultReady,
+            shopGateRight = g.shopGateRight
         )
     }
 

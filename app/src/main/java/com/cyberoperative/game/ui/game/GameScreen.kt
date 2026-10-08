@@ -216,7 +216,7 @@ fun GameScreen(
         }
         if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
             Text(
-                "◄ SHOP GATE OPEN — LEFT WALL",
+                if (hud.shopGateRight) "SHOP GATE OPEN — RIGHT WALL ►" else "◄ SHOP GATE OPEN — LEFT WALL",
                 color = Palette.Gold, style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -236,7 +236,7 @@ fun GameScreen(
                     .padding(horizontal = 12.dp, vertical = 12.dp)
             )
         }
-        ShopMessage(hud.shopMessageSerial, Modifier.align(Alignment.Center).padding(horizontal = 20.dp))
+        ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp))
         if (hud.phase == Phase.UPGRADE) {
             UpgradeOverlay(session)
         }

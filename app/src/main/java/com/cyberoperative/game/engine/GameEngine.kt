@@ -155,7 +155,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val vaultReady: Boolean get() = vaultPresent && vaultOpening <= 0f && phase != Phase.COMBAT && phase != Phase.DEAD
 
     /** Side gate on the left wall, halfway down the room. */
-    val shopGateY: Float get() = arena.height * 0.5f
+    var shopGateY = 0f
+        private set
+    /** Which side wall the shop gate is on (chosen so it is never blocked). */
+    var shopGateRight = false
+        private set
+    /** X of the gate's mouth: where the operative has to stand to go through. */
+    val shopGateX: Float get() = if (shopGateRight) arena.width else 0f
     var rerollsLeft = config.rerolls
         private set
     var revivesLeft = config.freeRevives
@@ -392,7 +398,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 phase = Phase.TRANSITION
                 phaseTimer = 0f
                 goingToShop = false
-            } else if (shopGateOpen && px < playerRadius + 14f && kotlin.math.abs(py - shopGateY) < SHOP_GATE_HALF) {
+            } else if (shopGateOpen && kotlin.math.abs(px - shopGateX) < playerRadius + 14f && kotlin.math.abs(py - shopGateY) < SHOP_GATE_HALF) {
                 // Through the side gate into the upgrade shop.
                 phase = Phase.TRANSITION
                 phaseTimer = 0f
@@ -700,9 +706,84 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Opens the side gate to the shop for this room (also a test hook). */
     fun offerShop() {
         if (mode != GameMode.CAMPAIGN || inShop) return
+        // Owner, 2026-10-08: the gate must never be blocked by a wall or block.
+        if (!placeShopGate()) return
         shopGateOpen = true
         shopMessageSerial++
         sound(GameSound.ACCESS_GRANTED)
+    }
+
+    /**
+     * Picks a spot on a side wall whose mouth is clear of obstacles and that the
+     * operative can actually walk to from where they stand. Mid-height first,
+     * then outward, left wall then right. Returns false if no wall spot works.
+     */
+    private fun placeShopGate(): Boolean {
+        val reach = reachableCells()
+        val mid = arena.height * 0.5f
+        val offsets = (0..20).flatMap { k -> if (k == 0) listOf(0f) else listOf(k * 40f, -k * 40f) }
+        for (right in listOf(false, true)) {
+            for (off in offsets) {
+                val y = mid + off
+                if (y < 200f || y > arena.height - 200f) continue
+                if (gateMouthClear(right, y) && reach(if (right) arena.width - 30f else 30f, y)) {
+                    shopGateRight = right
+                    shopGateY = y
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    /** The doorway strip (and a little room in front of it) has no obstacle in it. */
+    private fun gateMouthClear(right: Boolean, y: Float): Boolean {
+        var d = -SHOP_GATE_HALF
+        while (d <= SHOP_GATE_HALF) {
+            var depth = 20f
+            while (depth <= 80f) {
+                val x = if (right) arena.width - depth else depth
+                if (arena.obstacleAt(x, y + d, 2f) >= 0) return false
+                depth += 20f
+            }
+            d += 20f
+        }
+        return arena.isFree(if (right) arena.width - 30f else 30f, y, playerRadius + 4f)
+    }
+
+    /** Flood fill from the operative: returns a lookup "can I walk to (x, y)?". */
+    private fun reachableCells(): (Float, Float) -> Boolean {
+        val cell = 20f
+        val cols = (arena.width / cell).toInt() + 1
+        val rows = (arena.height / cell).toInt() + 1
+        val seen = BooleanArray(cols * rows)
+        val queue = IntArray(cols * rows)
+        var head = 0
+        var tail = 0
+        val sc = (px / cell).toInt().coerceIn(0, cols - 1)
+        val sr = (py / cell).toInt().coerceIn(0, rows - 1)
+        seen[sr * cols + sc] = true
+        queue[tail++] = sr * cols + sc
+        while (head < tail) {
+            val cur = queue[head++]
+            val r = cur / cols
+            val c = cur % cols
+            for (k in 0 until 4) {
+                val nr = r + (if (k == 0) 1 else if (k == 1) -1 else 0)
+                val nc = c + (if (k == 2) 1 else if (k == 3) -1 else 0)
+                if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue
+                val idx = nr * cols + nc
+                if (seen[idx]) continue
+                if (!arena.isFree(nc * cell + cell / 2f, nr * cell + cell / 2f, playerRadius)) continue
+                seen[idx] = true
+                queue[tail++] = idx
+            }
+        }
+        return { x, y ->
+            val c = (x / cell).toInt().coerceIn(0, cols - 1)
+            val r = (y / cell).toInt().coerceIn(0, rows - 1)
+            seen[r * cols + c]
+        }
     }
 
     private fun enterShop() {

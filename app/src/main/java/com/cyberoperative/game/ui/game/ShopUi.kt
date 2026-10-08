@@ -38,7 +38,7 @@ private val TERMINAL_LINES = listOf(
     "> SOURCE: UNKNOWN // ENCRYPTION: VALID",
     "> DECRYPTING ......... OK",
     "> UPGRADE SHOP AVAILABLE",
-    "> SIDE GATE UNLOCKED  [ << LEFT WALL ]"
+    "> SIDE GATE UNLOCKED"
 )
 
 /**
@@ -47,7 +47,8 @@ private val TERMINAL_LINES = listOf(
  * Never blocks input.
  */
 @Composable
-fun ShopMessage(serial: Int, modifier: Modifier = Modifier) {
+fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier) {
+    val lines = TERMINAL_LINES.dropLast(1) + (TERMINAL_LINES.last() + if (right) "  [ RIGHT WALL >> ]" else "  [ << LEFT WALL ]")
     var shown by remember { mutableIntStateOf(0) }
     var chars by remember { mutableIntStateOf(0) }
     var visible by remember { mutableStateOf(false) }
@@ -56,7 +57,7 @@ fun ShopMessage(serial: Int, modifier: Modifier = Modifier) {
         visible = true
         shown = 0
         chars = 0
-        val total = TERMINAL_LINES.sumOf { it.length }
+        val total = lines.sumOf { it.length }
         while (chars < total) {
             chars += 2
             delay(18)
@@ -72,7 +73,7 @@ fun ShopMessage(serial: Int, modifier: Modifier = Modifier) {
             .border(1.dp, Palette.Green.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        for ((i, line) in TERMINAL_LINES.withIndex()) {
+        for ((i, line) in lines.withIndex()) {
             if (left <= 0) break
             val part = line.take(left)
             left -= line.length
