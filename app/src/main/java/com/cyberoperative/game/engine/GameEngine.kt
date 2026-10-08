@@ -389,7 +389,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             LevelKind.BOSS -> {
                 val b = plan.boss!!
                 sound(GameSound.BOSS_SPAWN)
-                bossBrain.spawn(b, arena.width / 2f, 300f)
+                bossBrain.spawn(b, arena.width / 2f, 300f, plan.glitchedBoss)
             }
             LevelKind.EVENT -> {
                 val e = plan.event!!
@@ -1758,12 +1758,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     internal fun setBossRef(e: Enemy?) { boss = e }
     internal fun setBossPhaseLabel(label: String) { bossPhaseLabel = label }
-    internal fun onBossDefeated(eurosReward: Int, scoreReward: Int) {
+    internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0) {
         bossesDefeated++
         eurosEarned += (eurosReward * stats.euroMul * difficultyReward).toInt()
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
-        pendingUpgrades += 2 + level / 20
+        pendingUpgrades += 2 + level / 20 + bonusPicks
         bossLuckPending = true
         purgeHostiles()
     }
@@ -1793,7 +1793,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (Scaling.isBossLevel(level) && boss == null) {
                 val b = com.cyberoperative.game.data.Bosses.forLevel(level)
                 sound(GameSound.BOSS_SPAWN)
-                bossBrain.spawn(b, arena.width / 2f, 260f)
+                bossBrain.spawn(b, arena.width / 2f, 260f, LevelPlanner.rollGlitchedBoss(level, rng))
             } else {
                 showBanner("STAGE $level", "Threat level rising", 1.2f)
             }

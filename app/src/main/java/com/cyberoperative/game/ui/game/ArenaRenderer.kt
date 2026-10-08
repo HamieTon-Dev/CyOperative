@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import com.cyberoperative.game.core.MathUtil
+import com.cyberoperative.game.data.AccentKind
 import com.cyberoperative.game.data.DecorKind
 import com.cyberoperative.game.data.LivingBackground
 import com.cyberoperative.game.data.ObstacleKind
@@ -538,7 +539,10 @@ class ArenaRenderer {
     // --- Enemies -------------------------------------------------------------
 
     private fun DrawScope.drawEnemy(g: GameEngine, e: Enemy, time: Float) {
-        val base = Color(e.def.color)
+        // *GLITCHED*: colour cycles and the body snaps between shapes.
+        val glitch = e.def.glitched || e.boss?.glitched == true
+        val base = if (glitch) Color.hsv((time * 220f + e.uid * 47f) % 360f, 0.85f, 1f) else Color(e.def.color)
+        val shape = if (glitch) GLITCH_SHAPES[((time * 5f).toInt() + e.uid) % GLITCH_SHAPES.size] else e.def.shape
         if (e.state == AiState.SPAWNING) {
             val p = 0.5f + 0.5f * sin(time * 18f)
             drawOval(Palette.Red.copy(alpha = 0.25f + 0.25f * p), Offset(e.x - e.radius * (1.2f + e.stateTimer), e.y - e.radius * 0.5f * (1.2f + e.stateTimer)),
@@ -563,17 +567,28 @@ class ArenaRenderer {
             drawCircle(Color(elite.color).copy(alpha = 0.85f), e.radius * 1.3f, Offset(cx, cy), style = Stroke(2.5f))
         }
         if (boss != null) drawCircle(base.copy(alpha = 0.14f + 0.08f * sin(time * 3f)), e.radius * 1.7f, Offset(cx, cy))
+        if (glitch) {
+            // RGB-split ghosts that jump a few pixels every few frames.
+            val j = ((time * 14f).toInt() + e.uid) % 5 - 2
+            drawShape(shape, Offset(cx - 4f + j, cy), e.radius, Color(0xFF00FFFF).copy(alpha = 0.35f), 0f)
+            drawShape(shape, Offset(cx + 4f - j, cy), e.radius, Color(0xFFFF00FF).copy(alpha = 0.35f), 0f)
+        }
         val winding = e.state == AiState.WINDUP
         val rot = if (boss != null) time * 25f else 0f
         // Extruded body: dark side first, then lit top, then a rim highlight.
-        drawShape(e.def.shape, Offset(cx, cy + depth), e.radius, darken(base, 0.45f), rot)
+        drawShape(shape, Offset(cx, cy + depth), e.radius, darken(base, 0.45f), rot)
         val fill = when {
             e.hitFlash > 0f -> Color.White
             winding && ((time * 16f).toInt() % 2 == 0) -> Color.White.copy(alpha = 0.9f)
             else -> base
         }
-        drawShape(e.def.shape, Offset(cx, cy), e.radius, fill, rot)
-        drawShape(e.def.shape, Offset(cx, cy), e.radius, Color(0xFF1A0006), rot, stroke = 2.5f)
+        drawShape(shape, Offset(cx, cy), e.radius, fill, rot)
+        drawShape(shape, Offset(cx, cy), e.radius, Color(0xFF1A0006), rot, stroke = 2.5f)
+        if (glitch && ((time * 9f).toInt() + e.uid) % 4 == 0) {
+            // Scanline tear across the body.
+            drawRect(Color.White.copy(alpha = 0.5f), Offset(cx - e.radius * 1.2f, cy - e.radius * 0.1f), Size(e.radius * 2.4f, 3f))
+        }
+        if (e.def.accent != AccentKind.NONE) drawAccent(e.def.accent, Offset(cx, cy), e.radius, base, time, e.uid)
         drawCircle(Color.White.copy(alpha = 0.22f), e.radius * 0.35f, Offset(cx - e.radius * 0.3f, cy - e.radius * 0.35f))
         // Eyes track the operative: the threats feel alive and you can read who is watching you.
         val ang = kotlin.math.atan2(g.py - e.y, g.px - e.x)
@@ -600,6 +615,64 @@ class ArenaRenderer {
         }
     }
 
+    /** Family accent on a variant's body, so 300+ types stay readable at a glance. */
+    private fun DrawScope.drawAccent(kind: AccentKind, c: Offset, r: Float, base: Color, time: Float, uid: Int) {
+        val dark = Color(0xFF1A0006)
+        val light = Color(0xFFFFF2B0)
+        when (kind) {
+            AccentKind.NONE -> {}
+            AccentKind.RING -> drawCircle(dark, r * 1.18f, c, style = Stroke(3f))
+            AccentKind.SPIKES -> for (i in 0 until 6) {
+                val a = i * MathUtil.TWO_PI / 6 + time * 0.8f
+                drawLine(dark, Offset(c.x + cos(a) * r * 0.9f, c.y + sin(a) * r * 0.9f), Offset(c.x + cos(a) * r * 1.35f, c.y + sin(a) * r * 1.35f), 3f)
+            }
+            AccentKind.ORBITERS -> for (i in 0 until 3) {
+                val a = time * 3f + i * MathUtil.TWO_PI / 3 + uid
+                drawCircle(base, r * 0.2f, Offset(c.x + cos(a) * r * 1.45f, c.y + sin(a) * r * 0.75f))
+                drawCircle(dark, r * 0.2f, Offset(c.x + cos(a) * r * 1.45f, c.y + sin(a) * r * 0.75f), style = Stroke(1.5f))
+            }
+            AccentKind.CORE -> {
+                val p = 0.6f + 0.4f * sin(time * 5f + uid)
+                drawCircle(light.copy(alpha = 0.35f * p), r * 0.5f, Offset(c.x, c.y + r * 0.2f))
+                drawCircle(Palette.Gold.copy(alpha = p), r * 0.18f, Offset(c.x, c.y + r * 0.35f))
+            }
+            AccentKind.STRIPES -> for (k in -1..1) {
+                val y = c.y + r * 0.42f + k * r * 0.16f
+                drawLine(dark.copy(alpha = 0.6f), Offset(c.x - r * 0.5f, y), Offset(c.x + r * 0.5f, y), 2f)
+            }
+            AccentKind.HORNS -> {
+                drawLine(dark, Offset(c.x - r * 0.45f, c.y - r * 0.7f), Offset(c.x - r * 0.75f, c.y - r * 1.3f), 4f)
+                drawLine(dark, Offset(c.x + r * 0.45f, c.y - r * 0.7f), Offset(c.x + r * 0.75f, c.y - r * 1.3f), 4f)
+            }
+            AccentKind.ANTENNA -> {
+                drawLine(dark, Offset(c.x, c.y - r * 0.85f), Offset(c.x, c.y - r * 1.5f), 2.5f)
+                val blink = if ((time * 3f + uid).toInt() % 2 == 0) Palette.Red else light
+                drawCircle(blink, r * 0.15f, Offset(c.x, c.y - r * 1.55f))
+            }
+            AccentKind.PLATES -> {
+                drawRect(dark.copy(alpha = 0.55f), Offset(c.x - r * 0.95f, c.y - r * 0.2f), Size(r * 0.32f, r * 0.7f))
+                drawRect(dark.copy(alpha = 0.55f), Offset(c.x + r * 0.63f, c.y - r * 0.2f), Size(r * 0.32f, r * 0.7f))
+            }
+            AccentKind.HALO -> {
+                val p = 0.5f + 0.5f * sin(time * 4f + uid)
+                drawOval(base.copy(alpha = 0.35f + 0.3f * p), Offset(c.x - r * 0.8f, c.y - r * 1.45f), Size(r * 1.6f, r * 0.45f), style = Stroke(2.5f))
+            }
+            AccentKind.CRACKS -> {
+                drawLine(dark, Offset(c.x - r * 0.1f, c.y - r * 0.9f), Offset(c.x + r * 0.15f, c.y - r * 0.45f), 2f)
+                drawLine(dark, Offset(c.x + r * 0.15f, c.y - r * 0.45f), Offset(c.x - r * 0.05f, c.y - r * 0.2f), 2f)
+                drawLine(dark, Offset(c.x + r * 0.6f, c.y + r * 0.1f), Offset(c.x + r * 0.85f, c.y + r * 0.45f), 2f)
+            }
+            AccentKind.VISOR -> drawRoundRect(dark.copy(alpha = 0.75f), Offset(c.x - r * 0.62f, c.y - r * 0.28f), Size(r * 1.24f, r * 0.42f), CornerRadius(r * 0.2f), style = Stroke(2.5f))
+            AccentKind.BITS -> for (i in 0 until 4) {
+                val t = ((time * 0.9f + i * 0.25f + uid * 0.13f) % 1f)
+                val x = c.x + (i - 1.5f) * r * 0.5f
+                drawRect(base.copy(alpha = 1f - t), Offset(x, c.y - r - t * r * 1.2f), Size(r * 0.18f, r * 0.18f))
+            }
+        }
+    }
+
+    private val GLITCH_SHAPES = ShapeKind.entries.toTypedArray()
+
     private fun darken(c: Color, k: Float) = Color(c.red * k, c.green * k, c.blue * k, c.alpha)
 
     private fun DrawScope.drawShape(shape: ShapeKind, c: Offset, r: Float, color: Color, rotationDeg: Float, stroke: Float = 0f) {
@@ -613,7 +686,9 @@ class ArenaRenderer {
                 val sides = when (shape) {
                     ShapeKind.TRIANGLE -> 3
                     ShapeKind.DIAMOND -> 4
+                    ShapeKind.PENTAGON -> 5
                     ShapeKind.HEXAGON -> 6
+                    ShapeKind.STAR -> 10
                     else -> 8
                 }
                 shapePath.reset()
@@ -628,8 +703,10 @@ class ArenaRenderer {
                 } else {
                     for (i in 0 until sides) {
                         val a = rot + i * MathUtil.TWO_PI / sides
-                        val x = c.x + cos(a) * rr
-                        val y = c.y + sin(a) * rr
+                        // Star: alternate outer and inner points.
+                        val pr = if (shape == ShapeKind.STAR && i % 2 == 1) rr * 0.55f else rr
+                        val x = c.x + cos(a) * pr
+                        val y = c.y + sin(a) * pr
                         if (i == 0) shapePath.moveTo(x, y) else shapePath.lineTo(x, y)
                     }
                 }

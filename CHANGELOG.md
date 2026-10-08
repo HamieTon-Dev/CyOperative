@@ -18,6 +18,18 @@
   ARC DISCHARGE (purple chain lightning), QUANTUM RAILGUN (golden, pierces walls),
   ORBITAL STRIKE (titanium). New titanium/golden mods: TITANIUM CHASSIS, OMEGA OVERCLOCK,
   GOLDEN PROTOCOL.
+- 338 new enemy types (data/EnemyVariants.kt): 26 strains (crawler, leech, brute, husk, grub,
+  golem, mite, gnat, nanite, locust, spitter, gunner, scatterer, mortar, repeater, ram, lancer,
+  bull, marksman, stalker, beacon, spire, sentry, blinker, phantom, glitch) × 13 code families
+  (Polymorphic, Encrypted, Botnet, Ransom, Zero-Day, Adware, Spyware, Cryptojack, Forkbomb,
+  Keylogger, Backdoor, Stealth, Kernel-Mode). Each has its own name, tag, colour, body accent,
+  stats, behaviour twist (packs, splitting, armour, extra shots…) and unlock level, so the roster
+  keeps widening through the run. New shapes: pentagon, octagon, star.
+- *GLITCHED* enemies (from L25/L32/L42): Daemon, Shard, Hydra. Colour and shape cycle constantly
+  with an RGB-split flicker; every attack rolls a different pattern (aimed burst, spread, ring,
+  or blink + spread). Sentries and other aimed turrets now track the player.
+- *GLITCHED* bosses: 12% of bosses from L20 on. +35% HP, extra random volleys, colour/shape
+  flicker, "*GLITCHED*" in the boss bar, ×1.5 €/score and one extra reward pick.
 - Owned-upgrade icon bar along the bottom of the screen; press and hold an icon for details.
 ### Changed
 - Slow mix: each normal round (not boss or event levels) has a 20% chance to play its music

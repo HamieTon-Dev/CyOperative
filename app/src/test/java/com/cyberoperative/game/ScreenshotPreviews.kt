@@ -242,6 +242,33 @@ class ScreenshotPreviews {
         save("difficulty_picker")
     }
 
+    @Test fun enemyRoster() {
+        assumeTrue(enabled)
+        gameplay("enemy_roster", 0f) { s ->
+            val g = s.engine
+            g.debugJumpToLevel(45)
+            for (e in g.enemies.items) e.active = false
+            val picks = listOf(
+                "poly_crawler", "enc_brute", "botnet_mite", "ransom_golem", "zeroday_spitter", "adware_scatter",
+                "spyware_marksman", "cryptojack_beacon", "forkbomb_husk", "keylogger_gnat", "backdoor_bull", "stealth_lancer",
+                "kernel_spire", "enc_sentry", "ransom_mortar", "zeroday_glitch", "adware_blinker", "kernel_phantom",
+                "glitch_daemon", "glitch_shard", "glitch_hydra"
+            )
+            picks.forEachIndexed { i, id ->
+                val e = g.spawnEnemyAt(com.cyberoperative.game.data.Enemies.byId(id), null, 90f + (i % 4) * 180f, 230f + (i / 4) * 130f, telegraph = false)
+                e?.speed = 0f
+            }
+            repeat(10) { g.update(1f / 60f) }
+        }
+    }
+
+    @Test fun glitchedBoss() {
+        assumeTrue(enabled)
+        gameplay("boss_glitched", 5f) { s ->
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(30, kotlin.random.Random(1)).copy(glitchedBoss = true))
+        }
+    }
+
     @Test fun combat() {
         assumeTrue(enabled)
         gameplay("gameplay_combat", 4.0f)

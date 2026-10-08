@@ -35,6 +35,10 @@ class BossState(val def: BossDef, val cycle: Int) {
     var driftAngle = 0f
     /** The entrance growl has played (see [BossBrain.INTRO_GROWL_AT]). */
     var growled = false
+    /** *GLITCHED* boss: tougher, flickers, and fires extra random patterns. */
+    var glitched = false
+    var glitchTimer = 3f
+    val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
 }
@@ -57,7 +61,7 @@ class BossBrain(private val g: GameEngine) {
         )
     }
 
-    fun spawn(b: BossDef, x: Float, y: Float) {
+    fun spawn(b: BossDef, x: Float, y: Float, glitched: Boolean = false) {
         val cycle = Bosses.cycleForLevel(g.level)
         val e = g.spawnEnemyAt(enemyDefFor(b), null, x, y, telegraph = true) ?: return
         e.stateTimer = INTRO_SECONDS
@@ -68,6 +72,12 @@ class BossBrain(private val g: GameEngine) {
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
         e.damageMul = Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage
+        if (glitched) {
+            st.glitched = true
+            e.maxHp *= 1.35f
+            e.hp = e.maxHp
+            e.damageMul *= 1.1f
+        }
         st.anchorX = x
         st.anchorY = y
         g.setBossRef(e)
@@ -99,11 +109,13 @@ class BossBrain(private val g: GameEngine) {
             st.active = null
             st.rest = 1.0f
             g.setBossPhaseLabel(st.phase.label)
-            g.showBanner(st.phase.label, st.def.name, 1.4f)
+            g.showBanner(st.phase.label, st.displayName, 1.4f)
             g.addPulse(e.x, e.y, 200f, 0.6f, st.def.color)
             g.sound(GameSound.BOSS_PHASE)
             if (e.state == AiState.HIDDEN) e.state = AiState.MOVE
         }
+
+        if (st.glitched) glitchBurst(e, st, dt)
 
         val dashing = st.active is Pattern.Charge && st.chargeStage == 1
         val teleporting = st.active is Pattern.Teleport
@@ -124,6 +136,21 @@ class BossBrain(private val g: GameEngine) {
                 st.rest = max(0.45f, st.phase.gap / (1f + 0.12f * st.cycle))
             }
         }
+    }
+
+    /** *GLITCHED* boss: on top of its own patterns, a random corrupted volley every few seconds. */
+    private fun glitchBurst(e: Enemy, st: BossState, dt: Float) {
+        st.glitchTimer -= dt
+        if (st.glitchTimer > 0f) return
+        st.glitchTimer = 2.8f + g.rng.nextFloat() * 1.6f
+        val dmg = 10f * e.damageMul
+        val aim = kotlin.math.atan2(g.py - e.y, g.px - e.x)
+        when (g.rng.nextInt(3)) {
+            0 -> for (i in 0 until 14) g.fireEnemyProjectile(e.x, e.y, aim + MathUtil.TWO_PI * i / 14, 180f, dmg, 8f, ProjKind.BOSS)
+            1 -> for (i in 0 until 7) g.fireEnemyProjectile(e.x, e.y, aim + (i / 6f - 0.5f) * 1.6f, 230f, dmg, 8f, ProjKind.BOSS)
+            else -> for (i in 0 until 3) g.fireEnemyProjectile(e.x, e.y, aim + (i - 1) * 0.1f, 320f, dmg * 1.2f, 9f, ProjKind.BOSS)
+        }
+        g.addPulse(e.x, e.y, 120f, 0.35f, 0xFFFF2EC4)
     }
 
     private fun move(e: Enemy, st: BossState, dt: Float) {
@@ -334,9 +361,10 @@ class BossBrain(private val g: GameEngine) {
         g.addPulse(e.x, e.y, 260f, 0.7f, 0xFFFFFFFF)
         repeat(60) { g.addParticle(e.x, e.y, st.def.color, 360f, 1.2f, 4f) }
         g.sound(GameSound.BOSS_DEATH)
-        g.showBanner("BOSS ELIMINATED", st.def.name, 2f)
-        val euros = (st.def.euros * (1f + 0.04f * g.level)).toInt()
-        g.onBossDefeated(euros, Scoring.boss(st.def.score, g.level, st.cycle))
+        g.showBanner("BOSS ELIMINATED", st.displayName, 2f)
+        val glitchMul = if (st.glitched) 1.5f else 1f
+        val euros = (st.def.euros * (1f + 0.04f * g.level) * glitchMul).toInt()
+        g.onBossDefeated(euros, (Scoring.boss(st.def.score, g.level, st.cycle) * glitchMul).toInt(), bonusPicks = if (st.glitched) 1 else 0)
         g.setBossRef(null)
     }
 

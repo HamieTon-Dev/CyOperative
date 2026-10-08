@@ -52,6 +52,8 @@ class Enemy {
     var navValid = false
     var lastX = 0f
     var lastY = 0f
+    /** *GLITCHED*: which attack the current windup will release (0..3). */
+    var glitchMode = 0
     /** Split children give reduced score so splitting can't be farmed. */
     var isChild = false
 

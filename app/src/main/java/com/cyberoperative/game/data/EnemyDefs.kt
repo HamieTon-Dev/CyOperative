@@ -22,10 +22,16 @@ enum class AiKind {
     /** Stationary; fires radial rings. */
     TURRET,
     /** Blinks to a new spot near the player, then fires a spread. */
-    TELEPORTER
+    TELEPORTER,
+    /**
+     * *GLITCHED* (owner, 2026-10-08): corrupted code that keeps changing shape
+     * and colour and picks a different attack every time — aimed bursts,
+     * spreads, rings, or a blink to a new spot.
+     */
+    GLITCHED
 }
 
-enum class ShapeKind { CIRCLE, DIAMOND, TRIANGLE, SQUARE, HEXAGON, CROSS }
+enum class ShapeKind { CIRCLE, DIAMOND, TRIANGLE, SQUARE, HEXAGON, CROSS, PENTAGON, OCTAGON, STAR }
 
 enum class AttackKind { NONE, AIMED, SPREAD, RADIAL }
 
@@ -69,7 +75,11 @@ data class EnemyDef(
     /** First level at which the spawner may pick it. */
     val minLevel: Int,
     /** Relative spawn weight; 0 = never spawned directly (children only). */
-    val weight: Float
+    val weight: Float,
+    /** Extra body detail that tells variant families apart at a glance. */
+    val accent: AccentKind = AccentKind.NONE,
+    /** Shape and colour flicker constantly; uses [AiKind.GLITCHED]. */
+    val glitched: Boolean = false
 )
 
 object Enemies {
@@ -186,10 +196,46 @@ object Enemies {
         xp = 5f, euros = 5, score = 28, minLevel = 20, weight = 2.5f
     )
 
-    val all: List<EnemyDef> = listOf(
+    // --- *GLITCHED* (later levels) --------------------------------------------
+    val GLITCH_DAEMON = EnemyDef(
+        id = "glitch_daemon", name = "*GLITCHED* DAEMON", tag = "#?!",
+        codex = "A background process that broke in half. Never the same shape twice; " +
+            "fires bursts, spreads or rings at random, and blinks around the room.",
+        shape = ShapeKind.STAR, color = 0xFFFF2EC4, radius = 19f,
+        baseHp = 90f, baseSpeed = 84f, contactDamage = 14f, ai = AiKind.GLITCHED,
+        projectileDamage = 11f, projectileSpeed = 250f, attackCooldown = 2.2f, windup = 0.45f,
+        preferredRange = 260f, armor = 1f,
+        xp = 7f, euros = 9, score = 45, minLevel = 25, weight = 1.2f, glitched = true
+    )
+    val GLITCH_SHARD = EnemyDef(
+        id = "glitch_shard", name = "*GLITCHED* SHARD", tag = "%#",
+        codex = "A splinter of corrupted memory. Quick, erratic, and it never attacks the same way twice.",
+        shape = ShapeKind.TRIANGLE, color = 0xFF7DF9FF, radius = 15f,
+        baseHp = 55f, baseSpeed = 122f, contactDamage = 11f, ai = AiKind.GLITCHED,
+        projectileDamage = 9f, projectileSpeed = 290f, attackCooldown = 1.7f, windup = 0.35f,
+        preferredRange = 220f, packSize = 2,
+        xp = 5f, euros = 7, score = 34, minLevel = 32, weight = 1f, glitched = true
+    )
+    val GLITCH_HYDRA = EnemyDef(
+        id = "glitch_hydra", name = "*GLITCHED* HYDRA", tag = "<#>",
+        codex = "Three corrupted processes fused into one. Huge, unstable, and every attack pattern at once.",
+        shape = ShapeKind.OCTAGON, color = 0xFFFFD426, radius = 28f,
+        baseHp = 260f, baseSpeed = 58f, contactDamage = 24f, ai = AiKind.GLITCHED,
+        projectileDamage = 13f, projectileSpeed = 220f, attackCooldown = 2.6f, windup = 0.6f,
+        preferredRange = 300f, armor = 3f, splitInto = "glitch_shard", splitCount = 2,
+        xp = 14f, euros = 18, score = 90, minLevel = 42, weight = 0.8f, glitched = true
+    )
+
+    /** The eleven hand-made originals. */
+    val originals: List<EnemyDef> = listOf(
         MALWARE, SQL_INJECTOR, BOT, EXPLOIT, TROJAN, PHISHER, SNIFFER, WORM, WORMLET,
         DDOS_NODE, ROOTKIT
     )
+
+    /** Originals plus the 338 strain × code variants (see [EnemyVariants]). */
+    val glitched: List<EnemyDef> = listOf(GLITCH_DAEMON, GLITCH_SHARD, GLITCH_HYDRA)
+
+    val all: List<EnemyDef> = originals + glitched + EnemyVariants.all
 
     private val byId = all.associateBy { it.id }
 

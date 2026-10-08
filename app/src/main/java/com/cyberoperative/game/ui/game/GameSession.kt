@@ -200,7 +200,7 @@ class GameSession(
             runLevel = g.runLevel,
             phase = g.phase,
             kind = g.plan.kind,
-            bossName = b?.boss?.def?.name,
+            bossName = b?.boss?.displayName,
             bossTitle = b?.boss?.def?.title ?: "",
             bossTag = b?.boss?.def?.tag ?: "",
             bossColor = b?.boss?.def?.color ?: 0,

@@ -44,6 +44,7 @@ class EnemyAi(private val g: GameEngine) {
                 AiKind.CHARGER -> charger(e, dt)
                 AiKind.TURRET -> turret(e, dt)
                 AiKind.TELEPORTER -> teleporter(e, dt)
+                AiKind.GLITCHED -> glitched(e, dt)
             }
             contact(e)
         }
@@ -292,7 +293,9 @@ class EnemyAi(private val g: GameEngine) {
                 e.stateTimer -= dt
                 if (e.stateTimer <= 0f) {
                     e.wobble += 0.3f
-                    fireAttack(e, e.wobble)
+                    // Ring turrets rotate their pattern; aimed / spread turrets track the player.
+                    val aim = if (def.attack == AttackKind.RADIAL) e.wobble else atan2(g.py - e.y, g.px - e.x)
+                    fireAttack(e, aim)
                     e.state = AiState.MOVE
                     e.attackTimer = def.attackCooldown
                 }
@@ -342,29 +345,96 @@ class EnemyAi(private val g: GameEngine) {
         }
     }
 
-    private fun fireAttack(e: Enemy, angle: Float) {
+    /**
+     * *GLITCHED*: strafes at range like a shooter, but each attack rolls a
+     * different pattern (aimed burst, wide spread, ring, or blink + spread).
+     */
+    private fun glitched(e: Enemy, dt: Float) {
+        val def = e.def
+        val dist = MathUtil.dist(e.x, e.y, g.px, g.py)
+        val los = g.arena.lineOfSight(e.x, e.y, g.px, g.py, 4f)
+        when (e.state) {
+            AiState.MOVE -> {
+                val want = def.preferredRange
+                if (!los || dist > want + 60f) moveToward(e, g.px, g.py, e.speed, dt)
+                else {
+                    val ang = atan2(e.y - g.py, e.x - g.px) + e.strafeDir * 0.8f
+                    moveToward(e, g.px + cos(ang) * want, g.py + sin(ang) * want, e.speed * 0.8f, dt)
+                    if (g.rng.nextFloat() < dt * 0.6f) e.strafeDir = -e.strafeDir
+                }
+                e.attackTimer -= dt * e.attackRateMul
+                if (e.attackTimer <= 0f && (los || g.rng.nextFloat() < 0.3f)) {
+                    e.glitchMode = g.rng.nextInt(4)
+                    if (e.glitchMode == 3) {
+                        e.state = AiState.HIDDEN
+                        e.stateTimer = 0.35f
+                    } else {
+                        e.state = AiState.WINDUP
+                        e.stateTimer = def.windup
+                    }
+                }
+            }
+            AiState.HIDDEN -> {
+                e.stateTimer -= dt
+                if (e.stateTimer <= 0f) {
+                    for (attempt in 0 until 16) {
+                        val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                        val x = g.px + cos(a) * def.preferredRange
+                        val y = g.py + sin(a) * def.preferredRange
+                        if (g.arena.isFree(x, y, e.radius + 4f) && g.arena.lineOfSight(x, y, g.px, g.py)) {
+                            e.x = x; e.y = y
+                            break
+                        }
+                    }
+                    g.addPulse(e.x, e.y, 50f, 0.3f, 0xFFFF2EC4)
+                    e.state = AiState.WINDUP
+                    e.stateTimer = def.windup
+                }
+            }
+            AiState.WINDUP -> {
+                e.stateTimer -= dt
+                if (e.stateTimer <= 0f) {
+                    val angle = atan2(g.py - e.y, g.px - e.x)
+                    when (e.glitchMode) {
+                        0 -> firePattern(e, angle, AttackKind.AIMED, 3, 0f)
+                        1 -> firePattern(e, angle, AttackKind.SPREAD, 6, 80f)
+                        2 -> firePattern(e, angle, AttackKind.RADIAL, 10, 0f)
+                        else -> firePattern(e, angle, AttackKind.SPREAD, 4, 45f)
+                    }
+                    e.state = AiState.MOVE
+                    e.attackTimer = def.attackCooldown * (0.7f + g.rng.nextFloat() * 0.6f)
+                }
+            }
+            else -> e.state = AiState.MOVE
+        }
+    }
+
+    private fun fireAttack(e: Enemy, angle: Float) =
+        firePattern(e, angle, e.def.attack, e.def.projectileCount, e.def.spreadDegrees)
+
+    private fun firePattern(e: Enemy, angle: Float, kind: AttackKind, count: Int, spreadDegrees: Float) {
         val def = e.def
         val dmg = def.projectileDamage * e.damageMul
         val mul = g.plan.rules.enemyProjectileMul
-        when (def.attack) {
+        when (kind) {
             AttackKind.NONE -> {}
             AttackKind.AIMED -> {
-                val n = def.projectileCount * mul
+                val n = count * mul
                 for (i in 0 until n) {
                     val off = if (n == 1) 0f else (i - (n - 1) / 2f) * 0.12f
                     g.fireEnemyProjectile(e.x, e.y, angle + off, def.projectileSpeed, dmg, def.projectileRadius, ProjKind.ENEMY)
                 }
             }
             AttackKind.SPREAD -> {
-                val n = def.projectileCount * mul
-                val spread = Math.toRadians(def.spreadDegrees.toDouble()).toFloat() * (if (mul > 1) 1.4f else 1f)
+                val n = count * mul
+                val spread = Math.toRadians(spreadDegrees.toDouble()).toFloat() * (if (mul > 1) 1.4f else 1f)
                 for (i in 0 until n) {
                     val t = if (n == 1) 0f else i / (n - 1f) - 0.5f
                     g.fireEnemyProjectile(e.x, e.y, angle + t * spread, def.projectileSpeed, dmg, def.projectileRadius, ProjKind.ENEMY)
                 }
             }
             AttackKind.RADIAL -> {
-                val n = def.projectileCount * mul
+                val n = count * mul
                 for (i in 0 until n) {
                     g.fireEnemyProjectile(e.x, e.y, angle + MathUtil.TWO_PI * i / n, def.projectileSpeed, dmg, def.projectileRadius, ProjKind.ENEMY)
                 }

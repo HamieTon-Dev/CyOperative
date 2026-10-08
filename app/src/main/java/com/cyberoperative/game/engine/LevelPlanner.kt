@@ -28,7 +28,9 @@ data class LevelPlan(
     val event: EventDef? = null,
     val rules: EventRules = EventRules(),
     /** Names of Zero-Day modifiers rolled for this level (for the banner). */
-    val modifierNames: List<String> = emptyList()
+    val modifierNames: List<String> = emptyList(),
+    /** A rare *GLITCHED* boss (owner, 2026-10-08). */
+    val glitchedBoss: Boolean = false
 ) {
     val enemyCount: Int get() = waves.sumOf { it.size }
 }
@@ -97,8 +99,13 @@ object LevelPlanner {
     fun bossPlan(level: Int, rng: Random): LevelPlan {
         val boss = Bosses.forLevel(level)
         val arena = if (rng.nextBoolean()) Arenas.bossArena else Arenas.mirrored(Arenas.bossArena)
-        return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss)
+        return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss, glitchedBoss = rollGlitchedBoss(level, rng))
     }
+
+    /** Small chance (from level 20) that a boss arrives *GLITCHED*. */
+    const val GLITCHED_BOSS_CHANCE = 0.12f
+
+    fun rollGlitchedBoss(level: Int, rng: Random): Boolean = level >= 20 && rng.nextFloat() < GLITCHED_BOSS_CHANCE
 
     /** Most rooms are freshly generated; a hand-made layout turns up now and then. */
     fun pickArena(level: Int, rng: Random, previousArenaId: String?): ArenaTemplate {

@@ -97,6 +97,8 @@ and build (RunSnapshot); CONTINUE restores it once. Saving is blocked while a bo
 Autosave on backgrounding.
 
 ## 9. Enemies (data/EnemyDefs.kt)
+Roster: 11 hand-made originals + 3 *GLITCHED* + 338 strain×code variants (EnemyVariants.kt,
+weight 0.45 each, unlocking from L2 to ~L52). Glitched bosses: 12% from L20.
 Navigation (engine/Pathfinder.kt): flow field toward the player, rebuilt when the player
 changes cell (≤ every 0.2 s); enemies with a clear line charge straight in, others follow
 the field around cover; bosses use the same movement.
