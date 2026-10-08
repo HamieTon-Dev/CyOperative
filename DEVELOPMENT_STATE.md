@@ -4,7 +4,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.9.7 (versionCode 17) |
+| Version | 0.10.0 (versionCode 18) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -21,6 +21,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 - Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).
 - Balance: a simple dodging bot with no permanent upgrades averages ~level 6 in campaign.
 - The top wall/gate sits under the translucent HUD until the player walks up.
+- Co-op 0.10.0 is tested end-to-end in-process (two sessions over a loopback room, real wire
+  format) but not yet over real Firebase or on two devices. The owner must create the Firebase
+  project (FIREBASE_SETUP.md). Guest movement is client-trusted (fine between friends).
+  Backgrounding the host's app stops the simulation; after 8s the guest carries on solo.
 - HUD 0.9.5: immersive mode, notification-shade fade and chip tooltips (Popup) can't be seen in
   Robolectric renders; confirm on a device. Previews: hud_upgrade_bar, hud_collapsed,
   hud_narrow_320dp, hud_upgrade_bar_boss, pause_save.

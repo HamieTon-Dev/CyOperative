@@ -220,6 +220,83 @@ class ScreenshotPreviews {
         for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
     }
 
+    private class FakeCoop(registered: Boolean) : com.cyberoperative.game.net.CoopBackend {
+        override val available = true
+        override val profile = kotlinx.coroutines.flow.MutableStateFlow(
+            if (registered) com.cyberoperative.game.net.CoopProfile("me", "NEON_FOX", "K7QM-4XPZ") else null
+        )
+        override suspend fun start() = Result.success(Unit)
+        override suspend fun register(callsign: String) = Result.failure<com.cyberoperative.game.net.CoopProfile>(Exception())
+        override fun friends() = kotlinx.coroutines.flow.flowOf(listOf(
+            com.cyberoperative.game.net.Friend("a", "GHOSTWIRE", true),
+            com.cyberoperative.game.net.Friend("b", "BYTE_RAVEN", true),
+            com.cyberoperative.game.net.Friend("c", "NULLPTR", false)
+        ))
+        override fun friendRequests() = kotlinx.coroutines.flow.flowOf(listOf(com.cyberoperative.game.net.FriendRequest("r", "z", "SYNTH_ACE")))
+        override suspend fun sendFriendRequest(code: String) = Result.success("")
+        override suspend fun answerFriendRequest(request: com.cyberoperative.game.net.FriendRequest, accept: Boolean) = Result.success(Unit)
+        override suspend fun removeFriend(uid: String) = Result.success(Unit)
+        override fun invites() = kotlinx.coroutines.flow.flowOf(listOf(com.cyberoperative.game.net.Invite("i", "a", "GHOSTWIRE", "room", 0L)))
+        override suspend fun invite(friend: com.cyberoperative.game.net.Friend, me: com.cyberoperative.game.net.RoomPlayer) = Result.failure<com.cyberoperative.game.net.CoopRoom>(Exception())
+        override suspend fun answerInvite(invite: com.cyberoperative.game.net.Invite, accept: Boolean, me: com.cyberoperative.game.net.RoomPlayer) = Result.failure<com.cyberoperative.game.net.CoopRoom?>(Exception())
+    }
+
+    private fun coopShot(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { content() } }
+        compose.mainClock.advanceTimeBy(400)
+        save(name)
+    }
+
+    @Test fun coopHub() {
+        assumeTrue(enabled)
+        coopShot("coop_hub") { com.cyberoperative.game.ui.menu.CoopScreen(FakeCoop(true), com.cyberoperative.game.save.PlayerProfile(), {}, {}) }
+    }
+
+    @Test fun coopRegister() {
+        assumeTrue(enabled)
+        coopShot("coop_register") { com.cyberoperative.game.ui.menu.CoopScreen(FakeCoop(false), com.cyberoperative.game.save.PlayerProfile(), {}, {}) }
+    }
+
+    @Test fun coopLobby() {
+        assumeTrue(enabled)
+        val st = com.cyberoperative.game.net.RoomState(
+            "room", host = com.cyberoperative.game.net.RoomPlayer("h", "NEON_FOX", opLevel = 42), guest = com.cyberoperative.game.net.RoomPlayer("g", "GHOSTWIRE", opLevel = 17),
+            hostOnline = true, guestOnline = true
+        )
+        val (room, _) = LoopbackRoom.pair(st)
+        coopShot("coop_lobby") { com.cyberoperative.game.ui.menu.CoopLobbyScreen(room, com.cyberoperative.game.engine.Difficulty.MEDIUM, {}, {}) }
+    }
+
+    @Test fun coopFight() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(tutorialDone = true) }
+        val st = com.cyberoperative.game.net.RoomState(
+            "room", status = com.cyberoperative.game.net.RoomStatus.PLAYING,
+            host = com.cyberoperative.game.net.RoomPlayer("h", "NEON_FOX", opLevel = 42),
+            guest = com.cyberoperative.game.net.RoomPlayer("g", "GHOSTWIRE", opLevel = 17, skin = "blue_hat", body = "mech"),
+            hostOnline = true, guestOnline = true, seed = 7L
+        )
+        val (hostRoom, guestRoom) = LoopbackRoom.pair(st)
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
+        val host = GameSession(repo, AudioManager(ctx), coop = com.cyberoperative.game.ui.game.CoopLink(hostRoom, st, scope))
+        val guest = GameSession(repo, AudioManager(ctx), coop = com.cyberoperative.game.ui.game.CoopLink(guestRoom, st, scope))
+        var t = 0f
+        while (t < 4f) {
+            val g = guest.engine
+            g.setInput(0.6f, -0.3f)
+            host.onFrame(1f / 30f); guest.onFrame(1f / 30f); t += 1f / 30f
+        }
+        g0@ run { guest.engine.setInput(0f, 0f) }
+        repeat(6) { host.onFrame(1f / 30f); guest.onFrame(1f / 30f) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { GameScreen(guest, true, {}, {}) } }
+        compose.mainClock.advanceTimeBy(100)
+        save("coop_fight_guest_view")
+    }
+
     @Test fun upgradesMastery() {
         assumeTrue(enabled)
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()

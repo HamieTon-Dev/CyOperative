@@ -1,0 +1,61 @@
+rules_version = '2';
+// Cyber Operative co-op (see FIREBASE_SETUP.md). Every player is an anonymous
+// Firebase account; nobody can read or change another player's private data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function otherMember() {
+      return request.resource.data.members[0] == me() ? request.resource.data.members[1] : request.resource.data.members[0];
+    }
+
+    // Public profile: callsign + friend code.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if me() == uid
+        && request.resource.data.callsign is string
+        && request.resource.data.callsign.size() >= 3
+        && request.resource.data.callsign.size() <= 16;
+      allow delete: if false;
+    }
+
+    // Friend code → player. Claimed once, never changed.
+    match /codes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == me() && code.size() == 9;
+      allow update, delete: if false;
+    }
+
+    // Pending friend request: id is "{from}_{to}".
+    match /friendRequests/{id} {
+      allow read: if signedIn() && (resource == null || resource.data.from == me() || resource.data.to == me());
+      allow create: if signedIn() && request.resource.data.from == me()
+        && id == me() + "_" + request.resource.data.to
+        && request.resource.data.to != me();
+      allow delete: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      allow update: if false;
+    }
+
+    // Friendship: id is the two uids sorted and joined by "_". Only created
+    // by the person a request was sent to, while that request still exists.
+    match /friendships/{id} {
+      allow read: if signedIn() && (resource == null || me() in resource.data.members);
+      allow create: if signedIn()
+        && me() in request.resource.data.members
+        && request.resource.data.members.size() == 2
+        && exists(/databases/$(database)/documents/friendRequests/$(otherMember() + "_" + me()));
+      allow delete: if signedIn() && me() in resource.data.members;
+      allow update: if false;
+    }
+
+    // Co-op invite to a live room.
+    match /invites/{id} {
+      allow read: if signedIn() && (resource.data.from == me() || resource.data.to == me());
+      allow create: if signedIn() && request.resource.data.from == me() && request.resource.data.status == "pending";
+      // The invited player answers; only the status may change.
+      allow update: if signedIn() && resource.data.to == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
+      allow delete: if signedIn() && resource.data.from == me();
+    }
+  }
+}

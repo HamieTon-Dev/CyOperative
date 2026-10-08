@@ -180,6 +180,7 @@ fun GameHud(
             HeaderRow(h, paused, onPause)
             Column(Modifier.padding(horizontal = 12.dp)) {
                 HpRow(h)
+                if (h.coop && !h.partnerGone) PartnerRow(h)
                 ProgressRow(h)
                 if (h.owned.isNotEmpty()) {
                     Spacer(Modifier.height(2.dp))
@@ -350,6 +351,19 @@ private fun HpRow(h: HudSnapshot) {
         value = "${h.hp}/${h.maxHp}",
         extra = if (h.firewallMax > 0) "FW ${h.firewall}" else null,
         description = "Core health ${h.hp} of ${h.maxHp}" + if (h.firewallMax > 0) ", firewall ${h.firewall} of ${h.firewallMax}" else ""
+    )
+}
+
+/** Co-op partner's HP in magenta, matching their ring on the field. */
+@Composable
+private fun PartnerRow(h: HudSnapshot) {
+    val name = h.partnerName.ifEmpty { "PARTNER" }.uppercase().take(10)
+    StatRow(
+        label = name, labelColor = Palette.Magenta,
+        fraction = h.partnerHp / h.partnerMaxHp.coerceAtLeast(1).toFloat(),
+        color = if (h.partnerDowned) Palette.Red else Palette.Magenta, overlay = 0f,
+        value = if (h.partnerDowned) "DOWN" else "${h.partnerHp}/${h.partnerMaxHp}", extra = null,
+        description = "Partner $name " + if (h.partnerDowned) "is down" else "health ${h.partnerHp} of ${h.partnerMaxHp}"
     )
 }
 

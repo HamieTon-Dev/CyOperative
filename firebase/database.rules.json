@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "presence": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.isBoolean() || !newData.exists()"
+      }
+    },
+    "rooms": {
+      "$room": {
+        ".read": "auth != null && (data.child('meta/host').val() === auth.uid || data.child('meta/guest').val() === auth.uid)",
+        ".write": "auth != null && (data.child('meta/host').val() === auth.uid || (!data.exists() && newData.child('meta/host').val() === auth.uid) || (!newData.exists() && data.child('meta/host').val() === auth.uid))",
+        "meta": {
+          ".write": "auth != null && (data.child('host').val() === auth.uid || data.child('guest').val() === auth.uid || (!data.exists() && newData.child('host').val() === auth.uid))",
+          "host": { ".validate": "!data.exists() || data.val() === newData.val()" },
+          "guest": { ".validate": "!data.exists() || data.val() === newData.val()" }
+        },
+        "world": {
+          ".write": "auth != null && root.child('rooms/' + $room + '/meta/host').val() === auth.uid",
+          ".validate": "newData.isString() && newData.val().length < 32768"
+        },
+        "input": {
+          ".write": "auth != null && root.child('rooms/' + $room + '/meta/guest').val() === auth.uid",
+          ".validate": "newData.isString() && newData.val().length < 1024"
+        }
+      }
+    }
+  }
+}

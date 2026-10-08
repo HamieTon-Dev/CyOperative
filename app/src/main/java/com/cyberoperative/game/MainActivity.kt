@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CyberOperativeTheme {
-                AppRoot(save = app.save, audio = app.audio)
+                AppRoot(save = app.save, audio = app.audio, coop = app.coop)
             }
         }
     }

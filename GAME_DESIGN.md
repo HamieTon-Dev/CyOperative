@@ -143,6 +143,22 @@ data but is 0 pending a monetization decision.
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
   × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
 
+## 12b. Co-op (0.10.0, engine/Operative.kt, engine/CoopNet.kt, net/)
+- Two operatives in one campaign run: host = operative 0, guest = 1. Each brings its own permanent
+  upgrades, skin and body, and picks its own cards; the card screen waits for both.
+- Threats chase the closest operative still up; hostile shots and hazards hit either one.
+- HP 0 → downed. The partner standing within 70 px for 3 s revives at 50% HP. Downed operatives
+  return at 50% on the next level. Both down → run over. No paid/free revives in co-op.
+- Scaling: threat HP ×1.4, boss HP ×1.7, each wave spawn has a 35% chance of an extra copy;
+  OP scaling uses the higher OP level.
+- Rewards: both players bank the whole run (€, XP, records, achievements).
+- No pause, no save, no upgrade shop.
+- Net: the host simulates and sends snapshots at 10 Hz (deflated binary, positions at 0.5 px);
+  the guest mirrors them, moves itself locally and sends input at 15 Hz. A partner that goes
+  offline or silent for 8 s is dropped; the other carries on solo.
+- Accounts: anonymous Firebase accounts + callsign (3–16 chars) + friend code XXXX-XXXX
+  (no 0/O/1/I/L). Invites expire after 3 minutes.
+
 ## 13. Score (engine/Scoring.kt)
 Kills (×level scale, elites ×2.5, split/summon children ×0.35), level clear 100·scale +
 speed bonus (capped at +100%, linear to par) + flawless bonus 60√level, ×event reward,

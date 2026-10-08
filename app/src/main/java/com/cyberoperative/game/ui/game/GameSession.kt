@@ -14,6 +14,14 @@ import com.cyberoperative.game.engine.GameMode
 import com.cyberoperative.game.engine.LevelKind
 import com.cyberoperative.game.engine.Phase
 import com.cyberoperative.game.engine.Scoring
+import com.cyberoperative.game.engine.AllyConfig
+import com.cyberoperative.game.engine.CoopCodec
+import com.cyberoperative.game.engine.CoopInput
+import com.cyberoperative.game.engine.GameSound
+import com.cyberoperative.game.net.CoopRoom
+import com.cyberoperative.game.net.RoomState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import com.cyberoperative.game.save.SaveRepository
 import com.cyberoperative.game.data.LivingBackground
 import com.cyberoperative.game.data.OperativeSkins
@@ -78,6 +86,18 @@ data class HudSnapshot(
     val shopGateRight: Boolean = false,
     val skipShopPrompt: Boolean = false,
     val topGateLocked: Boolean = false,
+    // --- Co-op ---
+    val coop: Boolean = false,
+    val partnerName: String = "",
+    val partnerHp: Int = 0,
+    val partnerMaxHp: Int = 1,
+    val partnerDowned: Boolean = false,
+    val partnerGone: Boolean = false,
+    /** On the card screen with nothing left to pick: waiting for the partner. */
+    val waitingForPartner: Boolean = false,
+    /** Own operative is down and waiting for a revive. */
+    val downed: Boolean = false,
+    val reviveProgress: Float = 0f,
     /** Data Vault: the cleared room's cache is waiting to be cracked. */
     val vaultReady: Boolean = false
 )
@@ -94,6 +114,12 @@ data class RunResult(
     val newAchievements: List<String>
 )
 
+/** A live co-op room this run is played in. [scope] outlives the game screen (app level). */
+class CoopLink(val room: CoopRoom, val state: RoomState, val scope: CoroutineScope)
+
+/** No packets for this long and the partner counts as gone. */
+private const val PARTNER_TIMEOUT = 8f
+
 /**
  * One operation (run). Owns the [GameEngine], forwards sounds to audio,
  * selects music, builds the HUD snapshot, and commits progress to the save
@@ -107,10 +133,18 @@ class GameSession(
     mode: GameMode = GameMode.CAMPAIGN,
     difficulty: Difficulty = Difficulty.MEDIUM,
     /** Continue a saved operation instead of starting a new one. */
-    restore: RunSnapshot? = null
+    restore: RunSnapshot? = null,
+    /** Co-op run (owner, 2026-10-08), or null for solo. */
+    val coop: CoopLink? = null
 ) {
-    val mode: GameMode = restore?.let { r -> GameMode.entries.firstOrNull { it.name == r.mode } } ?: mode
-    val difficulty: Difficulty = restore?.let { Difficulty.byName(it.difficulty) } ?: difficulty
+    val mode: GameMode = restore?.let { r -> GameMode.entries.firstOrNull { it.name == r.mode } } ?: if (coop != null) GameMode.CAMPAIGN else mode
+    val difficulty: Difficulty = restore?.let { Difficulty.byName(it.difficulty) }
+        ?: coop?.let { Difficulty.byName(it.state.difficulty) } ?: difficulty
+    val isCoop: Boolean get() = coop != null
+    private val isHost: Boolean get() = coop?.room?.isHost != false
+    /** Shown over the arena when something happens to the link ("PARTNER DISCONNECTED"). */
+    var coopNotice by mutableStateOf<String?>(null)
+        private set
 
 
     val engine: GameEngine
@@ -119,7 +153,7 @@ class GameSession(
     var hud by mutableStateOf(HudSnapshot())
         private set
     var paused by mutableStateOf(false)
-    var showTutorial by mutableStateOf(!save.current.tutorialDone && restore == null)
+    var showTutorial by mutableStateOf(!save.current.tutorialDone && restore == null && coop == null)
     var result by mutableStateOf<RunResult?>(null)
         private set
 
@@ -144,11 +178,47 @@ class GameSession(
     private val startBestLevel: Int
     private val startBestScore: Long
 
+    // --- Co-op link state (declared before init, which starts the link) -------------
+    private val netSounds = ArrayList<GameSound>()
+    private var worldSeq = 0
+    private var inputSeq = 0
+    private var sendTimer = 0f
+    /** Seconds since the partner was last heard from (starts with a grace period). */
+    private var silence = -8f
+    private var partnerLeft = false
+    private var pickSerial = 0
+    private var pickIndex = 0
+    private var pickedOnOffer = -1
+    private var rerollSerial = 0
+    private var partnerWasOnline = false
+
+    /** Partner's look in co-op (their own skin and body). */
+    val partnerSkin = OperativeSkins.byId(partnerPlayer()?.skin ?: save.current.selectedSkin)
+    val partnerBody = BodyStyle.byId(partnerPlayer()?.body ?: save.current.operativeBody)
+    private fun partnerPlayer() = coop?.let { if (it.room.isHost) it.state.guest else it.state.host }
+
     init {
         val p = save.current
-        val config = Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
-            .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
+        val link = coop
+        val config = if (link != null) {
+            // Both devices build the exact same run from the room: host = operative 0, guest = 1.
+            val host = link.state.host ?: error("Room has no host")
+            val guest = link.state.guest ?: error("Room has no guest")
+            val hostCfg = Operatives.buildConfig("operative", host.permanent, link.state.seed)
+            val guestCfg = Operatives.buildConfig("operative", guest.permanent, link.state.seed)
+            hostCfg.copy(
+                mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
+                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel)
+            )
+        } else {
+            Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
+                .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
+        }
         engine = GameEngine(config, restore)
+        if (link != null) {
+            if (!link.room.isHost) engine.enterMirror(1)
+            startLink(link)
+        }
         if (restore != null) {
             // Everything up to the save was already banked when it was taken.
             val s = engine.summary()
@@ -163,8 +233,12 @@ class GameSession(
     }
 
     fun onFrame(delta: Float) {
-        if (!paused && !showTutorial) engine.update(delta)
-        for (s in engine.sounds) audio.play(s)
+        if (coop != null) coopFrame(delta)
+        else if (!paused && !showTutorial) engine.update(delta)
+        for (s in engine.sounds) {
+            audio.play(s)
+            if (coop != null && isHost) netSounds += s
+        }
         engine.sounds.clear()
         if (engine.phase != lastPhase) {
             if (engine.phase == Phase.DEAD) onDeath()
@@ -174,6 +248,67 @@ class GameSession(
         val next = buildHud()
         if (next != hud) hud = next
         frameTick++
+    }
+
+    // --- Co-op link -----------------------------------------------------------------
+
+    private fun startLink(link: CoopLink) {
+        val room = link.room
+        if (room.isHost) {
+            link.scope.launch {
+                room.inputs.collect { b ->
+                    if (partnerLeft) return@collect
+                    CoopCodec.decodeInput(b)?.let { engine.applyInput(1, it); silence = 0f }
+                }
+            }
+        } else {
+            link.scope.launch {
+                room.worlds.collect { b ->
+                    if (partnerLeft || !engine.mirror) return@collect
+                    CoopCodec.decodeWorld(b)?.let { engine.applyWorld(it); silence = 0f }
+                }
+            }
+        }
+        link.scope.launch {
+            room.state.collect { st ->
+                val online = if (room.isHost) st.guestOnline else st.hostOnline
+                if (online) partnerWasOnline = true
+                else if (partnerWasOnline) partnerDropped()
+            }
+        }
+    }
+
+    /** The other device went away: the run carries on solo for whoever is left. */
+    private fun partnerDropped() {
+        if (partnerLeft || engine.phase == Phase.DEAD) return
+        partnerLeft = true
+        if (isHost) engine.removeOperative(1) else engine.promoteToSolo()
+        coopNotice = "PARTNER DISCONNECTED · CONTINUING SOLO"
+        coop?.let { l -> l.scope.launch { l.room.leave() } }
+    }
+
+    private fun coopFrame(delta: Float) {
+        val link = coop ?: return
+        // Co-op never pauses (owner, 2026-10-08): the pause menu is just a menu.
+        if (isHost || !engine.mirror) engine.update(delta) else engine.mirrorTick(delta)
+        if (partnerLeft) return
+        silence += delta
+        if (silence > PARTNER_TIMEOUT) { partnerDropped(); return }
+        sendTimer += delta
+        if (isHost) {
+            if (sendTimer >= 0.1f) {
+                sendTimer = 0f
+                link.room.sendWorld(CoopCodec.encodeWorld(engine.captureWorld(++worldSeq, netSounds)))
+                netSounds.clear()
+            }
+        } else if (sendTimer >= 1f / 15f) {
+            sendTimer = 0f
+            link.room.sendInput(
+                CoopCodec.encodeInput(
+                    CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel)
+                )
+            )
+        }
     }
 
     private fun updateMusic() {
@@ -228,7 +363,7 @@ class GameSession(
             revivesLeft = g.revivesLeft,
             reviveTokens = save.current.reviveTokens,
             diamonds = save.current.diamonds,
-            paidRevivesLeft = StoreCatalog.MAX_PAID_REVIVES_PER_RUN - paidRevives,
+            paidRevivesLeft = if (coop != null) 0 else StoreCatalog.MAX_PAID_REVIVES_PER_RUN - paidRevives,
             rerolls = g.rerollsLeft,
             enemiesLeft = g.aliveCount(),
             offerSerial = g.offerSerial,
@@ -250,13 +385,24 @@ class GameSession(
             vaultReady = g.vaultReady,
             shopGateRight = g.shopGateRight,
             skipShopPrompt = g.skipShopPrompt,
-            topGateLocked = g.topGateLocked
+            topGateLocked = g.topGateLocked,
+            coop = g.coop,
+            partnerName = partnerPlayer()?.name ?: "",
+            partnerHp = partnerOp()?.let { kotlin.math.ceil(it.hp).toInt().coerceAtLeast(0) } ?: 0,
+            partnerMaxHp = partnerOp()?.build?.stats?.maxHp?.toInt()?.coerceAtLeast(1) ?: 1,
+            partnerDowned = partnerOp()?.downed == true,
+            partnerGone = partnerOp()?.gone != false,
+            waitingForPartner = g.coop && g.phase == Phase.UPGRADE && g.pendingUpgrades <= 0,
+            downed = g.operatives.getOrNull(g.primary)?.downed == true,
+            reviveProgress = g.operatives.getOrNull(g.primary)?.reviveProgress?.let { (it / GameEngine.REVIVE_SECONDS * 10f).toInt() / 10f } ?: 0f
         )
     }
 
     // Rebuilt only when the build changes, so the HUD snapshot stays cheap.
     private var ownedCache: List<Pair<String, Int>> = emptyList()
     private var ownedKey = -1
+    private fun partnerOp() = if (engine.coop) engine.operatives.getOrNull(1 - engine.primary) else null
+
     private fun ownedList(): List<Pair<String, Int>> {
         val o = engine.build.owned()
         val key = o.values.sum() * 31 + o.size
@@ -281,9 +427,26 @@ class GameSession(
         )
     }
 
-    fun chooseUpgrade(i: Int) = engine.chooseUpgrade(i)
+    fun chooseUpgrade(i: Int) {
+        if (coop != null && !isHost && engine.mirror) {
+            // Guest: the host applies the pick; one pick per shown set of cards.
+            if (pickedOnOffer == engine.offerSerial) return
+            pickedOnOffer = engine.offerSerial
+            pickIndex = i
+            pickSerial++
+            sendTimer = 1f
+            return
+        }
+        engine.chooseUpgrade(i)
+    }
 
-    fun reroll() = engine.reroll()
+    fun reroll() {
+        if (coop != null && !isHost && engine.mirror) {
+            if (engine.rerollsLeft > 0) { rerollSerial++; sendTimer = 1f }
+            return
+        }
+        engine.reroll()
+    }
 
     fun buyShopItem(i: Int) = engine.buyShopItem(i)
 
@@ -294,6 +457,7 @@ class GameSession(
 
     /** Free revive first, then a revive token, then ◇100 (a 1-revive pack). */
     fun revive(): Boolean {
+        if (coop != null) return false
         if (engine.canRevive) {
             val ok = engine.revive()
             if (ok) result = null
@@ -324,6 +488,13 @@ class GameSession(
         audio.slowRound = false
         commitProgress(final = true)
         save.update { it.copy(savedRun = null) }
+        coop?.let { l ->
+            partnerLeft = true
+            l.scope.launch {
+                if (l.room.isHost) l.room.end()
+                l.room.leave()
+            }
+        }
     }
 
     /**

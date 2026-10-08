@@ -115,3 +115,10 @@ device, tune balance, then fill out the store/meta phases.
 6. **Default body design**: A FIELD AGENT, B SENTINEL MECH or C SHADOW RUNNER
    (docs/screenshots/body_designs.png).
 7. **Ads at all?** (CyOps TD has AdMob infra; not added here yet.)
+
+## Co-op follow-ups (0.10.0)
+- Link the anonymous co-op account to Google so it survives a reinstall.
+- Co-op endless mode; co-op upgrade shop (shared or per-player stock).
+- Push notification for invites while the app is closed (Firebase Cloud Messaging).
+- Host migration without a hitch (today the guest's mirror becomes a solo run).
+- Validate guest movement speed on the host (anti-cheat), if co-op goes public beyond friends.

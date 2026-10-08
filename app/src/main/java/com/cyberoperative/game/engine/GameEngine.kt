@@ -2938,6 +2938,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (z in zaps.items) if (z.active) z.timer += dt
     }
 
+    /** Renderer: run [block] as if operative [index] were the current one (draws a partner with the same code). */
+    fun <T> viewAs(index: Int, block: () -> T): T {
+        val prev = cur
+        cur = ops.getOrNull(index) ?: return block()
+        try {
+            return block()
+        } finally {
+            cur = prev
+        }
+    }
+
     /** Guest: this device's movement, for [CoopInput]. */
     val localX: Float get() = ops[primary].px
     val localY: Float get() = ops[primary].py

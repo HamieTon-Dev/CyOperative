@@ -31,6 +31,14 @@ import com.cyberoperative.game.ui.menu.PermanentUpgradesScreen
 import com.cyberoperative.game.ui.menu.SettingsScreen
 import com.cyberoperative.game.ui.splash.BootTerminal
 import com.cyberoperative.game.ui.splash.DeveloperSplash
+import com.cyberoperative.game.net.CoopBackend
+import com.cyberoperative.game.net.CoopRoom
+import com.cyberoperative.game.net.OfflineCoopBackend
+import com.cyberoperative.game.ui.game.CoopLink
+import com.cyberoperative.game.ui.menu.CoopLobbyScreen
+import com.cyberoperative.game.ui.menu.CoopScreen
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 /** Destinations. A sealed hierarchy + one state value is the whole router. */
 sealed interface Screen {
@@ -39,11 +47,15 @@ sealed interface Screen {
     data object Menu : Screen
     data object Game : Screen
     data class Sub(val target: MenuTarget) : Screen
+    data object CoopLobby : Screen
 }
 
 @Composable
-fun AppRoot(save: SaveRepository, audio: AudioManager) {
+fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remember { OfflineCoopBackend() }) {
     var screen by remember { mutableStateOf<Screen>(Screen.DevSplash) }
+    /** Lives as long as the app UI: co-op links outlast the game screen they start on. */
+    val appScope = rememberCoroutineScope()
+    var coopRoom by remember { mutableStateOf<CoopRoom?>(null) }
     var session by remember { mutableStateOf<GameSession?>(null) }
     val profile by save.profile.collectAsState()
 
@@ -82,7 +94,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
         when (screen) {
             Screen.DevSplash -> {}
             Screen.Boot -> audio.playBootChime()
-            Screen.Menu, is Screen.Sub -> audio.setMusic(MusicState.MENU)
+            Screen.Menu, is Screen.Sub, Screen.CoopLobby -> audio.setMusic(MusicState.MENU)
             Screen.Game -> {}
         }
     }
@@ -123,10 +135,15 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                     session = sess,
                     showDamageNumbers = profile.settings.damageNumbers,
                     onExitToMenu = {
+                        val wasCoop = sess.isCoop
                         session = null
-                        screen = Screen.Menu
+                        coopRoom = null
+                        screen = if (wasCoop) Screen.Sub(MenuTarget.CO_OP) else Screen.Menu
                     },
-                    onNewOperation = { startRun() }
+                    // A new co-op run goes back through the lobby with a fresh invite.
+                    onNewOperation = {
+                        if (sess.isCoop) { session = null; coopRoom = null; screen = Screen.Sub(MenuTarget.CO_OP) } else startRun()
+                    }
                 )
             }
         }
@@ -142,7 +159,37 @@ fun AppRoot(save: SaveRepository, audio: AudioManager) {
                 MenuTarget.ABOUT -> AboutScreen(::back)
                 MenuTarget.SKINS -> SkinsScreen(save, audio, ::back)
                 MenuTarget.STORE -> StoreScreen(save, audio, ::back) { screen = Screen.Sub(MenuTarget.SKINS) }
+                MenuTarget.CO_OP -> CoopScreen(coop, profile, ::back) { room ->
+                    click()
+                    coopRoom = room
+                    screen = Screen.CoopLobby
+                }
                 MenuTarget.PLAY, MenuTarget.ENDLESS, MenuTarget.CONTINUE -> LaunchedEffect(Unit) { screen = Screen.Menu }
+            }
+        }
+        Screen.CoopLobby -> {
+            val room = coopRoom
+            fun leaveLobby() {
+                audio.play(GameSound.UI_BACK)
+                room?.let { r -> appScope.launch { r.leave() } }
+                coopRoom = null
+                screen = Screen.Sub(MenuTarget.CO_OP)
+            }
+            if (room == null) {
+                LaunchedEffect(Unit) { screen = Screen.Sub(MenuTarget.CO_OP) }
+            } else {
+                BackHandler { leaveLobby() }
+                CoopLobbyScreen(
+                    room = room,
+                    initialDifficulty = lastDifficulty,
+                    onStart = { st ->
+                        if (st.host != null && st.guest != null) {
+                            session = GameSession(save, audio, coop = CoopLink(room, st, appScope))
+                            screen = Screen.Game
+                        }
+                    },
+                    onLeave = ::leaveLobby
+                )
             }
         }
     }

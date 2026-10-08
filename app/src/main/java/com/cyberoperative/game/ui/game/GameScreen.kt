@@ -171,7 +171,10 @@ fun GameScreen(
                 }
         ) {
             @Suppress("UNUSED_VARIABLE") val tick = session.frameTick
-            renderer.draw(this, session.engine, time, session.skin, session.body, session.background, showDamageNumbers, topInsetPx, bottomInsetPx)
+            renderer.draw(
+                this, session.engine, time, session.skin, session.body, session.background, showDamageNumbers, topInsetPx, bottomInsetPx,
+                partnerSkin = session.partnerSkin, partnerBody = session.partnerBody
+            )
             // Joystick
             val bx = if (stickActive) originX else restX
             val by = if (stickActive) originY else restY
@@ -213,6 +216,13 @@ fun GameScreen(
             if (hud.vaultReady) {
                 HintChip("◆ WALK UP TO THE DATA CACHE TO CRACK IT", Palette.Gold)
             }
+            // Co-op: down and waiting for the partner, or the partner is down.
+            if (hud.coop && hud.downed) {
+                HintChip("YOU'RE DOWN · ${hud.partnerName.ifEmpty { "PARTNER" }} CAN REVIVE YOU (${(hud.reviveProgress * 100).toInt()}%)", Palette.Red)
+            } else if (hud.coop && hud.partnerDowned && !hud.partnerGone) {
+                HintChip("${hud.partnerName.ifEmpty { "PARTNER" }} IS DOWN · STAND NEXT TO THEM TO REVIVE", Palette.Magenta)
+            }
+            session.coopNotice?.let { HintChip(it, Palette.Orange) }
             if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
                 Banner(hud, Modifier.padding(top = 6.dp))
             }
@@ -251,6 +261,7 @@ fun GameScreen(
         }
         if (session.paused && hud.phase != Phase.DEAD) {
             PauseOverlay(
+                coop = session.isCoop,
                 topPadding = hudHeightDp,
                 audio = session.audio,
                 saveBlocked = hud.saveBlockReason,
@@ -352,6 +363,7 @@ val TUTORIAL_LINES = listOf(
 
 @Composable
 private fun PauseOverlay(
+    coop: Boolean,
     topPadding: androidx.compose.ui.unit.Dp,
     audio: com.cyberoperative.game.audio.AudioManager,
     saveBlocked: String?,
@@ -376,7 +388,8 @@ private fun PauseOverlay(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("OPERATION PAUSED", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            Text(if (coop) "CO-OP MENU" else "OPERATION PAUSED", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            if (coop) Text("Co-op can't be paused · the fight continues", color = Palette.Orange, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(12.dp))
             com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
             Spacer(Modifier.height(12.dp))
@@ -399,7 +412,11 @@ private fun PauseOverlay(
                 ) {
                     Text(saveBlocked, color = Palette.Red, style = MaterialTheme.typography.titleSmall)
                     Text(
-                        if (saveBlocked.contains("BOSS")) "Defeat the boss to unlock saving" else "Try again in a moment",
+                        when {
+                            saveBlocked.contains("BOSS") -> "Defeat the boss to unlock saving"
+                            saveBlocked.contains("CO-OP") -> "Rewards are banked when the run ends"
+                            else -> "Try again in a moment"
+                        },
                         color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
                     )
                 }

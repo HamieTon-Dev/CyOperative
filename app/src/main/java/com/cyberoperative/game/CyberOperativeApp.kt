@@ -10,6 +10,8 @@ class CyberOperativeApp : Application() {
         private set
     lateinit var audio: AudioManager
         private set
+    /** Co-op server (Firebase), or an offline stand-in when this build has no Firebase project. */
+    val coop: com.cyberoperative.game.net.CoopBackend by lazy { com.cyberoperative.game.net.FirebaseCoopBackend.create(this) }
 
     override fun onCreate() {
         super.onCreate()

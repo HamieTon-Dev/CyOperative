@@ -44,7 +44,7 @@ import com.cyberoperative.game.ui.theme.Palette
 import kotlin.math.sin
 
 enum class MenuTarget(val label: String) {
-    PLAY("PLAY"), OPERATIVE("OPERATIVE"), UPGRADES("UPGRADES"), ARMORY("ARMORY"),
+    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("OPERATIVE"), UPGRADES("UPGRADES"), ARMORY("ARMORY"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
     SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE")
 }
@@ -131,8 +131,14 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 subtitle = if (profile.endlessBestStage > 0) "BEST STAGE ${profile.endlessBestStage}" else "ONE ROOM · NEVER-ENDING THREATS",
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.ENDLESS) }
+            Spacer(Modifier.height(10.dp))
+            CyberButton(
+                "CO-OP", accent = Palette.Magenta,
+                subtitle = "PLAY WITH A FRIEND",
+                modifier = Modifier.fillMaxWidth()
+            ) { onSelect(MenuTarget.CO_OP) }
             Spacer(Modifier.height(14.dp))
-            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE }
+            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE && it != MenuTarget.CO_OP }
             for (row in rest.chunked(2)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     for (item in row) {

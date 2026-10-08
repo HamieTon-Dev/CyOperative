@@ -71,6 +71,13 @@ fun UpgradeOverlay(session: GameSession) {
             Text("SELECT ONE MODULE", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(18.dp))
             val hud = session.hud
+            if (hud.waitingForPartner || (hud.coop && offer.isEmpty())) {
+                Text(
+                    "WAITING FOR ${hud.partnerName.ifEmpty { "YOUR PARTNER" }.uppercase()} TO PICK…",
+                    color = Palette.Magenta, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(12.dp))
+            }
             offer.forEachIndexed { i, o ->
                 UpgradeCard(o, time) { session.chooseUpgrade(i) }
                 Spacer(Modifier.height(12.dp))

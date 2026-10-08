@@ -79,8 +79,12 @@ class ArenaRenderer {
 
     fun draw(
         scope: DrawScope, g: GameEngine, time: Float, skin: OperativeSkin, body: BodyStyle,
-        background: LivingBackground, showNumbers: Boolean, topInset: Float, bottomInset: Float
+        background: LivingBackground, showNumbers: Boolean, topInset: Float, bottomInset: Float,
+        /** Co-op partner's look (their own skin and body). */
+        partnerSkin: OperativeSkin = skin, partnerBody: BodyStyle = body
     ) = with(scope) {
+        this@ArenaRenderer.partnerSkin = partnerSkin
+        this@ArenaRenderer.partnerBody = partnerBody
         val arena = g.arena
         scale = size.width / arena.width
         val visibleH = size.height / scale
@@ -122,6 +126,9 @@ class ArenaRenderer {
         if (g.plan.kind == LevelKind.EVENT) drawSpectrumBorder(time)
         if (g.hurtFlash > 0f) drawRect(Palette.Red.copy(alpha = 0.18f * (g.hurtFlash / 0.25f)))
     }
+
+    private var partnerSkin: OperativeSkin? = null
+    private var partnerBody: BodyStyle? = null
 
     /** Screen shake for the boss growl. */
     private fun shakeX(g: GameEngine, time: Float): Float {
@@ -525,7 +532,7 @@ class ArenaRenderer {
         for (i in obs.indices) push(0, i, obs[i].rect.bottom)
         val items = g.enemies.items
         for (i in items.indices) if (items[i].active) push(1, i, items[i].y + items[i].radius * 0.5f)
-        if (g.phase != Phase.DEAD) push(2, 0, g.py + g.playerRadius * 0.5f)
+        if (g.phase != Phase.DEAD) for (o in g.operatives) if (!o.gone) push(2, o.index, o.py + g.playerRadius * 0.5f)
         // Insertion sort: tiny n, already nearly sorted frame to frame.
         for (i in 1 until sortCount) {
             val k = sortKey[i]; val kd = sortKind[i]; val ix = sortIndex[i]
@@ -536,12 +543,18 @@ class ArenaRenderer {
             sortKey[j + 1] = k; sortKind[j + 1] = kd; sortIndex[j + 1] = ix
         }
         // Orbit elements behind the operative are drawn before it.
-        drawOrbitBack(g, time)
+        for (o in g.operatives) if (o.alive) g.viewAs(o.index) { drawOrbitBack(g, time) }
         for (i in 0 until sortCount) {
             when (sortKind[i]) {
                 0 -> drawObstacle(g, obs[sortIndex[i]], sortIndex[i], time)
                 1 -> drawEnemy(g, items[sortIndex[i]], time)
-                else -> drawPlayer(g, time, skin, body)
+                else -> {
+                    val idx = sortIndex[i]
+                    val local = idx == g.primary
+                    g.viewAs(idx) {
+                        drawPlayer(g, time, if (local) skin else partnerSkin ?: skin, if (local) body else partnerBody ?: body, partner = !local)
+                    }
+                }
             }
         }
     }
@@ -1091,9 +1104,23 @@ class ArenaRenderer {
 
     // --- Operative, orbit -------------------------------------------------
 
-    private fun DrawScope.drawPlayer(g: GameEngine, time: Float, skin: OperativeSkin, body: BodyStyle) {
+    private fun DrawScope.drawPlayer(g: GameEngine, time: Float, skin: OperativeSkin, body: BodyStyle, partner: Boolean = false) {
         val r = g.playerRadius
         val foot = g.py + r * 0.55f
+        val me = g.operatives[if (partner) (1 - g.primary).coerceIn(0, g.operatives.size - 1) else g.primary]
+        if (g.coop) {
+            // Co-op: a coloured ring tells the two operatives apart (you: cyan, partner: magenta).
+            val ringCol = if (partner) Palette.Magenta else Palette.Cyan
+            drawOval(ringCol.copy(alpha = 0.55f), Offset(g.px - r * 1.25f, g.py + r * 0.15f), Size(r * 2.5f, r * 0.9f), style = Stroke(2.5f))
+            if (me.downed) {
+                // Downed: faded figure and the revive ring filling up.
+                val f = (me.reviveProgress / GameEngine.REVIVE_SECONDS).coerceIn(0f, 1f)
+                drawCircle(Palette.Red.copy(alpha = 0.25f + 0.2f * sin(time * 6f)), GameEngine.REVIVE_RADIUS, Offset(g.px, g.py), style = Stroke(2f))
+                drawArc(Palette.Green, -90f, 360f * f, false, Offset(g.px - r * 1.6f, g.py - r * 3.4f), Size(r * 3.2f, r * 3.2f), style = Stroke(5f))
+                drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, false, time, alpha = 0.35f, bigGun = false)
+                return
+            }
+        }
         val blink = g.invuln > 0f && ((time * 20f).toInt() % 2 == 0)
         // Firewall dome.
         if (g.firewall > 0f) {
@@ -1120,7 +1147,9 @@ class ArenaRenderer {
     /** Orbs/blades behind the operative (smaller y) draw before it. */
     private fun DrawScope.drawOrbitBack(g: GameEngine, time: Float) = drawOrbit(g, time, back = true)
 
-    private fun DrawScope.drawOrbitFront(g: GameEngine, time: Float) = drawOrbit(g, time, back = false)
+    private fun DrawScope.drawOrbitFront(g: GameEngine, time: Float) {
+        for (o in g.operatives) if (o.alive) g.viewAs(o.index) { drawOrbit(g, time, back = false) }
+    }
 
     private fun DrawScope.drawOrbit(g: GameEngine, time: Float, back: Boolean) {
         val s = g.stats
@@ -1151,7 +1180,7 @@ class ArenaRenderer {
 
     private fun DrawScope.drawProjectiles(g: GameEngine, time: Float) {
         val lift = 22f
-        drawBeam(g, time, lift)
+        for (o in g.operatives) if (o.alive) g.viewAs(o.index) { drawBeam(g, time, lift) }
         for (p in g.projectiles.items) {
             if (!p.active) continue
             if (p.kind == ProjKind.MINE) { drawMine(p.x, p.y, p.armTimer > 0f, time, p.tint); continue }

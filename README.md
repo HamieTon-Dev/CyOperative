@@ -12,6 +12,7 @@ Survive as deep into the compromised system as possible.
 
 Clear arenas, choose 1 of 3 roguelike upgrades, defeat a boss every 10 levels,
 survive random cyber events, earn **€** for permanent upgrades. There is no final level.
+Play **co-op** with a friend (friend codes, invites, live two-player runs; see `FIREBASE_SETUP.md`).
 
 ## Project status
 

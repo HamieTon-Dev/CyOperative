@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.10.0 (versionCode 18) — 2026-10-08
+### Added
+- **CO-OP** (owner, 2026-10-08), on the main menu. Needs a Firebase project; see FIREBASE_SETUP.md.
+  Without one, the screen says co-op is unavailable and solo play is unaffected.
+  - Register a callsign and get a friend code (XXXX-XXXX) to copy or share.
+  - Add friends by code; accept or decline friend requests. The friends list shows who's online.
+  - Invite an online friend; they JOIN or DECLINE. In the two-player lobby the host picks the
+    difficulty and starts.
+  - Live two-player campaign run:
+    - Each operative has its own permanent upgrades, skin and body, and picks its own cards.
+    - Threats chase whoever is closest.
+    - A downed operative is revived by the partner standing next to them for 3s. Anyone
+      downed is back at half HP on the next level. The run ends only when both are down.
+    - Threats have ×1.4 HP (bosses ×1.7), and there are about 35% more of them.
+    - Threat scaling uses the higher OP level of the two.
+    - Both players keep full rewards (€, Operative XP, achievements, records).
+    - Co-op can't be paused or saved; no upgrade shop in co-op.
+  - If either player disconnects, the other carries on solo from the same moment.
+  - HUD: partner HP bar (magenta), partner ring on the field, revive ring and progress,
+    "waiting for partner" on the card screen.
+- Networking: the host runs the game and sends compact snapshots ~10×/s. The guest moves its own
+  operative locally (no input lag) and sends its position and picks. Measured ~10–15 MB per hour
+  per pair.
+- Security rules for Firestore and the Realtime Database (`firebase/`).
+- INTERNET permission (co-op only).
+
 ## 0.9.7 (versionCode 17) — 2026-10-08
 ### Changed
 - Endless progression (owner: "scale it to where play never ends"). OP level now goes to 9,999
