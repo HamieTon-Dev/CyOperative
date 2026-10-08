@@ -128,6 +128,19 @@ class ScreenshotPreviews {
     @Test fun bossIntro2() { assumeTrue(enabled); bossIntro("boss_intro_2_name", 1.75f) }
     @Test fun bossIntro3() { assumeTrue(enabled); bossIntro("boss_intro_3_growl", 2.1f) }
 
+    @Test fun neonSkin() {
+        assumeTrue(enabled)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { NeonBoard() } }
+        compose.mainClock.advanceTimeBy(300)
+        save("skin_neon")
+    }
+
+    @Test fun neonArena() {
+        assumeTrue(enabled)
+        gameplay("arena_neon_operative", 3f, profileSetup = { it.copy(operativeBody = "neon_operative", ownedOperatives = setOf("operative", "neon_operative")) })
+    }
+
     @Test fun bootTerminal() {
         assumeTrue(enabled)
         compose.mainClock.autoAdvance = false
@@ -220,6 +233,24 @@ private fun BodyBoard() {
                     drawFigure(style, skin, x, top + rowH - 40f, u, facing, moving, time + i * 0.07f)
                 }
             }
+        }
+    }
+}
+
+
+@androidx.compose.runtime.Composable
+private fun NeonBoard() {
+    val skin = com.cyberoperative.game.data.OperativeSkins.DEFAULT
+    androidx.compose.foundation.Canvas(
+        androidx.compose.ui.Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF040B18))
+    ) {
+        with(com.cyberoperative.game.ui.game.OperativeFigures) {
+            // Hero size, idle.
+            drawFigure(com.cyberoperative.game.ui.game.BodyStyle.NEON, skin, size.width / 2f, size.height * 0.52f, size.width / 95f, -0.25f, false, 0.4f)
+            // Walking left / aiming right, and in-game scale.
+            drawFigure(com.cyberoperative.game.ui.game.BodyStyle.NEON, skin, size.width * 0.2f, size.height * 0.9f, size.width / 260f, 2.8f, true, 0.13f)
+            drawFigure(com.cyberoperative.game.ui.game.BodyStyle.NEON, skin, size.width * 0.5f, size.height * 0.9f, size.width / 260f, -0.4f, true, 0.3f)
+            drawFigure(com.cyberoperative.game.ui.game.BodyStyle.NEON, skin, size.width * 0.8f, size.height * 0.9f, size.width / 260f, 0.2f, false, 1.1f)
         }
     }
 }

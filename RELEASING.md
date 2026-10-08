@@ -3,10 +3,8 @@
 You need: Android Studio **or** a JDK 17+ and the Android SDK, a Google Play Developer
 account (one-time $25), and this repository.
 
-## 0. Decide the package name FIRST (permanent)
-`app/build.gradle.kts` → `applicationId = "com.cyberoperative.game"` (provisional).
-Once uploaded to Play it can **never** change. Pick the final one (e.g.
-`dev.hamieton.cyberoperative`) and change `applicationId` before step 3.
+## 0. Package name (final)
+`com.cyberoperative.game` — confirmed by the owner. It can never change once uploaded.
 
 ## 1. Create an upload key (once, keep it safe forever)
 ```bash

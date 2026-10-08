@@ -121,17 +121,25 @@ fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (style in com.cyberoperative.game.ui.game.BodyStyle.entries) {
                     val selected = profile.operativeBody == style.id
+                    val owned = !style.premium || style.id in profile.ownedOperatives
                     Column(
                         Modifier
                             .weight(1f)
                             .background(Palette.Surface, RoundedCornerShape(8.dp))
-                            .border(if (selected) 2.dp else 1.dp, if (selected) Palette.Green else Palette.Divider, RoundedCornerShape(8.dp))
-                            .clickable { save.update { it.copy(operativeBody = style.id) } }
-                            .padding(6.dp),
+                            .border(if (selected) 2.dp else 1.dp, if (selected) Palette.Green else if (style.premium) Palette.Cyan else Palette.Divider, RoundedCornerShape(8.dp))
+                            .clickable {
+                                save.update { p ->
+                                    com.cyberoperative.game.meta.StoreManager.equipBody(p, style.id, style.premium)
+                                        ?: com.cyberoperative.game.meta.StoreManager.buyNeonOperative(p)
+                                        ?: p
+                                }
+                            }
+                            .padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        com.cyberoperative.game.ui.game.FigurePreview(style, com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin), Modifier.fillMaxWidth().height(120.dp))
-                        Text(style.label, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.labelSmall)
+                        com.cyberoperative.game.ui.game.FigurePreview(style, com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin), Modifier.fillMaxWidth().height(110.dp))
+                        Text(style.label, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                        if (!owned) Text("◇${com.cyberoperative.game.data.StoreCatalog.NEON_OPERATIVE_PRICE}", color = Palette.Diamond, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }

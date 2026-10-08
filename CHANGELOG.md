@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — 2026-10-08
+### Added
+- NEON OPERATIVE — a fourth full-body operative built on the app icon's geometry:
+  faceted neon-blue hood with a pointed crown, glowing green >_< shield face, antenna with a
+  lit tip, ring earpiece, shoulder plate with the green power button, raised collar, cyan
+  neon aura. Bought in STORE → OPERATIVES (◇100, provisional) and selected on OPERATIVE.
+### Changed
+- Package name confirmed final: com.cyberoperative.game.
+
 ## 0.5.0 — 2026-10-08
 ### Added
 - Music runs faster in a fight: 1.25x in levels and events, 1.5x on boss levels (time-

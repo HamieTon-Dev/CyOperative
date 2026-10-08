@@ -88,6 +88,16 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 ) { spend(save, audio) { StoreManager.buyRevives(it, pack) } }
             }
 
+            item { Header("OPERATIVES") }
+            item {
+                val owned = com.cyberoperative.game.meta.StoreManager.NEON_OPERATIVE_ID in p.ownedOperatives
+                StoreRow(
+                    title = "NEON OPERATIVE", subtitle = "The app icon come to life — faceted neon hood, antenna, glowing >_<",
+                    price = if (owned) "OWNED" else "◇${StoreCatalog.NEON_OPERATIVE_PRICE}", accent = Palette.Cyan,
+                    enabled = !owned && p.diamonds >= StoreCatalog.NEON_OPERATIVE_PRICE
+                ) { spend(save, audio) { com.cyberoperative.game.meta.StoreManager.buyNeonOperative(it) } }
+            }
+
             item { Header("OPERATIVE SKINS") }
             item {
                 StoreRow(

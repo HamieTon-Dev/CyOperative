@@ -27,9 +27,8 @@ fun Project.secret(name: String): String? {
 val uploadKeystore: File? = project.secret("cyberop.keystore.path")?.let { file(it) }?.takeIf { it.isFile }
 
 android {
-    // PROVISIONAL application identity. Final package name is a user decision
-    // (see BACKLOG.md "USER DECISIONS REQUIRED") and must be settled before the
-    // first Play Console upload, because it can never change afterwards.
+    // FINAL application identity (owner, 2026-10-08). Never change it after the
+    // first Play Console upload.
     namespace = "com.cyberoperative.game"
     compileSdk = 36
 
@@ -37,8 +36,8 @@ android {
         applicationId = "com.cyberoperative.game"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.5.1"
     }
 
     signingConfigs {

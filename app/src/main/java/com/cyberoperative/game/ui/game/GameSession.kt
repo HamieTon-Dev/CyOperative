@@ -104,7 +104,10 @@ class GameSession(
 
     val skin = OperativeSkins.byId(save.current.selectedSkin)
     val background = LivingBackground.byId(save.current.selectedBackground)
-    val body = BodyStyle.byId(save.current.operativeBody)
+    val body = BodyStyle.byId(save.current.operativeBody).let {
+        // A premium body that is not owned (e.g. a restored old save) falls back to the default.
+        if (it.premium && it.id !in save.current.ownedOperatives) BodyStyle.AGENT else it
+    }
 
     private val startBestLevel: Int
     private val startBestScore: Long

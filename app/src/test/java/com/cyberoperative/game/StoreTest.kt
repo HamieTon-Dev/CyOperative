@@ -57,4 +57,15 @@ class StoreTest {
         val p = SaveRepository.decodeOrNull(old)!!
         assertEquals(42, p.euros); assertEquals(0, p.reviveTokens); assertEquals("none", p.selectedBackground)
     }
+
+    @Test fun neonOperativePurchase() {
+        val poor = PlayerProfile(diamonds = 50)
+        assertNull(StoreManager.buyNeonOperative(poor))
+        assertNull("premium body can't be equipped unowned", StoreManager.equipBody(poor, StoreManager.NEON_OPERATIVE_ID, premium = true))
+        val p = StoreManager.buyNeonOperative(PlayerProfile(diamonds = 150))!!
+        assertEquals(150 - StoreCatalog.NEON_OPERATIVE_PRICE.toLong(), p.diamonds)
+        assertEquals(StoreManager.NEON_OPERATIVE_ID, p.operativeBody)
+        assertNull("can't buy twice", StoreManager.buyNeonOperative(p))
+        assertNotNull(StoreManager.equipBody(p, "agent", premium = false))
+    }
 }

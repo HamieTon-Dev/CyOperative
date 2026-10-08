@@ -44,6 +44,7 @@ object OperativeMark {
 
     private val faceStroke = Stroke(4.2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
     private val edgeStroke = Stroke(3.2f, join = StrokeJoin.Round)
+    private val faceGlowStroke = Stroke(8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
     data class Colors(val edge: Color, val face: Color, val body: Color)
 
@@ -56,6 +57,15 @@ object OperativeMark {
             SkinEffect.SPECTRUM -> {
                 val hue = (time * 40f) % 360f
                 Colors(Color.hsv(hue, 0.85f, 1f), Color.hsv((hue + 40f) % 360f, 0.35f, 1f), body)
+            }
+            SkinEffect.NEON -> {
+                // Glow drifts a little around the skin's own edge hue (the NEON
+                // OPERATIVE face stays green, like the icon), never far from it.
+                val hsv = FloatArray(3)
+                android.graphics.Color.colorToHSV(skin.edge.toInt(), hsv)
+                val hue = (hsv[0] + 14f * sin(time * 0.9f) + 360f) % 360f
+                val faceGlow = 0.85f + 0.15f * sin(time * 2.6f)
+                Colors(Color.hsv(hue, 0.85f, 1f), Color.hsv(152f, 0.8f, faceGlow), body)
             }
             SkinEffect.HOLOGRAM -> {
                 val t = 0.5f + 0.5f * sin(time * 2.2f)
@@ -76,12 +86,26 @@ object OperativeMark {
         translate(center.x - width / 2f, center.y - h / 2f) {
             scale(s, s, Offset.Zero) {
                 translate(-22f, -18f) {
+                    if (skin.effect == SkinEffect.NEON) {
+                        // Breathing neon bloom: layered soft strokes outside the shield.
+                        val breathe = 0.75f + 0.25f * sin(time * 2.2f)
+                        drawPath(body, c.edge.copy(alpha = 0.10f * alpha * breathe), style = Stroke(14f, join = StrokeJoin.Round))
+                        drawPath(body, c.edge.copy(alpha = 0.18f * alpha * breathe), style = Stroke(9f, join = StrokeJoin.Round))
+                        drawPath(body, c.edge.copy(alpha = 0.30f * alpha * breathe), style = Stroke(5.5f, join = StrokeJoin.Round))
+                    }
                     drawPath(glow, c.edge.copy(alpha = 0.16f * alpha))
                     drawPath(body, c.body.copy(alpha = alpha))
                     drawPath(body, c.edge.copy(alpha = alpha), style = edgeStroke)
                     drawPath(left, c.face.copy(alpha = alpha), style = faceStroke)
                     drawPath(mouth, c.face.copy(alpha = alpha), style = faceStroke)
                     drawPath(right, c.face.copy(alpha = alpha), style = faceStroke)
+                    if (skin.effect == SkinEffect.NEON) {
+                        // Glowing face, like the icon's lit >_<.
+                        val fg = c.face.copy(alpha = 0.25f * alpha)
+                        drawPath(left, fg, style = faceGlowStroke)
+                        drawPath(mouth, fg, style = faceGlowStroke)
+                        drawPath(right, fg, style = faceGlowStroke)
+                    }
                 }
             }
         }

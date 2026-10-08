@@ -28,6 +28,9 @@ object StoreCatalog {
     )
 
     const val SKIN_PRICE = 100
+
+    /** NEON OPERATIVE (the app-icon operative). Owner to confirm the price. */
+    const val NEON_OPERATIVE_PRICE = 100
     const val ALL_SKINS_PRICE = 300
 
     /** Owner decision pending — provisional ◇ prices for living backgrounds. */
@@ -39,7 +42,11 @@ object StoreCatalog {
 }
 
 /** How a skin animates on top of its base colours. */
-enum class SkinEffect { NONE, SPECTRUM, HOLOGRAM, PULSE }
+enum class SkinEffect {
+    NONE, SPECTRUM, HOLOGRAM, PULSE,
+    /** The app-icon look: blue-green-only colour drift with a breathing glow. */
+    NEON
+}
 
 /**
  * Operative skins: recolours of the >_< shield — the same mark as the CYBER

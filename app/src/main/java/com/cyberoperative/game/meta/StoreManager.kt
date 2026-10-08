@@ -61,6 +61,22 @@ object StoreManager {
     fun equipBackground(p: PlayerProfile, id: String): PlayerProfile? =
         if (id == LivingBackground.NONE.id || id in p.ownedBackgrounds) p.copy(selectedBackground = id) else null
 
+    /** NEON OPERATIVE: a premium full-body operative (body id `neon_operative`). */
+    const val NEON_OPERATIVE_ID = "neon_operative"
+
+    fun buyNeonOperative(p: PlayerProfile): PlayerProfile? {
+        if (NEON_OPERATIVE_ID in p.ownedOperatives || p.diamonds < StoreCatalog.NEON_OPERATIVE_PRICE) return null
+        return p.copy(
+            diamonds = p.diamonds - StoreCatalog.NEON_OPERATIVE_PRICE,
+            ownedOperatives = p.ownedOperatives + NEON_OPERATIVE_ID,
+            operativeBody = NEON_OPERATIVE_ID
+        )
+    }
+
+    /** Select a body design; premium ones must be owned. */
+    fun equipBody(p: PlayerProfile, bodyId: String, premium: Boolean): PlayerProfile? =
+        if (!premium || bodyId in p.ownedOperatives) p.copy(operativeBody = bodyId) else null
+
     /** Credit a verified ◇ purchase (from Google Play, or a debug test grant). */
     fun grantDiamonds(p: PlayerProfile, amount: Int): PlayerProfile = p.copy(diamonds = p.diamonds + amount)
 }

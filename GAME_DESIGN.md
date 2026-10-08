@@ -41,7 +41,8 @@ Simulation stays top-down; rendering gives height: extruded obstacles (lit top +
 cast shadow), hovering extruded enemies with eyes that track the operative, floor shadows,
 projectiles in the air, depth sorting by floor position. Full-body operative designs
 (`BodyStyle`): A FIELD AGENT, B SENTINEL MECH, C SHADOW RUNNER — all keep the >_< face and
-take skin colours. Owner chooses the default.
+take skin colours (owner likes all three; FIELD AGENT is the default). D NEON OPERATIVE is
+the app icon as a full body, sold in the store, with its own fixed neon look.
 
 ## 5. World & arenas
 World width 720 units, heights 1040–1300; camera scales to screen width and follows

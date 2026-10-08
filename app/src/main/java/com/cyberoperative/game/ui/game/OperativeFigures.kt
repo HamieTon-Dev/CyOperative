@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.cyberoperative.game.data.OperativeSkin
+import com.cyberoperative.game.data.SkinEffect
 import com.cyberoperative.game.ui.common.OperativeMark
 import kotlin.math.abs
 import kotlin.math.cos
@@ -28,7 +29,12 @@ import kotlin.math.sin
 enum class BodyStyle(val id: String, val label: String, val blurb: String) {
     AGENT("agent", "FIELD AGENT", "Shield-head specialist in light armour with a sidearm blaster."),
     MECH("mech", "SENTINEL MECH", "Heavy frame, monitor head showing >_<, shoulder cannon."),
-    RUNNER("runner", "SHADOW RUNNER", "Hooded coat over the shield face, hovers on thrusters.");
+    RUNNER("runner", "SHADOW RUNNER", "Hooded coat over the shield face, hovers on thrusters."),
+    /** The app icon as a whole operative (owner, 2026-10-08). Sold in the store. */
+    NEON("neon_operative", "NEON OPERATIVE", "The app icon come to life: faceted neon hood, antenna, glowing >_< shield face.");
+
+    /** Bodies that must be bought before they can be selected. */
+    val premium: Boolean get() = this == NEON
 
     companion object {
         fun byId(id: String) = entries.firstOrNull { it.id == id } ?: AGENT
@@ -52,11 +58,18 @@ object OperativeFigures {
         style: BodyStyle, skin: OperativeSkin, x: Float, footY: Float, u: Float,
         facing: Float, moving: Boolean, time: Float, alpha: Float = 1f
     ) {
+        if (style == BodyStyle.NEON) {
+            // Its own fixed look (the icon), independent of colour skins.
+            neonOperative(x, footY, u, facing, moving, time, alpha)
+            return
+        }
         val c = OperativeMark.colors(skin, time)
         val edge = c.edge.copy(alpha = alpha)
         val face = c.face.copy(alpha = alpha)
         // Armour is a lifted version of the skin's dark body colour so it reads on the floor.
-        val armor = lighten(c.body, 0.18f).copy(alpha = alpha)
+        val armor = (if (skin.effect == com.cyberoperative.game.data.SkinEffect.NEON)
+            // Neon: deep blue armour like the icon's hood.
+            Color(0xFF173A86) else lighten(c.body, 0.18f)).copy(alpha = alpha)
         val armorDark = shade(armor, 0.6f)
         val dir = if (cos(facing) < 0f) -1f else 1f
         val walk = if (moving) sin(time * 12f) else 0f
@@ -64,11 +77,19 @@ object OperativeFigures {
 
         // Floor shadow.
         drawOval(Color.Black.copy(alpha = 0.35f * alpha), Offset(x - 16f * u, footY - 4f * u), Size(32f * u, 9f * u))
+        if (skin.effect == com.cyberoperative.game.data.SkinEffect.NEON) {
+            // Neon skin: the whole operative stands in a soft cyan aura and lights the floor.
+            val breathe = 0.7f + 0.3f * sin(time * 2.2f)
+            drawOval(edge.copy(alpha = 0.22f * breathe * alpha), Offset(x - 22f * u, footY - 7f * u), Size(44f * u, 14f * u))
+            drawCircle(edge.copy(alpha = 0.10f * breathe * alpha), 30f * u, Offset(x, footY - 30f * u))
+            drawCircle(edge.copy(alpha = 0.07f * breathe * alpha), 40f * u, Offset(x, footY - 30f * u))
+        }
 
         when (style) {
             BodyStyle.AGENT -> agent(x, footY - bob, u, dir, walk, facing, armor, armorDark, edge, face, skin, time, alpha)
             BodyStyle.MECH -> mech(x, footY - bob * 0.5f, u, dir, walk, facing, armor, armorDark, edge, face, alpha)
             BodyStyle.RUNNER -> runner(x, footY, u, dir, moving, facing, armor, armorDark, edge, face, skin, time, alpha)
+            BodyStyle.NEON -> Unit
         }
     }
 
@@ -82,6 +103,108 @@ object OperativeFigures {
         limb(Offset(sx, sy), Offset(ex, ey), 4.5f * u, armor)
         limb(Offset(sx + cos(facing) * 8f * u, sy + sin(facing) * 8f * u), Offset(ex + cos(facing) * 5f * u, ey + sin(facing) * 5f * u), 4f * u, edge)
         drawCircle(face.copy(alpha = face.alpha * 0.8f), 2.2f * u, Offset(ex + cos(facing) * 6f * u, ey + sin(facing) * 6f * u))
+    }
+
+    // --- NEON OPERATIVE (the app icon) ----------------------------------------
+
+    /** The icon's shield face: green edge, mint >_<, near-black plate. */
+    private val neonFace = OperativeSkin("neon_face", "", "", 0xFF19E07A, 0xFF46FFB4, 0xFF02140C, SkinEffect.NEON)
+
+    private val neonCyan = Color(0xFF22D3FF)
+    private val neonHood = Color(0xFF1B3F9A)
+    private val neonHoodDark = Color(0xFF0E2560)
+    private val neonHoodShade = Color(0xFF0A1A46)
+    private val neonGreen = Color(0xFF1FF29A)
+
+    /** Polygon helper in design units relative to ([ox], [oy]). */
+    private fun poly(ox: Float, oy: Float, u: Float, vararg p: Float) {
+        path.reset()
+        var i = 0
+        while (i < p.size) {
+            val px = ox + p[i] * u
+            val py = oy + p[i + 1] * u
+            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            i += 2
+        }
+        path.close()
+    }
+
+    private fun DrawScope.neonOperative(x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float) {
+        val breathe = 0.7f + 0.3f * sin(time * 2.2f)
+        val cyan = neonCyan.copy(alpha = alpha)
+        val hood = neonHood.copy(alpha = alpha)
+        val hoodDark = neonHoodDark.copy(alpha = alpha)
+        val green = neonGreen.copy(alpha = alpha)
+        val dir = if (cos(facing) < 0f) -1f else 1f
+        val walk = if (moving) sin(time * 12f) else 0f
+        val bob = if (moving) abs(sin(time * 12f)) * 1.4f * u else sin(time * 2f) * 0.5f * u
+        val f = foot - bob
+
+        // Floor shadow and neon aura.
+        drawOval(Color.Black.copy(alpha = 0.35f * alpha), Offset(x - 16f * u, foot - 4f * u), Size(32f * u, 9f * u))
+        drawOval(cyan.copy(alpha = 0.22f * breathe * alpha), Offset(x - 22f * u, foot - 7f * u), Size(44f * u, 14f * u))
+        drawCircle(cyan.copy(alpha = 0.08f * breathe * alpha), 36f * u, Offset(x, f - 36f * u))
+
+        // Legs (dark armour, cyan boots).
+        val hip = f - 13f * u
+        limb(Offset(x - 5f * u, hip), Offset(x - 5f * u - walk * 3f * u, f - (if (walk > 0) walk * 2f * u else 0f)), 6.5f * u, hoodDark)
+        limb(Offset(x + 5f * u, hip), Offset(x + 5f * u + walk * 3f * u, f - (if (walk < 0) -walk * 2f * u else 0f)), 6.5f * u, hood)
+        drawCircle(cyan, 2.8f * u, Offset(x - 5f * u - walk * 3f * u, f))
+        drawCircle(cyan, 2.8f * u, Offset(x + 5f * u + walk * 3f * u, f))
+
+        // Cloak / torso: tapered, faceted like the hood.
+        val sh = f - 36f * u // shoulder line
+        poly(x, sh, u, -15f, 0f, 15f, 0f, 12f, 23f, -12f, 23f)
+        drawPath(path, hoodDark)
+        poly(x, sh, u, -15f, 0f, 0f, 2f, 0f, 23f, -12f, 23f)
+        drawPath(path, neonHoodShade.copy(alpha = alpha))
+        poly(x, sh, u, -15f, 0f, 15f, 0f, 12f, 23f, -12f, 23f)
+        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
+        drawLine(cyan.copy(alpha = 0.6f * alpha), Offset(x, sh + 3f * u), Offset(x, sh + 21f * u), 1.3f * u)
+
+        // Off arm, then the blaster arm on the facing side.
+        limb(Offset(x - dir * 13f * u, sh + 3f * u), Offset(x - dir * 15f * u, sh + 15f * u), 5f * u, hoodDark)
+
+        // Shoulder plate (left) with the green power button, raised collar (right).
+        poly(x, sh, u, -19f, -2f, -5f, -5f, -3f, 5f, -17f, 7f)
+        drawPath(path, hood)
+        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
+        drawCircle(Color(0xFF041A10).copy(alpha = alpha), 3.6f * u, Offset(x - 11f * u, sh + 1.5f * u))
+        drawCircle(green, 2.7f * u, Offset(x - 11f * u, sh + 1.5f * u))
+        drawCircle(Color.White.copy(alpha = 0.5f * alpha), 0.9f * u, Offset(x - 11.8f * u, sh + 0.6f * u))
+        poly(x, sh, u, 5f, -8f, 16f, -5f, 18f, 6f, 6f, 4f)
+        drawPath(path, hood)
+        drawPath(path, cyan, style = Stroke(1.6f * u, join = StrokeJoin.Round))
+
+        // Antenna (behind the hood, left), with a glowing tip.
+        val hc = Offset(x, sh - 15f * u) // hood centre
+        drawLine(cyan, Offset(hc.x - 11f * u, hc.y - 10f * u), Offset(hc.x - 15f * u, hc.y - 26f * u), 1.8f * u, cap = StrokeCap.Round)
+        drawCircle(cyan.copy(alpha = 0.25f * breathe * alpha), 5.5f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u))
+        drawCircle(cyan, 3.4f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u), style = Stroke(1.4f * u))
+        drawCircle(Color(0xFFE6FBFF).copy(alpha = alpha), 2f * u, Offset(hc.x - 15.5f * u, hc.y - 28f * u))
+
+        // Hood: faceted, pointed top, broad base.
+        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, -7f, 15f, -13f, 10f, -15f, -3f, -11f, -15f)
+        drawPath(path, cyan.copy(alpha = 0.18f * breathe * alpha), style = Stroke(6f * u, join = StrokeJoin.Round))
+        drawPath(path, hood)
+        // Facets: a darker right flank and a lit left crown.
+        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, 3f, -6f)
+        drawPath(path, hoodDark)
+        poly(hc.x, hc.y, u, 0f, -20f, -11f, -15f, -6f, -9f)
+        drawPath(path, Color(0xFF2A5BC4).copy(alpha = alpha))
+        poly(hc.x, hc.y, u, 0f, -20f, 11f, -15f, 15f, -3f, 13f, 10f, 7f, 15f, -7f, 15f, -13f, 10f, -15f, -3f, -11f, -15f)
+        drawPath(path, cyan, style = Stroke(1.8f * u, join = StrokeJoin.Round))
+        // Hood opening (dark) holding the shield face.
+        poly(hc.x, hc.y, u, 0f, -12f, 9f, -8f, 10.5f, 2f, 7f, 12f, -7f, 12f, -10.5f, 2f, -9f, -8f)
+        drawPath(path, Color(0xFF040818).copy(alpha = alpha))
+        with(OperativeMark) { drawOperative(neonFace, time, Offset(hc.x, hc.y + 1f * u), 19f * u, alpha) }
+
+        // Earpiece ring on the left of the hood.
+        drawOval(hood, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u))
+        drawOval(cyan, Offset(hc.x - 18f * u, hc.y - 5f * u), Size(6.5f * u, 11f * u), style = Stroke(1.5f * u))
+        drawOval(Color(0xFF040818).copy(alpha = alpha), Offset(hc.x - 16.4f * u, hc.y - 2.5f * u), Size(3.3f * u, 6f * u))
+
+        gun(x + dir * 12f * u, sh + 6f * u, u, facing, cyan, green, hood)
     }
 
     // --- FIELD AGENT -------------------------------------------------------
