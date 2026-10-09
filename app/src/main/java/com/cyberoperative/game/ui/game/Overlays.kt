@@ -60,9 +60,29 @@ fun UpgradeOverlay(session: GameSession) {
     if (swapIndex != null && swapDef != null) {
         WeaponSwap(
             newDef = swapDef,
+            newLevel = offer.getOrNull(swapIndex)?.nextLevel ?: 1,
             equipped = session.equippedWeapons(),
+            preview = { old -> session.previewLines(swapDef, old) },
             onReplace = { old -> session.chooseUpgrade(swapIndex, old); swapCard = null },
             onBack = { swapCard = null }
+        )
+        return
+    }
+    // Hold a card (owner, 2026-10-09): full description and the stat changes it brings.
+    var heldCard by remember(session.hud.offerSerial) { mutableStateOf<Int?>(null) }
+    val held = heldCard?.let { offer.getOrNull(it) }
+    val heldIndex = heldCard
+    if (held != null && heldIndex != null) {
+        val needsSlot = session.needsWeaponSlot(heldIndex)
+        UpgradeDetailSheet(
+            held.def, held.nextLevel,
+            lines = session.previewLines(held.def),
+            actionLabel = if (needsSlot) "SWAP IN" else "TAKE IT",
+            onAction = {
+                heldCard = null
+                if (needsSlot) swapCard = heldIndex else session.chooseUpgrade(heldIndex)
+            },
+            onBack = { heldCard = null }
         )
         return
     }
@@ -88,7 +108,7 @@ fun UpgradeOverlay(session: GameSession) {
         ) {
             Spacer(Modifier.height(24.dp))
             Text("SYSTEM UPGRADE", color = Palette.Green, style = MaterialTheme.typography.headlineMedium)
-            Text("SELECT ONE MODULE", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            Text("SELECT ONE MODULE · HOLD A CARD FOR DETAILS", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(18.dp))
             val hud = session.hud
             if (hud.waitingForPartner || (hud.coop && offer.isEmpty())) {
@@ -107,7 +127,7 @@ fun UpgradeOverlay(session: GameSession) {
             Spacer(Modifier.height(8.dp))
             offer.forEachIndexed { i, o ->
                 val needsSlot = session.needsWeaponSlot(i)
-                UpgradeCard(o, time, weapon = Upgrades.isWeapon(o.def), swap = needsSlot) {
+                UpgradeCard(o, time, weapon = Upgrades.isWeapon(o.def), swap = needsSlot, onHold = { heldCard = i }) {
                     if (needsSlot) swapCard = i else session.chooseUpgrade(i)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -161,8 +181,9 @@ private fun RewardCounter(taken: Int, total: Int) {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun UpgradeCard(o: UpgradeOffer, time: Float, weapon: Boolean = false, swap: Boolean = false, onClick: () -> Unit) {
+private fun UpgradeCard(o: UpgradeOffer, time: Float, weapon: Boolean = false, swap: Boolean = false, onHold: () -> Unit = {}, onClick: () -> Unit) {
     val tier = o.def.rarity
     val high = tier.highTier
     // GOLDEN and TITANIUM shimmer so a lucky roll is impossible to miss.
@@ -188,7 +209,7 @@ private fun UpgradeCard(o: UpgradeOffer, time: Float, weapon: Boolean = false, s
             .fillMaxWidth()
             .background(fill, shape)
             .border(if (o.isEvolution || high >= 2) 3.dp else 2.dp, rarity, shape)
-            .clickable(onClick = onClick)
+            .combinedClickable(onLongClickLabel = "Details", onLongClick = onHold, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -321,16 +342,20 @@ private fun StatRow(label: String, value: String, badge: String?, color: Color =
 
 /**
  * Weapon slots full (owner, 2026-10-09): the equipped weapons in a grid. Tap
- * one to swap it for [newDef] (asks YES / NO first); press and hold to see what
- * it does. NO comes back to the grid.
+ * one to swap it for [newDef] (asks YES / NO first, with both full
+ * descriptions and every stat that changes); hold one to see what it does and
+ * what the swap would change. NO comes back to the grid.
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun WeaponSwap(
+internal fun WeaponSwap(
     newDef: UpgradeDef,
+    newLevel: Int,
     equipped: List<Pair<UpgradeDef, Int>>,
+    preview: (String) -> List<com.cyberoperative.game.engine.StatLine>,
     onReplace: (String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    confirmVerb: String = "replace"
 ) {
     var target by remember { mutableStateOf<Pair<UpgradeDef, Int>?>(null) }
     var held by remember { mutableStateOf<Pair<UpgradeDef, Int>?>(null) }
@@ -369,7 +394,8 @@ private fun WeaponSwap(
                                         onClickLabel = "Replace", onLongClickLabel = "Details",
                                         onLongClick = { held = w },
                                         onClick = { held = null; target = w }
-                                    )
+                                    ),
+                                selected = held?.first?.id == w.first.id
                             )
                         }
                         repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -379,36 +405,54 @@ private fun WeaponSwap(
                 Spacer(Modifier.height(8.dp))
                 val info = held
                 if (info != null) {
-                    UpgradeTooltip(info.first, info.second)
+                    UpgradeDetails(info.first, info.second, emptyList(), title = "EQUIPPED", accent = Palette.Orange, showChanges = false)
+                    Spacer(Modifier.height(8.dp))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Palette.Surface, RoundedCornerShape(10.dp))
+                            .border(1.dp, Palette.Divider, RoundedCornerShape(10.dp))
+                            .padding(14.dp)
+                    ) {
+                        StatChanges(preview(info.first.id), heading = "IF ${info.first.name} BECOMES ${newDef.name}")
+                    }
                 } else {
-                    Text("NEW WEAPON", color = Palette.Green, style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.height(6.dp))
-                    UpgradeTooltip(newDef, 1)
+                    UpgradeDetails(newDef, newLevel, emptyList(), title = "NEW WEAPON", accent = Palette.Green, showChanges = false)
                 }
                 Spacer(Modifier.height(16.dp))
-                CyberButton("KEEP MY WEAPONS · BACK TO CARDS", Modifier.fillMaxWidth(), accent = Palette.TextSecondary, onClick = onBack)
+                CyberButton("KEEP MY WEAPONS · BACK", Modifier.fillMaxWidth(), accent = Palette.TextSecondary, onClick = onBack)
             } else {
                 Text("REPLACE WEAPON?", color = Palette.Orange, style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                     WeaponTile(pick.first, pick.second, Modifier.width(110.dp), dim = true)
                     Text("  →  ", color = Palette.Cyan, style = MaterialTheme.typography.headlineMedium)
-                    WeaponTile(newDef, 1, Modifier.width(110.dp))
+                    WeaponTile(newDef, newLevel, Modifier.width(110.dp))
                 }
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(14.dp))
                 Text(
-                    "You want to replace ${pick.first.name} with ${newDef.name}?",
+                    "You want to $confirmVerb ${pick.first.name} with ${newDef.name}?",
                     color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center
                 )
-                Text(
-                    "${pick.first.name} (LV ${pick.second}) is removed for the rest of this run.",
-                    color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CyberButton("YES", Modifier.weight(1f), accent = Palette.Green, primary = true) { onReplace(pick.first.id) }
                     CyberButton("NO", Modifier.weight(1f), accent = Palette.Red, primary = true) { target = null }
                 }
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Palette.Surface, RoundedCornerShape(10.dp))
+                        .border(1.dp, Palette.Cyan.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                        .padding(14.dp)
+                ) {
+                    StatChanges(preview(pick.first.id), heading = "WHAT CHANGES")
+                }
+                Spacer(Modifier.height(10.dp))
+                UpgradeDetails(pick.first, pick.second, emptyList(), title = "BEFORE · REMOVED", accent = Palette.Red, showChanges = false)
+                Spacer(Modifier.height(10.dp))
+                UpgradeDetails(newDef, newLevel, emptyList(), title = "AFTER · NEW", accent = Palette.Green, showChanges = false)
             }
         }
     }
@@ -416,13 +460,13 @@ private fun WeaponSwap(
 
 /** One weapon square: glyph in its rarity colour, name and level. */
 @Composable
-private fun WeaponTile(def: UpgradeDef, level: Int, modifier: Modifier, dim: Boolean = false) {
+private fun WeaponTile(def: UpgradeDef, level: Int, modifier: Modifier, dim: Boolean = false, selected: Boolean = false) {
     val c = Color(def.rarity.color)
     Column(
         modifier
             .aspectRatio(0.8f)
             .background(Palette.Surface.copy(alpha = if (dim) 0.6f else 1f), RoundedCornerShape(8.dp))
-            .border(2.dp, c.copy(alpha = if (dim) 0.5f else 0.9f), RoundedCornerShape(8.dp))
+            .border(if (selected) 3.dp else 2.dp, if (selected) Palette.Orange else c.copy(alpha = if (dim) 0.5f else 0.9f), RoundedCornerShape(8.dp))
             .padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

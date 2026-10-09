@@ -70,11 +70,11 @@ class BossBrain(private val g: GameEngine) {
         e.stateTimer = INTRO_SECONDS
         val st = BossState(b, cycle)
         e.boss = st
-        e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.config.opHpMul * g.adaptiveHp * g.config.coopBossHpMul
+        e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
-        e.damageMul = Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.config.opDamageMul * g.adaptiveDamage
+        e.damageMul = Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
         if (glitched) {
             st.glitched = true
             e.maxHp *= 1.35f

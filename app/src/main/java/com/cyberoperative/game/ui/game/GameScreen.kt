@@ -118,6 +118,8 @@ fun GameScreen(
     // HUD folded to the small pill (pull handle); its measured height sets where the arena starts.
     var hudCollapsed by rememberSaveable { mutableStateOf(false) }
     var hudHeightPx by remember { mutableIntStateOf(0) }
+    var shopHeld by remember { mutableStateOf<Int?>(null) }
+    var shopSwap by remember { mutableStateOf<Int?>(null) }
 
     BoxWithConstraints(
         Modifier
@@ -230,12 +232,41 @@ fun GameScreen(
         // Upgrade shop: buy panel at the counter, and the terminal message when a shop appears.
         if (hud.inShop && hud.atShopCounter) {
             ShopPanel(
-                hud.shopItems, hud.euros, onBuy = { session.buyShopItem(it) },
-                Modifier
+                hud.shopItems, hud.euros,
+                onBuy = { i -> if (session.shopNeedsSlot(i)) shopSwap = i else session.buyShopItem(i) },
+                modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                onHold = { shopHeld = it },
+                slotsFull = { session.shopNeedsSlot(it) }
+            )
+        }
+        // Shop: hold for details; a new weapon with full slots goes through the swap grid.
+        val heldItem = shopHeld?.let { hud.shopItems.getOrNull(it) }
+        if (heldItem != null && hud.inShop) {
+            val idx = shopHeld!!
+            UpgradeDetailSheet(
+                heldItem.def, heldItem.nextLevel, session.previewLines(heldItem.def),
+                actionLabel = if (heldItem.sold) "SOLD" else "BUY €${heldItem.price}",
+                actionEnabled = !heldItem.sold && hud.euros >= heldItem.price,
+                onAction = {
+                    shopHeld = null
+                    if (session.shopNeedsSlot(idx)) shopSwap = idx else session.buyShopItem(idx)
+                },
+                onBack = { shopHeld = null }
+            )
+        }
+        val swapItem = shopSwap?.let { hud.shopItems.getOrNull(it) }
+        if (swapItem != null && hud.inShop) {
+            val idx = shopSwap!!
+            WeaponSwap(
+                newDef = swapItem.def, newLevel = swapItem.nextLevel,
+                equipped = session.equippedWeapons(),
+                preview = { old -> session.previewLines(swapItem.def, old) },
+                onReplace = { old -> session.buyShopItem(idx, old); shopSwap = null },
+                onBack = { shopSwap = null }
             )
         }
         if (hud.skipShopPrompt) {

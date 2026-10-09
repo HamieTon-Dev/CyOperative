@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.10.2 (versionCode 20) — 2026-10-09
+### Added
+- **Hold for details** (owner, 2026-10-09) on upgrade cards, shop items and the weapon swap grid:
+  the full description plus **what changes**, each stat current → after with the change.
+  Green means it goes up, red means it goes down. This includes main gun DPS, all-weapons DPS,
+  damage, attack speed, crits, HP, armor, speed, nodes and blades. Weapons gained, lost or
+  levelled show their level and rough damage per second.
+- The swap confirmation shows every stat change of the swap plus the full description of the
+  weapon removed (red) and the new one (green).
+### Changed
+- The upgrade shop offers new weapons even with all 7 slots full; buying one opens the swap grid
+  (tap a weapon, YES / NO). It only charges if you confirm.
+- **Difficulty** (owner: "hard was fine how it was; quite hard by 30"): every extra on top of
+  the base curve now does nothing up to level 30, fades in from 31 and reaches full strength at
+  level 80. That covers OP-level/mastery threat bonus, build-size adaptive threat and the late
+  ramp.
+  - Levels 1–30 play exactly as before 0.9.1 on every difficulty.
+  - The extras are gentler: late ramp +2% HP / +1.5% damage per level; adaptive +1% HP per pick
+    and +8% per weapon.
+  - Easy gets half of the extras. Hard is always tougher than Normal.
+  - Hard, OP 50, typical build, enemy HP vs the base curve: ×1.45 to level 30, ×2.6 at 40,
+    ×4.5 at 50, ×7.7 at 60 (0.10.1 was ×4.6 at 30, ×9.8 at 40, ×14 at 50).
+
 ## 0.10.1 (versionCode 19) — 2026-10-09
 ### Changed
 - Weapon slots (owner, 2026-10-09): at most **7 weapons** equipped. Weapons are the 30 arsenal

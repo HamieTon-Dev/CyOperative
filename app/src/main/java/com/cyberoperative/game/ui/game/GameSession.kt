@@ -431,6 +431,11 @@ class GameSession(
     /** True when card [i] is a new weapon and all weapon slots are full (show the swap grid first). */
     fun needsWeaponSlot(i: Int): Boolean = engine.offerNeedsSlot(i)
 
+    /** Before → after stat lines for taking [def] (and dropping weapon [remove]), for hold-for-details. */
+    fun previewLines(def: com.cyberoperative.game.data.UpgradeDef, remove: String? = null): List<com.cyberoperative.game.engine.StatLine> =
+        if (def.instant) emptyList()
+        else com.cyberoperative.game.engine.StatCompare.lines(engine.build.stats, engine.build.preview(def, remove))
+
     /** Weapons equipped now, for the swap grid. */
     fun equippedWeapons(): List<Pair<com.cyberoperative.game.data.UpgradeDef, Int>> =
         engine.build.weapons().map { com.cyberoperative.game.data.Upgrades.byId(it) to engine.build.level(it) }
@@ -457,7 +462,9 @@ class GameSession(
         engine.reroll()
     }
 
-    fun buyShopItem(i: Int) = engine.buyShopItem(i)
+    fun buyShopItem(i: Int, replace: String? = null) = engine.buyShopItem(i, replace)
+
+    fun shopNeedsSlot(i: Int) = engine.shopNeedsSlot(i)
 
     fun answerSkipShop(skip: Boolean) = engine.answerSkipShop(skip)
 

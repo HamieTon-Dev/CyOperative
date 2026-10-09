@@ -23,9 +23,11 @@ enum class Difficulty(
     val rewardMul: Float,
     /** Added to the rarity luck of every upgrade offer. */
     val luck: Float,
-    val color: Long
+    val color: Long,
+    /** How much of the deep-run extras (OP level, build size) this difficulty gets. */
+    val extraScaling: Float = 1f
 ) {
-    EASY("EASY", "Softer threats · ×0.8 rewards", 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C),
+    EASY("EASY", "Softer threats · ×0.8 rewards", 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C, extraScaling = 0.5f),
     MEDIUM("MEDIUM", "The intended challenge", 1f, 1f, 1f, 0.1f, 0xFF00E5FF),
     HARD("HARD", "Tougher threats · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55);
 

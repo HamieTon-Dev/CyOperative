@@ -3,6 +3,7 @@ package com.cyberoperative.game.ui.game
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -89,8 +90,9 @@ fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidd
 }
 
 /** Shown while the operative stands at the counter: buy GOLDEN / TITANIUM mods with run €. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false }) {
     Column(
         modifier
             .background(Color(0xF0080A10), RoundedCornerShape(10.dp))
@@ -101,7 +103,7 @@ fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier:
             Text("X,.,.X  UPGRADE SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text("€ $euros", color = Palette.Euro, style = MaterialTheme.typography.titleMedium)
         }
-        Text("Tap a mod to buy it with this run's €.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        Text("Tap a mod to buy it with this run's € · hold for details.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(8.dp))
         if (items.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
         for ((i, it) in items.withIndex()) {
@@ -114,7 +116,7 @@ fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier:
                     .padding(vertical = 3.dp)
                     .background(Palette.Surface, shape)
                     .border(if (it.sold) 1.dp else 2.dp, if (it.sold) Palette.Divider else col, shape)
-                    .clickable(enabled = !it.sold && affordable) { onBuy(i) }
+                    .combinedClickable(enabled = !it.sold, onLongClick = { onHold(i) }, onLongClickLabel = "Details") { if (affordable) onBuy(i) }
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -127,7 +129,10 @@ fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier:
                 ) { Text(it.def.glyph, color = col, fontSize = 9.sp, textAlign = TextAlign.Center, maxLines = 1) }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(it.def.rarity.label + (if (it.nextLevel > 1) " · LV ${it.nextLevel}" else ""), color = col, style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        it.def.rarity.label + (if (it.nextLevel > 1) " · LV ${it.nextLevel}" else "") + if (!it.sold && slotsFull(i)) " · WEAPON · SWAP" else "",
+                        color = col, style = MaterialTheme.typography.labelSmall
+                    )
                     Text(it.def.name, color = if (it.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                     Text(it.def.effectAt(it.nextLevel), color = Palette.Green, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                 }

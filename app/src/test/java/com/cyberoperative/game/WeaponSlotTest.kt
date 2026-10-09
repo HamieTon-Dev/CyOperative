@@ -93,3 +93,31 @@ class WeaponSlotTest {
         assertEquals(-1, CoopCodec.decodeInput(CoopCodec.encodeInput(CoopInput()))!!.replaceIndex)
     }
 }
+
+class StatCompareTest {
+    @Test fun previewShowsWhatChangesAndInWhichDirection() {
+        val b = RunBuild(RunStats())
+        val lines = com.cyberoperative.game.engine.StatCompare.lines(b.stats, b.preview(Upgrades.PAYLOAD_BOOST))
+        val dmg = lines.first { it.label == "Damage" }
+        assertTrue(dmg.better)
+        assertTrue(dmg.change.startsWith("+"))
+        assertTrue(lines.any { it.label == "Main gun DPS" && it.better })
+        // Nothing unrelated is listed.
+        assertFalse(lines.any { it.label == "Max HP" })
+        // Previewing never changes the build.
+        assertEquals(0, b.level(Upgrades.PAYLOAD_BOOST.id))
+    }
+
+    @Test fun swapPreviewShowsTheLostWeaponInRed() {
+        val b = RunBuild(RunStats())
+        val old = Weapons.upgrades[0]
+        b.take(old)
+        val lines = com.cyberoperative.game.engine.StatCompare.lines(b.stats, b.preview(Weapons.upgrades[1], remove = old.id))
+        val lost = lines.first { it.label == Weapons.all[0].name }
+        assertFalse(lost.better)
+        assertEquals("REMOVED", lost.after)
+        val gained = lines.first { it.label == Weapons.all[1].name }
+        assertTrue(gained.better)
+        assertEquals("NEW", gained.change)
+    }
+}

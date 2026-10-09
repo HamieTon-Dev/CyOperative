@@ -79,7 +79,7 @@ fun DifficultyPicker(
                     com.cyberoperative.game.data.Operatives.buildConfig("operative", permanent, 0L).copy(opLevel = opLevel)
                 }
                 Text(
-                    "OP LVL $opLevel: threats +${((cfg.opHpMul - 1f) * 100).toInt()}% HP, +${((cfg.opDamageMul - 1f) * 100).toInt()}% damage",
+                    "OP LVL $opLevel: deep levels (31+, full at 80) +${((cfg.opHpMul - 1f) * 100).toInt()}% threat HP, +${((cfg.opDamageMul - 1f) * 100).toInt()}% damage",
                     color = Palette.Red, style = MaterialTheme.typography.labelSmall
                 )
             }

@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.save.SaveRepository
@@ -308,6 +309,13 @@ class ScreenshotPreviews {
             com.cyberoperative.game.engine.UpgradeOffer(U.KERNEL_OVERCLOCK, 1),
             com.cyberoperative.game.engine.UpgradeOffer(U.ORBITAL_STRIKE, 1)
         ))
+    }
+
+    @Test fun cardDetails() {
+        assumeTrue(enabled)
+        gameplay("card_hold_details", 0f, setup = ::swapSetup, interact = {
+            compose.onAllNodesWithText("PAYLOAD BOOST")[0].performTouchInput { longClick() }
+        })
     }
 
     @Test fun weaponCards() {

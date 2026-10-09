@@ -204,9 +204,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun updateAdaptive() {
         val picks = build.owned().values.sum()
         val weapons = weaponCount()
-        adaptiveHp = Scaling.adaptiveHp(level, picks, weapons)
-        adaptiveDamage = Scaling.adaptiveDamage(level, picks, weapons)
+        val k = config.difficulty.extraScaling
+        adaptiveHp = 1f + (Scaling.adaptiveHp(level, picks, weapons) - 1f) * k
+        adaptiveDamage = 1f + (Scaling.adaptiveDamage(level, picks, weapons) - 1f) * k
     }
+
+    /**
+     * OP-level (and mastery) threat bonus at the current level: none up to
+     * level 30, full by 80 ([Scaling.extraRamp]), halved on EASY.
+     */
+    val opHpNow: Float get() = 1f + (config.opHpMul - 1f) * Scaling.extraRamp(level) * config.difficulty.extraScaling
+    val opDamageNow: Float get() = 1f + (config.opDamageMul - 1f) * Scaling.extraRamp(level) * config.difficulty.extraScaling
 
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false
@@ -1106,9 +1114,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * rarity and depth. Drawn by rarity weight, so TITANIUM stays the rare find.
      */
     private fun rollShopItems(): List<ShopItem> {
-        // New weapons only while a weapon slot is free (the counter has no swap screen).
+        // New weapons are offered even with full slots: buying one swaps out an equipped weapon.
         val pool = Upgrades.all.filter {
-            !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) && !build.needsSlot(it)
+            !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it)
         }.toMutableList()
         val picked = ArrayList<com.cyberoperative.game.data.UpgradeDef>()
         while (picked.size < 4 && pool.isNotEmpty()) {
@@ -1155,13 +1163,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** UI: buy table item [index] with this run's €. */
-    fun buyShopItem(index: Int): Boolean {
+    /** True when shop item [index] is a new weapon and every slot is taken (UI shows the swap grid). */
+    fun shopNeedsSlot(index: Int): Boolean = shopItems.getOrNull(index)?.let { build.needsSlot(it.def) } == true
+
+    /** Buys shop item [index]; a new weapon with full slots needs [replace] (the equipped weapon it swaps out). */
+    fun buyShopItem(index: Int, replace: String? = null): Boolean {
         val item = shopItems.getOrNull(index) ?: return false
         if (!inShop || item.sold || eurosEarned < item.price || !build.isEligible(item.def)) return false
         if (build.needsSlot(item.def)) {
-            addText(px, py - 40f, "WEAPON SLOTS FULL", TextKind.INFO)
-            sound(GameSound.UI_BACK)
-            return false
+            if (replace == null || replace !in build.weapons()) return false
+            dropWeapon(replace)
         }
         eurosEarned -= item.price
         applyUpgrade(item.def)
@@ -2216,13 +2227,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * config.opHpMul * adaptiveHp * config.coopHpMul *
+        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * opHpNow * adaptiveHp * config.coopHpMul *
             (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
         e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
         e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
-        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
+        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
@@ -3012,10 +3023,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             e.vx = 0f; e.vy = 0f
             if (e.boss == null) {
                 e.speed = d.baseSpeed * Scaling.enemySpeed(level)
-                e.damageMul = Scaling.enemyDamage(level) * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
+                e.damageMul = Scaling.enemyDamage(level) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
             } else {
                 e.speed = (e.boss!!.def.speed) * (1f + 0.05f * e.boss!!.cycle)
-                e.damageMul = Scaling.enemyDamage(level) * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * config.opDamageMul * adaptiveDamage
+                e.damageMul = Scaling.enemyDamage(level) * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
                 e.boss!!.anchorX = e.x; e.boss!!.anchorY = e.y
             }
             e.attackRateMul = 1f; e.damageTakenMul = 1f; e.rewardMul = 1f

@@ -61,6 +61,21 @@ class RunBuild(private val base: RunStats) {
         if (levels.remove(id) != null) recompute()
     }
 
+    /**
+     * Stats as they would be after taking [add] (one more level) and/or dropping
+     * [remove], without changing the build: drives the before/after comparison.
+     */
+    fun preview(add: UpgradeDef?, remove: String? = null): RunStats {
+        val lv = LinkedHashMap(levels)
+        if (remove != null) lv.remove(remove)
+        if (add != null && !add.instant) lv[add.id] = (lv[add.id] ?: 0) + 1
+        val out = RunStats()
+        out.copyFrom(base)
+        for ((id, l) in lv) Upgrades.byId(id).applyLevel(out, l)
+        out.clampLimits()
+        return out
+    }
+
     /** Applies the choice. Returns true if it was an instant effect (e.g. heal). */
     fun take(def: UpgradeDef): Boolean {
         if (def.instant) return true

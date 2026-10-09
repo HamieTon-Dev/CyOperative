@@ -139,7 +139,7 @@ data but is 0 pending a monetization decision.
   needs OP LVL m. Effective level = max + 2·√m (ENDLESS stats) or max + extra·(1−e^(−m/60))
   (SOFT stats: speed, range, crit chance, armor, packet speed, card quality). Starting nodes,
   starting upgrades and rerolls stay hard-capped.
-- **OP threat scaling**: +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
+- **OP threat scaling** (applies from level 31, full at 80, halved on Easy): +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
   × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
 
