@@ -11,7 +11,9 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.save.SaveRepository
@@ -295,6 +297,40 @@ class ScreenshotPreviews {
         compose.setContent { CyberOperativeTheme { GameScreen(guest, true, {}, {}) } }
         compose.mainClock.advanceTimeBy(100)
         save("coop_fight_guest_view")
+    }
+
+    private fun swapSetup(s: GameSession) {
+        val W = com.cyberoperative.game.data.Weapons.upgrades
+        for (w in W.take(7)) s.engine.build.take(w)
+        val U = com.cyberoperative.game.data.Upgrades
+        s.engine.debugOffer(listOf(
+            com.cyberoperative.game.engine.UpgradeOffer(U.PAYLOAD_BOOST, 1),
+            com.cyberoperative.game.engine.UpgradeOffer(U.KERNEL_OVERCLOCK, 1),
+            com.cyberoperative.game.engine.UpgradeOffer(U.ORBITAL_STRIKE, 1)
+        ))
+    }
+
+    @Test fun weaponCards() {
+        assumeTrue(enabled)
+        gameplay("weapon_cards", 0f, setup = ::swapSetup)
+    }
+
+    @Test fun weaponSwapGrid() {
+        assumeTrue(enabled)
+        gameplay("weapon_swap_grid", 0f, setup = ::swapSetup, interact = {
+            compose.onAllNodesWithText("ORBITAL STRIKE")[0].performClick()
+        })
+    }
+
+    @Test fun weaponSwapConfirm() {
+        assumeTrue(enabled)
+        val third = com.cyberoperative.game.data.Weapons.upgrades[2].name
+        gameplay("weapon_swap_confirm", 0f, setup = ::swapSetup, interact = {
+            compose.onAllNodesWithText("ORBITAL STRIKE")[0].performClick()
+            compose.mainClock.advanceTimeBy(200)
+            compose.mainClock.advanceTimeBy(200)
+            compose.onAllNodesWithText(third)[0].performClick()
+        })
     }
 
     @Test fun upgradesMastery() {

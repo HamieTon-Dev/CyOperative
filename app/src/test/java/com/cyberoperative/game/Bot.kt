@@ -12,6 +12,7 @@ import kotlin.math.sqrt
  */
 class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
     private var repath = 0f
+    private var picks = 0
     private var wpX = 0f
     private var wpY = 0f
     private var hasWp = false
@@ -22,7 +23,12 @@ class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
 
     fun step(dt: Float) {
         when (g.phase) {
-            Phase.UPGRADE -> { g.chooseUpgrade(0); g.setInput(0f, 0f) }
+            Phase.UPGRADE -> {
+                // Like a player: alternate the weapon card (while a slot is free) with the first power-up.
+                val pickWeapon = g.offer.size == 3 && !g.offerNeedsSlot(2) && (picks++ % 2 == 0)
+                g.chooseUpgrade(if (pickWeapon) 2 else 0)
+                g.setInput(0f, 0f)
+            }
             Phase.PORTAL -> goTo(g.arena.portalX, g.arena.portalY, dt)
             Phase.COMBAT -> combat(dt)
             else -> g.setInput(0f, 0f)

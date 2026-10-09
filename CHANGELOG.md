@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.1 (versionCode 19) — 2026-10-09
+### Changed
+- Weapon slots (owner, 2026-10-09): at most **7 weapons** equipped. Weapons are the 30 arsenal
+  weapons plus Packet Scatter, Exploit Lance, Plasma Beam, Encryption Blades, EMP Burst,
+  Logic Bombs, Malware Missiles, Arc Discharge, Quantum Railgun and Orbital Strike. Gun
+  modifiers (Multishot, Penetration…) and Packet Nodes are power-ups.
+- Every card screen now shows **power-up, power-up, weapon** (instead of three random cards,
+  which were often all weapons). If one kind runs out, the other fills the gap.
+- Picking a new weapon with all 7 slots full opens the weapon grid:
+  - Tap a weapon to replace it, or hold it to see what it does.
+  - The confirm screen shows [old] → [new] and asks "You want to replace ___ with ___?"
+  - YES swaps them; NO goes back to the grid. KEEP MY WEAPONS returns to the cards.
+- Levelling up a weapon you already have never needs a slot.
+- The upgrade shop only offers new weapons while a slot is free.
+- Runs saved with more than 7 weapons keep them; new ones need a swap.
+- Co-op: the guest's weapon swaps go to the host (wire format v2; both players need this
+  version).
+
 ## 0.10.0 (versionCode 18) — 2026-10-08
 ### Added
 - **CO-OP** (owner, 2026-10-08), on the main menu. Needs a Firebase project; see FIREBASE_SETUP.md.

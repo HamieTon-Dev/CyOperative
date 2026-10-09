@@ -49,6 +49,18 @@ class RunBuild(private val base: RunStats) {
         return true
     }
 
+    /** Weapons equipped, in the order they were picked up. */
+    fun weapons(): List<String> = levels.keys.filter { Upgrades.isWeapon(it) }
+
+    /** True when taking [def] would need a free weapon slot and none is left. */
+    fun needsSlot(def: UpgradeDef): Boolean =
+        Upgrades.isWeapon(def) && level(def.id) == 0 && weapons().size >= Upgrades.MAX_WEAPONS
+
+    /** Drops an equipped weapon to free its slot (weapon replacement). */
+    fun remove(id: String) {
+        if (levels.remove(id) != null) recompute()
+    }
+
     /** Applies the choice. Returns true if it was an instant effect (e.g. heal). */
     fun take(def: UpgradeDef): Boolean {
         if (def.instant) return true
@@ -85,11 +97,18 @@ class RunBuild(private val base: RunStats) {
         return weightOf(def, luck) / pool.sumOf { weightOf(it, luck).toDouble() }.toFloat()
     }
 
-    /** Three distinct cards (fewer only if the pool is genuinely exhausted). */
+    /**
+     * The card set (owner, 2026-10-09): power-up, power-up, then one weapon.
+     * If either kind runs out the other fills the gap, so there are always
+     * three cards while anything is left to offer.
+     */
     fun rollOffer(rng: Random, count: Int = 3, luck: Float = 0f): List<UpgradeOffer> {
-        val pool = Upgrades.all.filter { isEligible(it) }.toMutableList()
+        val eligible = Upgrades.all.filter { isEligible(it) }
+        val powers = eligible.filter { !Upgrades.isWeapon(it) }.toMutableList()
+        val weapons = eligible.filter { Upgrades.isWeapon(it) }.toMutableList()
         val result = ArrayList<UpgradeOffer>(count)
-        while (result.size < count && pool.isNotEmpty()) {
+        fun draw(pool: MutableList<UpgradeDef>): Boolean {
+            if (pool.isEmpty()) return false
             val total = pool.sumOf { weightOf(it, luck).toDouble() }.toFloat()
             var roll = rng.nextFloat() * total
             var chosen = pool.last()
@@ -99,7 +118,13 @@ class RunBuild(private val base: RunStats) {
             }
             pool.remove(chosen)
             result += UpgradeOffer(chosen, if (chosen.instant) 1 else level(chosen.id) + 1)
+            return true
         }
+        val weaponCards = if (count >= 3) 1 else 0
+        while (result.size < count - weaponCards && draw(powers)) {}
+        repeat(weaponCards) { if (!draw(weapons)) draw(powers) }
+        // Not enough power-ups left: top up with weapons.
+        while (result.size < count && (draw(powers) || draw(weapons))) {}
         return result
     }
 

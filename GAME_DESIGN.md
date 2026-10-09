@@ -143,6 +143,12 @@ data but is 0 pending a monetization decision.
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
   × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
 
+## 8c. Weapon slots (0.10.1)
+- Max 7 weapons per operative (`Upgrades.MAX_WEAPONS`). Weapons = arsenal + built-in attacks;
+  modifiers and Packet Nodes are power-ups.
+- Card screen: power-up, power-up, weapon. A new weapon with full slots needs a swap (grid → confirm).
+- Shop: no new weapons while slots are full.
+
 ## 12b. Co-op (0.10.0, engine/Operative.kt, engine/CoopNet.kt, net/)
 - Two operatives in one campaign run: host = operative 0, guest = 1. Each brings its own permanent
   upgrades, skin and body, and picks its own cards; the card screen waits for both.

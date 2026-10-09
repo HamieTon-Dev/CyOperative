@@ -394,6 +394,23 @@ object Upgrades {
 
     fun byId(id: String): UpgradeDef = byId[id] ?: error("Unknown upgrade $id")
 
+    /**
+     * Weapons take a weapon slot (owner, 2026-10-09: at most [MAX_WEAPONS]).
+     * Every arsenal weapon plus the built-in attacks; gun modifiers (Multishot,
+     * Penetration…) and the starting Packet Nodes are power-ups, not weapons.
+     */
+    private val builtInWeapons = setOf(
+        "packet_scatter", "exploit_lance", "plasma_beam", "encryption_blades", "emp_burst",
+        "logic_bombs", "malware_missiles", "arc_discharge", "quantum_railgun", "orbital_strike"
+    )
+    private val weaponIds: Set<String> by lazy { builtInWeapons + Weapons.upgrades.map { it.id } }
+
+    fun isWeapon(def: UpgradeDef): Boolean = def.id in weaponIds
+    fun isWeapon(id: String): Boolean = id in weaponIds
+
+    /** Weapon slots per operative. */
+    const val MAX_WEAPONS = 7
+
     /** Roman numerals for card titles ("PACKET NODES II"). */
     fun roman(n: Int): String = when (n) {
         1 -> "I"; 2 -> "II"; 3 -> "III"; 4 -> "IV"; 5 -> "V"

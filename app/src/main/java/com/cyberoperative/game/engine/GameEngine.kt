@@ -876,21 +876,33 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
-    /** UI: the player picked card [index]. */
-    fun chooseUpgrade(index: Int) = chooseUpgradeFor(primary, index)
+    /**
+     * UI: the player picked card [index]. A new weapon with all
+     * [com.cyberoperative.game.data.Upgrades.MAX_WEAPONS] slots full needs
+     * [replace]: the equipped weapon it takes the place of.
+     */
+    fun chooseUpgrade(index: Int, replace: String? = null) = chooseUpgradeFor(primary, index, replace)
+
+    /** True when card [index] is a new weapon and every weapon slot is taken (UI shows the swap grid). */
+    fun offerNeedsSlot(index: Int): Boolean = offer.getOrNull(index)?.let { build.needsSlot(it.def) } == true
 
     /** Operative [opIndex] picked card [index] (co-op: each picks their own). */
-    fun chooseUpgradeFor(opIndex: Int, index: Int) {
+    fun chooseUpgradeFor(opIndex: Int, index: Int, replace: String? = null) {
         if (phase != Phase.UPGRADE) return
         val o = ops.getOrNull(opIndex) ?: return
         if (o.gone) return
         cur = o
-        try { takeOffered(index) } finally { cur = ops[primary] }
+        try { takeOffered(index, replace) } finally { cur = ops[primary] }
         if (ops.all { it.gone || it.pendingUpgrades <= 0 }) finishUpgrades()
     }
 
-    private fun takeOffered(index: Int) {
+    private fun takeOffered(index: Int, replace: String?) {
         val choice = offer.getOrNull(index) ?: return
+        if (build.needsSlot(choice.def)) {
+            // Weapon slots full: only with a valid weapon to swap out.
+            if (replace == null || replace !in build.weapons()) return
+            dropWeapon(replace)
+        }
         val wasMaxHp = stats.maxHp
         val instant = build.take(choice.def)
         if (instant) {
@@ -1094,7 +1106,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * rarity and depth. Drawn by rarity weight, so TITANIUM stays the rare find.
      */
     private fun rollShopItems(): List<ShopItem> {
-        val pool = Upgrades.all.filter { !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) }.toMutableList()
+        // New weapons only while a weapon slot is free (the counter has no swap screen).
+        val pool = Upgrades.all.filter {
+            !it.instant && it.rarity.ordinal >= com.cyberoperative.game.data.Rarity.LEGENDARY.ordinal && build.isEligible(it) && !build.needsSlot(it)
+        }.toMutableList()
         val picked = ArrayList<com.cyberoperative.game.data.UpgradeDef>()
         while (picked.size < 4 && pool.isNotEmpty()) {
             val total = pool.sumOf { it.rarity.weight.toDouble() }.toFloat()
@@ -1143,6 +1158,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun buyShopItem(index: Int): Boolean {
         val item = shopItems.getOrNull(index) ?: return false
         if (!inShop || item.sold || eurosEarned < item.price || !build.isEligible(item.def)) return false
+        if (build.needsSlot(item.def)) {
+            addText(px, py - 40f, "WEAPON SLOTS FULL", TextKind.INFO)
+            sound(GameSound.UI_BACK)
+            return false
+        }
         eurosEarned -= item.price
         applyUpgrade(item.def)
         shopItems = shopItems.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
@@ -1150,6 +1170,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         sound(GameSound.CURRENCY)
         sound(GameSound.UPGRADE_SELECTED)
         return true
+    }
+
+    /** Frees a weapon slot: the weapon, its timers and anything it left on the field. */
+    private fun dropWeapon(id: String) {
+        build.remove(id)
+        weaponTimers.remove(id)
+        if (id == Upgrades.PLASMA_BEAM.id) { beamActive = false; beamHeat = 0f; beamCooldown = 0f }
+        hp = min(hp, stats.maxHp)
+        firewall = min(firewall, stats.firewallMax)
+        sound(GameSound.UI_BACK)
     }
 
     /** Applies an upgrade's immediate side effects (HP gained, firewall refilled). Used by the shop. */
@@ -2626,7 +2656,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun debugGrantEuros(amount: Int) { eurosEarned += amount }
 
     /** Test hook: jump to a level (used by unit tests and debug). */
-    fun debugJumpToLevel(target: Int) {
+    /** Test hook: put the card screen up with exactly these cards. */
+    internal fun debugOffer(cards: List<UpgradeOffer>) {
+        pendingUpgrades = max(1, pendingUpgrades)
+        offer = cards
+        phase = Phase.UPGRADE
+    }
+
+        fun debugJumpToLevel(target: Int) {
         startLevel(target, null, true)
     }
 
@@ -2659,7 +2696,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (c.pickSerial > lastPickSerial) {
             lastPickSerial = c.pickSerial
-            chooseUpgradeFor(index, c.pickIndex)
+            chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
         }
         if (c.rerollSerial > lastRerollSerial) {
             lastRerollSerial = c.rerollSerial

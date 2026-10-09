@@ -197,7 +197,7 @@ private fun BuffChip(
 }
 
 @Composable
-private fun UpgradeTooltip(def: UpgradeDef, level: Int, beamHeat: Float = 0f, beamCooldown: Float = 0f) {
+internal fun UpgradeTooltip(def: UpgradeDef, level: Int, beamHeat: Float = 0f, beamCooldown: Float = 0f) {
     val c = Color(def.rarity.color)
     Column(
         Modifier

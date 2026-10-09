@@ -188,6 +188,7 @@ class GameSession(
     private var partnerLeft = false
     private var pickSerial = 0
     private var pickIndex = 0
+    private var replaceIndex = -1
     private var pickedOnOffer = -1
     private var rerollSerial = 0
     private var partnerWasOnline = false
@@ -305,7 +306,7 @@ class GameSession(
             sendTimer = 0f
             link.room.sendInput(
                 CoopCodec.encodeInput(
-                    CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel)
+                    CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex)
                 )
             )
         }
@@ -427,17 +428,25 @@ class GameSession(
         )
     }
 
-    fun chooseUpgrade(i: Int) {
+    /** True when card [i] is a new weapon and all weapon slots are full (show the swap grid first). */
+    fun needsWeaponSlot(i: Int): Boolean = engine.offerNeedsSlot(i)
+
+    /** Weapons equipped now, for the swap grid. */
+    fun equippedWeapons(): List<Pair<com.cyberoperative.game.data.UpgradeDef, Int>> =
+        engine.build.weapons().map { com.cyberoperative.game.data.Upgrades.byId(it) to engine.build.level(it) }
+
+    fun chooseUpgrade(i: Int, replace: String? = null) {
         if (coop != null && !isHost && engine.mirror) {
             // Guest: the host applies the pick; one pick per shown set of cards.
             if (pickedOnOffer == engine.offerSerial) return
             pickedOnOffer = engine.offerSerial
             pickIndex = i
+            replaceIndex = replace?.let { id -> com.cyberoperative.game.data.Upgrades.all.indexOfFirst { it.id == id } } ?: -1
             pickSerial++
             sendTimer = 1f
             return
         }
-        engine.chooseUpgrade(i)
+        engine.chooseUpgrade(i, replace)
     }
 
     fun reroll() {
