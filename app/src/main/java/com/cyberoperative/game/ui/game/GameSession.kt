@@ -209,7 +209,7 @@ class GameSession(
             val guestCfg = Operatives.buildConfig("operative", guest.permanent, link.state.seed)
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
-                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel)
+                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots)
             )
         } else {
             Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
@@ -435,6 +435,9 @@ class GameSession(
     fun previewLines(def: com.cyberoperative.game.data.UpgradeDef, remove: String? = null): List<com.cyberoperative.game.engine.StatLine> =
         if (def.instant) emptyList()
         else com.cyberoperative.game.engine.StatCompare.lines(engine.build.stats, engine.build.preview(def, remove))
+
+    /** Weapon slots this operative has (7 + WEAPON SLOTS upgrade). */
+    fun weaponSlots(): Int = engine.build.weaponSlots
 
     /** Weapons equipped now, for the swap grid. */
     fun equippedWeapons(): List<Pair<com.cyberoperative.game.data.UpgradeDef, Int>> =

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -28,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.BuildConfig
@@ -69,13 +71,13 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
                 val level = profile.permanentUpgrades[def.id] ?: 0
                 val maxed = level >= def.levelCap
                 val cost = def.costFor(level)
-                val locked = opLevel < def.unlockAt
-                // Next mastery level waits for the OP level that unlocks it.
-                val opGated = !maxed && level >= def.capAt(opLevel)
+                // Locked until the OP level the next level needs (WEAPON SLOTS: OP 10/20/30/50/80).
+                val needOp = if (def.levelUnlocks != null) def.unlockFor(level) else if (level < def.maxLevel) def.unlockAt else level - def.maxLevel + 1
+                val locked = !maxed && (opLevel < def.unlockAt || level >= def.capAt(opLevel))
                 val mastered = level >= def.maxLevel
                 val affordable = profile.euros >= cost
                 TerminalCard(accent = if (mastered) Palette.Gold else Palette.Divider) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(if (locked && level == 0) 0.55f else 1f)) {
                         Column(Modifier.weight(1f)) {
                             Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                             Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
@@ -89,8 +91,7 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
                         Spacer(Modifier.width(8.dp))
                         when {
                             maxed -> Text("MAX", color = Palette.Gold, style = MaterialTheme.typography.titleMedium)
-                            locked -> Text("OP LVL\n${def.unlockAt}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
-                            opGated -> Text("OP LVL\n${level - def.maxLevel + 1}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                            locked -> LockedBadge(needOp)
                             else -> CyberButton("€ ${"%,d".format(cost)}", enabled = affordable, accent = Palette.Euro) {
                                 var bought = false
                                 save.update { p ->
@@ -423,5 +424,34 @@ fun ComingSoonScreen(title: String, plan: List<String>, onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+
+/** Grey padlock + the OP level that unlocks the next level of an upgrade. */
+@Composable
+private fun LockedBadge(opLevel: Int) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(64.dp)) {
+        androidx.compose.foundation.Canvas(Modifier.size(width = 18.dp, height = 22.dp)) {
+            val c = Palette.TextMuted
+            val stroke = 2.dp.toPx()
+            // Shackle
+            drawArc(
+                c, 180f, 180f, false,
+                topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.2f, 0f),
+                size = androidx.compose.ui.geometry.Size(size.width * 0.6f, size.height * 0.6f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(stroke)
+            )
+            drawLine(c, androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.3f), androidx.compose.ui.geometry.Offset(size.width * 0.2f, size.height * 0.45f), stroke)
+            drawLine(c, androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.3f), androidx.compose.ui.geometry.Offset(size.width * 0.8f, size.height * 0.45f), stroke)
+            // Body + keyhole
+            drawRoundRect(
+                c, topLeft = androidx.compose.ui.geometry.Offset(0f, size.height * 0.45f),
+                size = androidx.compose.ui.geometry.Size(size.width, size.height * 0.55f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx())
+            )
+            drawCircle(Palette.Surface, size.width * 0.1f, androidx.compose.ui.geometry.Offset(size.width / 2f, size.height * 0.68f))
+        }
+        Text("OP LVL $opLevel", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
     }
 }

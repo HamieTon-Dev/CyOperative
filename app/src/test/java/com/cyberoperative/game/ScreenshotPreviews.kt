@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.test.core.app.ApplicationProvider
@@ -339,6 +340,17 @@ class ScreenshotPreviews {
             compose.mainClock.advanceTimeBy(200)
             compose.onAllNodesWithText(third)[0].performClick()
         })
+    }
+
+    @Test fun upgradesWeaponSlots() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(euros = 60_000, operativeXp = 22_000L, permanentUpgrades = mapOf("weapon_slots" to 2, "max_hp" to 8)) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.PermanentUpgradesScreen(repo, AudioManager(ctx)) {} } }
+        compose.mainClock.advanceTimeBy(300)
+        save("upgrades_weapon_slots")
     }
 
     @Test fun upgradesMastery() {

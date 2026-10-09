@@ -40,15 +40,27 @@ data class PermanentUpgradeDef(
     val applyConfig: (RunConfig, Float) -> RunConfig = { c, _ -> c },
     val mastery: Mastery = Mastery.ENDLESS,
     /** SOFT only: how many designed levels' worth mastery can add at most. */
-    val softExtra: Int = 0
+    val softExtra: Int = 0,
+    /** Per-level OP requirement (level n+1 needs levelUnlocks[n]); null = [unlockAt] for all. */
+    val levelUnlocks: List<Int>? = null,
+    /** Per-level € price; null = the usual growing formula. */
+    val levelCosts: List<Long>? = null
 ) {
-    fun costFor(currentLevel: Int): Long = (baseCost * (1.0 + currentLevel).pow(1.55)).roundToLong()
+    fun costFor(currentLevel: Int): Long =
+        levelCosts?.getOrNull(currentLevel) ?: (baseCost * (1.0 + currentLevel).pow(1.55)).roundToLong()
+
+    /** OP level needed to buy the level after [currentLevel]. */
+    fun unlockFor(currentLevel: Int): Int = levelUnlocks?.getOrNull(currentLevel) ?: unlockAt
 
     /** Highest level this upgrade can ever reach. */
     val levelCap: Int get() = if (mastery == Mastery.NONE) maxLevel else MAX_LEVEL
 
     /** Highest level buyable at [opLevel]: the designed range, plus one mastery level per OP level. */
-    fun capAt(opLevel: Int): Int = if (mastery == Mastery.NONE) maxLevel else minOf(MAX_LEVEL, maxLevel + opLevel.coerceAtLeast(0))
+    fun capAt(opLevel: Int): Int = when {
+        levelUnlocks != null -> levelUnlocks.count { it <= opLevel }.coerceAtMost(maxLevel)
+        mastery == Mastery.NONE -> maxLevel
+        else -> minOf(MAX_LEVEL, maxLevel + opLevel.coerceAtLeast(0))
+    }
 
     /** The level the effect is computed from: linear up to [maxLevel], then diminishing. */
     fun effectiveLevel(level: Int): Float {
@@ -83,6 +95,13 @@ object PermanentUpgrades {
             { l -> p(8f * l) + " max HP" }, { s, l -> s.maxHp *= 1f + 0.08f * l }),
         PermanentUpgradeDef("base_damage", "BASE DAMAGE", "Stronger default payload.", 20, 70, 1,
             { l -> p(6f * l) + " damage" }, { s, l -> s.damage *= 1f + 0.06f * l }),
+        // Owner, 2026-10-09: extra weapon slots unlock at OP 10, 20, 30, 50 and 80.
+        PermanentUpgradeDef("weapon_slots", "WEAPON SLOTS", "Carry one more weapon into every operation.", 5, 5000, 10,
+            { l -> "${com.cyberoperative.game.data.Upgrades.MAX_WEAPONS + l.toInt()} weapon slots" },
+            applyConfig = { c, l -> c.copy(weaponSlots = c.weaponSlots + l.toInt()) },
+            mastery = Mastery.NONE,
+            levelUnlocks = listOf(10, 20, 30, 50, 80),
+            levelCosts = listOf(5_000L, 15_000L, 40_000L, 100_000L, 250_000L)),
         PermanentUpgradeDef("attack_speed", "ATTACK SPEED", "Faster packet cycling.", 15, 80, 1,
             { l -> p(4f * l) + " attack speed" }, { s, l -> s.fireRate *= 1f + 0.04f * l }, mastery = Mastery.SOFT, softExtra = 15),
         PermanentUpgradeDef("move_speed", "MOVEMENT SPEED", "Lower-latency movement.", 10, 70, 2,

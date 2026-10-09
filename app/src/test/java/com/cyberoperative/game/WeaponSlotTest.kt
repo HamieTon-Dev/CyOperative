@@ -86,6 +86,32 @@ class WeaponSlotTest {
         assertFalse(b.needsSlot(Upgrades.MULTISHOT))
     }
 
+    @Test fun weaponSlotsUpgradeUnlocksByOpLevel() {
+        val d = com.cyberoperative.game.data.PermanentUpgrades.byId("weapon_slots")!!
+        assertEquals(listOf(10, 20, 30, 50, 80), d.levelUnlocks)
+        assertEquals(0, d.capAt(9))
+        assertEquals(1, d.capAt(10))
+        assertEquals(3, d.capAt(49))
+        assertEquals(5, d.capAt(80))
+        assertEquals(5, d.capAt(9999))
+        assertEquals(20, d.unlockFor(1))
+        assertEquals(listOf(5_000L, 15_000L, 40_000L, 100_000L, 250_000L), (0 until 5).map { d.costFor(it) })
+    }
+
+    @Test fun boughtSlotsLetMoreWeaponsIn() {
+        val cfg = com.cyberoperative.game.data.Operatives.buildConfig("operative", mapOf("weapon_slots" to 2), 1L)
+        assertEquals(9, cfg.weaponSlots)
+        val g = GameEngine(cfg)
+        assertEquals(9, g.build.weaponSlots)
+        for (w in Weapons.upgrades.take(8)) g.build.take(w)
+        assertFalse(g.build.needsSlot(Weapons.upgrades[8]))
+        g.build.take(Weapons.upgrades[8])
+        assertTrue(g.build.needsSlot(Weapons.upgrades[9]))
+        // Co-op partners bring their own slot count.
+        val coop = GameEngine(cfg.copy(ally = com.cyberoperative.game.engine.AllyConfig(weaponSlots = 12)))
+        assertEquals(12, coop.operatives[1].build.weaponSlots)
+    }
+
     @Test fun guestSwapTravelsOverTheWire() {
         val c = CoopInput(seq = 3, pickSerial = 2, pickIndex = 2, replaceIndex = 17)
         val d = CoopCodec.decodeInput(CoopCodec.encodeInput(c))!!

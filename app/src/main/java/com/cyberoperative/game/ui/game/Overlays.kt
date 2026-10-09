@@ -120,8 +120,8 @@ fun UpgradeOverlay(session: GameSession) {
             }
             val weaponsNow = session.equippedWeapons().size
             Text(
-                "WEAPON SLOTS $weaponsNow / ${Upgrades.MAX_WEAPONS}",
-                color = if (weaponsNow >= Upgrades.MAX_WEAPONS) Palette.Orange else Palette.TextMuted,
+                "WEAPON SLOTS $weaponsNow / ${session.weaponSlots()}",
+                color = if (weaponsNow >= session.weaponSlots()) Palette.Orange else Palette.TextMuted,
                 style = MaterialTheme.typography.labelMedium
             )
             Spacer(Modifier.height(8.dp))

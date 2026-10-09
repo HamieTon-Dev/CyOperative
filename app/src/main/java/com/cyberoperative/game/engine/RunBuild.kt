@@ -26,6 +26,9 @@ class RunBuild(private val base: RunStats) {
     /** Upgrade ids never offered in this run (mode-specific). */
     var excluded: Set<String> = emptySet()
 
+    /** Weapons this operative may carry (7 + permanent WEAPON SLOTS). */
+    var weaponSlots = Upgrades.MAX_WEAPONS
+
     /** Extra rarity bias from permanent "Upgrade Quality" (0 = none). */
     var qualityBonus = 0f
 
@@ -54,7 +57,7 @@ class RunBuild(private val base: RunStats) {
 
     /** True when taking [def] would need a free weapon slot and none is left. */
     fun needsSlot(def: UpgradeDef): Boolean =
-        Upgrades.isWeapon(def) && level(def.id) == 0 && weapons().size >= Upgrades.MAX_WEAPONS
+        Upgrades.isWeapon(def) && level(def.id) == 0 && weapons().size >= weaponSlots
 
     /** Drops an equipped weapon to free its slot (weapon replacement). */
     fun remove(id: String) {

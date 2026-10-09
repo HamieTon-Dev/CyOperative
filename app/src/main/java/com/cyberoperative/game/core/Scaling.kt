@@ -13,39 +13,20 @@ import kotlin.math.min
  */
 object Scaling {
 
-    /** Enemy HP multiplier. L1=1.0, L10≈2.1, L30≈4.9, L60≈14.6, L100≈43 (late ramp from L31). */
+    /**
+     * Enemy HP multiplier. L1=1.0, L10≈2.1, L50≈8.6, L100≈20.7.
+     * Owner, 2026-10-09: no extra late ramp or build-size scaling; deep runs get
+     * harder through OP level (RunConfig.opHpMul), busier rooms and more elites.
+     */
     fun enemyHp(level: Int): Float {
         val n = (level - 1).coerceAtLeast(0).toFloat()
-        return (1f + 0.11f * n + 0.0009f * n * n) * lateRamp(level, LATE_HP)
+        return 1f + 0.11f * n + 0.0009f * n * n
     }
-
-    /**
-     * 0 up to level 30, rising to 1 at level 80 (owner, 2026-10-09: "hard is
-     * fine how it was; it is already quite hard at 30"). Every extra on top of
-     * the base curve — OP level, build size, the late ramp — fades in with it,
-     * so levels 1–30 play exactly as designed and the extras only bite deep.
-     */
-    fun extraRamp(level: Int): Float = ((level - LATE_RAMP_FROM) / 50f).coerceIn(0f, 1f)
-
-    const val LATE_HP = 1.02
-    const val LATE_DAMAGE = 1.015
-
-    /**
-     * Owner, 2026-10-08: "after level 60 it feels too easy" — builds snowball
-     * (100+ picks, a dozen auto-weapons), so past level 30 threats compound
-     * on top of the polynomial curve. Capped so very deep runs stay finite.
-     */
-    fun lateRamp(level: Int, perLevel: Double): Float {
-        val over = (level - LATE_RAMP_FROM).coerceIn(0, 300)
-        return Math.pow(perLevel, over.toDouble()).toFloat()
-    }
-
-    const val LATE_RAMP_FROM = 30
 
     /** Enemy damage multiplier. Grows slower than HP so deaths stay understandable. */
     fun enemyDamage(level: Int): Float {
         val n = (level - 1).coerceAtLeast(0).toFloat()
-        return (1f + 0.045f * n + 0.00018f * n * n) * lateRamp(level, LATE_DAMAGE)
+        return 1f + 0.045f * n + 0.00018f * n * n
     }
 
     /** Enemy movement multiplier: approaches +30% asymptotically (never impossible). */
@@ -111,20 +92,6 @@ object Scaling {
         // Deep runs: more elites, up to half of all threats.
         else -> min(0.5f, 0.35f + 0.005f * (level - 50))
     }
-
-    /**
-     * Adaptive threat (owner, 2026-10-08: "levels 50+ scale too slowly if you
-     * have many weapons"). Build size — upgrade picks and the weapons fighting
-     * for you (max 7 since 0.10.1) — raises threat HP and damage. Fades in with
-     * [extraRamp] (nothing up to level 30, full by 80) and is fixed per level.
-     */
-    fun adaptiveHp(level: Int, picks: Int, weapons: Int): Float =
-        1f + adaptiveRamp(level) * (0.01f * picks.coerceIn(0, 400) + 0.08f * weapons.coerceIn(0, 12))
-
-    fun adaptiveDamage(level: Int, picks: Int, weapons: Int): Float =
-        1f + adaptiveRamp(level) * (0.004f * picks.coerceIn(0, 400) + 0.03f * weapons.coerceIn(0, 12))
-
-    fun adaptiveRamp(level: Int): Float = extraRamp(level)
 
     /** Boss HP multiplier: tracks enemy HP but with a gentle extra per boss cycle. */
     fun bossHp(level: Int): Float {

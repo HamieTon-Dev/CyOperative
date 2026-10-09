@@ -139,12 +139,13 @@ data but is 0 pending a monetization decision.
   needs OP LVL m. Effective level = max + 2·√m (ENDLESS stats) or max + extra·(1−e^(−m/60))
   (SOFT stats: speed, range, crit chance, armor, packet speed, card quality). Starting nodes,
   starting upgrades and rerolls stay hard-capped.
-- **OP threat scaling** (applies from level 31, full at 80, halved on Easy): +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
+- **OP threat scaling** (the only difficulty extra since 0.10.3; from level 1, halved on Easy): +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
   × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
 
 ## 8c. Weapon slots (0.10.1)
-- Max 7 weapons per operative (`Upgrades.MAX_WEAPONS`). Weapons = arsenal + built-in attacks;
+- 7 weapons per operative (`Upgrades.MAX_WEAPONS`), +1 per WEAPON SLOTS level (OP 10/20/30/50/80,
+  €5k/15k/40k/100k/250k) up to 12. Weapons = arsenal + built-in attacks;
   modifiers and Packet Nodes are power-ups.
 - Card screen: power-up, power-up, weapon. A new weapon with full slots needs a swap (grid → confirm).
 - Shop: no new weapons while slots are full.

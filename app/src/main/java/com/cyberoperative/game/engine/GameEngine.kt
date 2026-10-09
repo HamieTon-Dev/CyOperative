@@ -40,7 +40,8 @@ data class AllyConfig(
     val rerolls: Int = 0,
     val upgradeQuality: Float = 0f,
     val startingUpgrades: Int = 0,
-    val opLevel: Int = 1
+    val opLevel: Int = 1,
+    val weaponSlots: Int = Upgrades.MAX_WEAPONS
 )
 
 const val COOP_HP_MUL = 1.4f
@@ -64,7 +65,9 @@ data class RunConfig(
     val masteryDpsRatio: Float = 1f,
     val masterySurvivalRatio: Float = 1f,
     /** Co-op partner (owner, 2026-10-08), or null for a solo run. */
-    val ally: AllyConfig? = null
+    val ally: AllyConfig? = null,
+    /** Weapons this operative can carry (7 + WEAPON SLOTS upgrade). */
+    val weaponSlots: Int = Upgrades.MAX_WEAPONS
 ) {
     val coop: Boolean get() = ally != null
     /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
@@ -150,8 +153,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val mode: GameMode get() = config.mode
     /** The operatives on the field: [0] is the host / solo player, [1] the co-op partner. */
     private val ops = ArrayList<Operative>(2).apply {
-        add(Operative(0, config.baseStats).also { it.rerollsLeft = config.rerolls; it.build.qualityBonus = config.upgradeQuality })
-        config.ally?.let { a -> add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality }) }
+        add(Operative(0, config.baseStats).also {
+            it.rerollsLeft = config.rerolls; it.build.qualityBonus = config.upgradeQuality; it.build.weaponSlots = config.weaponSlots
+        })
+        config.ally?.let { a ->
+            add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality; it.build.weaponSlots = a.weaponSlots })
+        }
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
         if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
     }
@@ -188,7 +195,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Rarity luck of the current offers (level + difficulty + boss bonus). */
     var offerLuck = 0f
         private set
-    /** Adaptive threat multipliers for the current level (see [Scaling.adaptiveHp]). */
+    /** Former build-size threat multipliers (removed 2026-10-09; always ×1). */
     var adaptiveHp = 1f
         private set
     var adaptiveDamage = 1f
@@ -201,20 +208,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             s.arcLevel, s.railLevel, s.strikeLevel, s.bladeCount).count { it > 0 } + (s.orbCount - 1).coerceAtLeast(0) / 2
     }
 
+    /** Build-size threat scaling was removed (owner, 2026-10-09): kept at ×1. */
     private fun updateAdaptive() {
-        val picks = build.owned().values.sum()
-        val weapons = weaponCount()
-        val k = config.difficulty.extraScaling
-        adaptiveHp = 1f + (Scaling.adaptiveHp(level, picks, weapons) - 1f) * k
-        adaptiveDamage = 1f + (Scaling.adaptiveDamage(level, picks, weapons) - 1f) * k
+        adaptiveHp = 1f
+        adaptiveDamage = 1f
     }
 
     /**
-     * OP-level (and mastery) threat bonus at the current level: none up to
-     * level 30, full by 80 ([Scaling.extraRamp]), halved on EASY.
+     * OP-level (and mastery) threat bonus (owner, 2026-10-09: "it should scale
+     * to OP level"): the one difficulty extra on top of the base curve, from
+     * level 1, halved on EASY.
      */
-    val opHpNow: Float get() = 1f + (config.opHpMul - 1f) * Scaling.extraRamp(level) * config.difficulty.extraScaling
-    val opDamageNow: Float get() = 1f + (config.opDamageMul - 1f) * Scaling.extraRamp(level) * config.difficulty.extraScaling
+    val opHpNow: Float get() = 1f + (config.opHpMul - 1f) * config.difficulty.extraScaling
+    val opDamageNow: Float get() = 1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling
 
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false

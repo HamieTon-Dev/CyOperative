@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.10.3 (versionCode 21) — 2026-10-09
+### Added
+- **WEAPON SLOTS** permanent upgrade on the UPGRADES (OP level-up) screen, for € earned in runs.
+  It has 5 levels; each adds one weapon slot (7 → 12):
+
+  | Slot | OP level | Cost |
+  |---|---|---|
+  | 8 | 10 | €5,000 |
+  | 9 | 20 | €15,000 |
+  | 10 | 30 | €40,000 |
+  | 11 | 50 | €100,000 |
+  | 12 | 80 | €250,000 |
+
+  - Until the OP level is reached, the card shows a grey padlock with the level it needs.
+  - In runs, the slot counter, the card screen, the swap grid and the shop use your own slot
+    count (co-op partners bring theirs).
+### Changed
+- **Difficulty now scales with OP level only** (owner, 2026-10-09):
+  - Removed the late ramp (the extra +HP per level past 30) and build-size threat scaling on
+    every difficulty. The base curves are back to the original.
+  - OP-level threat scaling (+2% HP / +1.2% damage per OP level, ×3 / ×2.2 at OP 101, then
+    slow growth; mastery included) applies from level 1, halved on Easy.
+  - Hard stays ×1.45 HP / ×1.4 damage over Normal at the same OP level.
+  - Deep levels keep getting busier: up to 70 threats per level and up to 50% elites past
+    level 50.
+
 ## 0.10.2 (versionCode 20) — 2026-10-09
 ### Added
 - **Hold for details** (owner, 2026-10-09) on upgrade cards, shop items and the weapon swap grid:
