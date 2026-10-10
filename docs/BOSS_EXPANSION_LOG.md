@@ -1,8 +1,24 @@
 # Boss Expansion Vol. 1 — build plan & progress log
 
 _Owner brief (2026-10-10): "Use these as inspiration for the next level of this build. I want this
-game to feel premium." Source sheets: `docs/boss-concepts/` (Boss Pack Alpha, Boss Pack Beta,
-Nullshade Specter dossier, Expansion Vol. 1 overview — 12 bosses)._
+game to feel premium." Source sheets in `docs/boss-concepts/`: Boss Pack Alpha, Boss Pack Beta,
+**Boss Pack Gamma**, the Nullshade Specter dossier and the Expansion Vol. 1 overview (12 bosses)._
+
+> **Quality bar (owner, 2026-10-10):** "These bosses can easily dominate 60% of the arena. These are
+> the premium boss expansions to this game. Must be very high quality."
+>
+> What that means for every expansion boss:
+> - **Presence:**
+>   - Big, detailed, animated bodies that react to phase.
+>   - Attacks and hazards that can control **up to ~60% of the floor at peak**: cube walls, laser
+>     sweeps, fire rings, infected zones, darkness.
+> - **Always a way out:**
+>   - At least ~40% stays safe or reachable at any moment.
+>   - There is always a path out. The Vault Sentinel lockdown gap rule is the template.
+>   - Every pattern is telegraphed.
+> - **Polish before "done":**
+>   - The owner approves the body, then the attack renders.
+>   - Screen FX on big moments; co-op synced; bot-beatable test; dossier abilities match the sheet.
 
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
@@ -85,12 +101,29 @@ mechanics can keep moving while a design waits. Track it in §6.
 | Room rules + visual sequence (lights out → sparks → light bubble → eyes → power restores) | ✅ | S11 |
 | Threat tier EXTREME, bounty above White Eye | ✅ | S13 |
 
-### Overview only (one line each — designed in §4)
-| Boss | Concept | Verdict |
-|---|---|---|
-| **Rootkit Apostle** | Burrows, erupts, infects safe zones | ✅ burrow = untargetable underground with a moving dirt trail; erupt = blast at exit |
-| **Ransom King** | Locks down blocks, creates key zones, punishes movement | ⚠️ "punishes movement" = an ENCRYPTED status: while it's on, moving charges a meter that bursts. Key zones: stand in them to break his shield |
-| **Spectral Firewall** | Rotating flame-wall that shrinks safe space | ✅ rotating ring of fire with one or two gaps that closes in |
+### Boss Pack Gamma — "4 high-tier corruption & control bosses" (sheet added 2026-10-10)
+`docs/boss-concepts/boss_pack_gamma.webp`. This replaces my own D4 proposals in §4 for Rootkit
+Apostle, Ransom King and Spectral Firewall, and adds a role label for Nullshade.
+Sheet notes: 4 unique bosses · distinct mechanics · new arena hazards · higher challenge · bigger rewards.
+
+| Boss (role) | HP / SPD / DMG / ARMOR / BOUNTY | Ability | Verdict | Needs system |
+|---|---|---|---|---|
+| **Rootkit Apostle** (AMBUSHER) | 1,500 / 6 / 28 / 14 / €13,050 | Burrow Drift | ✅ dives underground (untargetable), a glowing crack trail drifts toward you | S10 + S5 |
+| | | Spike Eruption | ✅ clusters/lines of crystal spikes burst from the floor after a red floor telegraph | S5 |
+| | | Infected Zone | ✅ the spots you stand in longest turn into corrupted rings (it "infects safe areas"), forcing you to relocate | S5 |
+| | | Rootkit Bloom | ✅ erupts in a bloom of spikes and a radial burst where it surfaces | S5 + radial |
+| **Ransom King** (LOCKDOWN) | 1,650 / 5 / 29 / 17 / €14,500 | Key Zone | ✅ golden diamond zones; standing in one drains his shield | S10 |
+| | | Lock Grid | ✅ padlocked cubes rise and seal sections of the arena (reuses the Vault Sentinel barrier cubes, with a padlock look) | S6 ✅ |
+| | | Royal Seizure | ⚠️ "seizing attacks — poor positioning leads to confinement": a telegraphed crown slam; anyone caught is SEIZED (rooted ~1 s) inside a cube cage with one side open | S7 + S6 |
+| | | Ransom Pulse | ✅ pulsing lock-rings expand from him (the ENCRYPTED movement penalty folds in here: rings tag you, then moving while tagged charges a burst) | S7 |
+| **Spectral Firewall** (AREA DENIAL) | 1,700 / 5 / 31 / 18 / €15,225 | Firewall Ring | ✅ rotating ring of flame-wall segments with gaps | new: ring hazard |
+| | | Burn Sector | ✅ a pie slice of the arena ignites after a warning-triangle telegraph | new: sector hazard |
+| | | Heat Collapse | ✅ the ring shrinks toward him and the safe space closes in, then resets | ring hazard |
+| | | Purge Spin | ✅ spinning flame spiral / rotating flame arms | S2 |
+| **Nullshade Specter** (BLACKOUT HUNTER) | 1,450 / 9.5 / 34 / 12 / €17,400 | EMP Blackout · Eye-Glint Lock · Ghost Dash · Static Needles | ✅ as the dossier (§2) | S11 |
+
+New roles from Gamma: AMBUSHER, LOCKDOWN, AREA DENIAL, BLACKOUT HUNTER (they replace ASSASSIN /
+CONTROLLER / AREA CONTROL / HUNTER on these four).
 
 ### Presentation ideas on the sheets
 | Idea | Verdict |
@@ -128,7 +161,7 @@ mechanics can keep moving while a design waits. Track it in §6.
 
 ---
 
-## 4. Designs for the one-line bosses (proposal, D4)
+## 4. ~~Designs for the one-line bosses (proposal, D4)~~ — superseded by the Boss Pack Gamma sheet (§2); kept for reference
 
 - **Rootkit Apostle** — Burrow (dives underground, untargetable, trail moves toward you), Eruption (bursts out under your last spot), Infection (turns the spot you stood longest into a corruption pool), Kernel Spikes (spike lines from where it surfaces). Phases add more eruptions and faster burrows.
 - **Ransom King** — Lockdown (walls lock one arena quadrant), Key Zones (2–3 golden zones appear; holding one drains his shield), Encrypted (status: moving while encrypted builds a meter that bursts on you), Ransom Note (homing locks that tighten). Phase 3: all quadrants lock in turn.
@@ -196,7 +229,7 @@ mechanics can keep moving while a design waits. Track it in §6.
 
 | Boss | Sent | Status | Owner notes |
 |---|---|---|---|
-| Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ body approved; 20% larger as asked. Attacks sent for review (atk1–atk6) | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
+| Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 
 ---
 
@@ -220,3 +253,6 @@ mechanics can keep moving while a design waits. Track it in §6.
   - Tests: VaultSentinelTest. Attack renders: `docs/bosses/designs/vault_sentinel_atk*.png`
     (`BossDesignRenders.ATTACKS`).
   - Every later boss: after its body is approved, send its attack renders too.
+- 2026-10-10 — Owner sent **Boss Pack Gamma** (Rootkit Apostle, Ransom King, Spectral Firewall,
+  Nullshade Specter). §2 now has the sheet's stats and abilities, and the quality bar is at the top.
+  Vault Sentinel is final.
