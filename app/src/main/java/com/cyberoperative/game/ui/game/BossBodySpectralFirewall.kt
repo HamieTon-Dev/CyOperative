@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -73,7 +74,56 @@ internal object SpectralFirewallBody : BossBody {
             }
             slab.close()
             val gy = ground - r * 0.1f + sin(mid) * ringR * squash
-            drawPath(slab, Brush.verticalGradient(listOf(BRICK_HOT.copy(alpha = 0.95f * flick), BRICK.copy(alpha = 0.92f), BRICK_DEEP.copy(alpha = 0.88f)), startY = gy - h - r * 0.1f, endY = gy + r * 0.1f))
+            // Solid red-hot metal plate (owner, 2026-10-10: "less of a grid… solid blocks…
+            // charred metal red hot metal look"): charred top and bottom, a glowing heat band through the middle.
+            val top0 = gy - h - r * 0.08f
+            val bot0 = gy + r * 0.08f
+            drawPath(slab, Brush.verticalGradient(
+                0f to CHAR,
+                0.22f to Color(0xFF6A1408),
+                0.5f to Color(0xFFFF5A1A).copy(alpha = flick),
+                0.62f to Color(0xFFE8400F),
+                0.82f to Color(0xFF7A1608),
+                1f to CHAR,
+                startY = top0, endY = bot0
+            ))
+            // Glow, burn patches and the crack stay inside the plate.
+            clipPath(slab) {
+                // White-hot glow in the middle of the plate.
+                val hx = p.cx + cos(mid) * ringR
+                val hy = ground - r * 0.1f + sin(mid) * ringR * squash - h * 0.5f
+                drawOval(
+                    Brush.radialGradient(listOf(BRICK_HOT.copy(alpha = 0.55f * flick), BRICK_HOT.copy(alpha = 0f)), center = Offset(hx, hy), radius = h * 0.6f),
+                    Offset(hx - h * 0.6f, hy - h * 0.3f), Size(h * 1.2f, h * 0.6f)
+                )
+                // Scorch patches and a glowing heat crack.
+                for (k in 0 until 2) {
+                    val a = a0 + (a1 - a0) * (0.25f + 0.5f * k)
+                    val x = p.cx + cos(a) * ringR
+                    val y = ground - r * 0.1f + sin(a) * ringR * squash - h * (if (k == 0) 0.75f else 0.3f)
+                    drawOval(CHAR.copy(alpha = 0.55f), Offset(x - h * 0.16f, y - h * 0.07f), Size(h * 0.32f, h * 0.14f))
+                }
+                run {
+                    val a = a0 + (a1 - a0) * (0.35f + 0.3f * ((i * 0.37f) % 1f))
+                    val x = p.cx + cos(a) * ringR
+                    val yb = ground - r * 0.1f + sin(a) * ringR * squash
+                    val crack = Path().apply {
+                        moveTo(x, yb - h * 0.85f)
+                        lineTo(x + h * 0.06f, yb - h * 0.62f)
+                        lineTo(x - h * 0.04f, yb - h * 0.45f)
+                        lineTo(x + h * 0.05f, yb - h * 0.22f)
+                    }
+                    drawPath(crack, Color(0xFFFFE08A).copy(alpha = 0.75f * flick), style = Stroke(1.6f))
+                }
+            }
+            // Rivets at the top corners.
+            for (k in listOf(0.08f, 0.92f)) {
+                val a = a0 + (a1 - a0) * k
+                val x = p.cx + cos(a) * ringR
+                val y = ground - r * 0.1f + sin(a) * ringR * squash - h * 0.86f
+                drawCircle(CHAR, r * 0.03f, Offset(x, y))
+                drawCircle(Color(0xFF8A3A1A), r * 0.012f, Offset(x - r * 0.008f, y - r * 0.008f))
+            }
             // Charred base band along the bottom of the wall.
             val base = Path()
             for (k in 0..n) {
@@ -88,21 +138,6 @@ internal object SpectralFirewallBody : BossBody {
             }
             base.close()
             drawPath(base, CHAR.copy(alpha = 0.8f))
-            // Dark mortar: vertical seams and a horizontal course line.
-            for (k in 1 until 3) {
-                val a = a0 + (a1 - a0) * k / 3f
-                val x = p.cx + cos(a) * ringR
-                val yb = ground - r * 0.1f + sin(a) * ringR * squash
-                drawLine(CHAR.copy(alpha = 0.85f), Offset(x, yb - h), Offset(x, yb), 2.2f)
-            }
-            val course = Path()
-            for (k in 0..n) {
-                val a = a0 + (a1 - a0) * k / n
-                val x = p.cx + cos(a) * ringR
-                val y = ground - r * 0.1f + sin(a) * ringR * squash - h * 0.55f
-                if (k == 0) course.moveTo(x, y) else course.lineTo(x, y)
-            }
-            drawPath(course, CHAR.copy(alpha = 0.7f), style = Stroke(1.8f))
             // Charred outline and a dark cap along the top edge.
             drawPath(slab, CHAR, style = Stroke(2.6f))
             val cap = Path()
@@ -117,8 +152,8 @@ internal object SpectralFirewallBody : BossBody {
                 val a = a0 + (a1 - a0) * (k + 0.5f) / 3f
                 val x = p.cx + cos(a) * ringR
                 val yt = ground - r * 0.1f + sin(a) * ringR * squash - h
-                val fh = h * (0.35f + 0.4f * sin(t * 9f + i * 1.7f + k * 2.1f).coerceAtLeast(0f)) * (if (hot) 1.5f else 1f)
-                val fw = r * 0.12f
+                val fh = h * (0.22f + 0.3f * sin(t * 9f + i * 1.7f + k * 2.1f).coerceAtLeast(0f)) * (if (hot) 1.5f else 1f)
+                val fw = r * 0.1f
                 val flame = Path().apply {
                     moveTo(x - fw, yt)
                     quadraticTo(x - fw * 0.6f, yt - fh * 0.6f, x + sin(t * 6f + i + k) * fw * 0.5f, yt - fh)
