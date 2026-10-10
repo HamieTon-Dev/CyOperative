@@ -31,6 +31,8 @@ class Enemy {
     /** Queen Roar: extra speed for this long (speed is restored when it runs out). */
     var hasteTimer = 0f
     var hasteMul = 1f
+    /** Slot on a boss's orbit ring (Botnet Monarch drones), or -1. */
+    var orbitSlot = -1
     var rewardMul = 1f
 
     var state = AiState.SPAWNING
@@ -216,7 +218,9 @@ enum class HazardKind {
      * Corrupted floor tile (Glitch Forge): a square of half-size [Hazard.radius] that warns
      * for [Hazard.windup] s, then hurts anyone standing on it until [Hazard.duration].
      */
-    TILE
+    TILE,
+    /** Orbital strike: a BLAST with a sky beam coming down onto the marker. */
+    ORBITAL
 }
 
 class Hazard {

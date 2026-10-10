@@ -471,6 +471,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** What the renderer shows right now. */
     val darknessNow: Float get() = if (lightFlicker > 0f) darkness * 0.35f else darkness
 
+    /** Botnet Monarch's Sync Burst charge (0..1 while the drones link up), 0 otherwise. */
+    var bossSync = 0f
+
     /** Ransom shield on the current boss: 1 = up (reduced damage), 0 = broken, -1 = no shield boss. */
     var bossShield = -1f
 
@@ -902,7 +905,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         fx.clear()
-        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f
+        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f }
         bossRingFilled = -1; bossRingOut = false
         updateAdaptive()
@@ -2491,7 +2494,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
-        e.hasteTimer = 0f; e.hasteMul = 1f
+        e.hasteTimer = 0f; e.hasteMul = 1f; e.orbitSlot = -1
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
         e.state = if (telegraph) AiState.SPAWNING else AiState.MOVE
         e.stateTimer = if (telegraph) SPAWN_TELEGRAPH else 0f
@@ -2888,7 +2891,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             h.timer += dt
             when (h.kind) {
                 HazardKind.LINE -> if (h.timer >= h.duration) h.active = false
-                HazardKind.BLAST, HazardKind.MORTAR -> if (h.timer >= h.duration) {
+                HazardKind.BLAST, HazardKind.MORTAR, HazardKind.ORBITAL -> if (h.timer >= h.duration) {
                     h.active = false
                     forEachAlive {
                         if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) {
@@ -3365,7 +3368,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.sounds += sounds.take(16)
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
         w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
-        w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut
+        w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut; w.bossSync = bossSync
         return w
     }
 
@@ -3407,7 +3410,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         barriers.clear()
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
         darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
-        bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut
+        bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut; bossSync = w.bossSync
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening

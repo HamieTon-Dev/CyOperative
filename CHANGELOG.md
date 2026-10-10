@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.11 (versionCode 33) — 2026-10-10 · Botnet Monarch
+### Added
+- **Botnet Monarch** (Boss Pack Beta) is the **level 190** boss: COMMANDER, threat HIGH, base bounty
+  €380. Its body is a crimson spiked command sphere with a blazing core and blinking uplink
+  antennas, over a glowing dashed orbit track.
+  - **Drone Ring:** armoured drones ride the orbit ring around it and shoot at you: 4, then 6, then
+    8 by phase. Shoot them down to break the ring; it tops the ring back up later.
+  - **Summon Wave:** packs of bot drones.
+  - **Orbital Barrage:** sky beams come down onto target rings (the first on you) in volleys.
+  - **Sync Burst:** the ring drones link up with glowing lines, then all fire at you at once while
+    the monarch adds a ring of shots.
+  - **Phases:** PHASE 1 → COMMAND NETWORK → TOTAL BOTNET.
+- Co-op wire v8 (Sync Burst charge is synced).
+
 ## 0.11.10 (versionCode 32) — 2026-10-10 · Glitch Forge
 ### Added
 - **Glitch Forge** (Boss Pack Beta) is the **level 180** boss: SUMMONER, threat HIGH, base bounty

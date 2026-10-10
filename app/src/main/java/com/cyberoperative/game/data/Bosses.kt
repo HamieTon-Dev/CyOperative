@@ -184,6 +184,15 @@ sealed class Pattern {
     /** Core Pulse: a big pulse ring; the floor it passes over corrupts behind it. */
     data class CorePulse(val maxRadius: Float, val speed: Float, val damage: Float, val burn: Float, val dps: Float) : Pattern()
 
+    /** Drone Ring: tops its orbit ring up to [count] armoured drones that circle it and shoot. */
+    data class DroneRing(val count: Int) : Pattern()
+
+    /** Orbital Barrage: [count] sky-beam strikes (the first on you), [volleys] times. */
+    data class OrbitalBarrage(val count: Int, val radius: Float, val delay: Float, val damage: Float, val volleys: Int = 1, val gap: Float = 0.7f) : Pattern()
+
+    /** Sync Burst: the ring drones link up for [windup] s, then all fire [shots] at once. */
+    data class SyncBurst(val windup: Float, val shots: Int, val speed: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -306,6 +315,9 @@ val Pattern.displayName: String
         is Pattern.CorruptFloor -> "Corrupt Floor"
         is Pattern.CubeBarrage -> "Cube Barrage"
         is Pattern.CorePulse -> "Core Pulse"
+        is Pattern.DroneRing -> "Drone Ring"
+        is Pattern.OrbitalBarrage -> "Orbital Barrage"
+        is Pattern.SyncBurst -> "Sync Burst"
     }
 
 object Bosses {

@@ -904,3 +904,46 @@ class GlitchForgeTest : ExpansionBossHarness({ com.cyberoperative.game.data.Boss
         assertTrue(hazards(g, com.cyberoperative.game.engine.HazardKind.TILE).size >= 8)
     }
 }
+
+class BotnetMonarchTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.BOTNET_MONARCH }, 190) {
+    @Test fun droneRingOrbitsAndCanBeShotDown() {
+        val g = fight()
+        val b = g.boss!!
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.DroneRing(4))
+        run(g, 1.2f)
+        val drones = g.enemies.items.filter { it.active && it.def.id == "orbit_drone" }
+        assertEquals(4, drones.size)
+        val d0 = drones[0]
+        val a0 = kotlin.math.atan2(d0.y - b.y, d0.x - b.x)
+        run(g, 0.5f)
+        val a1 = kotlin.math.atan2(d0.y - b.y, d0.x - b.x)
+        assertTrue("orbiting", kotlin.math.abs(a1 - a0) > 0.1f)
+        assertTrue("close to the monarch", kotlin.math.hypot(d0.x - b.x, d0.y - b.y) < b.radius * 2.6f)
+        g.damageEnemy(d0, 1e9f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue(!d0.active)
+    }
+
+    @Test fun syncBurstLinksThenFiresTogether() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.DroneRing(4))
+        run(g, 1.2f)
+        for (p in g.projectiles.items) p.active = false
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SyncBurst(1.0f, 2, 260f, 10f))
+        run(g, 0.5f)
+        assertTrue("linking", g.bossSync in 0.3f..0.7f)
+        run(g, 0.6f)
+        assertTrue("fired together", g.projectiles.items.count { it.active && !it.friendly } >= 16 + 8)
+    }
+
+    @Test fun orbitalStrikesLandOnTheMark() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val hp = me.hp
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.OrbitalBarrage(3, 80f, 1.0f, 30f))
+        run(g, 0.8f)
+        assertEquals(hp, me.hp, 0.01f)
+        run(g, 0.4f)
+        assertTrue(me.hp < hp)
+    }
+}

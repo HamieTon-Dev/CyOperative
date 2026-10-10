@@ -243,8 +243,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] D2 S9 decoys (holo_clone enemy, 1 HP)
 - [x] D3 Glitch Forge (v0.11.10, autonomous)
 - [ ] D4 Black Ice Overlord
-- [ ] D5 S9 orbiting + linked drones
-- [ ] D6 Botnet Monarch
+- [x] D5 S9 orbiting + linked drones (Enemy.orbitSlot, bossSync)
+- [x] D6 Botnet Monarch (v0.11.11, autonomous)
 - [ ] D7 Renders + tests
 
 ### Stage E — Nullshade Specter + the last three (v0.11.4)
@@ -277,6 +277,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Packet Reaper | 2026-10-10 | 🤖 built autonomously | card: packet_reaper_card.png |
 | Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
 | Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
+| Botnet Monarch | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 
 ---
 
@@ -406,3 +407,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - HazardKind.TILE; patterns CorruptFloor (checkerboard), CubeBarrage (ProjKind.CUBE homing),
     CorePulse (ring plus delayed tiles).
   - Tests: GlitchForgeTest.
+- 2026-10-10 — v0.11.11 (33): Botnet Monarch (autonomous).
+  - Enemy ORBIT_DRONE (`Enemy.orbitSlot`; BossBrain.updateOrbiters places the drones on the ring).
+  - Patterns DroneRing, OrbitalBarrage (HazardKind.ORBITAL) and SyncBurst (`GameEngine.bossSync`,
+    wire v8).
+  - Tests: BotnetMonarchTest.

@@ -52,6 +52,8 @@ class BossState(val def: BossDef, val cycle: Int) {
     /** Spectral Firewall: orbiting ring angle and the slab-touch burn cooldown. */
     var ringAngle = 0f
     var ringTouch = 0f
+    /** Botnet Monarch: its drone ring's angle. */
+    var orbitAngle = 0f
     val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
@@ -140,6 +142,7 @@ class BossBrain(private val g: GameEngine) {
         if (st.def.stealth) stealth(e, st, dt)
         if (st.def.keyShield) ransomShield(e, st, dt)
         if (st.def.firewallRing) firewallRing(e, st, dt)
+        updateOrbiters(e, st, dt)
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash || st.active is Pattern.DashSlash || st.active is Pattern.BacklineDive) && st.chargeStage >= 1
         val teleporting = st.active is Pattern.Teleport
@@ -208,6 +211,23 @@ class BossBrain(private val g: GameEngine) {
         }
         e.damageTakenMul = if (st.shieldUp) SHIELD_DAMAGE_MUL else DECRYPTED_DAMAGE_MUL
         g.bossShield = if (st.shieldUp) 1f else 0f
+    }
+
+    /** Ring drones ride evenly spaced slots around the boss (they still aim and shoot on their own). */
+    private fun updateOrbiters(e: Enemy, st: BossState, dt: Float) {
+        var n = 0
+        for (m in g.enemies.items) if (m.active && m.orbitSlot >= 0) n++
+        if (n == 0) return
+        st.orbitAngle = MathUtil.wrapAngle(st.orbitAngle + dt * (0.6f + 0.15f * st.phaseIndex))
+        val rr = e.radius * 2.1f
+        var k = 0
+        for (m in g.enemies.items) {
+            if (!m.active || m.orbitSlot < 0) continue
+            val a = st.orbitAngle + MathUtil.TWO_PI * k / n
+            m.x = MathUtil.clamp(e.x + cos(a) * rr, m.radius, g.arena.width - m.radius)
+            m.y = MathUtil.clamp(e.y + sin(a) * rr * 0.75f, m.radius, g.arena.height - m.radius)
+            k++
+        }
     }
 
     /** Plates in the orbiting ring this phase: 3 gaps, then 2, then 1. */
@@ -503,6 +523,19 @@ class BossBrain(private val g: GameEngine) {
                 g.addPulse(e.x, e.y, e.radius * 2f, 0.4f, st.def.color)
             }
             is Pattern.CorruptionTrail -> { st.spiralAcc = 0f }
+            is Pattern.DroneRing -> {
+                val have = g.enemies.items.count { it.active && it.orbitSlot >= 0 }
+                val def = Enemies.byId("orbit_drone")
+                for (k in have until p.count + st.cycle) {
+                    if (g.aliveCount() >= com.cyberoperative.game.core.Scaling.MAX_ALIVE) break
+                    val a = MathUtil.TWO_PI * k / p.count
+                    val d = g.spawnEnemyAt(def, null, e.x + cos(a) * e.radius * 2.1f, e.y + sin(a) * e.radius * 1.6f, telegraph = true) ?: continue
+                    d.isChild = true
+                    d.orbitSlot = k
+                }
+                g.addPulse(e.x, e.y, e.radius * 2.4f, 0.5f, st.def.color)
+            }
+            is Pattern.OrbitalBarrage, is Pattern.SyncBurst -> {}
             is Pattern.CorruptFloor -> {
                 // Snap to the floor grid around the operative; alternate cells corrupt (parity flips each cast).
                 val c = p.cell
@@ -1104,6 +1137,46 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.LineWarp -> return st.patternTime >= 0.4f + p.beamWindup + 0.3f
             is Pattern.DashSlash -> return runDashSlash(e, st, p, dt)
             is Pattern.SwarmHatch -> return st.patternTime >= 0.6f
+            is Pattern.DroneRing -> return st.patternTime >= 0.6f
+            is Pattern.OrbitalBarrage -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f && st.counter < p.volleys) {
+                    for (k in 0 until p.count) {
+                        val x: Float; val y: Float
+                        if (k == 0) { x = g.px; y = g.py } else {
+                            val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                            val d = 80f + g.rng.nextFloat() * 240f
+                            x = MathUtil.clamp(g.px + cos(a) * d, 40f, g.arena.width - 40f)
+                            y = MathUtil.clamp(g.py + sin(a) * d, 40f, g.arena.height - 40f)
+                        }
+                        val h = g.hazards.obtain() ?: continue
+                        h.active = true; h.kind = HazardKind.ORBITAL
+                        h.x = x; h.y = y; h.radius = p.radius; h.timer = 0f; h.duration = p.delay
+                        h.damage = p.damage * e.damageMul; h.color = st.def.color; h.hitMask = 0; h.ownerUid = -1
+                    }
+                    st.counter++
+                    st.subTimer = p.gap
+                }
+                return st.counter >= p.volleys && st.subTimer <= p.gap - 0.4f
+            }
+            is Pattern.SyncBurst -> {
+                val drones = g.enemies.items.filter { it.active && it.orbitSlot >= 0 }
+                if (drones.isEmpty()) { g.bossSync = 0f; return true }
+                g.bossSync = (st.patternTime / p.windup).coerceIn(0f, 1f)
+                if (st.counter == 0 && st.patternTime >= p.windup) {
+                    st.counter = 1
+                    g.bossSync = 0f
+                    // Every linked drone fires a spread at you at once, and the monarch adds a ring.
+                    for (d in drones) {
+                        val aim = atan2(g.py - d.y, g.px - d.x)
+                        for (k in 0 until p.shots) g.fireEnemyProjectile(d.x, d.y, aim + (k - (p.shots - 1) / 2f) * 0.18f, p.speed, p.damage * e.damageMul, 8f, ProjKind.BOSS)
+                        g.addPulse(d.x, d.y, 50f, 0.3f, 0xFFFFFFFF)
+                    }
+                    for (k in 0 until 16) g.fireEnemyProjectile(e.x, e.y, MathUtil.TWO_PI * k / 16, p.speed * 0.8f, p.damage * e.damageMul, 8f, ProjKind.BOSS)
+                    g.fx.shake(6f, 0.3f)
+                }
+                return st.patternTime >= p.windup + 0.4f
+            }
             is Pattern.CorruptFloor -> return st.patternTime >= p.warn
             is Pattern.CorePulse -> return st.patternTime >= 0.8f
             is Pattern.CubeBarrage -> {
@@ -1252,6 +1325,7 @@ class BossBrain(private val g: GameEngine) {
         (st.def.euros * (1f + 0.04f * g.level) * (if (st.glitched) 1.5f else 1f)).toInt()
 
     fun onBossKilled(e: Enemy, st: BossState) {
+        g.bossSync = 0f
         // Power restores after a blackout fight.
         if (g.darkness > 0f) { g.darknessTarget = 0f; g.bossVeil = 0f }
         g.addPulse(e.x, e.y, 480f, 1.1f, st.def.color)

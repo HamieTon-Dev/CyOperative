@@ -258,8 +258,20 @@ object Enemies {
         xp = 0f, euros = 0, score = 4, minLevel = 999, weight = 0f, accent = AccentKind.CORE
     )
 
+    /** Botnet Monarch's escort: an armoured drone orb that rides its orbit ring and shoots. */
+    val ORBIT_DRONE = EnemyDef(
+        id = "orbit_drone", name = "MONARCH DRONE", tag = "o",
+        codex = "Rides the Botnet Monarch's orbit ring and fires on its command. Shoot them down to " +
+            "break the ring.",
+        shape = ShapeKind.CIRCLE, color = 0xFFFF3A3A, radius = 18f,
+        baseHp = 30f, baseSpeed = 0f, contactDamage = 10f, ai = AiKind.SHOOTER,
+        attack = AttackKind.AIMED, projectileDamage = 11f, projectileSpeed = 300f,
+        attackCooldown = 2.6f, windup = 0.45f, preferredRange = 2000f,
+        xp = 1f, euros = 1, score = 8, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
+    )
+
     /** Expansion adds, appended last so existing indices (co-op wire, saves) never shift. */
-    val expansion: List<EnemyDef> = listOf(SWARMLING, HOLO_CLONE)
+    val expansion: List<EnemyDef> = listOf(SWARMLING, HOLO_CLONE, ORBIT_DRONE)
 
     val all: List<EnemyDef> = originals + glitched + EnemyVariants.all + expansion
 

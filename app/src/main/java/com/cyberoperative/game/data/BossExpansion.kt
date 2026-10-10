@@ -320,6 +320,38 @@ object BossExpansion {
     )
 
     /**
+     * Botnet Monarch (Boss Pack Beta 04, COMMANDER). A supreme drone commander that
+     * overwhelms with numbers: an orbiting ring of armoured drones, drone waves,
+     * orbital strikes and a synchronised burst from every linked drone.
+     */
+    val BOTNET_MONARCH = BossDef(
+        "botnet_monarch", "BOTNET MONARCH", "[ooO]", "Supreme Drone Commander",
+        "A supreme drone commander that overwhelms with numbers. Orchestrates attack patterns, summons " +
+            "swarms, and controls the skies.",
+        0xFFFF3A3A, 76f, 2640f, 60f, 27f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.DroneRing(4),
+                Pattern.OrbitalBarrage(3, 80f, 1.2f, 26f),
+                Pattern.Summon("bot", 5),
+                Pattern.SyncBurst(1.2f, 2, 260f, 16f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.2f, listOf(
+                Pattern.DroneRing(6),
+                Pattern.OrbitalBarrage(4, 85f, 1.1f, 27f, volleys = 2),
+                Pattern.SyncBurst(1.1f, 3, 280f, 17f),
+                Pattern.Summon("bot", 7)
+            ), "COMMAND NETWORK"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.DroneRing(8),
+                Pattern.SyncBurst(1.0f, 3, 300f, 18f),
+                Pattern.OrbitalBarrage(5, 90f, 1.0f, 28f, volleys = 3, gap = 0.6f),
+                Pattern.Summon("bot", 8)
+            ), "TOTAL BOTNET")
+        ), euros = 380, score = 8000, role = BossRole.COMMANDER, tier = 3, armor = 4.5f,
+        abilities = listOf("Drone Ring", "Summon Wave", "Orbital Barrage", "Sync Burst")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -329,7 +361,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, BOTNET_MONARCH, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }

@@ -129,6 +129,7 @@ class ArenaRenderer {
             drawXray(g, time)
             drawOrbitFront(g, time)
             drawStatuses(g, time)
+            drawSyncLinks(g, time)
             if (g.darknessNow > 0.01f) {
                 drawDarkness(g, time)
                 // Telegraphs must still be readable in the dark.
@@ -1549,6 +1550,17 @@ class ArenaRenderer {
                         drawLine(col.copy(alpha = 0.6f), Offset(h.x, h.y), Offset(h.x + cos(a) * h.radius, h.y + sin(a) * h.radius * 0.6f), 1.8f)
                     }
                 }
+                HazardKind.ORBITAL -> {
+                    // Target ring on the floor, filling as the strike comes down.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))
+                    drawCircle(col.copy(alpha = 0.35f), h.radius * f, Offset(h.x, h.y))
+                    drawCircle(col.copy(alpha = 0.9f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
+                    for (k in 0 until 4) {
+                        val a = k * 1.571f + time * 2f
+                        drawLine(col, Offset(h.x + cos(a) * h.radius * 0.6f, h.y + sin(a) * h.radius * 0.6f), Offset(h.x + cos(a) * h.radius * 1.15f, h.y + sin(a) * h.radius * 1.15f), 2.5f)
+                    }
+                }
                 HazardKind.MORTAR -> {
                     // Landing marker: crosshair ring that fills as the shell comes down.
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
@@ -1817,6 +1829,24 @@ class ArenaRenderer {
         drawArc(gold.copy(alpha = 0.5f), -90f, 360f * left, false, Offset(h.x - h.radius * 1.4f, h.y - h.radius * 1.4f), Size(h.radius * 2.8f, h.radius * 2.8f), style = Stroke(2f))
     }
 
+    /** Botnet Monarch's Sync Burst: drones link to each other and the monarch, the lines brightening as it charges. */
+    private fun DrawScope.drawSyncLinks(g: GameEngine, time: Float) {
+        val s = g.bossSync
+        if (s <= 0f) return
+        val b = g.boss ?: return
+        val drones = g.enemies.items.filter { it.active && it.def.id == "orbit_drone" }
+        if (drones.isEmpty()) return
+        val col = Color(0xFFFF3A3A)
+        val flick = 0.7f + 0.3f * sin(time * 30f)
+        val sorted = drones.sortedBy { kotlin.math.atan2(it.y - b.y, it.x - b.x) }
+        for (i in sorted.indices) {
+            val a = sorted[i]; val c = sorted[(i + 1) % sorted.size]
+            drawLine(col.copy(alpha = (0.3f + 0.6f * s) * flick), Offset(a.x, a.y - 12f), Offset(c.x, c.y - 12f), 2f + 4f * s)
+            drawLine(Color.White.copy(alpha = 0.5f * s), Offset(a.x, a.y - 12f), Offset(b.x, b.y - 18f), 1.5f)
+            drawCircle(Color.White.copy(alpha = 0.8f * s), 6f + 10f * s, Offset(a.x, a.y - 12f), style = Stroke(2f))
+        }
+    }
+
     /** SEIZED (gold chains round the feet) and ENCRYPTED (padlock over the head with its burst meter). */
     private fun DrawScope.drawStatuses(g: GameEngine, time: Float) {
         for (o in g.operatives) {
@@ -1967,6 +1997,13 @@ class ArenaRenderer {
                         crystal(h.x, h.y + 4f, -1.571f, hgt, h.radius * 0.6f, lit, dark, col)
                     }
                 } else {}
+                HazardKind.ORBITAL -> {
+                    // Sky beam: a thin targeting line that thickens into a column as it lands.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    val top = Offset(h.x, h.y - 900f)
+                    drawLine(col.copy(alpha = 0.25f + 0.4f * f), top, Offset(h.x, h.y), 3f + h.radius * 0.6f * f * f)
+                    drawLine(Color.White.copy(alpha = 0.3f + 0.6f * f), top, Offset(h.x, h.y), 1.5f + 6f * f * f)
+                }
                 HazardKind.MORTAR -> {
                     // The shell, high in its arc.
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
