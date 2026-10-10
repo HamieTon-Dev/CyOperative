@@ -110,54 +110,85 @@ internal object RansomKingBody : BossBody {
             drawLine(c, Offset(p.cx - r * 0.45f, torsoBase - r * 0.2f), Offset(p.cx - r * 0.25f, torsoBase - r * 0.5f), 1.8f)
         }
 
-        // Crown (owner, 2026-10-10: "bigger, sharper, more like jutting out / triangular and
-        // crooked"): a tilted gold band with sharp faceted spikes fanning out at uneven angles,
-        // flames licking up between them.
+        // Cursed crown (owner, 2026-10-10: "not the orientation… it looks like a cursed crown…
+        // try a different design that looks like an evil crown"): level on his head, blackened
+        // iron-gold, bent thorn spikes with red-hot cracks, a slit-pupil eye gem, smoky crimson
+        // fire and glowing drips.
         val crownBase = fy - hw * 0.55f * 0.5f + r * 0.04f
-        val cw = hw * 1.2f
-        val tilt = -0.16f + sin(t * 1.2f) * 0.02f
-        val ox = p.cx + r * 0.06f
-        fun rot(dx: Float, dy: Float) = Offset(ox + dx * cos(tilt) - dy * sin(tilt), crownBase + dx * sin(tilt) + dy * cos(tilt))
+        val cw = hw * 1.15f
+        val cx = p.cx
         val grow = (1f + 0.12f * p.phase) * (if (hot) 1.1f else 1f)
-        val heights = floatArrayOf(0.5f, 0.78f, 0.6f, 1.05f, 0.55f, 0.85f, 0.45f)
-        val lean = floatArrayOf(-0.62f, -0.4f, -0.2f, 0.04f, 0.22f, 0.44f, 0.7f)
-        val goldLit = if (p.hitFlash) Color.White else Color(0xFFFFE27A)
-        val goldShade = if (p.hitFlash) Color(0xFFDDDDDD) else Color(0xFFC07A0E)
-        // Flames behind the spikes.
-        val flameH = r * (0.32f + 0.1f * p.phase) * (if (hot) 1.5f else 1f)
+        val ember = if (hot) Color(0xFFFFB080) else Color(0xFFFF2D2D)
+        val metalTop = if (p.hitFlash) Color.White else Color(0xFF6B5420)
+        val metalLow = if (p.hitFlash) Color(0xFFCCCCCC) else Color(0xFF1C140A)
+        // Smoky crimson fire behind the thorns.
+        val flameH = r * (0.3f + 0.1f * p.phase) * (if (hot) 1.5f else 1f)
         for (k in 0 until 6) {
-            val base = rot(-cw / 2f + cw * (k + 1f) / 7f, -r * 0.3f)
-            val h = flameH * (0.75f + 0.25f * sin(t * 9f + k * 1.7f))
+            val fx = cx - cw / 2f + cw * (k + 1f) / 7f
+            val h = flameH * (0.7f + 0.3f * sin(t * 8f + k * 1.9f))
+            val by = crownBase - r * 0.3f
             val flame = Path().apply {
-                moveTo(base.x - r * 0.1f, base.y)
-                quadraticTo(base.x - r * 0.08f, base.y - h * 0.6f, base.x + sin(t * 7f + k) * r * 0.05f, base.y - h)
-                quadraticTo(base.x + r * 0.08f, base.y - h * 0.6f, base.x + r * 0.1f, base.y)
+                moveTo(fx - r * 0.1f, by)
+                quadraticTo(fx - r * 0.1f, by - h * 0.55f, fx + sin(t * 6f + k) * r * 0.06f, by - h)
+                quadraticTo(fx + r * 0.1f, by - h * 0.55f, fx + r * 0.1f, by)
                 close()
             }
-            drawPath(flame, FLAME.copy(alpha = 0.7f))
-            drawCircle(Color(0xFFFFE08A).copy(alpha = 0.55f), r * 0.04f, Offset(base.x, base.y - h * 0.3f))
+            drawPath(flame, Color(0xFF8A0F14).copy(alpha = 0.75f))
+            drawPath(flame, Color(0xFFFF3B2B).copy(alpha = 0.35f), style = Stroke(1.4f))
+            // Smoke curling off the top.
+            val k2 = (t * 0.7f + k * 0.37f) % 1f
+            drawCircle(Color(0xFF2A2026).copy(alpha = 0.5f * (1f - k2)), r * (0.05f + 0.06f * k2), Offset(fx + sin(t + k) * r * 0.08f, by - h - k2 * r * 0.4f))
         }
-        if (hot) glow(rot(0f, -r * 0.4f), cw * 0.4f, GOLD, 0.9f)
-        // Spikes: sharp two-tone gold triangles jutting out from the band's top edge.
+        if (hot) glow(Offset(cx, crownBase - r * 0.4f), cw * 0.4f, ember, 0.9f)
+        // Thorns: crooked, bent spikes of uneven height; every edge facing out glows like a crack.
+        val heights = floatArrayOf(0.55f, 0.82f, 0.48f, 1.1f, 0.6f, 0.9f, 0.5f)
+        val bend = floatArrayOf(-0.16f, 0.12f, -0.1f, 0.06f, 0.14f, -0.12f, 0.18f)
+        val lean = floatArrayOf(-0.32f, -0.2f, -0.1f, 0f, 0.1f, 0.2f, 0.32f)
         for (k in heights.indices) {
-            val bx = -cw / 2f + cw * (k + 0.5f) / heights.size
-            val b0 = rot(bx, -r * 0.12f)
-            val ang = -1.571f + tilt + lean[k]
-            crystal(b0.x, b0.y, ang, r * heights[k] * grow, r * 0.2f, goldLit, goldShade, Color(0xFF7A4A08))
+            val bx = cx - cw / 2f + cw * (k + 0.5f) / heights.size
+            val by = crownBase - r * 0.12f
+            val h = r * heights[k] * grow
+            val w = r * 0.21f
+            val tipX = bx + lean[k] * h
+            val tipY = by - h
+            // The thorn kinks halfway up, then hooks at the tip.
+            val midX = bx + lean[k] * h * 0.5f + bend[k] * r
+            val midY = by - h * 0.5f
+            val thorn = Path().apply {
+                moveTo(bx - w / 2f, by)
+                lineTo(midX - w * 0.22f, midY)
+                lineTo(tipX, tipY)
+                lineTo(tipX + bend[k] * r * 0.5f, tipY + h * 0.12f)
+                lineTo(midX + w * 0.2f, midY + h * 0.04f)
+                lineTo(bx + w / 2f, by)
+                close()
+            }
+            drawPath(thorn, Brush.verticalGradient(listOf(metalTop, metalLow), startY = tipY, endY = by))
+            drawPath(thorn, Color(0xFF0A0604), style = Stroke(1.6f))
+            // Red-hot crack running up the thorn.
+            drawLine(ember.copy(alpha = 0.55f + 0.35f * pulse), Offset(bx, by - h * 0.05f), Offset(midX, midY), 1.6f)
+            drawLine(ember.copy(alpha = 0.4f + 0.3f * pulse), Offset(midX, midY), Offset(tipX + bend[k] * r * 0.15f, tipY + h * 0.18f), 1.2f)
         }
-        // Band: a skewed gold strip with gems.
-        val band = Path().apply {
-            val a0 = rot(-cw / 2f - r * 0.04f, -r * 0.16f); val a1 = rot(cw / 2f + r * 0.04f, -r * 0.16f)
-            val a2 = rot(cw / 2f, r * 0.02f); val a3 = rot(-cw / 2f, r * 0.02f)
-            moveTo(a0.x, a0.y); lineTo(a1.x, a1.y); lineTo(a2.x, a2.y); lineTo(a3.x, a3.y); close()
+        // Band: blackened metal with rivets and dripping embers.
+        val bandTop = crownBase - r * 0.18f
+        drawRect(Brush.verticalGradient(listOf(metalTop, metalLow), startY = bandTop, endY = crownBase + r * 0.04f), Offset(cx - cw / 2f - r * 0.04f, bandTop), Size(cw + r * 0.08f, r * 0.22f))
+        drawRect(Color(0xFF0A0604), Offset(cx - cw / 2f - r * 0.04f, bandTop), Size(cw + r * 0.08f, r * 0.22f), style = Stroke(1.6f))
+        drawLine(ember.copy(alpha = 0.5f), Offset(cx - cw / 2f, bandTop + r * 0.02f), Offset(cx + cw / 2f, bandTop + r * 0.02f), 1.2f)
+        for (k in listOf(-3, -2, 2, 3)) drawCircle(Color(0xFF3A2C12), r * 0.025f, Offset(cx + k * cw * 0.14f, bandTop + r * 0.11f))
+        for (k in 0 until 5) {
+            val dx = cx - cw * 0.4f + k * cw * 0.2f + sin(k * 3.1f) * r * 0.03f
+            val drip = ((t * 0.5f + k * 0.29f) % 1f)
+            val len = r * (0.06f + 0.12f * drip)
+            drawLine(ember.copy(alpha = 0.7f * (1f - drip * 0.6f)), Offset(dx, crownBase + r * 0.04f), Offset(dx, crownBase + r * 0.04f + len), 2f)
+            drawCircle(ember.copy(alpha = 0.8f * (1f - drip)), r * 0.018f, Offset(dx, crownBase + r * 0.04f + len))
         }
-        drawPath(band, Brush.verticalGradient(listOf(goldLit, GOLD, GOLD_DARK), startY = crownBase - r * 0.2f, endY = crownBase + r * 0.05f))
-        drawPath(band, Color(0xFF7A4A08), style = Stroke(1.6f))
-        for (k in listOf(-2, -1, 0, 1, 2)) {
-            val gc = rot(k * cw * 0.2f, -r * 0.07f)
-            drawCircle(if (k == 0) red else if (k % 2 == 0) Color(0xFFFF8A3A) else Color(0xFFB0102A), r * (if (k == 0) 0.065f else 0.045f), gc)
-            drawCircle(Color.White.copy(alpha = 0.6f), r * 0.015f, Offset(gc.x - r * 0.015f, gc.y - r * 0.02f))
-        }
+        // Slit-pupil eye gem in the middle; side gems like dull blood drops.
+        val gem = Offset(cx, bandTop + r * 0.1f)
+        glow(gem, r * 0.12f, ember, 0.6f + 0.6f * pulse + (if (hot) 1f else 0f))
+        drawOval(Color(0xFF2A0306), Offset(gem.x - r * 0.11f, gem.y - r * 0.075f), Size(r * 0.22f, r * 0.15f))
+        drawOval(ember, Offset(gem.x - r * 0.09f, gem.y - r * 0.06f), Size(r * 0.18f, r * 0.12f))
+        drawOval(Color(0xFF120002), Offset(gem.x - r * 0.016f, gem.y - r * 0.055f), Size(r * 0.032f, r * 0.11f))
+        for (s in listOf(-1f, 1f)) drawCircle(Color(0xFF7A0A12), r * 0.035f, Offset(cx + s * cw * 0.3f, bandTop + r * 0.1f))
 
         for (i in 0 until locks) lockCube(i, front = true)
     }
