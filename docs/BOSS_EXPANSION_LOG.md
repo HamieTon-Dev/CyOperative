@@ -324,3 +324,9 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Def: slot 10 (L230), AREA DENIAL, HIGH, base €380, DRIFT; provisional patterns; `designed` only.
   - Owner spec for the attacks: the Firewall Ring emerges from the boss and pushes out to the walls,
     and touching it sets you on fire (log §2).
+- 2026-10-10 — Owner decision (Spectral Firewall): **the orbiting ring blocks shots.**
+  - Slabs absorb the operative's shots with a spark, so you fire through the gaps as they rotate.
+  - There are fewer gaps each phase. Touching a slab burns.
+  - While the Firewall Ring attack is pushed out to the walls, the boss's own ring is gone: an
+    exposed window.
+  - Build this with the attacks.
