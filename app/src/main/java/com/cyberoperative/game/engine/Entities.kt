@@ -193,7 +193,13 @@ enum class HazardKind {
      * Burning pie slice: warns for [Hazard.windup] s, then burns. [Hazard.x2] = aim × 1000,
      * [Hazard.maxRadius] = half-width (rad) × 1000, [Hazard.radius] = reach.
      */
-    BURN_SECTOR
+    BURN_SECTOR,
+    /**
+     * Hostile mine (Pulse Bishop): arms after [Hazard.windup]; once armed, an operative
+     * within [Hazard.maxRadius] trips it ([Hazard.tick] counts the 0.45 s fuse), or it
+     * pops at [Hazard.duration]. Blast radius [Hazard.radius].
+     */
+    MINE
 }
 
 class Hazard {

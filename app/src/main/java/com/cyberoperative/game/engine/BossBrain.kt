@@ -489,6 +489,28 @@ class BossBrain(private val g: GameEngine) {
                 g.addFireWall(e.x, e.y, far, e.radius * 1.2f, p.speed, p.gaps, atan2(g.py - e.y, g.px - e.x) + 1.2f, gapHalf, p.damage * e.damageMul, st.def.color, e.uid)
                 g.showBanner("HEAT COLLAPSE", "Slip through a gap", 1.0f)
             }
+            is Pattern.LineWarp -> lineWarp(e, st, p)
+            is Pattern.CrossBeam -> {
+                val rot = Math.toRadians(p.rotateDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
+                val n = if (p.diagonal) 8 else 4
+                for (k in 0 until n) g.addSweep(e.x, e.y, MathUtil.TWO_PI * k / n, rot, p.width, p.windup, p.duration, p.damage * e.damageMul, st.def.color, e.uid)
+                g.addPulse(e.x, e.y, 90f, p.windup, st.def.color)
+            }
+            is Pattern.BishopMines -> {
+                for (k in 0 until p.count) {
+                    // A ring around where you are, one right under you; they arm before you can blink.
+                    val a = MathUtil.TWO_PI * k / p.count + g.rng.nextFloat() * 0.4f
+                    val d = if (k == 0) 0f else 90f + g.rng.nextFloat() * 160f
+                    val x = MathUtil.clamp(g.px + cos(a) * d, 40f, g.arena.width - 40f)
+                    val y = MathUtil.clamp(g.py + sin(a) * d, 40f, g.arena.height - 40f)
+                    g.addMine(x, y, p.arm, p.life, p.radius, p.damage * e.damageMul, st.def.color)
+                }
+            }
+            is Pattern.ConvergenceFlash -> {
+                g.forEachOperativeHit(e.x, e.y, 9999f, 0) { _ -> g.pull(e.x, e.y, p.pull, p.strength) }
+                g.addPulse(e.x, e.y, p.radius * 1.4f, p.pull, 0xFFFFFFFF)
+                g.showBanner("CONVERGENCE", "Pull away — get out of the blast", 1.0f)
+            }
             is Pattern.PurgeSpin -> {
                 val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
                 val aim = atan2(g.py - e.y, g.px - e.x) + 0.6f
@@ -499,6 +521,30 @@ class BossBrain(private val g: GameEngine) {
             }
             is Pattern.Bloom -> bloom(e.x, e.y, p.rings, p.lanes, p.delay, p.ringGap, p.radius, p.damage * e.damageMul, st.def.color)
         }
+    }
+
+    /**
+     * Line Warp: jumps onto the operative's row or column, 260–420 units away,
+     * leaving a light streak, then fires a beam back down the lane.
+     */
+    private fun lineWarp(e: Enemy, st: BossState, p: Pattern.LineWarp) {
+        var bx = e.x; var by = e.y
+        for (attempt in 0 until 16) {
+            val vertical = g.rng.nextBoolean()
+            val d = (260f + g.rng.nextFloat() * 160f) * (if (g.rng.nextBoolean()) 1f else -1f)
+            val x = if (vertical) g.px else g.px + d
+            val y = if (vertical) g.py + d else g.py
+            if (x < e.radius + 20f || x > g.arena.width - e.radius - 20f || y < e.radius + 60f || y > g.arena.height - e.radius - 20f) continue
+            if (!g.arena.isFree(x, y, e.radius)) continue
+            bx = x; by = y; break
+        }
+        g.addLine(e.x, e.y, bx, by, 0.45f, 0xFFFFFFFF, e.uid)
+        repeat(20) { k -> val q = k / 20f; g.addParticle(e.x + (bx - e.x) * q, e.y + (by - e.y) * q, st.def.color, 60f, 0.5f, 3f) }
+        g.addPulse(e.x, e.y, 80f, 0.3f, st.def.color)
+        e.x = bx; e.y = by
+        st.anchorX = bx; st.anchorY = by
+        g.addPulse(bx, by, 110f, 0.35f, 0xFFFFFFFF)
+        g.addBeam(bx, by, atan2(g.py - by, g.px - bx), 1600f, 30f, p.beamWindup, 0.3f, p.damage * e.damageMul, st.def.color)
     }
 
     /** Golden key zones spread around the arena, away from walls and each other. */
@@ -903,6 +949,21 @@ class BossBrain(private val g: GameEngine) {
                     if (caught) seizureCage(e, st.anchorX, st.anchorY, p.cageLife)
                 }
                 return st.patternTime >= p.delay + 0.4f
+            }
+            is Pattern.LineWarp -> return st.patternTime >= 0.4f + p.beamWindup + 0.3f
+            is Pattern.CrossBeam -> return st.patternTime >= p.windup + p.duration
+            is Pattern.BishopMines -> return st.patternTime >= 0.5f
+            is Pattern.ConvergenceFlash -> {
+                if (st.counter == 0 && st.patternTime >= p.pull) {
+                    st.counter = 1
+                    // The blinding flash: a blast around the bishop. Threats stay outlined, so it's readable.
+                    g.forEachOperativeHit(e.x, e.y, p.radius + g.playerRadius * 0.6f, 0) { _ -> g.damagePlayer(p.damage * e.damageMul, e.x, e.y) }
+                    g.addPulse(e.x, e.y, p.radius, 0.45f, 0xFFFFFFFF)
+                    g.addPulse(e.x, e.y, p.radius * 0.6f, 0.35f, st.def.color)
+                    g.fx.flash(0xFFFFFFFF, 0.6f, 0.55f)
+                    g.fx.shake(8f, 0.35f)
+                }
+                return st.patternTime >= p.pull + 0.4f
             }
             is Pattern.FirewallRing -> {
                 if (st.patternTime < p.windup) return false

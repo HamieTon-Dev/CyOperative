@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.7 (versionCode 29) — 2026-10-10 · Pulse Bishop
+### Added
+- **Pulse Bishop** (Boss Pack Beta) is the **level 150** boss: CONTROLLER, threat HIGH, base bounty
+  €344. Its body is a floating dark prelate with a split mitre and a glowing cross, and a burning +
+  sigil on the floor beneath it.
+  - **Line Warp:** blinks onto your row or column, leaving a light streak, then fires a beam down
+    the lane.
+  - **Cross Beam:** + shaped beams. They turn in phase 2, and in phase 3 diagonals are added (an
+    8-way star). Cover stops them.
+  - **Bishop Mines:** spiked mines arm after about 1 s. Once armed they trip when you come close and
+    blow after a short fuse.
+  - **Convergence Flash:** a tether of light drags you toward it, then a blinding white flash blasts
+    the area around it. Run against the pull.
+  - **Phases:** PHASE 1 → SACRED GEOMETRY → EXCOMMUNICATION.
+- Co-op wire v7 (PULLED is synced; the guest is dragged too).
+
 ## 0.11.6 (versionCode 28) — 2026-10-10
 ### Changed
 - **Spectral Firewall's Firewall Ring builds up** (owner request): phase 1 launches 1 wall, phase 2

@@ -221,7 +221,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 ### Stage B — Shared mechanics (v0.11.1)
 - [ ] B1 S2 sweeping / rotating / cross beams (sweep done in 0.11.1: HazardKind.SWEEP, clipped by obstacles; cross beams still to do)
 - [ ] B2 S4 lobbed shots + curved boomerang shots (mortar done in 0.11.1: HazardKind.MORTAR; boomerangs still to do)
-- [ ] B3 S3 hostile mines
+- [x] B3 S3 hostile mines (HazardKind.MINE)
 - [ ] B4 S5 trails + tile corruption
 - [ ] B5 S7 status effects (slow, chill/freeze, pull, encrypted) + HUD icons
 - [ ] B6 S1 lane/backline blink
@@ -239,7 +239,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [ ] C8 Renders + reference page update + bot-beatable tests
 
 ### Stage D — Boss Pack Beta (v0.11.3)
-- [ ] D1 Pulse Bishop
+- [x] D1 Pulse Bishop (v0.11.7, autonomous)
 - [ ] D2 S9 decoys
 - [ ] D3 Glitch Forge
 - [ ] D4 Black Ice Overlord
@@ -273,6 +273,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
 | Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks ✅ approved; Firewall Ring waves raised to 1/3/4 by phase ("phase three… push more than two rings… 3 on phase 2 and 4 rings on phase 3") | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
+| Pulse Bishop | 2026-10-10 | 🤖 built autonomously (owner delegated) | card: boss_pack_beta_cards.webp |
 
 ---
 
@@ -387,3 +388,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   sheet. All logged in §2, including the any-boss-level rule and World Kit viability (all 12 viable).
   Building order: Pulse Bishop, Packet Reaper, Worm Queen, Glitch Forge, Botnet Monarch,
   Circuit Hydra, Black Ice Overlord, then World Kit.
+- 2026-10-10 — v0.11.7 (29): Pulse Bishop (autonomous).
+  - Patterns LineWarp, CrossBeam (4 or 8 sweeps), BishopMines (HazardKind.MINE: arm → trip within 70
+    → 0.45 s fuse) and ConvergenceFlash (`Operative.pulled`, wire v7).
+  - The body is drawn at radius 80. Tests: PulseBishopTest.

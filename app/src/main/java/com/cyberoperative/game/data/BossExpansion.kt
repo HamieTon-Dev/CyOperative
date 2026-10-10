@@ -193,6 +193,40 @@ object BossExpansion {
     )
 
     /**
+     * Pulse Bishop (Boss Pack Beta 01, CONTROLLER). A teleporting prelate that
+     * controls space with precision beams and punishes predictable movement:
+     * warps onto your lane, fires cross beams, seeds mines that arm and
+     * detonate, and drags you in before a blinding flash.
+     */
+    val PULSE_BISHOP = BossDef(
+        "pulse_bishop", "PULSE BISHOP", "[+]", "Teleporting Prelate",
+        "A teleporting prelate that controls space with precision beams. Manipulates the battlefield and " +
+            "punishes predictable movement.",
+        0xFFFF2D6A, 80f, 2240f, 84f, 30f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.3f, listOf(
+                Pattern.LineWarp(0.7f, 26f),
+                Pattern.CrossBeam(1.0f, 1.6f, 0f, 26f, 26f),
+                Pattern.BishopMines(4, 1.0f, 9f, 85f, 26f),
+                Pattern.Aimed(5, 40f, 300f, 14f, bursts = 2)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.15f, listOf(
+                Pattern.LineWarp(0.6f, 27f),
+                Pattern.CrossBeam(0.9f, 2.4f, 60f, 26f, 27f),
+                Pattern.ConvergenceFlash(1.3f, 150f, 190f, 34f),
+                Pattern.BishopMines(5, 0.9f, 9f, 85f, 27f)
+            ), "SACRED GEOMETRY"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.LineWarp(0.55f, 28f),
+                Pattern.CrossBeam(0.85f, 2.8f, 90f, 28f, 28f, diagonal = true),
+                Pattern.BishopMines(6, 0.8f, 9f, 90f, 28f),
+                Pattern.ConvergenceFlash(1.4f, 170f, 210f, 36f),
+                Pattern.LineWarp(0.5f, 28f)
+            ), "EXCOMMUNICATION")
+        ), euros = 344, score = 7500, role = BossRole.CONTROLLER, tier = 3, armor = 3f,
+        abilities = listOf("Line Warp", "Cross Beam", "Bishop Mines", "Convergence Flash")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -202,11 +236,11 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }
 
     /** Every expansion boss defined so far, built or not (design renders). */
-    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER, RANSOM_KING, SPECTRAL_FIREWALL)
+    val designed: List<BossDef> get() = all
 }

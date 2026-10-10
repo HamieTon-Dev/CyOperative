@@ -80,6 +80,8 @@ class NetOp {
     var rooted = 0f; var encrypted = 0f; var encryptCharge = 0f
     /** ON FIRE time left (v6). */
     var burning = 0f
+    /** PULLED (v7): time left, target and strength. */
+    var pulled = 0f; var pullX = 0f; var pullY = 0f; var pullStrength = 0f
     var pending = 0; var rerolls = 0; var batchTotal = 0; var batchTaken = 0
     /** Owned upgrades: index into Upgrades.all → level. */
     val owned = LinkedHashMap<Int, Int>()
@@ -193,6 +195,7 @@ object CoopCodec {
                 if (p.beamActive) { o.pos(p.beamX2); o.pos(p.beamY2) }
                 o.sec(p.beamHeat); o.sec(p.beamCooldown); o.sec(p.reviveProgress)
                 o.sec(p.rooted); o.sec(p.encrypted); o.writeByte((p.encryptCharge * 255f).toInt().coerceIn(0, 255)); o.sec(p.burning)
+                o.sec(p.pulled); o.pos(p.pullX); o.pos(p.pullY); o.pos(p.pullStrength)
                 o.var32(p.pending); o.var32(p.rerolls); o.var32(p.batchTotal); o.var32(p.batchTaken)
                 o.var32(p.owned.size)
                 for ((k, v) in p.owned) { o.var32(k); o.var32(v) }
@@ -288,6 +291,7 @@ object CoopCodec {
                 if (p.beamActive) { p.beamX2 = i.pos(); p.beamY2 = i.pos() }
                 p.beamHeat = i.sec(); p.beamCooldown = i.sec(); p.reviveProgress = i.sec()
                 p.rooted = i.sec(); p.encrypted = i.sec(); p.encryptCharge = i.readUnsignedByte() / 255f; p.burning = i.sec()
+                p.pulled = i.sec(); p.pullX = i.pos(); p.pullY = i.pos(); p.pullStrength = i.pos()
                 p.pending = i.var32(); p.rerolls = i.var32(); p.batchTotal = i.var32(); p.batchTaken = i.var32()
                 repeat(i.var32()) { val k = i.var32(); p.owned[k] = i.var32() }
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
@@ -387,5 +391,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 6
+    const val VERSION = 7
 }

@@ -289,6 +289,14 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk6_seized_and_caged", listOf(Pattern.RoyalSeizure(110f, 0.8f, 28f, 1.5f, 3.5f) to 1.25f)),
                 AttackShot("atk7_ransom_pulse_encrypted", listOf(Pattern.RansomPulse(2, 0.6f, 440f, 240f, 22f) to 1.7f), after = { g -> g.operatives[0].encryptCharge = 0.6f })
             ),
+            "pulse_bishop" to listOf(
+                AttackShot("atk1_line_warp", listOf(Pattern.LineWarp(0.7f, 26f) to 0.45f)),
+                AttackShot("atk2_cross_beam", listOf(Pattern.CrossBeam(1.0f, 2.4f, 60f, 26f, 27f) to 1.6f)),
+                AttackShot("atk3_cross_beam_diagonal", listOf(Pattern.CrossBeam(0.85f, 2.8f, 90f, 28f, 28f, diagonal = true) to 0.6f)),
+                AttackShot("atk4_bishop_mines", listOf(Pattern.BishopMines(6, 0.8f, 9f, 90f, 28f) to 1.2f)),
+                AttackShot("atk5_convergence_pull", listOf(Pattern.ConvergenceFlash(1.4f, 170f, 210f, 36f) to 0.8f)),
+                AttackShot("atk6_convergence_flash", listOf(Pattern.ConvergenceFlash(0.6f, 170f, 210f, 36f) to 0.68f))
+            ),
             "spectral_firewall" to listOf(
                 AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
                 AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),

@@ -515,6 +515,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.angVel = (if (rng.nextBoolean()) 1f else -1f) * 0.35f
     }
 
+    /** Hostile mine; see [HazardKind.MINE]. */
+    fun addMine(x: Float, y: Float, arm: Float, life: Float, radius: Float, damage: Float, color: Long) {
+        if (!arena.isFree(x, y, 14f)) return
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.MINE
+        h.x = x; h.y = y; h.radius = radius; h.maxRadius = MINE_TRIGGER
+        h.windup = arm; h.timer = 0f; h.duration = life; h.tick = -1f
+        h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** PULLED: drag the current operative toward ([x], [y]) for [seconds]. */
+    fun pull(x: Float, y: Float, seconds: Float, strength: Float) {
+        cur.pulled = seconds; cur.pullX = x; cur.pullY = y; cur.pullStrength = strength
+    }
+
     /** Burning pie slice; see [HazardKind.BURN_SECTOR]. */
     fun addBurnSector(x: Float, y: Float, aim: Float, halfWidth: Float, reach: Float, warn: Float, burn: Float, dps: Float, color: Long) {
         val h = hazards.obtain() ?: return
@@ -566,6 +581,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 if (cur === ops[primary]) fx.shake(6f, 0.3f)
             }
             if (cur.encrypted <= 0f) cur.encryptCharge = 0f
+        }
+        if (cur.pulled > 0f) {
+            cur.pulled = max(0f, cur.pulled - dt)
+            if (!cur.remote) {
+                val dx = cur.pullX - px; val dy = cur.pullY - py
+                val d = sqrt(dx * dx + dy * dy)
+                if (d > 60f) {
+                    arena.pushOut(px + dx / d * cur.pullStrength * dt, py + dy / d * cur.pullStrength * dt, playerRadius)
+                    px = arena.out[0]; py = arena.out[1]
+                }
+            }
         }
         if (cur.burning > 0f) {
             cur.burning = max(0f, cur.burning - dt)
@@ -839,7 +865,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level = newLevel
         fx.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f
-        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f }
+        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f }
         bossRingFilled = -1; bossRingOut = false
         updateAdaptive()
         skipShopPrompt = false
@@ -2866,6 +2892,24 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                 }
+                HazardKind.MINE -> {
+                    if (h.tick < 0f) {
+                        if (h.timer >= h.duration) h.tick = 0f
+                        else if (h.timer >= h.windup) forEachAlive {
+                            if (MathUtil.dist2(px, py, h.x, h.y) < h.maxRadius * h.maxRadius) h.tick = 0f
+                        }
+                    } else {
+                        h.tick += dt
+                        if (h.tick >= MINE_FUSE) {
+                            h.active = false
+                            forEachAlive {
+                                if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) damagePlayer(h.damage, h.x, h.y)
+                            }
+                            addPulse(h.x, h.y, h.radius, 0.35f, h.color)
+                            repeat(12) { addParticle(h.x, h.y, h.color, 260f, 0.45f, 3f) }
+                        }
+                    }
+                }
                 HazardKind.FIRE_WALL -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
                     val r0 = h.angle
@@ -3173,6 +3217,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.x = o.px; n.y = o.py; n.hp = o.hp; n.firewall = o.firewall; n.facing = o.facing
             n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
             n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge; n.burning = o.burning
+            n.pulled = o.pulled; n.pullX = o.pullX; n.pullY = o.pullY; n.pullStrength = o.pullStrength
             n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
@@ -3302,6 +3347,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
             o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
             o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge; o.burning = n.burning
+            o.pulled = n.pulled; o.pullX = n.pullX; o.pullY = n.pullY; o.pullStrength = n.pullStrength
             if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
             o.targetUid = n.targetUid
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
@@ -3400,6 +3446,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (me.alive && phase != Phase.UPGRADE && phase != Phase.DEAD && phase != Phase.TRANSITION && slideIn <= 0f) {
             val mag = sqrt(me.inputX * me.inputX + me.inputY * me.inputY)
             if (me.rooted > 0f) me.rooted = max(0f, me.rooted - dt)
+            if (me.pulled > 0f) {
+                // Convergence Flash drags the guest too (host sends the pull; the guest moves itself).
+                me.pulled = max(0f, me.pulled - dt)
+                val dx = me.pullX - me.px; val dy = me.pullY - me.py
+                val d = sqrt(dx * dx + dy * dy)
+                if (d > 60f) {
+                    arena.pushOut(me.px + dx / d * me.pullStrength * dt, me.py + dy / d * me.pullStrength * dt, playerRadius)
+                    me.px = arena.out[0]; me.py = arena.out[1]
+                }
+            }
             me.moving = mag > MOVE_DEADZONE && me.rooted <= 0f
             if (me.moving) {
                 val speed = stats.moveSpeed * min(1f, mag)
@@ -3500,6 +3556,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val SWEEP_LENGTH = 1500f
         /** ON FIRE: how long it lasts and how often it ticks. */
         const val BURN_SECONDS = 2.5f
+        /** Hostile mines: how close trips one, and its fuse once tripped. */
+        const val MINE_TRIGGER = 70f
+        const val MINE_FUSE = 0.45f
         const val BURN_TICK = 0.5f
         /** Half-thickness of a fire wall ring. */
         const val FIRE_WALL_THICKNESS = 16f

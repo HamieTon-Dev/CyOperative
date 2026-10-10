@@ -145,6 +145,18 @@ sealed class Pattern {
     /** Purge Spin: [arms] flame jets spin [sweepDeg] around the boss; they set you on fire. */
     data class PurgeSpin(val arms: Int, val windup: Float, val duration: Float, val sweepDeg: Float, val damage: Float) : Pattern()
 
+    /** Line Warp: blinks onto your row or column (a light streak marks the jump), then fires down the lane. */
+    data class LineWarp(val beamWindup: Float, val damage: Float) : Pattern()
+
+    /** Cross Beam: + shaped beams (×-shaped too when [diagonal]) that turn [rotateDeg] while firing. */
+    data class CrossBeam(val windup: Float, val duration: Float, val rotateDeg: Float, val width: Float, val damage: Float, val diagonal: Boolean = false) : Pattern()
+
+    /** Bishop Mines: [count] mines arm after [arm] s and detonate when you come close (or after [life] s). */
+    data class BishopMines(val count: Int, val arm: Float, val life: Float, val radius: Float, val damage: Float) : Pattern()
+
+    /** Convergence Flash: pulls you toward the bishop for [pull] s, then a blinding blast of [radius]. */
+    data class ConvergenceFlash(val pull: Float, val strength: Float, val radius: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -254,6 +266,10 @@ val Pattern.displayName: String
         is Pattern.BurnSector -> "Burn Sector"
         is Pattern.HeatCollapse -> "Heat Collapse"
         is Pattern.PurgeSpin -> "Purge Spin"
+        is Pattern.LineWarp -> "Line Warp"
+        is Pattern.CrossBeam -> "Cross Beam"
+        is Pattern.BishopMines -> "Bishop Mines"
+        is Pattern.ConvergenceFlash -> "Convergence Flash"
     }
 
 object Bosses {

@@ -29,6 +29,11 @@ class Operative(val index: Int, baseStats: RunStats) {
     var burning = 0f
     var burnDps = 0f
     var burnTick = 0f
+    /** PULLED toward ([pullX], [pullY]) at [pullStrength] units/s for this long (Convergence Flash). */
+    var pulled = 0f
+    var pullX = 0f
+    var pullY = 0f
+    var pullStrength = 0f
     var inputX = 0f
     var inputY = 0f
     var fireCooldown = 0f

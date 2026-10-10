@@ -38,8 +38,15 @@ class BossExpansionTest {
         assertEquals(140, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.ROOTKIT_APOSTLE))
         assertEquals(240, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.NULLSHADE_SPECTER))
         // A slot whose boss isn't built yet keeps its classic, one loop tougher.
-        assertEquals(Bosses.classics[2], Bosses.forLevel(150))
-        assertEquals(1, Bosses.cycleForLevel(150))
+        // Any slot whose boss isn't built yet keeps its classic, one loop tougher.
+        for (lvl in 130..240 step 10) {
+            val slot = com.cyberoperative.game.data.BossExpansion.inSlot(lvl / 10 - 13)
+            if (slot == null) {
+                assertEquals(Bosses.classics[(lvl / 10 - 1) % 12], Bosses.forLevel(lvl))
+                assertEquals(1, Bosses.cycleForLevel(lvl))
+            } else assertEquals(slot, Bosses.forLevel(lvl))
+        }
+        assertEquals(150, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.PULSE_BISHOP))
         assertEquals(0, Bosses.cycleForLevel(240))
     }
 
@@ -703,5 +710,79 @@ class SpectralFirewallTest {
         assertEquals(7, back.bossRingFilled)
         assertTrue(back.bossRingOut)
         assertEquals(1.5f, back.ops[0].burning, 0.01f)
+    }
+}
+
+/** Shared harness for the autonomous expansion bosses. */
+abstract class ExpansionBossHarness(private val def: () -> com.cyberoperative.game.data.BossDef, private val level: Int) {
+    protected fun fight(seed: Long = 31L): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = seed, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(level, Random(seed)).copy(boss = def(), glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.2f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    protected fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    protected fun hazards(g: GameEngine, k: com.cyberoperative.game.engine.HazardKind) = g.hazards.items.filter { it.active && it.kind == k }
+}
+
+class PulseBishopTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.PULSE_BISHOP }, 150) {
+    @Test fun lineWarpLandsOnYourLane() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.px = 120f; me.py = g.arena.height * 0.6f
+        val x0 = b.x; val y0 = b.y
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.LineWarp(0.6f, 20f))
+        assertTrue("it jumped (${x0},${y0} -> ${b.x},${b.y})", kotlin.math.hypot(b.x - x0, b.y - y0) > 100f)
+        assertTrue("same row or column", kotlin.math.abs(b.x - me.px) < 1f || kotlin.math.abs(b.y - me.py) < 1f)
+        assertTrue("beam down the lane", hazards(g, com.cyberoperative.game.engine.HazardKind.BEAM).isNotEmpty())
+    }
+
+    @Test fun crossBeamFiresFourWays() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CrossBeam(0.5f, 1f, 0f, 26f, 20f))
+        assertEquals(4, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CrossBeam(0.5f, 1f, 0f, 26f, 20f, diagonal = true))
+        assertEquals(12, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
+    }
+
+    @Test fun minesArmThenDetonateWhenYouComeClose() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BishopMines(1, 0.8f, 20f, 80f, 30f))
+        val mine = hazards(g, com.cyberoperative.game.engine.HazardKind.MINE).single()
+        val hp = me.hp
+        run(g, 0.5f)
+        assertEquals("unarmed: harmless", hp, me.hp, 0.01f)
+        run(g, 0.9f)
+        assertTrue("tripped and blew", !mine.active && me.hp < hp)
+    }
+
+    @Test fun convergenceFlashPullsThenBlasts() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.invuln = 0f
+        me.px = b.x; me.py = b.y + 400f
+        val d0 = kotlin.math.hypot(me.px - b.x, me.py - b.y)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.ConvergenceFlash(1.2f, 160f, 200f, 30f))
+        run(g, 1.0f)
+        assertTrue("pulled in", kotlin.math.hypot(me.px - b.x, me.py - b.y) < d0 - 120f)
+        // Running away against the pull keeps you out of the blast.
+        val hp = me.hp
+        run(g, 0.6f, 0f to 1f)
+        assertTrue("flash went off", g.fx.flashNow > 0f || me.hp <= hp)
     }
 }

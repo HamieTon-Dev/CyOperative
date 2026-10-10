@@ -1464,6 +1464,7 @@ class ArenaRenderer {
                 HazardKind.INFECTED -> drawInfected(h, col, time)
                 HazardKind.KEY_ZONE -> drawKeyZone(h, time)
                 HazardKind.BURN_SECTOR -> drawBurnSector(h, time)
+                HazardKind.MINE -> drawHostileMine(h, time)
                 HazardKind.BLAST -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))
@@ -1646,6 +1647,27 @@ class ArenaRenderer {
         }
     }
 
+    /** Bishop mine: a spiked dark orb; its light blinks faster once armed and races once tripped, with its blast ring. */
+    private fun DrawScope.drawHostileMine(h: com.cyberoperative.game.engine.Hazard, time: Float) {
+        val c = Offset(h.x, h.y)
+        val col = Color(h.color)
+        val armed = h.timer >= h.windup
+        val tripped = h.tick >= 0f
+        val rate = if (tripped) 30f else if (armed) 10f else 4f
+        val blink = 0.5f + 0.5f * sin(time * rate + h.x)
+        // Arming: a ring closes in. Armed: faint blast radius. Tripped: blast radius flashes.
+        if (!armed) drawCircle(col.copy(alpha = 0.6f), 14f + 30f * (1f - h.timer / h.windup), c, style = Stroke(2f))
+        drawCircle(col.copy(alpha = if (tripped) 0.25f + 0.25f * blink else if (armed) 0.08f else 0f), h.radius, c)
+        if (armed) drawCircle(col.copy(alpha = if (tripped) 0.9f else 0.35f), h.radius, c, style = Stroke(if (tripped) 3f else 1.5f))
+        for (k in 0 until 8) {
+            val a = k * 0.785f + time * 0.6f
+            crystal(c.x + cos(a) * 9f, c.y - 8f + sin(a) * 9f, a, 11f, 7f, darker(col, 0.6f), darker(col, 0.25f), col.copy(alpha = 0.8f))
+        }
+        drawCircle(Color(0xFF1A0610), 12f, Offset(c.x, c.y - 8f))
+        drawCircle(col.copy(alpha = 0.5f + 0.5f * blink), 5f, Offset(c.x, c.y - 8f))
+        drawCircle(Color.White.copy(alpha = 0.7f * blink), 2f, Offset(c.x, c.y - 8f))
+    }
+
     /** Burn Sector: a wedge with warning signs while it heats, then a slice of fire. */
     private fun DrawScope.drawBurnSector(h: com.cyberoperative.game.engine.Hazard, time: Float) {
         val aim = h.x2 / 1000f
@@ -1742,6 +1764,17 @@ class ArenaRenderer {
                     drawOval(Color(0xFFFFC233).copy(alpha = 0.85f), Offset(c.x + cos(a) * 26f - 4f, c.y + sin(a) * 9f - 3f), Size(8f, 6f), style = Stroke(2f))
                 }
                 drawPadlock(Offset(c.x + 22f, c.y - 4f), 16f, Color(0xFFFFC233))
+            }
+            if (o.pulled > 0f) {
+                // PULLED: a tether of light dragging the operative toward the bishop.
+                val pc = Offset(o.pullX, o.pullY)
+                val oc = Offset(o.px, o.py - 20f)
+                drawLine(Color.White.copy(alpha = 0.35f), oc, pc, 6f)
+                drawLine(Color(0xFFFF2D6A).copy(alpha = 0.8f), oc, pc, 2f)
+                for (k in 0 until 5) {
+                    val q = ((time * 1.8f + k * 0.2f) % 1f)
+                    drawCircle(Color.White.copy(alpha = 0.8f), 3f, Offset(oc.x + (pc.x - oc.x) * q, oc.y + (pc.y - oc.y) * q))
+                }
             }
             if (o.burning > 0f) {
                 // ON FIRE: flames licking up the operative.
