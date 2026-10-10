@@ -200,11 +200,13 @@ class BossBrain(private val g: GameEngine) {
         val teleporting = st.active is Pattern.Teleport
         if (!dashing && !teleporting && st.active !is Pattern.Charge && st.active !is Pattern.Burrow &&
             st.active !is Pattern.GhostDash && st.active !is Pattern.SparkAmbush && st.active !is Pattern.DashSlash &&
-            st.active !is Pattern.BacklineDive) move(e, st, dt)
+            st.active !is Pattern.BacklineDive && !g.hiddenFrom(e)) move(e, st, dt)
 
         val p = st.active
         if (p == null) {
             st.rest -= dt
+            // A cloaked PHANTOM gives the boss nothing to aim at (the Nullshade Specter still sees).
+            if (st.rest <= 0f && g.hiddenFrom(e)) st.rest = 0.25f
             if (st.rest <= 0f) {
                 val list = st.phase.patterns
                 startPattern(e, st, list[st.patternIndex % list.size])

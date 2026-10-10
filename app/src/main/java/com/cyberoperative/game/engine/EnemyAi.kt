@@ -39,7 +39,12 @@ class EnemyAi(private val g: GameEngine) {
                 continue
             }
             if (e.boss != null) {
-                contact(e)
+                // A cloaked PHANTOM can't be bumped into by a boss that can't see it.
+                if (!g.hiddenFrom(e)) contact(e)
+                continue
+            }
+            if (g.hiddenFrom(e)) {
+                search(e, dt)
                 continue
             }
             when (e.def.ai) {
@@ -57,6 +62,17 @@ class EnemyAi(private val g: GameEngine) {
         separate()
     }
 
+    /**
+     * The focused operative is cloaked: no attacks, no contact damage; the threat drifts to
+     * where it last saw the operative and waits there.
+     */
+    private fun search(e: Enemy, dt: Float) {
+        if (MathUtil.dist2(e.x, e.y, g.searchX, g.searchY) > 60f * 60f) {
+            moveToward(e, g.searchX, g.searchY, e.speed * 0.6f, dt, useField = false)
+        }
+        if (e.state == AiState.WINDUP) e.state = AiState.MOVE
+    }
+
     // --- Movement helpers ---------------------------------------------------
 
     /**
@@ -65,7 +81,7 @@ class EnemyAi(private val g: GameEngine) {
      * it instead of pushing into the wall; a short sidestep remains as a last
      * resort if something still pins the enemy.
      */
-    fun moveToward(e: Enemy, tx: Float, ty: Float, speed: Float, dt: Float) {
+    fun moveToward(e: Enemy, tx: Float, ty: Float, speed: Float, dt: Float, useField: Boolean = true) {
         var dx = tx - e.x
         var dy = ty - e.y
         e.navTimer -= dt
@@ -73,7 +89,7 @@ class EnemyAi(private val g: GameEngine) {
             e.navTimer = NAV_REFRESH
             e.navValid = false
             // Only player-bound moves use the field (it leads to the player).
-            val towardPlayer = MathUtil.dist2(tx, ty, g.px, g.py) < 170f * 170f
+            val towardPlayer = useField && MathUtil.dist2(tx, ty, g.px, g.py) < 170f * 170f
             if (towardPlayer && !g.arena.lineOfSight(e.x, e.y, tx, ty, e.radius * 0.9f) && g.path.steer(e.x, e.y, e.radius)) {
                 e.navX = g.path.dir[0]
                 e.navY = g.path.dir[1]

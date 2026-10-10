@@ -144,22 +144,64 @@ object PermanentUpgrades {
     fun byId(id: String): PermanentUpgradeDef? = all.firstOrNull { it.id == id }
 }
 
-/** Playable operatives (§37). One today; the architecture supports more. */
+/**
+ * Playable classes (owner, 2026-10-11): the base Field Agent plus four specialists. Each class
+ * has its own body ([bodyId], a BodyStyle id), stat changes and, for most, a built-in weapon
+ * that takes no slot. Every class has the same unlockable skins (TITANIUM, PURPLE).
+ */
 data class OperativeDef(
     val id: String,
     val name: String,
     val description: String,
     val passive: String,
+    val bodyId: String,
+    /** Short stat lines for the class card. */
+    val traits: List<String> = emptyList(),
     val modify: (RunStats) -> Unit = {}
 )
 
 object Operatives {
+    /** The base operative (id kept as "operative" so older saves keep their selection). */
     val CYBER_OPERATIVE = OperativeDef(
-        "operative", "CYBER OPERATIVE", "Field specialist of the CyOps universe. Balanced, adaptable.",
-        "Adaptive Kit: starts with one Packet Node."
+        "operative", "FIELD AGENT", "Field specialist of the CyOps universe. Well rounded, adaptable.",
+        "Boosted sidearm: +20% damage.", bodyId = "agent",
+        traits = listOf("+20% damage", "Speed: standard", "Starts with one Packet Node"),
+        modify = { s -> s.damage *= 1.2f }
     )
-    val all = listOf(CYBER_OPERATIVE)
+    val TECHNICIAN = OperativeDef(
+        "technician", "TECHNICIAN", "Signal engineer. Fast hands, faster feet, and a beam no wall can stop.",
+        "SIGNAL BEAM: a beam through walls every 2s (grows with the level).", bodyId = "neon_operative",
+        traits = listOf("+10% attack speed", "+10% move speed", "Built-in: SIGNAL BEAM (through walls, 2s)"),
+        modify = { s ->
+            s.fireRate *= 1.1f; s.moveSpeed *= 1.1f
+            s.weapons[com.cyberoperative.game.data.Weapons.TECH_BEAM.id] = 1
+        }
+    )
+    val JUGGERNAUT = OperativeDef(
+        "juggernaut", "JUGGERNAUT", "Armoured breacher. Soaks the hits nobody else can and answers with a slam.",
+        "BRUTE FORCE: a slow, crushing slam. ×2 HP, 60 Firewall, −10% speed.", bodyId = "mech",
+        traits = listOf("×2 max HP", "Starts with 60 Firewall", "−10% move speed", "Built-in: BRUTE FORCE (slow, heavy slam)"),
+        modify = { s ->
+            s.maxHp *= 2f; s.firewallMax += 60f; s.moveSpeed *= 0.9f
+            s.weapons[com.cyberoperative.game.data.Weapons.BRUTE_FORCE.id] = 1
+        }
+    )
+    val PHANTOM = OperativeDef(
+        "phantom", "PHANTOM", "Stealth operative. Slips out of sight on a timer; only the Nullshade Specter can still see it.",
+        "CLOAK: every 10s, turns invisible for a few seconds.", bodyId = "runner",
+        traits = listOf("Cloaks every 10s (3.5s)", "Threats lose track of you while cloaked", "The Nullshade Specter still sees you")
+    ) .let { it.copy(modify = { s -> s.cloak = true }) }
+    val PACKET_MAGE = OperativeDef(
+        "packet_mage", "PACKET MAGE", "Code-caster. Hurls tracking fire that bursts across crowds and cover.",
+        "PACKET FIREBALL: a tracking fire shot every 2s, even on the move, with splash.", bodyId = "mage",
+        traits = listOf("Built-in: PACKET FIREBALL (tracking, 2s, moving or not)", "Splash on threats and walls"),
+        modify = { s -> s.weapons[com.cyberoperative.game.data.Weapons.MAGE_FIREBALL.id] = 1 }
+    )
+    /** In picker order: the Field Agent first. */
+    val all = listOf(CYBER_OPERATIVE, TECHNICIAN, JUGGERNAUT, PHANTOM, PACKET_MAGE)
     fun byId(id: String) = all.firstOrNull { it.id == id } ?: CYBER_OPERATIVE
+    /** The class a body belongs to (co-op partners send their body). */
+    fun byBody(bodyId: String) = all.firstOrNull { it.bodyId == bodyId } ?: CYBER_OPERATIVE
 
     /** Build a run's starting configuration from the operative + permanent upgrades. */
     fun buildConfig(operativeId: String, permanent: Map<String, Int>, seed: Long): RunConfig {

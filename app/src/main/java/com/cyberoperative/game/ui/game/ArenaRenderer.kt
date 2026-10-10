@@ -1447,6 +1447,20 @@ class ArenaRenderer {
         if (!g.moving && g.targetUid >= 0) {
             drawOval(Palette.Green.copy(alpha = 0.55f), Offset(g.px - r * 1.4f, g.py), Size(r * 2.8f, r * 1.1f), style = Stroke(2f))
         }
+        if (g.stats.cloak && !partner) {
+            // PHANTOM: a floor arc fills toward the next cloak, then drains while cloaked.
+            val left = g.cloakLeft(me.index)
+            val f = if (me.cloaked) left / GameEngine.CLOAK_SECONDS else 1f - left / (GameEngine.CLOAK_CYCLE - GameEngine.CLOAK_SECONDS)
+            drawArc(Color(0xFF8FA7FF).copy(alpha = if (me.cloaked) 0.7f else 0.45f), 90f, 360f * f.coerceIn(0f, 1f), false,
+                Offset(g.px - r * 1.5f, g.py - r * 0.05f), Size(r * 3f, r * 1.2f), style = Stroke(2f))
+        }
+        if (me.cloaked) {
+            // PHANTOM cloak: a faint shimmering ghost of the figure (threats can't see it).
+            val shimmer = 0.22f + 0.08f * sin(time * 9f)
+            drawOval(Color(0xFF8FA7FF).copy(alpha = 0.18f), Offset(g.px - r * 1.3f, g.py + r * 0.1f), Size(r * 2.6f, r * 0.9f), style = Stroke(1.5f))
+            drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = shimmer, bigGun = g.stats.beamLevel > 0)
+            return
+        }
         drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = if (blink) 0.35f else 1f, bigGun = g.stats.beamLevel > 0)
     }
 

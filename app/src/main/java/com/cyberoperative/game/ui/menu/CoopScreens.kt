@@ -61,7 +61,7 @@ import kotlinx.coroutines.launch
 /** What this player brings into a co-op room. */
 fun roomPlayerFor(uid: String, callsign: String, p: PlayerProfile) = RoomPlayer(
     uid = uid, name = callsign, permanent = p.permanentUpgrades, opLevel = operativeLevel(p.operativeXp),
-    body = p.operativeBody, skin = p.selectedSkin, ready = true
+    body = com.cyberoperative.game.data.Operatives.byId(p.selectedOperative).bodyId, skin = com.cyberoperative.game.meta.StoreManager.effectiveSkin(p).id, ready = true
 )
 
 /**

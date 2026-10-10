@@ -70,6 +70,9 @@ class RunStats {
     /** Auto-weapon levels by [com.cyberoperative.game.data.Weapons] id. */
     val weapons = HashMap<String, Int>()
 
+    /** PHANTOM: cloaks every [GameEngine.CLOAK_CYCLE] seconds. */
+    var cloak = false
+
     // Economy
     var xpMul = 1f
     var euroMul = 1f
@@ -95,6 +98,7 @@ class RunStats {
         railLevel = o.railLevel; strikeLevel = o.strikeLevel
         weapons.clear(); weapons.putAll(o.weapons)
         xpMul = o.xpMul; euroMul = o.euroMul
+        cloak = o.cloak
     }
 
     /** Clamp the stats that would break the game if stacked without limit. */

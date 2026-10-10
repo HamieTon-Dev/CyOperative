@@ -192,12 +192,12 @@ class GameSession(
     private var musicRoundLevel = -1
     private val musicRng = kotlin.random.Random(System.nanoTime())
 
-    val skin = OperativeSkins.byId(save.current.selectedSkin)
+    /** This player's class (0.17.0); in co-op each device plays its own. */
+    val classId: String = Operatives.byId(save.current.selectedOperative).id
+    /** The equipped skin, or the default if this class hasn't earned it (class skins). */
+    val skin = com.cyberoperative.game.meta.StoreManager.effectiveSkin(save.current, classId)
     val background = LivingBackground.byId(save.current.selectedBackground)
-    val body = BodyStyle.byId(save.current.operativeBody).let {
-        // A premium body that is not owned (e.g. a restored old save) falls back to the default.
-        if (it.premium && it.id !in save.current.ownedOperatives) BodyStyle.AGENT else it
-    }
+    val body = BodyStyle.byId(Operatives.byId(classId).bodyId)
 
     private val startBestLevel: Int
     private val startBestScore: Long
@@ -229,14 +229,14 @@ class GameSession(
             // Both devices build the exact same run from the room: host = operative 0, guest = 1.
             val host = link.state.host ?: error("Room has no host")
             val guest = link.state.guest ?: error("Room has no guest")
-            val hostCfg = Operatives.buildConfig("operative", host.permanent, link.state.seed)
-            val guestCfg = Operatives.buildConfig("operative", guest.permanent, link.state.seed)
+            val hostCfg = Operatives.buildConfig(Operatives.byBody(host.body).id, host.permanent, link.state.seed)
+            val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed)
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
                 ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots)
             )
         } else {
-            Operatives.buildConfig(p.selectedOperative, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
+            Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
                 .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         }
         engine = GameEngine(config, restore)
@@ -687,10 +687,19 @@ class GameSession(
                 totalRuns = p.totalRuns + if (countRun) 1 else 0,
                 longestRunSeconds = maxOf(p.longestRunSeconds, s.seconds),
                 eventTypesCompleted = p.eventTypesCompleted + eventIds,
-                bossRecords = mergeBossRecords(p.bossRecords)
+                bossRecords = mergeBossRecords(p.bossRecords),
+                // Per-class best level per difficulty: unlocks the class skins (TITANIUM, PURPLE).
+                classRecords = if (mode == GameMode.CAMPAIGN) p.classRecords + (classId to
+                    (p.classRecords[classId] ?: com.cyberoperative.game.save.ClassRecord()).with(difficulty.name, s.levelReached))
+                else p.classRecords
             )
             val newly = Achievements.evaluate(updated, s)
-            unlocked = newly.map { it.name }
+            val className = Operatives.byId(classId).name
+            val skinsEarned = OperativeSkins.classSkins.filter {
+                !com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, it, classId) &&
+                    com.cyberoperative.game.meta.StoreManager.skinUnlocked(updated, it, classId)
+            }
+            unlocked = newly.map { it.name } + skinsEarned.map { "${it.name} SKIN · $className" }
             updated.copy(
                 achievements = updated.achievements + newly.map { it.id },
                 euros = updated.euros + newly.sumOf { it.rewardEuros.toLong() }

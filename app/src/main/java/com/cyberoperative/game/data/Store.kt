@@ -64,14 +64,28 @@ data class OperativeSkin(
     /** Shield body fill. */
     val body: Long,
     val effect: SkinEffect = SkinEffect.NONE,
-    val free: Boolean = false
+    val free: Boolean = false,
+    /** Earned, not bought: unlocked per class by reaching a level on a difficulty (0.17.0). */
+    val unlock: SkinUnlock? = null
 )
+
+/** "Reach level [level] on [difficulty] with this class" (difficulty = Difficulty enum name). */
+data class SkinUnlock(val difficulty: String, val level: Int) {
+    val label: String get() = "Reach level $level on ${if (difficulty == "MEDIUM") "Normal" else difficulty.lowercase().replaceFirstChar { it.uppercase() }} with this class"
+}
 
 object OperativeSkins {
     val DEFAULT = OperativeSkin("default", "CYBER OPERATIVE", "The logo", 0xFF23C55E, 0xFF6EF7A5, 0xFF07301E, free = true)
 
+    /** Class skins (owner, 2026-10-11): every class earns these on its own. */
+    val TITANIUM = OperativeSkin("titanium", "TITANIUM", "Class skin: level 100 on Normal", 0xFFDCE8F2, 0xFFFFFFFF, 0xFF1C2430,
+        SkinEffect.PULSE, unlock = SkinUnlock("MEDIUM", 100))
+    val PURPLE = OperativeSkin("purple", "PURPLE", "Class skin: level 100 on Hard", 0xFFA259FF, 0xFFE7D2FF, 0xFF1A0833,
+        SkinEffect.HOLOGRAM, unlock = SkinUnlock("HARD", 100))
+    val classSkins: List<OperativeSkin> get() = listOf(TITANIUM, PURPLE)
+
     val all: List<OperativeSkin> = listOf(
-        DEFAULT,
+        DEFAULT, TITANIUM, PURPLE,
         // CyOps TD agent colours
         OperativeSkin("firewall", "FIREWALL", "Agent: FIREWALL", 0xFF00FF9C, 0xFFB8FFE0, 0xFF033322),
         OperativeSkin("ids", "IDS", "Agent: IDS / AI SENTINEL", 0xFF00E5FF, 0xFFB5F6FF, 0xFF032A33),
@@ -93,7 +107,7 @@ object OperativeSkins {
         OperativeSkin("void", "VOID", "Core skin: VOID", 0xFFB653FF, 0xFFE2C4FF, 0xFF0D0716)
     )
 
-    val paid: List<OperativeSkin> get() = all.filter { !it.free }
+    val paid: List<OperativeSkin> get() = all.filter { !it.free && it.unlock == null }
 
     fun byId(id: String): OperativeSkin = all.firstOrNull { it.id == id } ?: DEFAULT
 }

@@ -53,10 +53,12 @@ data class WeaponSpec(
     val length: Float = 0f,
     val throughWalls: Boolean = false,
     val stillOnly: Boolean = false,
-    val color: Long
+    val color: Long,
+    /** A class's built-in weapon: no slot, never offered; its level follows the campaign level. */
+    val innate: Boolean = false
 ) {
     // Levels go to 10,000: cooldown and count level off so the screen stays readable.
-    fun cooldownAt(level: Int): Float = (cooldown * Math.pow(0.88, (minOf(level, 12) - 1).toDouble()).toFloat()).coerceAtLeast(0.25f)
+    fun cooldownAt(level: Int): Float = if (innate) cooldown else (cooldown * Math.pow(0.88, (minOf(level, 12) - 1).toDouble()).toFloat()).coerceAtLeast(0.25f)
     fun countAt(level: Int): Int = minOf(count + countPerLevel * (level - 1), maxOf(count, 40))
     // +35% per level through level 10, then +15% (balance pass 2026-10-11: one weapon fed
     // a hundred picks no longer outpaces the threat curve on its own).
@@ -185,7 +187,25 @@ object Weapons {
             cooldown = 6f, count = 1, damage = 9f, radius = 320f, color = 0xFFFFFFFF)
     )
 
-    private val byId = all.associateBy { it.id }
+    /*
+     * Class weapons (owner, 2026-10-11): each class starts with one built-in weapon on top of
+     * its slots. Fixed cooldown; damage follows [classWeaponLevel] (×4.15 by level 100).
+     */
+    val TECH_BEAM = WeaponSpec("tech_beam", "SIGNAL BEAM", "-|-", Rarity.RARE, WeaponKind.LASER,
+        "TECHNICIAN: a beam through every wall, every 2 seconds.", 1,
+        cooldown = 2f, count = 1, damage = 1.8f, length = 900f, throughWalls = true, color = 0xFF22D3FF, innate = true)
+    val BRUTE_FORCE = WeaponSpec("brute_force", "BRUTE FORCE", "[!]", Rarity.RARE, WeaponKind.NOVA,
+        "JUGGERNAUT: a slow, crushing slam around you.", 1,
+        cooldown = 2.6f, count = 1, damage = 3.2f, radius = 125f, color = 0xFFFF9A3C, innate = true)
+    val MAGE_FIREBALL = WeaponSpec("mage_fireball", "PACKET FIREBALL", "(*>", Rarity.RARE, WeaponKind.VOLLEY,
+        "PACKET MAGE: a tracking fire shot every 2 seconds, even on the move. Bursts on threats and walls.", 1,
+        cooldown = 2f, count = 1, damage = 1.7f, homing = 5f, splash = 95f, speed = 0.8f, color = 0xFFFF6A1A, innate = true)
+    val classWeapons: List<WeaponSpec> = listOf(TECH_BEAM, BRUTE_FORCE, MAGE_FIREBALL)
+
+    /** Level of a class weapon at campaign [level]: 1 at the start, 10 at level 91–100, and on. */
+    fun classWeaponLevel(level: Int): Int = 1 + (level - 1).coerceAtLeast(0) / 10
+
+    private val byId = (all + classWeapons).associateBy { it.id }
 
     fun byId(id: String): WeaponSpec? = byId[id]
 

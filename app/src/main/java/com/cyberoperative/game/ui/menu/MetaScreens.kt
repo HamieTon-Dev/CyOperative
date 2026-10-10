@@ -130,43 +130,17 @@ fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
     val level = operativeLevel(profile.operativeXp)
     ScreenScaffold("OPERATIVE", onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            Text("BODY DESIGN", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text("CLASS", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text("Pick who you deploy as. Every class can wear the paid skins and earns its own TITANIUM and PURPLE skins.",
+                color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (style in com.cyberoperative.game.ui.game.BodyStyle.entries) {
-                    val selected = profile.operativeBody == style.id
-                    val owned = !style.premium || style.id in profile.ownedOperatives
-                    Column(
-                        Modifier
-                            .weight(1f)
-                            .background(Palette.Surface, RoundedCornerShape(8.dp))
-                            .border(if (selected) 2.dp else 1.dp, if (selected) Palette.Green else if (style.premium) Palette.Cyan else Palette.Divider, RoundedCornerShape(8.dp))
-                            .clickable {
-                                save.update { p ->
-                                    com.cyberoperative.game.meta.StoreManager.equipBody(p, style.id, style.premium)
-                                        ?: com.cyberoperative.game.meta.StoreManager.buyNeonOperative(p)
-                                        ?: p
-                                }
-                            }
-                            .padding(4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        com.cyberoperative.game.ui.game.FigurePreview(style, com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin), Modifier.fillMaxWidth().height(110.dp))
-                        Text(style.label, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.labelSmall, maxLines = 2)
-                        if (!owned) Text("◇${com.cyberoperative.game.data.StoreCatalog.NEON_OPERATIVE_PRICE}", color = Palette.Diamond, style = MaterialTheme.typography.labelSmall)
-                    }
+            for (cls in Operatives.all) {
+                ClassCard(profile, cls, selected = cls.id == op.id) {
+                    save.update { p -> com.cyberoperative.game.meta.StoreManager.selectClass(p, cls.id) }
                 }
+                Spacer(Modifier.height(8.dp))
             }
-            Spacer(Modifier.height(10.dp))
-            TerminalCard(accent = Palette.Green) {
-                Column {
-                    Text(op.name, color = Palette.Green, style = MaterialTheme.typography.titleLarge)
-                    Text(op.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.height(6.dp))
-                    Text("PASSIVE: ${op.passive}", color = Palette.Cyan, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(2.dp))
             TerminalCard {
                 Column {
                     Text("OPERATIVE LEVEL $level", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
@@ -176,8 +150,53 @@ fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
             }
             Spacer(Modifier.height(10.dp))
             RecordsCard(profile)
-            Spacer(Modifier.height(10.dp))
-            Text("More operatives will join the roster in a future update.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/** One class in the picker: its figure in its skin, what it does, its records and class skins. */
+@Composable
+private fun ClassCard(p: PlayerProfile, cls: com.cyberoperative.game.data.OperativeDef, selected: Boolean, onSelect: () -> Unit) {
+    val skin = com.cyberoperative.game.meta.StoreManager.effectiveSkin(p, cls.id)
+    val rec = p.classRecords[cls.id]
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(Palette.Surface, RoundedCornerShape(10.dp))
+            .border(if (selected) 2.dp else 1.dp, if (selected) Palette.Green else Palette.Divider, RoundedCornerShape(10.dp))
+            .clickable(onClick = onSelect)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        com.cyberoperative.game.ui.game.FigurePreview(
+            com.cyberoperative.game.ui.game.BodyStyle.byId(cls.bodyId), skin, Modifier.width(84.dp).height(112.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(cls.name, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                if (selected) Text("SELECTED", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
+            }
+            Text(cls.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(4.dp))
+            for (t in cls.traits) Text("· $t", color = Palette.Cyan, style = MaterialTheme.typography.bodySmall)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "BEST · NORMAL ${rec?.bestNormal ?: 0} · HARD ${rec?.bestHard ?: 0}",
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+            Column {
+                for (cs in com.cyberoperative.game.data.OperativeSkins.classSkins) {
+                    val got = com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, cs, cls.id)
+                    val diff = if (cs.unlock?.difficulty == "HARD") "HARD" else "NORMAL"
+                    Text(
+                        if (got) "${cs.name} SKIN ✓" else "${cs.name} SKIN · reach L${cs.unlock?.level} on $diff",
+                        color = if (got) Color(cs.edge) else Palette.TextMuted,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
         }
     }
 }

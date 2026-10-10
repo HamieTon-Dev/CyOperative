@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.17.0 (versionCode 56) — 2026-10-11 · Classes
+### Added (owner)
+- **Five classes**, picked on the OPERATIVE screen (Field Agent listed first). The body follows the
+  class, and every class is free.
+  - **FIELD AGENT** (base, agent body): well rounded, +20% damage, standard speed.
+  - **TECHNICIAN** (the former NEON OPERATIVE body):
+    - +10% attack speed and +10% move speed;
+    - built-in **SIGNAL BEAM**: a beam through walls every 2 s.
+  - **JUGGERNAUT** (mech body):
+    - ×2 max HP, starts with 60 Firewall, −10% move speed;
+    - built-in **BRUTE FORCE**: a slow, heavy slam around you every 2.6 s.
+  - **PHANTOM** (runner body): turns invisible for 3.5 s out of every 10 s.
+    - Threats lose track of you: no attacks or contact damage, and they drift to where you vanished.
+    - Bosses won't start new attacks or chase you.
+    - The **Nullshade Specter still sees you**.
+    - A floor arc shows the cloak timer, and the figure shimmers while cloaked.
+    - In co-op, threats go after the visible partner.
+  - **PACKET MAGE** (new robed body with a fire-orb staff): built-in **PACKET FIREBALL**, a tracking
+    fire shot every 2 s, even while moving, that bursts with splash on threats and walls.
+- **How built-in weapons work:**
+  - they take no weapon slot and are never offered as picks;
+  - fixed cooldown;
+  - damage grows with the campaign level (weapon level 1 + level/10, about ×4 by L100);
+  - counted by the hidden power governor.
+- **Class skins**, earned per class and never sold:
+  - **TITANIUM** for reaching level 100 on **Normal** with that class;
+  - **PURPLE** for reaching level 100 on **Hard** with that class.
+  - A best level per class and difficulty is saved; the class card shows it and the unlock state.
+  - A newly earned skin is announced with the run's unlocks.
+  - Wearing a class skin on a class that hasn't earned it falls back to the default look.
+  - Every class can wear all the paid colour skins, and the Technician's neon body now takes them too.
+- Co-op: each player brings their own class. It travels with the body, and the cloak is synced.
+### Changed
+- **NEON OPERATIVE is no longer sold.** It is now the Technician class.
+  - Anyone who bought it on its own gets the ◇100 back once.
+  - The ◇300 skin bundle now covers the paid colour skins only.
+
 ## 0.16.3 (versionCode 55) — 2026-10-11 · Currency always fits
 ### Fixed
 - **Currency chips** (Upgrades screen top right, main menu and the others) use a compact format of

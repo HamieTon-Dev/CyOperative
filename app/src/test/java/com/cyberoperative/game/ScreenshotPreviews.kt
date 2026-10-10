@@ -117,9 +117,33 @@ class ScreenshotPreviews {
         save("body_designs")
     }
 
-    @Test fun arenaAgent() { assumeTrue(enabled); gameplay("arena_25d_agent", 2.5f, profileSetup = { it.copy(operativeBody = "agent") }) }
-    @Test fun arenaMech() { assumeTrue(enabled); gameplay("arena_25d_mech", 3.5f, profileSetup = { it.copy(operativeBody = "mech", selectedSkin = "blue_hat") }) }
-    @Test fun arenaRunner() { assumeTrue(enabled); gameplay("arena_25d_runner", 5f, profileSetup = { it.copy(operativeBody = "runner", selectedSkin = "cryptographer", selectedBackground = "rainfall") }) }
+    private fun cls(p: com.cyberoperative.game.save.PlayerProfile, id: String, skin: String = "default") =
+        com.cyberoperative.game.meta.StoreManager.selectClass(p, id).copy(selectedSkin = skin, ownedSkins = p.ownedSkins + skin)
+    @Test fun arenaAgent() { assumeTrue(enabled); gameplay("arena_25d_agent", 2.5f, profileSetup = { cls(it, "operative") }) }
+    @Test fun arenaMech() { assumeTrue(enabled); gameplay("arena_25d_mech", 3.5f, profileSetup = { cls(it, "juggernaut", "blue_hat") }) }
+    @Test fun arenaRunner() { assumeTrue(enabled); gameplay("arena_25d_runner", 5f, profileSetup = { cls(it, "phantom", "cryptographer").copy(selectedBackground = "rainfall") }) }
+    @Test fun arenaMage() { assumeTrue(enabled); gameplay("arena_25d_mage", 4f, profileSetup = { cls(it, "packet_mage") }) }
+    @Test fun arenaTechnician() { assumeTrue(enabled); gameplay("arena_25d_technician", 4f, profileSetup = { cls(it, "technician") }) }
+    @Test fun arenaPhantomCloaked() {
+        assumeTrue(enabled)
+        gameplay("arena_25d_phantom_cloaked", 7.6f, profileSetup = { cls(it, "phantom") })
+    }
+
+    @Test fun classPicker() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update {
+            cls(it, "technician").copy(classRecords = mapOf(
+                "technician" to com.cyberoperative.game.save.ClassRecord(bestNormal = 112, bestHard = 40),
+                "operative" to com.cyberoperative.game.save.ClassRecord(bestNormal = 104, bestHard = 101)
+            ), selectedSkin = "titanium")
+        }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.OperativeScreen(repo) {} } }
+        compose.mainClock.advanceTimeBy(800)
+        save("class_picker")
+    }
     @Test fun gateOpen() {
         assumeTrue(enabled)
         gameplay("arena_25d_gate_open", 0f, profileSetup = {

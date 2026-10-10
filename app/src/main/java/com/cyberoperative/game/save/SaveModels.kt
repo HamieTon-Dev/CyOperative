@@ -41,6 +41,10 @@ data class PlayerProfile(
     val savedRun: String? = null,
     /** Difficulty picked last time, preselected on the next new run. */
     val lastDifficulty: String = "MEDIUM",
+    /** Best campaign level per class id and difficulty (unlocks the class skins, 0.17.0). */
+    val classRecords: Map<String, ClassRecord> = emptyMap(),
+    /** NEON OPERATIVE became the free TECHNICIAN class: its ◇ price was refunded once. */
+    val neonRefunded: Boolean = false,
     /** BOSS CODEX: per boss id, what you've done against it. */
     val bossRecords: Map<String, BossRecord> = emptyMap(),
     val settings: GameSettings = GameSettings()
@@ -55,6 +59,26 @@ data class GameSettings(
     val screenShake: Boolean = true,
     val showFps: Boolean = false
 )
+
+/** Best campaign level reached with one class, per difficulty. */
+@Serializable
+data class ClassRecord(
+    val bestEasy: Int = 0,
+    val bestNormal: Int = 0,
+    val bestHard: Int = 0
+) {
+    fun best(difficulty: String): Int = when (difficulty) {
+        "EASY" -> bestEasy
+        "HARD" -> bestHard
+        else -> bestNormal
+    }
+
+    fun with(difficulty: String, level: Int): ClassRecord = when (difficulty) {
+        "EASY" -> copy(bestEasy = maxOf(bestEasy, level))
+        "HARD" -> copy(bestHard = maxOf(bestHard, level))
+        else -> copy(bestNormal = maxOf(bestNormal, level))
+    }
+}
 
 /** BOSS CODEX entry: times met and defeated, and the fastest kill (seconds, 0 = none yet). */
 @Serializable

@@ -88,16 +88,6 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 ) { spend(save, audio) { StoreManager.buyRevives(it, pack) } }
             }
 
-            item { Header("OPERATIVES") }
-            item {
-                val owned = com.cyberoperative.game.meta.StoreManager.NEON_OPERATIVE_ID in p.ownedOperatives
-                StoreRow(
-                    title = "NEON OPERATIVE", subtitle = "The app icon come to life — faceted neon hood, antenna, glowing >_<",
-                    price = if (owned) "OWNED" else "◇${StoreCatalog.NEON_OPERATIVE_PRICE}", accent = Palette.Cyan,
-                    enabled = !owned && p.diamonds >= StoreCatalog.NEON_OPERATIVE_PRICE
-                ) { spend(save, audio) { com.cyberoperative.game.meta.StoreManager.buyNeonOperative(it) } }
-            }
-
             item { Header("OPERATIVE SKINS") }
             item {
                 StoreRow(
@@ -108,7 +98,7 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             item {
                 val owned = StoreManager.allSkinsOwned(p)
                 StoreRow(
-                    title = "ALL OPERATIVE SKINS", subtitle = "Unlock all ${OperativeSkins.paid.size} skins + the NEON OPERATIVE",
+                    title = "ALL OPERATIVE SKINS", subtitle = "Unlock all ${OperativeSkins.paid.size} paid skins (every class can wear them)",
                     price = if (owned) "OWNED" else "◇${StoreCatalog.ALL_SKINS_PRICE}", accent = Palette.Gold,
                     enabled = !owned && p.diamonds >= StoreCatalog.ALL_SKINS_PRICE
                 ) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
@@ -173,23 +163,25 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
         if (tab == 0) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!StoreManager.allSkinsOwned(p)) item {
-                    CyberButton("ALL ${OperativeSkins.paid.size} SKINS + NEON OPERATIVE  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
+                    CyberButton("ALL ${OperativeSkins.paid.size} SKINS  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
                         enabled = p.diamonds >= StoreCatalog.ALL_SKINS_PRICE) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
                 }
                 items(OperativeSkins.all, key = { it.id }) { skin ->
-                    val owned = skin.free || skin.id in p.ownedSkins
-                    val equipped = p.selectedSkin == skin.id
+                    val cls = com.cyberoperative.game.data.Operatives.byId(p.selectedOperative)
+                    val owned = StoreManager.skinUnlocked(p, skin, cls.id)
+                    val equipped = StoreManager.effectiveSkin(p).id == skin.id
                     TerminalCard(accent = if (equipped) Palette.Green else Palette.Divider) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             OperativeMarkIcon(skin, Modifier.size(56.dp))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(skin.name, color = Color(skin.edge), style = MaterialTheme.typography.titleSmall)
-                                Text(skin.origin, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                                Text(skin.unlock?.let { "${it.label} (${cls.name})" } ?: skin.origin, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                             }
                             when {
                                 equipped -> Text("EQUIPPED", color = Palette.Green, style = MaterialTheme.typography.labelMedium)
                                 owned -> CyberButton("EQUIP", accent = Palette.Green) { spend(save, audio) { StoreManager.equipSkin(it, skin.id) } }
+                                skin.unlock != null -> Text("LOCKED", color = Palette.TextMuted, style = MaterialTheme.typography.labelMedium)
                                 else -> CyberButton("◇${StoreCatalog.SKIN_PRICE}", accent = Palette.Diamond, enabled = p.diamonds >= StoreCatalog.SKIN_PRICE) {
                                     spend(save, audio) { StoreManager.buySkin(it, skin.id) }
                                 }

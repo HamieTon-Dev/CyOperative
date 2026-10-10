@@ -30,7 +30,7 @@ class SaveRepository(context: Context) {
             prefs.edit().putString(KEY_CORRUPT, raw).apply()
             return PlayerProfile()
         }
-        return decoded
+        return com.cyberoperative.game.meta.StoreManager.migrate(decoded)
     }
 
     fun update(transform: (PlayerProfile) -> PlayerProfile) {

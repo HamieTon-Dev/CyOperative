@@ -95,5 +95,14 @@ class Operative(val index: Int, baseStats: RunStats) {
     var netFacing = 0f
     var netMoving = false
 
+    // --- PHANTOM cloak ---------------------------------------------------------------
+    /** Seconds into the cloak cycle. */
+    var cloakTime = 0f
+    /** Invisible to every threat except the Nullshade Specter. */
+    var cloaked = false
+    /** Where the operative vanished: threats search there. */
+    var cloakX = 0f
+    var cloakY = 0f
+
     val alive: Boolean get() = !downed && !gone
 }

@@ -134,6 +134,25 @@ data class HeroPalette(
     }
 
     companion object {
+        /**
+         * The hero re-tinted by a colour skin (TECHNICIAN skins, 0.17.0): the default skin keeps
+         * the icon; TITANIUM uses the titanium keeper palette; others derive from the skin colours.
+         */
+        fun forSkin(skin: com.cyberoperative.game.data.OperativeSkin): HeroPalette {
+            if (skin.id == com.cyberoperative.game.data.OperativeSkins.DEFAULT.id) return ICON
+            if (skin.id == com.cyberoperative.game.data.OperativeSkins.TITANIUM.id) return KEEPER_TITANIUM
+            val edge = Color(skin.edge)
+            val face = Color(skin.face)
+            val body = Color(skin.body)
+            fun mix(a: Color, b: Color, t: Float) = Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, 1f)
+            return HeroPalette(
+                mix(body, edge, 0.55f), mix(body, edge, 0.32f), mix(body, edge, 0.14f), edge.copy(alpha = 0.5f),
+                edge, Color(0xFF05070C), mix(body, edge, 0.3f), face, edge,
+                edge, mix(body, Color.Black, 0.2f), Color(0xFF020306), face,
+                spectrum = skin.effect == com.cyberoperative.game.data.SkinEffect.SPECTRUM
+            )
+        }
+
         /** The app icon: deep blue hood, cyan glow, neon-green face. */
         val ICON = HeroPalette(
             Color(0xFF2048B0), Color(0xFF122A70), Color(0xFF0A1A4A), Color(0xFF3A6BE0).copy(alpha = 0.55f),

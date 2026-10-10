@@ -11,6 +11,9 @@ device, tune balance, then fill out the store/meta phases.
     damage (+0.5%/level).
 
 ## NEXT
+- 0.17.0 classes: playtest each class 1–100 and tune the built-in weapon damage (180/320/170%)
+  and the cloak timing (3.5 s of 10 s). Class-specific paid skins can be added as new
+  `OperativeSkins` rows.
 - CO-094 Owner chooses the default body design (A/B/C) — then polish that one
 - CO-090 Apply the owner's picks from the Power-Up Board (names, icons, boss-drop rule)
 - CO-110 Store screenshots / feature graphic captured from the real game (no false advertising)

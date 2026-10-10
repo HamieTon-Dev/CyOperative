@@ -86,6 +86,8 @@ class NetOp {
     var orbAngle = 0f; var bladeAngle = 0f; var targetUid = -1
     var beamActive = false; var beamX2 = 0f; var beamY2 = 0f; var beamHeat = 0f; var beamCooldown = 0f
     var downed = false; var reviveProgress = 0f; var gone = false
+    /** PHANTOM cloak (flag bit 16, v12 layout unchanged). */
+    var cloaked = false
     /** Statuses (v5): SEIZED time, ENCRYPTED time and its burst meter. */
     var rooted = 0f; var encrypted = 0f; var encryptCharge = 0f
     /** ON FIRE time left (v6). */
@@ -202,7 +204,7 @@ object CoopCodec {
             o.writeByte(w.ops.size)
             for (p in w.ops) {
                 o.pos(p.x); o.pos(p.y); o.writeFloat(p.hp); o.writeFloat(p.firewall); o.ang(p.facing)
-                o.writeByte((if (p.moving) 1 else 0) or (if (p.beamActive) 2 else 0) or (if (p.downed) 4 else 0) or (if (p.gone) 8 else 0))
+                o.writeByte((if (p.moving) 1 else 0) or (if (p.beamActive) 2 else 0) or (if (p.downed) 4 else 0) or (if (p.gone) 8 else 0) or (if (p.cloaked) 16 else 0))
                 o.sec(p.invuln); o.sec(p.hurtFlash); o.ang(p.orbAngle); o.ang(p.bladeAngle); o.var32(p.targetUid + 1)
                 if (p.beamActive) { o.pos(p.beamX2); o.pos(p.beamY2) }
                 o.sec(p.beamHeat); o.sec(p.beamCooldown); o.sec(p.reviveProgress)
@@ -310,7 +312,7 @@ object CoopCodec {
                 val p = NetOp()
                 p.x = i.pos(); p.y = i.pos(); p.hp = i.readFloat(); p.firewall = i.readFloat(); p.facing = i.ang()
                 val f = i.readUnsignedByte()
-                p.moving = f and 1 != 0; p.beamActive = f and 2 != 0; p.downed = f and 4 != 0; p.gone = f and 8 != 0
+                p.moving = f and 1 != 0; p.beamActive = f and 2 != 0; p.downed = f and 4 != 0; p.gone = f and 8 != 0; p.cloaked = f and 16 != 0
                 p.invuln = i.sec(); p.hurtFlash = i.sec(); p.orbAngle = i.ang(); p.bladeAngle = i.ang(); p.targetUid = i.var32() - 1
                 if (p.beamActive) { p.beamX2 = i.pos(); p.beamY2 = i.pos() }
                 p.beamHeat = i.sec(); p.beamCooldown = i.sec(); p.reviveProgress = i.sec()

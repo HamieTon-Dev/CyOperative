@@ -818,17 +818,63 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         cur = ops[primary]
     }
 
-    /** Points the rules at the living operative closest to (x, y): who a threat chases and shoots at. */
+    /**
+     * Points the rules at the living operative closest to (x, y): who a threat chases and shoots at.
+     * A cloaked PHANTOM is passed over while the partner is still visible.
+     */
     internal fun focusNearest(x: Float, y: Float) {
         if (ops.size == 1) return
         var best: Operative? = null
         var bd = Float.MAX_VALUE
-        for (o in ops) {
-            if (!o.alive) continue
-            val d = MathUtil.dist2(x, y, o.px, o.py)
-            if (d < bd) { bd = d; best = o }
+        for (pass in 0..1) {
+            for (o in ops) {
+                if (!o.alive || (pass == 0 && o.cloaked)) continue
+                val d = MathUtil.dist2(x, y, o.px, o.py)
+                if (d < bd) { bd = d; best = o }
+            }
+            if (best != null) break
         }
         if (best != null) cur = best
+    }
+
+    // ======================================================================
+    // PHANTOM cloak (owner, 2026-10-11): "Every 10 seconds goes invisible (enemies cannot see
+    // except the Nullshade specter)"
+    // ======================================================================
+
+    /** True for the focused operative while it is cloaked, unless [e] is the Nullshade Specter. */
+    internal fun hiddenFrom(e: Enemy): Boolean = cur.cloaked && e.boss?.def?.id != NULLSHADE_ID
+
+    /** Where threats that lost the focused operative go looking. */
+    internal val searchX: Float get() = cur.cloakX
+    internal val searchY: Float get() = cur.cloakY
+
+    /** Is operative [index] cloaked right now (renderer, HUD). */
+    fun isCloaked(index: Int = primary): Boolean = ops.getOrNull(index)?.cloaked == true
+
+    /** Seconds until the focused operative's next cloak, or the cloak time left (HUD). */
+    fun cloakLeft(index: Int = primary): Float {
+        val o = ops.getOrNull(index) ?: return 0f
+        val t = o.cloakTime % CLOAK_CYCLE
+        return if (o.cloaked) CLOAK_CYCLE - t else CLOAK_CYCLE - CLOAK_SECONDS - t
+    }
+
+    private fun updateCloak(dt: Float) {
+        val o = cur
+        if (!stats.cloak || phase != Phase.COMBAT) {
+            o.cloaked = false
+            return
+        }
+        o.cloakTime += dt
+        val now = o.cloakTime % CLOAK_CYCLE >= CLOAK_CYCLE - CLOAK_SECONDS
+        if (now && !o.cloaked) {
+            o.cloakX = px; o.cloakY = py
+            addText(px, py - 40f, "CLOAKED", TextKind.INFO)
+            addPulse(px, py, 90f, 0.4f, 0xFF8FA7FF)
+        } else if (!now && o.cloaked) {
+            addPulse(px, py, 70f, 0.3f, 0xFF8FA7FF)
+        }
+        o.cloaked = now
     }
 
     internal fun focusHost() { cur = ops[primary] }
@@ -942,7 +988,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         runSeconds += dt
         if (phase == Phase.COMBAT) levelSeconds += dt
 
-        forEachAlive { updatePlayer(dt); updateOrbit(dt) }
+        forEachAlive { updatePlayer(dt); updateOrbit(dt); updateCloak(dt) }
         if (phase == Phase.COMBAT) {
             if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
             updateEventRules(dt)
@@ -1007,6 +1053,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level = newLevel
         fx.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0)
+        for (o in ops) { o.cloakTime = 0f; o.cloaked = false }
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
         bossIceShell = -1f
         bossHeadMask = -1
@@ -1975,9 +2022,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
         }
         if (s.weapons.isEmpty()) return
-        for ((id, level) in s.weapons) {
+        for ((id, owned) in s.weapons) {
             val w = Weapons.byId(id) ?: continue
             if (w.stillOnly && moving) continue
+            // A class's built-in weapon grows with the campaign level instead of picks.
+            val level = if (w.innate) Weapons.classWeaponLevel(this.level) else owned
             val t = (weaponTimers[id] ?: (0.4f + rng.nextFloat() * 0.8f)) - dt
             if (t > 0f) { weaponTimers[id] = t; continue }
             weaponTimers[id] = if (fireWeapon(w, level)) w.cooldownAt(level) else 0.25f
@@ -3490,7 +3539,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.chill = o.chill; n.frozen = o.frozen
             n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
-            n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
+            n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone; n.cloaked = o.cloaked
             n.pending = o.pendingUpgrades; n.rerolls = o.rerollsLeft; n.batchTotal = o.rewardBatchTotal; n.batchTaken = o.rewardBatchTaken
             for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
@@ -3631,7 +3680,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
             o.targetUid = n.targetUid
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
-            o.downed = n.downed; o.reviveProgress = n.reviveProgress; o.gone = n.gone
+            o.downed = n.downed; o.reviveProgress = n.reviveProgress; o.gone = n.gone; o.cloaked = n.cloaked
             o.pendingUpgrades = n.pending; o.rerollsLeft = n.rerolls; o.rewardBatchTotal = n.batchTotal; o.rewardBatchTaken = n.batchTaken
             val owned = HashMap<String, Int>()
             for ((k, l) in n.owned) Upgrades.all.getOrNull(k)?.let { owned[it.id] = l }
@@ -3878,6 +3927,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val ELITE_ARMOR = 3f
         /** Victory sequence length (game seconds): shatter, then the THREAT NEUTRALIZED card. */
         const val VICTORY_SECONDS = 4.2f
+        /** PHANTOM: a cloak every [CLOAK_CYCLE] s lasting [CLOAK_SECONDS] s. */
+        const val CLOAK_CYCLE = 10f
+        const val CLOAK_SECONDS = 3.5f
+        /** The one boss that sees through the cloak. */
+        const val NULLSHADE_ID = "nullshade"
         /** Level-clear bonus-pick odds (were 45% and 30%). */
         const val BONUS_PICK_CAP = 0.3f
         /** Seconds the last 1–3 threats may go unkilled before they are purged. */

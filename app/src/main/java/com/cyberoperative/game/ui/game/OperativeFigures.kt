@@ -44,11 +44,13 @@ enum class BodyStyle(val id: String, val label: String, val blurb: String) {
     AGENT("agent", "FIELD AGENT", "Shield-head specialist in light armour with a sidearm blaster."),
     MECH("mech", "SENTINEL MECH", "Heavy frame, monitor head showing >_<, shoulder cannon."),
     RUNNER("runner", "SHADOW RUNNER", "Hooded coat over the shield face, hovers on thrusters."),
-    /** The app icon as a whole operative (owner, 2026-10-08). Sold in the store. */
-    NEON("neon_operative", "NEON OPERATIVE", "The app icon come to life: faceted neon hood, antenna, glowing >_< shield face.");
+    /** The app icon as a whole operative (owner, 2026-10-08). Since 0.17.0 the TECHNICIAN's body, no longer sold. */
+    NEON("neon_operative", "NEON OPERATIVE", "The app icon come to life: faceted neon hood, antenna, glowing >_< shield face."),
+    /** PACKET MAGE (0.17.0): robed code-caster with a fire-orb staff. */
+    MAGE("mage", "PACKET MAGE", "Robed code-caster under a deep hood, a staff crowned with packet fire.");
 
-    /** Bodies that must be bought before they can be selected. */
-    val premium: Boolean get() = this == NEON
+    /** Bodies that must be bought before they can be selected (none since classes, 0.17.0). */
+    val premium: Boolean get() = false
 
     companion object {
         fun byId(id: String) = entries.firstOrNull { it.id == id } ?: AGENT
@@ -77,8 +79,8 @@ object OperativeFigures {
     ) {
         heavy = bigGun
         if (style == BodyStyle.NEON) {
-            // Its own fixed look (the icon), independent of colour skins.
-            neonOperative(x, footY, u, facing, moving, time, alpha)
+            // The icon look; a colour skin re-tints the hood, trim and face.
+            neonOperative(x, footY, u, facing, moving, time, alpha, palette = HeroPalette.forSkin(skin))
             return
         }
         val c = OperativeMark.colors(skin, time)
@@ -107,6 +109,7 @@ object OperativeFigures {
             BodyStyle.AGENT -> agent(x, footY - bob, u, dir, walk, facing, armor, armorDark, edge, face, skin, time, alpha)
             BodyStyle.MECH -> mech(x, footY - bob * 0.5f, u, dir, walk, facing, armor, armorDark, edge, face, alpha)
             BodyStyle.RUNNER -> runner(x, footY, u, dir, moving, facing, armor, armorDark, edge, face, skin, time, alpha)
+            BodyStyle.MAGE -> mage(x, footY - bob * 0.6f, u, dir, walk, facing, armor, armorDark, edge, face, skin, time, alpha)
             BodyStyle.NEON -> Unit
         }
     }
@@ -240,6 +243,73 @@ object OperativeFigures {
         with(OperativeMark) { drawOperative(skin, time, Offset(x, hip - 33f * u), 26f * u, alpha) }
         // Gun arm on top.
         gun(x + dir * 9f * u, hip - 16f * u, u, facing, edge, face, armor)
+    }
+
+    // --- PACKET MAGE ------------------------------------------------------
+
+    private val mageFire = Color(0xFFFF6A1A)
+    private val mageFireCore = Color(0xFFFFD08A)
+
+    private fun DrawScope.mage(
+        x: Float, foot: Float, u: Float, dir: Float, walk: Float, facing: Float,
+        armor: Color, armorDark: Color, edge: Color, face: Color, skin: OperativeSkin, time: Float, alpha: Float
+    ) {
+        val hip = foot - 14f * u
+        val shoulderY = hip - 20f * u
+        val sway = walk * 2f * u
+        // Staff behind the robe on the off side? No: held out on the facing side, planted at the feet.
+        val staffBottom = Offset(x + dir * 13f * u + sway * 0.5f, foot - 1f * u)
+        val staffTop = Offset(x + dir * 15f * u, shoulderY - 22f * u)
+        // Robe: a long flared trapezoid with a darker back panel.
+        path.reset()
+        path.moveTo(x - 8f * u, shoulderY)
+        path.lineTo(x + 8f * u, shoulderY)
+        path.lineTo(x + 14f * u + sway, foot)
+        path.lineTo(x - 14f * u + sway, foot)
+        path.close()
+        drawPath(path, armorDark)
+        path.reset()
+        path.moveTo(x - 8f * u, shoulderY)
+        path.lineTo(x + 8f * u, shoulderY)
+        path.lineTo(x + 12f * u + sway, foot - 2f * u)
+        path.lineTo(x - 12f * u + sway, foot - 2f * u)
+        path.close()
+        drawPath(path, armor)
+        drawPath(path, edge, style = Stroke(1.5f * u, join = StrokeJoin.Round))
+        // Front split and hem runes.
+        drawLine(face.copy(alpha = face.alpha * 0.75f), Offset(x, shoulderY + 4f * u), Offset(x + sway * 0.7f, foot - 3f * u), 1.4f * u)
+        for (i in -2..2) {
+            val rx = x + i * 4.5f * u + sway * 0.9f
+            drawLine(edge.copy(alpha = edge.alpha * 0.7f), Offset(rx - 1.2f * u, foot - 6f * u), Offset(rx + 1.2f * u, foot - 4f * u), 1.1f * u)
+        }
+        // Sash with a glowing clasp.
+        drawLine(edge, Offset(x - 9f * u, hip - 4f * u), Offset(x + 9f * u, hip - 4f * u), 2f * u)
+        val pulse = 0.6f + 0.4f * sin(time * 4f)
+        drawCircle(mageFire.copy(alpha = alpha * pulse), 2.2f * u, Offset(x, hip - 4f * u))
+        // Off arm (sleeve) and the staff arm.
+        limb(Offset(x - dir * 8f * u, shoulderY + 3f * u), Offset(x - dir * 11f * u, hip - 6f * u), 5f * u, armorDark)
+        limb(staffBottom, staffTop, 2.4f * u, Color(0xFF3A2414).copy(alpha = alpha))
+        limb(staffBottom, staffTop, 1f * u, edge.copy(alpha = edge.alpha * 0.6f))
+        limb(Offset(x + dir * 8f * u, shoulderY + 3f * u), Offset(x + dir * 14f * u, shoulderY + 8f * u), 5f * u, armor)
+        // Deep hood framing the shield face, with a pointed tip.
+        path.reset()
+        path.moveTo(x - 14f * u, shoulderY + 2f * u)
+        path.lineTo(x - dir * 4f * u, shoulderY - 32f * u)
+        path.lineTo(x + 14f * u, shoulderY + 2f * u)
+        path.close()
+        drawPath(path, armorDark)
+        drawPath(path, edge, style = Stroke(1.3f * u, join = StrokeJoin.Round))
+        drawOval(Color(0xFF05070C).copy(alpha = alpha), Offset(x - 11f * u, shoulderY - 22f * u), Size(22f * u, 22f * u))
+        with(OperativeMark) { drawOperative(skin, time, Offset(x, shoulderY - 11f * u), 19f * u, alpha) }
+        // The fire orb on the staff, with sparks circling it.
+        val flick = 0.75f + 0.25f * sin(time * 13f)
+        drawCircle(mageFire.copy(alpha = 0.25f * flick * alpha), 9f * u, staffTop)
+        drawCircle(mageFire.copy(alpha = 0.85f * alpha), 4.6f * u * flick, staffTop)
+        drawCircle(mageFireCore.copy(alpha = alpha), 2.3f * u, staffTop)
+        for (i in 0 until 3) {
+            val a = time * 4f + i * MathUtil.TWO_PI / 3f
+            drawCircle(face.copy(alpha = face.alpha * 0.8f), 1.1f * u, Offset(staffTop.x + cos(a) * 7.5f * u, staffTop.y + sin(a) * 3.5f * u))
+        }
     }
 
     // --- SENTINEL MECH -----------------------------------------------------

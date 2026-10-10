@@ -278,3 +278,22 @@ skip, pause, toggle shuffle or return to AUTO. Audio never plays in the backgrou
 - Applied in GameEngine.spawnEnemyAt / BossBrain.spawn / LevelPlanner.plan(countMul).
 - Hard locks 4 weapon slots for the run (Difficulty.lockedWeaponSlots; slots = unlocked − 4, min 1),
   so 7 → 3, 9 → 5 and 12 → 8 (0.15.1).
+
+
+## Classes (0.17.0)
+| Class | Body | Stats | Built-in |
+|---|---|---|---|
+| FIELD AGENT | agent | +20% damage | — |
+| TECHNICIAN | neon_operative | +10% attack speed, +10% move | SIGNAL BEAM: laser through walls, 2 s, 180% |
+| JUGGERNAUT | mech | ×2 HP, +60 Firewall, −10% move | BRUTE FORCE: nova r125, 2.6 s, 320% |
+| PHANTOM | runner | cloak 3.5 s of every 10 s | — |
+| PACKET MAGE | mage | — | PACKET FIREBALL: homing, splash 95, 2 s, moving, 170% |
+
+- Built-in weapons (`Weapons.classWeapons`, `innate`) take no slot and have a fixed cooldown.
+  Their level is 1 + (campaign level − 1)/10.
+- Cloak (`GameEngine.updateCloak`): `hiddenFrom(e)` is true for every threat except the Nullshade
+  Specter.
+  - Regular threats search the vanish point; bosses hold new patterns and stop chasing.
+  - `focusNearest` prefers a visible partner.
+- Class skins: TITANIUM (L100 Normal) and PURPLE (L100 Hard), checked against
+  `PlayerProfile.classRecords` (`StoreManager.skinUnlocked` / `effectiveSkin`).

@@ -58,24 +58,26 @@ class StoreTest {
         assertEquals(42, p.euros); assertEquals(0, p.reviveTokens); assertEquals("none", p.selectedBackground)
     }
 
-    @Test fun neonOperativePurchase() {
-        val poor = PlayerProfile(diamonds = 50)
-        assertNull(StoreManager.buyNeonOperative(poor))
-        assertNull("premium body can't be equipped unowned", StoreManager.equipBody(poor, StoreManager.NEON_OPERATIVE_ID, premium = true))
-        val p = StoreManager.buyNeonOperative(PlayerProfile(diamonds = 150))!!
-        assertEquals(150 - StoreCatalog.NEON_OPERATIVE_PRICE.toLong(), p.diamonds)
-        assertEquals(StoreManager.NEON_OPERATIVE_ID, p.operativeBody)
-        assertNull("can't buy twice", StoreManager.buyNeonOperative(p))
-        assertNotNull(StoreManager.equipBody(p, "agent", premium = false))
+    @Test fun neonOperativeIsNowTheFreeTechnicianAndBuyersAreRefunded() {
+        // Bought it alone for ◇100: refunded once.
+        val buyer = PlayerProfile(diamonds = 20, ownedOperatives = setOf("operative", StoreManager.NEON_OPERATIVE_ID), operativeBody = "neon_operative")
+        val m = StoreManager.migrate(buyer)
+        assertEquals(20L + StoreCatalog.NEON_OPERATIVE_PRICE, m.diamonds)
+        assertTrue(m.neonRefunded)
+        assertEquals("refund happens once", m.diamonds, StoreManager.migrate(m).diamonds)
+        // Body follows the class: the base class wears the agent body.
+        assertEquals("agent", m.operativeBody)
+        // Got it inside the ◇300 skin bundle: nothing to refund.
+        val bundle = StoreManager.buyAllSkins(PlayerProfile(diamonds = 300))!!.copy(ownedOperatives = setOf("operative", "neon_operative"))
+        assertEquals(bundle.diamonds, StoreManager.migrate(bundle).diamonds)
+        // Never bought: nothing.
+        assertEquals(0L, StoreManager.migrate(PlayerProfile()).diamonds)
     }
 
-    @Test fun skinPackIncludesNeonOperative() {
+    @Test fun skinPackCoversPaidSkinsOnly() {
         val p = StoreManager.buyAllSkins(PlayerProfile(diamonds = 300))!!
-        assertTrue(StoreManager.NEON_OPERATIVE_ID in p.ownedOperatives)
         assertTrue(StoreManager.allSkinsOwned(p))
-        assertNull(StoreManager.buyNeonOperative(p.copy(diamonds = 999)))
-        // Owning every colour skin but not the operative still offers the pack.
-        val skinsOnly = p.copy(ownedOperatives = setOf("operative"))
-        assertTrue(!StoreManager.allSkinsOwned(skinsOnly))
+        assertTrue("class skins are earned, not bought", OperativeSkins.classSkins.none { it.id in p.ownedSkins })
+        assertNull(StoreManager.buySkin(PlayerProfile(diamonds = 999), OperativeSkins.TITANIUM.id))
     }
 }

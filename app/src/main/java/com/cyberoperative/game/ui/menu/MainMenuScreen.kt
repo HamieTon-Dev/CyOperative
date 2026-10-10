@@ -88,7 +88,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
             }
             Spacer(Modifier.height(22.dp))
             OperativeEmblem(
-                com.cyberoperative.game.data.OperativeSkins.byId(profile.selectedSkin),
+                com.cyberoperative.game.meta.StoreManager.effectiveSkin(profile),
                 Modifier
                     .size(150.dp)
                     .scale(1f + 0.02f * sin(t * 2f))
