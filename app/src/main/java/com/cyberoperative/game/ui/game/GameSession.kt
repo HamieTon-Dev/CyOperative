@@ -257,6 +257,8 @@ class GameSession(
         updateMusic()
     }
 
+    private var musicBossPhase = 0
+
     // --- BOSS CODEX records ---------------------------------------------------------
     private var lastMetUid = -1
     private var lastVictorySerial = -1
@@ -384,6 +386,16 @@ class GameSession(
                 !com.cyberoperative.game.core.Scaling.isBossLevel(engine.level) &&
                 musicRng.nextFloat() < AudioManager.SLOW_ROUND_CHANCE
         }
+        // Boss music per tier: the boss's signature sound, quickening each phase. The phase
+        // is held through the victory sequence so the tempo doesn't drop at the kill.
+        val st = engine.boss?.boss
+        val fought = st?.def ?: engine.plan.boss?.takeIf { engine.plan.kind == LevelKind.BOSS }
+        if (st != null) musicBossPhase = st.phaseIndex else if (fought == null) musicBossPhase = 0
+        audio.setBossMusic(
+            fought?.let { com.cyberoperative.game.audio.BossMusicProfiles.forBoss(it) },
+            musicBossPhase,
+            st?.glitched ?: engine.plan.glitchedBoss
+        )
         val state = when {
             engine.phase == Phase.DEAD -> MusicState.GAME_OVER
             // The whole boss level (and any Endless boss) runs on boss music.

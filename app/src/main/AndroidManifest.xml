@@ -7,6 +7,8 @@
 
     <!-- Haptics on damage / boss events; switchable off in settings. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Boss music reverb on the output mix (normal permission, no prompt). -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <uses-feature
         android:name="android.hardware.touchscreen"

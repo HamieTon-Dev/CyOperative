@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.14.0 (versionCode 47) — 2026-10-10 · Boss music per tier
+### Added
+- **Every boss sounds different** (owner: "We need some of the boss music to sound different"):
+  - **Tiers:**
+    - **Tier I**, low-threat classics: the Level 10 tracks at 1.35×.
+    - **Tier II**, high-threat classics: Boss 2 at 1.45×.
+    - **Tier III**, expansion bosses: Boss 2 and its remixes at 1.5×.
+    - **Tier IV**, Pack Gamma: the Boss 2 remixes only, at 1.55×.
+  - **Signature sound:** each boss opens on its own track and gets its own sound, applied live.
+    - Its own **pitch**, separate from tempo: low and heavy for Good Game, Zombie and Nullshade;
+      bright and frantic for Glitch Forge, Spoofer and Kernel Panic.
+    - A **bass/treble EQ** tilt: thick bass for Good Game and Vault Sentinel, a muffled top for
+      Rootkit and Nullshade.
+    - A **reverb space**: cathedral halls for Pulse Bishop and White Eye, a metal plate for Black Ice
+      and Glitch Forge, small rooms for Botmaster and Worm Prime.
+  - **Phases:** the music speeds up 5% with each boss phase, and holds that pace through the victory
+    sequence.
+  - A *GLITCHED* boss's music is pitched slightly up.
+  - Volume headroom is added automatically when a boss's EQ boosts bass or treble, so it doesn't clip.
+- No new audio files: everything is applied at playback (PlaybackParams pitch and speed, Equalizer,
+  PresetReverb). Devices without audio effects still get the per-boss track, tempo and pitch.
+
 ## 0.13.0 (versionCode 46) — 2026-10-10 · BOSS CODEX, victory sequence, pause menu build
 ### Added
 - **BOSS CODEX** (main menu): every one of the 24 bosses in three sections (Classic Threats,

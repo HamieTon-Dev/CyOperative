@@ -62,13 +62,21 @@ class AudioManager(private val context: Context) {
     var pinned by mutableStateOf<MusicTrack?>(null)
         private set
 
+    // --- Boss music per tier (Stage F3) ------------------------------------
+    /** The current boss's sound (null outside boss fights), its HP phase and glitched flag. */
+    private var bossMusic: BossMusic? = null
+    private var bossPhase = 0
+    private var bossGlitched = false
+    private var eq: android.media.audiofx.Equalizer? = null
+    private var reverb: android.media.audiofx.PresetReverb? = null
+
     private var foreground = true
     private var hasFocus = false
     private val system = context.getSystemService(Context.AUDIO_SERVICE) as SystemAudio
 
     private val focusListener = SystemAudio.OnAudioFocusChangeListener { change ->
         when (change) {
-            SystemAudio.AUDIOFOCUS_GAIN -> { hasFocus = true; player?.setVolume(musicVolume, musicVolume); resumeIfAllowed() }
+            SystemAudio.AUDIOFOCUS_GAIN -> { hasFocus = true; player?.setVolume(musicGain(), musicGain()); resumeIfAllowed() }
             SystemAudio.AUDIOFOCUS_LOSS -> { hasFocus = false; pauseMusicOnly() }
             SystemAudio.AUDIOFOCUS_LOSS_TRANSIENT -> pauseMusicOnly()
             SystemAudio.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> player?.setVolume(musicVolume * 0.25f, musicVolume * 0.25f)
@@ -124,7 +132,7 @@ class AudioManager(private val context: Context) {
     fun setVolumes(music: Float, sfx: Float) {
         musicVolume = music
         sfxVolume = sfx
-        player?.setVolume(musicVolume, musicVolume)
+        player?.setVolume(musicGain(), musicGain())
     }
 
     // ======================================================================
@@ -197,6 +205,39 @@ class AudioManager(private val context: Context) {
         hasFocus = false
     }
 
+    /**
+     * The boss being fought (or null), its HP phase and whether it's *GLITCHED*. A new
+     * boss switches to its signature track and sound; a new phase quickens the tempo.
+     */
+    fun setBossMusic(music: BossMusic?, phase: Int, glitched: Boolean) {
+        val changed = music != bossMusic || glitched != bossGlitched
+        if (!changed && phase == bossPhase) return
+        bossMusic = music
+        bossPhase = phase
+        bossGlitched = glitched
+        speedDirty = true
+        if (changed && state == MusicState.BOSS && music != null && pinned == null) {
+            val sig = MusicLibrary.byId(music.track)
+            if (sig != null && sig != currentTrack) playTrack(sig) else player?.let { applyEffects(it) }
+        } else if (changed) player?.let { applyEffects(it) }
+    }
+
+    /** Tempo now: the boss's own (by phase) in a boss fight, else the state's. */
+    private fun speedNow(): Float {
+        val m = bossMusic
+        return if (state == MusicState.BOSS && m != null) m.speed(bossPhase) else speedFor(state, slowRound)
+    }
+
+    private fun pitchNow(): Float {
+        val m = bossMusic
+        return if (state == MusicState.BOSS && m != null) m.pitch(bossGlitched) else 1f
+    }
+
+    private fun poolFor(s: MusicState): List<MusicTrack> {
+        val m = bossMusic
+        return if (s == MusicState.BOSS && m != null) m.tier.tracks.mapNotNull { MusicLibrary.byId(it) } else MusicLibrary.poolFor(s)
+    }
+
     /** The game says which kind of music fits now (menu, combat, boss…). */
     fun setMusic(next: MusicState) {
         if (next == state) return
@@ -212,8 +253,14 @@ class AudioManager(private val context: Context) {
         val keep = pinned
         if (keep != null && currentTrack == keep && player != null) return
         val cur = currentTrack
-        if (cur != null && player != null && cur in MusicLibrary.poolFor(next)) return
-        playTrack(if (keep != null) keep else bag.next(MusicLibrary.poolFor(next), cur))
+        val boss = bossMusic
+        if (next == MusicState.BOSS && boss != null && keep == null) {
+            // A boss opens on its signature track.
+            val sig = MusicLibrary.byId(boss.track)
+            if (sig != null && sig != cur) { playTrack(sig); return }
+        }
+        if (cur != null && player != null && cur in poolFor(next)) { player?.let { applyEffects(it) }; return }
+        playTrack(if (keep != null) keep else bag.next(poolFor(next), cur))
     }
 
     private fun playTrack(track: MusicTrack?) {
@@ -222,10 +269,11 @@ class AudioManager(private val context: Context) {
         if (track == null) return
         try {
             val mp = MediaPlayer.create(context, track.res) ?: return
-            mp.setVolume(musicVolume, musicVolume)
+            mp.setVolume(musicGain(), musicGain())
             mp.isLooping = !shuffle && pinned != null
             mp.setOnCompletionListener { onTrackFinished() }
             player = mp
+            applyEffects(mp)
             if (canPlay() && requestFocus()) startAtSpeed(mp)
         } catch (t: Throwable) {
             Log.w(TAG, "music failed", t)
@@ -267,8 +315,9 @@ class AudioManager(private val context: Context) {
         try {
             // Only while playing: setting a speed on a paused player starts it.
             if (!mp.isPlaying) return
-            val want = speedFor(state, slowRound)
-            if (kotlin.math.abs(mp.playbackParams.speed - want) < 0.01f) { speedDirty = false; return }
+            val want = speedNow()
+            val pp = mp.playbackParams
+            if (kotlin.math.abs(pp.speed - want) < 0.01f && kotlin.math.abs(pp.pitch - pitchNow()) < 0.01f) { speedDirty = false; return }
             applySpeed(mp)
         } catch (t: Throwable) {
             speedDirty = false
@@ -277,7 +326,7 @@ class AudioManager(private val context: Context) {
 
     private fun applySpeed(mp: MediaPlayer) {
         try {
-            mp.playbackParams = mp.playbackParams.setSpeed(speedFor(state, slowRound)).setPitch(1f)
+            mp.playbackParams = mp.playbackParams.setSpeed(speedNow()).setPitch(pitchNow())
         } catch (t: Throwable) {
             Log.w(TAG, "playback speed unsupported", t)
         }
@@ -290,7 +339,7 @@ class AudioManager(private val context: Context) {
         playTrack(nextTrack)
     }
 
-    private fun poolNow(): List<MusicTrack> = if (pinned != null) MusicLibrary.all else MusicLibrary.poolFor(state)
+    private fun poolNow(): List<MusicTrack> = if (pinned != null) MusicLibrary.all else poolFor(state)
 
     private fun nextInOrder(t: MusicTrack?): MusicTrack {
         val list = MusicLibrary.all
@@ -298,7 +347,68 @@ class AudioManager(private val context: Context) {
         return list[(i + 1).mod(list.size)]
     }
 
+    /**
+     * The boss's signature sound on the music player: an EQ tilt (bass below 250 Hz,
+     * treble above 4 kHz) and a reverb space. Off outside boss fights. Devices without
+     * audio effects just play the track (with its pitch and tempo).
+     */
+    private fun applyEffects(mp: MediaPlayer) {
+        val m = bossMusic.takeIf { state == MusicState.BOSS }
+        try { mp.setVolume(musicGain(), musicGain()) } catch (_: Throwable) {}
+        try {
+            if (m == null || (m.bassDb == 0f && m.trebleDb == 0f)) {
+                eq?.enabled = false
+            } else {
+                val e = eq ?: android.media.audiofx.Equalizer(0, mp.audioSessionId).also { eq = it }
+                val range = e.bandLevelRange
+                for (b in 0 until e.numberOfBands) {
+                    val hz = e.getCenterFreq(b.toShort()) / 1000
+                    val db = when {
+                        hz < 250 -> m.bassDb
+                        hz > 4000 -> m.trebleDb
+                        hz < 600 -> m.bassDb * 0.4f
+                        hz > 2000 -> m.trebleDb * 0.4f
+                        else -> 0f
+                    }
+                    e.setBandLevel(b.toShort(), (db * 100f).toInt().coerceIn(range[0].toInt(), range[1].toInt()).toShort())
+                }
+                e.enabled = true
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "equalizer unavailable", t)
+            eq = null
+        }
+        try {
+            if (m == null || m.reverb == Reverb.NONE) {
+                mp.attachAuxEffect(0)
+                reverb?.enabled = false
+            } else {
+                val r = reverb ?: android.media.audiofx.PresetReverb(1, 0).also { reverb = it }
+                r.preset = m.reverb.preset
+                r.enabled = true
+                mp.attachAuxEffect(r.id)
+                mp.setAuxEffectSendLevel(REVERB_SEND)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "reverb unavailable", t)
+            reverb = null
+        }
+    }
+
+    /** Music volume with headroom for a boss's EQ boost (half the boost), so it doesn't clip. */
+    private fun musicGain(): Float {
+        val m = bossMusic.takeIf { state == MusicState.BOSS } ?: return musicVolume
+        val boost = maxOf(0f, m.bassDb, m.trebleDb)
+        return musicVolume * Math.pow(10.0, (-boost * 0.5 / 20.0)).toFloat()
+    }
+
+    private fun releaseEffects() {
+        try { eq?.release() } catch (_: Throwable) {}
+        eq = null
+    }
+
     private fun stopPlayer() {
+        releaseEffects()
         try {
             player?.setOnCompletionListener(null)
             player?.stop()
@@ -413,6 +523,8 @@ class AudioManager(private val context: Context) {
         }
 
         const val SLOW_ROUND_SPEED = 0.75f
+        /** How much of the music feeds the boss reverb. */
+        const val REVERB_SEND = 0.55f
         /** Chance that a normal round gets the slow mix. */
         const val SLOW_ROUND_CHANCE = 0.2f
 

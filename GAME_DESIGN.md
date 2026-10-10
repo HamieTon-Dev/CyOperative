@@ -179,6 +179,9 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Shatter for the first 1.6 s (ArenaRenderer.drawVictoryShatter), then the THREAT NEUTRALIZED
     card from 0.55 s (VictoryCard: time, bounty, NEW RECORD, FIRST DEFEAT).
   - A boss room clears only after it; skippable. Synced to the co-op guest (wire v12).
+- Boss music (0.14.0, audio/BossMusic.kt): MusicTier I–IV (tracks and base tempo), and per boss a
+  signature track, pitch, bass/treble EQ dB, reverb preset and tempo offset; +5% tempo per phase;
+  ×1.06 pitch when glitched. AudioManager.setBossMusic is fed by GameSession.updateMusic.
 - BOSS CODEX: PlayerProfile.bossRecords (BossRecord met/defeated/bestSeconds), filled by
   GameSession.trackBosses and banked in commitProgress.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.

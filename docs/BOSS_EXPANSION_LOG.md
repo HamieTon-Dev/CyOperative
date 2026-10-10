@@ -258,7 +258,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 ### Stage F — Premium pass (v0.12.0)
 - [x] F1 Unique bodies for the 12 classic bosses (CO-063) — v0.12.0, autonomous
 - [x] F2 BOSS CODEX screen (met / defeated, abilities, best time, tier, bounty) — v0.13.0
-- [ ] F3 Boss music per tier (victory sequence ✅ v0.13.0)
+- [x] F3 Boss music per tier (v0.14.0) and victory sequence (v0.13.0)
 - [ ] F4 S15 co-op wire format v3 for all new effects; co-op tests
 - [ ] F5 Balance pass across difficulties and OP levels; full renders; docs; reference page
 
@@ -507,3 +507,10 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Tests: BossVictoryCodexTest; SaveRewardsWeaponsTest now waits for the victory.
   - Renders: `docs/screenshots/{boss_codex, boss_codex_dossier, victory_shatter, victory_card,
     pause_build, pause_settings}.png`.
+- 2026-10-10 — Owner: "Now do the boss music per tier… some of the boss music to sound different…
+  a boss specific audio modification to each one".
+- 2026-10-10 — v0.14.0 (47): boss music per tier.
+  - BossMusicProfiles: 24 signature sounds; AudioManager pitch, EQ, reverb and headroom.
+  - MODIFY_AUDIO_SETTINGS permission for the output-mix reverb.
+  - Tests: BossMusicTest.
+  - An ffmpeg preview medley of all 24 was sent to the owner (not committed).
