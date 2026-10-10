@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.16.0 (versionCode 52) — 2026-10-11 · Balance pass, bigger Packet Flood, power governor
+### Fixed (owner: "At level 180 I'm doing 26,000+ damage… Maybe we are upgrading too often?")
+- **Root cause: mastery compounded.** Every upgrade levelled past its max ("MASTERY") multiplied
+  damage on its own, and all those bonuses multiplied together. Forty upgrades at mastery 10 came to
+  ×10,000+. A simulated damage-focused run hit about **1,000,000 per shot by level 180**, against
+  about 8,400 HP for a basic threat.
+- Mastery is now **pooled**. All mastery levels in a category add up to one number P, applied once
+  as 1 + 0.047·P + 0.00027·P². That is about ×3 at level 50, ×8 at level 100 and ×23 at level 180.
+  Old saved runs are recalculated with the new rule when loaded.
+- **Fewer picks:**
+  - Level-clear bonus chances cut from 45% to 30%, and from 30% to 15%.
+  - Boss kills give 2 + level/40 picks (was 2 + level/20): 6 at level 180, was 11.
+  - About 370 picks by level 180, was about 465.
+- **Arsenal weapon levels taper:** +35% per level up to level 10, then +15% per level.
+- **Result:** a basic threat takes **about 2.5–4.5 hits from level 10 through level 180**. Before, it
+  took 0.1 hits at level 100.
+### Changed
+- **Packet Flood is more than twice as big** (owner):
+  - ×5.5 threats (was ×2.6) over 3 extra waves, and up to 70 on screen.
+  - The next wave rolls in while about 10 are still alive.
+  - About 200 threats at level 15 (was about 96) and about 500 at level 52.
+- **Threats are no longer dropped at the on-screen cap.** Extras wait and come in as room frees up,
+  in every wave level. Before, anything past 32 was silently lost.
+- **Stragglers:** if the last 1–3 threats of a room go 20 s without a kill, they are purged, so a
+  threat wedged somewhere unreachable can't hold the room forever.
+### Added (hidden; owner: "make a system… silently prevent them from becoming insanely overpowered")
+- **Power governor** (`engine/PowerGovernor.kt`, Normal and Hard only, never shown in the UI).
+  - It measures the team's potential damage per second: main gun, every weapon and the nodes, with
+    both operatives counted in co-op.
+  - **HP floors** on that output:
+    - a basic threat must survive **0.3 s** of it (Hard 0.4 s); all regular threats and elites are
+      lifted by the same factor;
+    - a boss must survive **60 s** (Hard 80 s), so a boss fight lasts about as long at level 1,200
+      as at level 120.
+  - When it lifts HP, **threat and boss damage rise with the square root** of the lift. Builds with
+    extreme staying power are also hit harder.
+  - **Boss damage climbs +2.5% per level past 120:** ×3 at 200, ×28 at 1,200.
+  - A fair build is untouched. The old "ADAPTED TO YOUR ARSENAL" banner text is gone.
+
 ## 0.15.2 (versionCode 51) — 2026-10-11 · Bigger Malware Swarm
 ### Changed
 - **Malware Swarm spawns 2.5× as many threats** (owner: "needs more than double"), and up to 70 can

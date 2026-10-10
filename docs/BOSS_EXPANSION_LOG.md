@@ -260,7 +260,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] F2 BOSS CODEX screen (met / defeated, abilities, best time, tier, bounty) — v0.13.0
 - [x] F3 Boss music per tier (v0.14.0) and victory sequence (v0.13.0)
 - [ ] F4 S15 co-op wire format v3 for all new effects; co-op tests
-- [ ] F5 Balance pass across difficulties and OP levels; full renders; docs; reference page
+- [~] F5 Balance pass across difficulties and OP levels; full renders; docs; reference page. 0.16.0: pooled mastery, fewer picks, hidden power governor (boss ≥ 60 s of team potential DPS on Normal, 80 s on Hard), bigger Packet Flood. Device playtest still to do.
 
 ---
 

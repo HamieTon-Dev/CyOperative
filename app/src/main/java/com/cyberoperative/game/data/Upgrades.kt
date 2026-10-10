@@ -55,38 +55,31 @@ data class UpgradeDef(
      */
     val levelCap: Int get() = if (instant) maxLevel else MAX_LEVEL
 
+    /**
+     * The designed effect of [level]. Mastery levels past [maxLevel] are NOT applied
+     * here: they are pooled across the whole build by [Upgrades.applyMastery].
+     */
     fun applyLevel(stats: RunStats, level: Int) {
         if (scalesForever) { apply(stats, level); return }
         apply(stats, minOf(level, maxLevel))
-        val extra = level - maxLevel
-        if (extra > 0) applyMastery(stats, extra)
     }
 
-    private fun applyMastery(s: RunStats, extra: Int) {
-        val e = extra.toFloat()
-        when (category) {
-            UpgradeCategory.WEAPON -> s.damage *= 1f + 0.06f * e
-            UpgradeCategory.ORBIT -> { s.orbDamage *= 1f + 0.08f * e; s.bladeDamage *= 1f + 0.08f * e }
-            UpgradeCategory.DEFENSE -> {
-                s.maxHp *= 1f + 0.06f * e
-                if (s.firewallMax > 0f) s.firewallMax *= 1f + 0.06f * e
-            }
-            UpgradeCategory.STAT -> { s.damage *= 1f + 0.05f * e; s.fireRate *= 1f + 0.015f * e }
-            UpgradeCategory.UTILITY -> { s.euroMul += 0.05f * e; s.xpMul += 0.05f * e }
-        }
-    }
+    /** Mastery levels [level] holds past the designed range (0 for arsenal weapons and fillers). */
+    fun masteryLevels(level: Int): Int = if (scalesForever || instant) 0 else (level - maxLevel).coerceAtLeast(0)
 
     /** Card text for [level], including mastery levels. */
     fun effectAt(level: Int): String {
         if (scalesForever || instant || level <= maxLevel) return effect(level)
         return "MASTERY ${level - maxLevel}: " + when (category) {
-            UpgradeCategory.WEAPON -> "+6% damage"
-            UpgradeCategory.ORBIT -> "+8% node & blade damage"
-            UpgradeCategory.DEFENSE -> "+6% max HP & Firewall"
-            UpgradeCategory.STAT -> "+5% damage, +1.5% attack speed"
-            UpgradeCategory.UTILITY -> "+5% € and data"
+            UpgradeCategory.WEAPON -> "build damage up (shared mastery)"
+            UpgradeCategory.ORBIT -> "node & blade damage up (shared mastery)"
+            UpgradeCategory.DEFENSE -> "max HP & Firewall up (shared mastery)"
+            UpgradeCategory.STAT -> "build damage & attack speed up (shared mastery)"
+            UpgradeCategory.UTILITY -> "+${pct(Upgrades.MASTERY_UTILITY)}% € and data"
         }
     }
+
+    private fun pct(v: Float) = "%.1f".format(v * 100f).removeSuffix(".0")
 
     companion object {
         const val MAX_LEVEL = 10000
@@ -94,6 +87,47 @@ data class UpgradeDef(
 }
 
 object Upgrades {
+
+    /*
+     * Mastery (balance pass, owner 2026-10-11: "at level 180 I'm doing 26,000+ damage").
+     * Every mastery level used to multiply on its own, so forty upgrades at mastery 10
+     * compounded past ×10,000. Now a category's mastery levels are added into one pool P
+     * and applied once through [masteryCurve], a gentle quadratic that keeps pace with
+     * the threat HP curve: P 35 ≈ ×3 (≈ level 50), P 100 ≈ ×8, P 210 ≈ ×23 (≈ level 180).
+     */
+    const val MASTERY_LINEAR = 0.047f
+    const val MASTERY_QUAD = 0.00027f
+    /** STAT mastery also adds this much attack speed per level (additive). */
+    const val MASTERY_STAT_RATE = 0.005f
+    /** UTILITY mastery: +€ and data per level (additive). */
+    const val MASTERY_UTILITY = 0.02f
+
+    /** The multiplier a mastery pool of [p] levels gives. */
+    fun masteryCurve(p: Float): Float = 1f + MASTERY_LINEAR * p + MASTERY_QUAD * p * p
+
+    /** What one more mastery level adds on top of a pool of [p], in % of base (card text). */
+    fun masteryStepPct(p: Float): Float = (masteryCurve(p + 1f) - masteryCurve(p)) * 100f
+
+    fun applyMastery(s: RunStats, levels: Map<String, Int>) {
+        val pool = FloatArray(UpgradeCategory.entries.size)
+        for ((id, l) in levels) {
+            val def = byIdOrNull(id) ?: continue
+            pool[def.category.ordinal] += def.masteryLevels(l).toFloat()
+        }
+        val weapon = pool[UpgradeCategory.WEAPON.ordinal]
+        val stat = pool[UpgradeCategory.STAT.ordinal]
+        val orbit = pool[UpgradeCategory.ORBIT.ordinal]
+        val defense = pool[UpgradeCategory.DEFENSE.ordinal]
+        val utility = pool[UpgradeCategory.UTILITY.ordinal]
+        s.damage *= masteryCurve(weapon + stat)
+        s.fireRate *= 1f + MASTERY_STAT_RATE * stat
+        s.orbDamage *= masteryCurve(orbit)
+        s.bladeDamage *= masteryCurve(orbit)
+        s.maxHp *= masteryCurve(defense)
+        if (s.firewallMax > 0f) s.firewallMax *= masteryCurve(defense)
+        s.euroMul += MASTERY_UTILITY * utility
+        s.xpMul += MASTERY_UTILITY * utility
+    }
 
 
     // --- Orbit: Packet Node evolution chain ---------------------------------
@@ -393,6 +427,7 @@ object Upgrades {
     private val byId = all.associateBy { it.id }
 
     fun byId(id: String): UpgradeDef = byId[id] ?: error("Unknown upgrade $id")
+    fun byIdOrNull(id: String): UpgradeDef? = byId[id]
 
     /**
      * Weapons take a weapon slot (owner, 2026-10-09: at most [MAX_WEAPONS]).

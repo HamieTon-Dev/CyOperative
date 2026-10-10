@@ -28,7 +28,9 @@ data class EventRules(
     /** Chance of a small ◇ reward. 0 until the monetization balance is decided. */
     val diamondChance: Float = 0f,
     /** Data Vault: place the cache at the centre of the arena. */
-    val vault: Boolean = false
+    val vault: Boolean = false,
+    /** Packet Flood: waves may fill the room to the swarm cap and roll in before the last is cleared. */
+    val swarm: Boolean = false
 )
 
 data class EventDef(
@@ -52,7 +54,8 @@ object Events {
         "A massive number of weak packets. Fast combat, bonus €.",
         0xFF2EE6FF, minLevel = 4, weight = 1f,
         rules = EventRules(
-            enemyCountMul = 2.6f, enemyHpMul = 0.45f, extraWaves = 1,
+            // Owner, 2026-10-11: "packet flood needs more enemies too" (was ×2.6, +1 wave, 32 on screen).
+            enemyCountMul = 5.5f, enemyHpMul = 0.45f, extraWaves = 3, swarm = true,
             forcedPool = listOf("bot", "malware", "wormlet"), rewardMul = 2f
         )
     )
@@ -123,6 +126,7 @@ object Events {
         forcedPool = a.forcedPool ?: b.forcedPool,
         rewardMul = a.rewardMul * b.rewardMul,
         diamondChance = maxOf(a.diamondChance, b.diamondChance),
-        vault = a.vault || b.vault
+        vault = a.vault || b.vault,
+        swarm = a.swarm || b.swarm
     )
 }

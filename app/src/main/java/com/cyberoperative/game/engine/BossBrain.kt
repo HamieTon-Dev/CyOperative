@@ -122,11 +122,14 @@ class BossBrain(private val g: GameEngine) {
         val dmgScale = if (b == ref) 1f else (ref.contactDamage / b.contactDamage).coerceIn(0.6f, 1.6f)
         // Owner, 2026-10-11: bosses ×2 on Normal/Hard, plus half of the post-level-10 HP pressure.
         val pressure = 1f + (g.pressureHp() - 1f) * 0.5f
-        e.maxHp = baseHp * g.config.difficulty.bossHpMul * pressure * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
+        e.maxHp = baseHp * g.config.difficulty.bossHpMul * pressure * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.config.coopBossHpMul
+        // Hidden power governor: the boss outlasts at least N seconds of the team's potential output.
+        val lift = PowerGovernor.bossHpLift(g.config.difficulty, g.teamPotentialDps(boss = true), e.maxHp)
+        e.maxHp *= lift
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
-        e.damageMul = dmgScale * g.pressureDamage() * Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
+        e.damageMul = dmgScale * g.pressureDamage() * Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.bossGovernorDamage(lift)
         if (glitched) {
             st.glitched = true
             e.maxHp *= 1.35f

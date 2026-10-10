@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.15.2 (versionCode 51) |
+| Version | 0.16.0 (versionCode 52) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- 0.16.0 balance: mastery is pooled (Upgrades.applyMastery). The hidden PowerGovernor sets HP and
+  damage floors from the team's potential DPS on Normal and Hard. BalanceCurveTest guards both.
+  Needs a device playtest at L100+ to tune the floors (enemy 0.3 s, boss 60 s).
 - Not yet run on a physical device or emulator (no emulator in the cloud session).
   Rendering was verified with Robolectric native graphics (docs/screenshots/).
 - Release .aab is ~60 MB: the full 28-track soundtrack as Ogg Vorbis (~92 kbps, re-encoded from the MP3 masters in 0.9.6).

@@ -57,6 +57,8 @@ data class RunConfig(
     val upgradeQuality: Float = 0f,
     val startingUpgrades: Int = 0,
     val startLevel: Int = 1,
+    /** Hidden [PowerGovernor] (always on in play; mechanics tests switch it off). */
+    val powerGovernor: Boolean = true,
     val mode: GameMode = GameMode.CAMPAIGN,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Account OP level (owner, 2026-10-08: veterans face tougher threats and bosses). */
@@ -196,11 +198,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Rarity luck of the current offers (level + difficulty + boss bonus). */
     var offerLuck = 0f
         private set
-    /** Former build-size threat multipliers (removed 2026-10-09; always ×1). */
+    /** Hidden [PowerGovernor] lifts for regular threats and elites (never shown to the player). */
     var adaptiveHp = 1f
         private set
     var adaptiveDamage = 1f
         private set
+    /** The current boss's governor damage lift (kept for co-op handover). */
+    private var bossDamageLift = 1f
 
     /** Weapons fighting for the operative besides the primary gun. */
     fun weaponCount(): Int {
@@ -209,10 +213,31 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             s.arcLevel, s.railLevel, s.strikeLevel, s.bladeCount).count { it > 0 } + (s.orbCount - 1).coerceAtLeast(0) / 2
     }
 
-    /** Build-size threat scaling was removed (owner, 2026-10-09): kept at ×1. */
+    /** Potential damage per second of every operative still in the run. */
+    internal fun teamPotentialDps(boss: Boolean = false): Float = if (!config.powerGovernor) 0f else ops.filter { !it.gone }.sumOf {
+        (if (boss) PowerGovernor.potentialBossDps(it.build.stats) else PowerGovernor.potentialDps(it.build.stats)).toDouble()
+    }.toFloat()
+
+    private fun bestSurvival(): Float = if (!config.powerGovernor) 0f else ops.filter { !it.gone }.maxOfOrNull { PowerGovernor.survival(it.build.stats) } ?: 0f
+
+    /** Boss damage from the governor: its HP lift, the team's staying power, and the late-level climb. */
+    internal fun bossGovernorDamage(hpLift: Float): Float {
+        val d = config.difficulty
+        val curve = pressureDamage() * Scaling.enemyDamage(level) * d.enemyDamage * opDamageNow
+        bossDamageLift = maxOf(adaptiveDamage, PowerGovernor.damageLift(d, hpLift, bestSurvival(), curve)) * PowerGovernor.lateBossDamage(d, level)
+        return bossDamageLift
+    }
+
+    /**
+     * Hidden power governor (owner, 2026-10-11; see [PowerGovernor]): regular threats and
+     * elites keep pace with the team's potential output. Off on Easy.
+     */
     private fun updateAdaptive() {
-        adaptiveHp = 1f
-        adaptiveDamage = 1f
+        val d = config.difficulty
+        val hpCurve = Scaling.enemyHp(level) * pressureHp() * d.enemyHp * opHpNow * config.coopHpMul
+        adaptiveHp = PowerGovernor.enemyHpLift(d, teamPotentialDps(), hpCurve)
+        val dmgCurve = Scaling.enemyDamage(level) * pressureDamage() * d.enemyDamage * opDamageNow
+        adaptiveDamage = PowerGovernor.damageLift(d, adaptiveHp, bestSurvival(), dmgCurve)
     }
 
     /**
@@ -426,6 +451,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     // --- Level flow ---------------------------------------------------------
     private var waveIndex = 0
+    /** Wave threats waiting for room under the on-screen cap. */
+    private val waveCarry = ArrayList<SpawnSpec>()
+    /** Seconds the last few threats of a cleared wave plan have gone without a kill. */
+    private var stragglerTimer = 0f
     private var waveTimer = 0f
     private var eventTimer = 0f
     private var spawnTimer = 0f
@@ -1018,6 +1047,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phaseTimer = 0f
         portalOpen = false
         waveIndex = 0
+        waveCarry.clear()
+        stragglerTimer = 0f
         waveTimer = 0f
         spawnTimer = 0f
         hazardTimer = 0f
@@ -1049,7 +1080,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 // A new environment theme every 3 levels gets announced.
                 if (com.cyberoperative.game.data.Environments.isNewTheme(level))
                     "${plan.enemyCount} THREATS · ENTERING ${com.cyberoperative.game.data.Environments.forLevel(level, config.seed).name}"
-                else if (adaptiveHp >= 1.5f) "${plan.enemyCount} THREATS · ADAPTED TO YOUR ARSENAL ×${"%.1f".format(adaptiveHp)}"
                 else "${plan.enemyCount} THREATS · ${plan.arena.name}",
                 1.6f
             )
@@ -1080,17 +1110,38 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
             return
         }
-        if (waveIndex >= plan.waves.size) return
+        val cap = if (rules.swarm) Scaling.MAX_ALIVE_SWARM else Scaling.MAX_ALIVE
+        // Threats a full room could not take yet come in as space frees up (they used to be dropped).
+        while (waveCarry.isNotEmpty() && aliveCount() < cap) {
+            val spec = waveCarry.removeAt(0)
+            spawnEnemy(spec.def, spec.elite, telegraph = true)
+        }
+        if (waveIndex >= plan.waves.size) {
+            // The last 1–3 threats wedged somewhere unreachable used to hold the room forever:
+            // after STRAGGLER_SECONDS without a kill the network purges them.
+            val left = aliveCount()
+            if (waveCarry.isEmpty() && plan.kind != LevelKind.BOSS && left in 1..3) {
+                stragglerTimer += dt
+                if (stragglerTimer >= STRAGGLER_SECONDS) {
+                    stragglerTimer = 0f
+                    purgeHostiles()
+                    addText(px, py - 40f, "STRAGGLERS PURGED", TextKind.INFO)
+                }
+            } else stragglerTimer = 0f
+            return
+        }
         waveTimer += dt
         val alive = aliveCount()
         val first = waveIndex == 0
-        if (first || alive <= 2 || waveTimer > WAVE_TIMEOUT) {
+        // A flood's next wave rolls in while the last one's stragglers are still up.
+        val lowWater = if (rules.swarm) 10 else 2
+        if (first || (alive <= lowWater && waveCarry.isEmpty()) || waveTimer > WAVE_TIMEOUT) {
             if (!first && alive > 0 && waveTimer < WAVE_MIN_GAP) return
             for (spec in plan.waves[waveIndex]) {
-                if (aliveCount() >= Scaling.MAX_ALIVE) break
+                if (aliveCount() >= cap) { waveCarry += spec; continue }
                 spawnEnemy(spec.def, spec.elite, telegraph = true)
                 // Co-op: about a third more threats per wave.
-                if (coop && aliveCount() < Scaling.MAX_ALIVE && rng.nextFloat() < COOP_EXTRA_THREATS) spawnEnemy(spec.def, spec.elite, telegraph = true)
+                if (coop && aliveCount() < cap && rng.nextFloat() < COOP_EXTRA_THREATS) spawnEnemy(spec.def, spec.elite, telegraph = true)
             }
             waveIndex++
             waveTimer = 0f
@@ -1117,7 +1168,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun checkCleared() {
         val timed = plan.rules.timedSeconds > 0f
         val done = if (timed) timedRemaining <= 0f
-        else plan.kind != LevelKind.BOSS && waveIndex >= plan.waves.size && aliveCount() == 0
+        else plan.kind != LevelKind.BOSS && waveIndex >= plan.waves.size && waveCarry.isEmpty() && aliveCount() == 0
         if (plan.kind == LevelKind.BOSS && boss == null && phaseTimer > 1f && aliveCount() == 0 && (victory?.let { it.t >= VICTORY_SECONDS } ?: true)) {
             levelCleared()
             return
@@ -1145,9 +1196,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         // Campaign: every cleared level earns a power-up, and deeper levels
         // roll for bonus rewards (owner, 2026-10-08: "higher levels give more").
+        // Balance pass (2026-10-11, "maybe we are upgrading too often?"): the bonus rolls are smaller.
         grantPick()
-        if (rng.nextFloat() < min(0.45f, (level - 1) * 0.012f)) grantPick()
-        if (level >= 25 && rng.nextFloat() < min(0.3f, (level - 24) * 0.01f)) grantPick()
+        if (rng.nextFloat() < min(BONUS_PICK_CAP, (level - 1) * 0.01f)) grantPick()
+        if (level >= 25 && rng.nextFloat() < min(DEEP_PICK_CAP, (level - 24) * 0.005f)) grantPick()
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // Firewall fully restores between arenas.
@@ -1662,6 +1714,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         levelSeconds = r.levelSeconds; levelDamageTaken = r.levelDamageTaken; levelEnemyTotal = r.levelEnemyTotal
         levelKills = r.levelKills; levelSpawned = r.levelSpawned; stageTimer = r.stageTimer
         timedRemaining = r.timedRemaining; portalOpen = r.portalOpen
+        waveCarry.clear()
         waveIndex = r.waveIndex; waveTimer = r.waveTimer; spawnTimer = r.spawnTimer; hazardTimer = r.hazardTimer
         px = r.px; py = r.py; facing = r.facing
         hp = r.hp.coerceIn(1f, stats.maxHp)
@@ -2474,6 +2527,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         kills++
         levelKills++
+        stragglerTimer = 0f
         if (e.isElite) elitesDefeated++
         val s = stats
         val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
@@ -3295,7 +3349,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
-        grantPick(2 + level / 20 + bonusPicks)
+        grantPick(bossPicks(level) + bonusPicks)
         bossLuckPending = true
         purgeHostiles()
         return paid
@@ -3755,7 +3809,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
             } else {
                 e.speed = (e.boss!!.def.speed) * (1f + 0.05f * e.boss!!.cycle)
-                e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
+                e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * opDamageNow * bossDamageLift
                 e.boss!!.anchorX = e.x; e.boss!!.anchorY = e.y
             }
             e.attackRateMul = 1f; e.damageTakenMul = 1f; e.rewardMul = 1f
@@ -3822,6 +3876,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val ELITE_ARMOR = 3f
         /** Victory sequence length (game seconds): shatter, then the THREAT NEUTRALIZED card. */
         const val VICTORY_SECONDS = 4.2f
+        /** Level-clear bonus-pick odds (were 45% and 30%). */
+        const val BONUS_PICK_CAP = 0.3f
+        /** Seconds the last 1–3 threats may go unkilled before they are purged. */
+        const val STRAGGLER_SECONDS = 20f
+        const val DEEP_PICK_CAP = 0.15f
+        /** Picks a boss kill grants (was 2 + level/20: 11 at L180, now 6). */
+        fun bossPicks(level: Int): Int = 2 + level / 40
         const val TRANSITION_TIME = 0.45f
         const val PORTAL_RADIUS = 46f
         const val GATE_HALF_WIDTH = 80f

@@ -26,7 +26,7 @@ class EngineTest {
             // ×2 since bosses have double HP on Normal (owner, 2026-10-11): these tests check mechanics, not DPS.
             maxHp = hp; damage = 240f * power; fireRate = 4f; range = 900f; orbDamage = 120f * power
         }
-        return RunConfig(baseStats = s, seed = seed, freeRevives = 0)
+        return RunConfig(baseStats = s, seed = seed, freeRevives = 0, powerGovernor = false)
     }
 
     private fun friendlyBolts(g: GameEngine) =
@@ -114,7 +114,8 @@ class EngineTest {
             g.debugStartPlan(LevelPlanner.eventPlan(15, Random(i), ev, null))
             val bot = Bot(g, dodge = false)
             var t = 0f
-            while (t < 240f && g.phase == Phase.COMBAT) { bot.step(1f / 30f); t += 1f / 30f }
+            // Packet Flood brings ~200 threats at level 15 now (owner, 2026-10-11).
+            while (t < 420f && g.phase == Phase.COMBAT) { bot.step(1f / 30f); t += 1f / 30f }
             assertTrue("${ev.name} did not complete (phase ${g.phase})", g.phase != Phase.COMBAT && g.phase != Phase.DEAD)
             assertEquals(1, g.eventsCompleted)
             assertTrue(ev.id in g.completedEventIds)

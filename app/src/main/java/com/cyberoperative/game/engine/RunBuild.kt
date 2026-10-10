@@ -75,6 +75,7 @@ class RunBuild(private val base: RunStats) {
         val out = RunStats()
         out.copyFrom(base)
         for ((id, l) in lv) Upgrades.byId(id).applyLevel(out, l)
+        Upgrades.applyMastery(out, lv)
         out.clampLimits()
         return out
     }
@@ -90,6 +91,7 @@ class RunBuild(private val base: RunStats) {
     fun recompute() {
         stats.copyFrom(base)
         for ((id, lvl) in levels) Upgrades.byId(id).applyLevel(stats, lvl)
+        Upgrades.applyMastery(stats, levels)
         stats.clampLimits()
     }
 

@@ -58,7 +58,12 @@ data class WeaponSpec(
     // Levels go to 10,000: cooldown and count level off so the screen stays readable.
     fun cooldownAt(level: Int): Float = (cooldown * Math.pow(0.88, (minOf(level, 12) - 1).toDouble()).toFloat()).coerceAtLeast(0.25f)
     fun countAt(level: Int): Int = minOf(count + countPerLevel * (level - 1), maxOf(count, 40))
-    fun damageAt(level: Int): Float = damage * (1f + 0.35f * (level - 1))
+    // +35% per level through level 10, then +15% (balance pass 2026-10-11: one weapon fed
+    // a hundred picks no longer outpaces the threat curve on its own).
+    fun damageAt(level: Int): Float {
+        val l = (level - 1).coerceAtLeast(0)
+        return damage * (1f + 0.35f * minOf(l, 9) + 0.15f * (l - 9).coerceAtLeast(0))
+    }
 
     fun effect(level: Int): String {
         val pct = (damageAt(level) * 100).toInt()

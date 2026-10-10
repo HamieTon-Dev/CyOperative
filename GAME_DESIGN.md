@@ -188,7 +188,7 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
 
 ## 11. Events (data/Events.kt)
 ~14% of eligible non-boss levels (never right before a boss, never twice in a row).
-Spectrum border + tinted floor + event music. PACKET FLOOD, FIREWALL BREACH (aggressive,
+Spectrum border + tinted floor + event music. PACKET FLOOD (×5.5 weak threats, +3 waves, up to 70 on screen since 0.16.0), FIREWALL BREACH (aggressive,
 shrinking safe space via telegraphed zones), MALWARE SWARM (survive 30 s), DATA VAULT
 (extra waves, ×3 reward), ZERO-DAY ANOMALY (2–3 random modifiers). ◇ chance exists in
 data but is 0 pending a monetization decision.
@@ -207,6 +207,17 @@ data but is 0 pending a monetization decision.
   needs OP LVL m. Effective level = max + 2·√m (ENDLESS stats) or max + extra·(1−e^(−m/60))
   (SOFT stats: speed, range, crit chance, armor, packet speed, card quality). Starting nodes,
   starting upgrades and rerolls stay hard-capped.
+- **Run mastery** (0.16.0): an upgrade levelled past its max adds its levels to a per-category pool
+  P (WEAPON + STAT damage share a pool), applied once as 1 + 0.047·P + 0.00027·P². Before 0.16.0
+  every mastery level compounded (×10⁶ by L180).
+- **Power governor** (0.16.0, hidden, Normal and Hard; `engine/PowerGovernor.kt`):
+  - Team potential DPS (main gun + all weapons + nodes, both operatives) sets HP floors. A basic
+    threat lasts ≥ 0.3 s of it (Hard 0.4 s), and a boss ≥ 60 s (Hard 80 s) including the boss &
+    elite damage bonus.
+  - Threat damage × √(HP lift), also lifted by extreme staying power (> 6 × 100 HP × the damage
+    curve).
+  - Boss damage × (1 + 0.025·(L − 120)) past L120.
+  - Never shown to the player.
 - **OP threat scaling** (the only difficulty extra since 0.10.3; from level 1, halved on Easy): +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
   × √(mastery DPS ratio) and threat damage × √(mastery survival ratio).
