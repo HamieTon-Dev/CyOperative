@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.1 (versionCode 23) — 2026-10-10 · Vault Sentinel
+### Added
+- **Vault Sentinel** joins the roster at **level 130**: TANK, threat HIGH, bounty base €326. Its body
+  is 20% larger than the first draft, as the owner asked.
+  - **Cover Deploy:** barrier cubes rise out of the floor around you in short wall segments.
+    - Each spot flashes on the floor first, so you can step clear.
+    - Once risen, the cubes block movement and shots for about 8 s, then sink.
+  - **Laser Sweep:** a telegraphed laser sweeps an arc toward you (two or three beams in later
+    phases). The cubes stop it, so you can hide behind them.
+  - **Lockdown Cube:** a box of cubes rises around you. One side is always open, the side away
+    from the boss, or the next side that leads out if a wall is in the way.
+  - **Pulse Mortar:** shells lob onto marked spots, the first one on you. They fly over the cubes.
+  - **Phases:** PHASE 1 → LOCKDOWN → VAULT BREACHED. It drops its own cover modules as the fight
+    goes on, and the cracked core blazes in the last phase.
+- Co-op: barrier cubes are synced to the partner (wire format v3, so both players need this version).
+
 ## 0.11.0 (versionCode 22) — 2026-10-10 · Boss Expansion Vol. 1, Stage A
 ### Added
 - **Threat dossier card** during every boss entrance: role badge (TANK, ASSASSIN, …),

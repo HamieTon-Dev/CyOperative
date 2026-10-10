@@ -7,10 +7,10 @@ Nullshade Specter dossier, Expansion Vol. 1 overview — 12 bosses)._
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
 
-Status: **BUILDING — Stage A done (v0.11.0); next: Stage B.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
+Status: **BUILDING — Stage A done (v0.11.0); Vault Sentinel done early (v0.11.1) at the owner's request; next: rest of Stage B.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
 
 **Design approval rule (owner, 2026-10-10):** "I want to see and approve, or request changes to the
-physical look of each boss as you make them." Every boss body (new and classic) is rendered
+physical look of each boss as you make them" + "show me its attacks as you work on it as well". Every boss body (new and classic) is rendered
 (close-up + in-fight) and sent to the owner. A body is only **final** once the owner approves it;
 mechanics can keep moving while a design waits. Track it in §6.
 
@@ -147,8 +147,8 @@ mechanics can keep moving while a design waits. Track it in §6.
 - [x] A6 Tests: every boss still beatable by the bot; all patterns telegraphed
 
 ### Stage B — Shared mechanics (v0.11.1)
-- [ ] B1 S2 sweeping / rotating / cross beams
-- [ ] B2 S4 lobbed shots + curved boomerang shots
+- [ ] B1 S2 sweeping / rotating / cross beams (sweep done in 0.11.1: HazardKind.SWEEP, clipped by obstacles; cross beams still to do)
+- [ ] B2 S4 lobbed shots + curved boomerang shots (mortar done in 0.11.1: HazardKind.MORTAR; boomerangs still to do)
 - [ ] B3 S3 hostile mines
 - [ ] B4 S5 trails + tile corruption
 - [ ] B5 S7 status effects (slow, chill/freeze, pull, encrypted) + HUD icons
@@ -157,8 +157,8 @@ mechanics can keep moving while a design waits. Track it in §6.
 - [ ] B8 Tests for each system (dodgeable, telegraphed, co-op safe)
 
 ### Stage C — Boss Pack Alpha (v0.11.2)
-- [ ] C1 S6 dynamic cover + shots from blocks
-- [ ] C2 Vault Sentinel (body, 3 phases, 4 abilities)
+- [x] C1 S6 dynamic cover + shots from blocks
+- [x] C2 Vault Sentinel (body, 3 phases, 4 abilities)
 - [ ] C3 Packet Reaper
 - [ ] C4 S8 multi-part bodies
 - [ ] C5 Circuit Hydra
@@ -196,7 +196,7 @@ mechanics can keep moving while a design waits. Track it in §6.
 
 | Boss | Sent | Status | Owner notes |
 |---|---|---|---|
-| Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ⏳ waiting | |
+| Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ body approved; 20% larger as asked. Attacks sent for review (atk1–atk6) | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 
 ---
 
@@ -210,3 +210,13 @@ mechanics can keep moving while a design waits. Track it in §6.
   - Vault Sentinel def (provisional patterns, not in the roster yet) and its body, sent for approval.
   - Approval renders: `./gradlew testDebugUnitTest -PrenderPreviews --tests '*BossDesignRenders*'`
     → `docs/bosses/designs/`.
+- 2026-10-10 — v0.11.1 (23): Vault Sentinel built early (owner wanted to see its attacks).
+  - Owner approved the body and asked for it slightly larger: radius 60 → 72.
+  - New systems:
+    - Barrier cubes: `GameEngine.barriers` / `addBarrier`, ObstacleKind.BARRIER_CUBE; the arena is rebuilt on a state change.
+    - Patterns `CoverDeploy`, `Lockdown` (gap side falls back if blocked), `SweepBeam` (HazardKind.SWEEP), `Mortar` (HazardKind.MORTAR).
+    - Co-op wire v3 carries barriers.
+  - VAULT_SENTINEL is in `BossExpansion.all` (level 130).
+  - Tests: VaultSentinelTest. Attack renders: `docs/bosses/designs/vault_sentinel_atk*.png`
+    (`BossDesignRenders.ATTACKS`).
+  - Every later boss: after its body is approved, send its attack renders too.

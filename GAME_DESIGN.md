@@ -123,6 +123,11 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
 - Every boss has a role, a threat tier (1–4), optional armor and named abilities, shown on the
   threat dossier card during the entrance. The card shows the bounty: the boss € × (1 + 0.04·level)
   × glitch × € multipliers.
+- Vault Sentinel (L130):
+  - Barrier cubes (48×48, 0.9 s floor telegraph, ~8 s solid) block movement and shots.
+  - Laser sweeps are clipped by any obstacle; mortars ignore cover.
+  - Lockdown leaves a 2-cube gap on the side away from the boss (falls back to another side if a wall
+    or block is behind it).
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 

@@ -56,6 +56,8 @@ class CoopWorld {
     val texts = ArrayList<NetText>(32)
     val pulses = ArrayList<NetPulse>(24)
     val sounds = ArrayList<GameSound>(16)
+    /** Boss barrier cubes: x, y, half, rise, life, timer per cube (v3). */
+    val barriers = ArrayList<FloatArray>(24)
 }
 
 class NetOp {
@@ -231,6 +233,11 @@ object CoopCodec {
 
             o.var32(w.sounds.size)
             for (s in w.sounds) o.writeByte(s.ordinal)
+
+            o.var32(w.barriers.size)
+            for (b in w.barriers) {
+                o.pos(b[0]); o.pos(b[1]); o.pos(b[2]); o.sec(b[3]); o.sec(b[4]); o.sec(b[5])
+            }
         }
         return bytes.toByteArray()
     }
@@ -324,6 +331,7 @@ object CoopCodec {
             }
 
             repeat(i.var32()) { w.sounds += GameSound.entries[i.readUnsignedByte()] }
+            repeat(i.var32()) { w.barriers += floatArrayOf(i.pos(), i.pos(), i.pos(), i.sec(), i.sec(), i.sec()) }
             w
         }
     } catch (_: Exception) {
@@ -353,5 +361,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 2
+    const val VERSION = 3
 }

@@ -156,7 +156,18 @@ enum class HazardKind {
     /** Expanding ring that damages on contact with its edge. */
     SHOCK_RING,
     /** Telegraphed line that becomes a damaging beam after [Hazard.windup]. */
-    BEAM
+    BEAM,
+    /**
+     * Laser that sweeps an arc after its windup (Boss Expansion S2). [Hazard.angle]
+     * turns by [Hazard.angVel]; obstacles stop it ([Hazard.x2]/[Hazard.y2] is the
+     * clipped end), so cover blocks save you. [Hazard.maxRadius] = total sweep.
+     */
+    SWEEP,
+    /**
+     * Lobbed shell (Boss Expansion S4): a BLAST whose shell arcs from
+     * [Hazard.x2]/[Hazard.y2] (the launcher) to the marked spot. Flies over cover.
+     */
+    MORTAR
 }
 
 class Hazard {
@@ -177,6 +188,25 @@ class Hazard {
     var hitMask = 0
     var windup = 0f
     var tick = 0f
+    /** SWEEP: current angle and turn rate (radians, radians/s). */
+    var angle = 0f
+    var angVel = 0f
+}
+
+/**
+ * Barrier cube raised out of the floor by a boss (Boss Expansion S6). Telegraphed
+ * for [rise] seconds, solid (a real obstacle) for [life], then sinks.
+ */
+class Barrier(val x: Float, val y: Float, val half: Float, val rise: Float, val life: Float) {
+    var timer = 0f
+    val solid: Boolean get() = timer >= rise && timer < rise + life
+    val done: Boolean get() = timer >= rise + life + SINK_SECONDS
+    val left get() = x - half
+    val top get() = y - half
+    val right get() = x + half
+    val bottom get() = y + half
+
+    companion object { const val SINK_SECONDS = 0.35f }
 }
 
 /** Purely visual expanding ring (EMP, explosions, level clear). */

@@ -70,3 +70,112 @@ class BossExpansionTest {
         assertEquals(1, g.bossesDefeated)
     }
 }
+
+/** Vault Sentinel's systems: barrier cubes, lockdown, sweeping laser, mortar, co-op sync. */
+class VaultSentinelTest {
+
+    private fun fight(): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = 9L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(130, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.VAULT_SENTINEL, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.1f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    /** Runs [seconds] with the boss held on its forced pattern only. */
+    private fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    @Test fun coverRisesThenSinks() {
+        val g = fight()
+        val before = g.arena.obstacles.size
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CoverDeploy(4, 2f))
+        assertTrue("cubes queued", g.barriers.isNotEmpty())
+        assertEquals("not solid while telegraphed", before, g.arena.obstacles.size)
+        run(g, 1.0f)
+        assertTrue("cubes are walls once risen", g.arena.obstacles.size > before)
+        assertTrue(g.arena.obstacles.any { it.kind == com.cyberoperative.game.data.ObstacleKind.BARRIER_CUBE })
+        run(g, 2.5f)
+        assertEquals("cubes gone after their life", before, g.arena.obstacles.size)
+        assertTrue(g.barriers.isEmpty())
+    }
+
+    @Test fun lockdownLeavesAWayOut() {
+        val g = fight()
+        val me = g.operatives[0]
+        for (spot in listOf(g.arena.width / 2f to g.arena.height * 0.6f, g.arena.width / 2f to g.arena.height - 90f, 90f to g.arena.height - 90f)) {
+            g.sinkBarriers(); run(g, 0.5f)
+            me.px = spot.first; me.py = spot.second
+            g.debugBossPattern(com.cyberoperative.game.data.Pattern.Lockdown(110f, 6f))
+            run(g, 1.3f)
+            // Against room walls fewer cubes are needed; the walls close those sides.
+            assertTrue("a box rose at $spot", g.barriers.count { it.solid } >= 3)
+            // Some direction leads more than 200 units out.
+            val escaped = (0 until 4).any { side ->
+                val sx = me.px; val sy = me.py
+                val dir = when (side) { 0 -> 1f to 0f; 1 -> 0f to 1f; 2 -> -1f to 0f; else -> 0f to -1f }
+                run(g, 2.2f, dir)
+                val far = kotlin.math.hypot(me.px - sx, me.py - sy) > 200f
+                me.px = sx; me.py = sy
+                far
+            }
+            assertTrue("no way out of the lockdown at $spot", escaped)
+        }
+    }
+
+    @Test fun cubesStopTheLaser() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        // A cube right between the boss and the operative.
+        val mx = (b.x + me.px) / 2f; val my = (b.y + me.py) / 2f
+        assertTrue(g.addBarrier(mx, my, 40f, 0.01f, 10f))
+        run(g, 0.1f)
+        val ang = kotlin.math.atan2(me.py - b.y, me.px - b.x)
+        g.addSweep(b.x, b.y, ang, 0.0001f, 26f, 0.05f, 0.5f, 50f, 0xFFFF2D55, b.uid)
+        val hp = me.hp
+        run(g, 0.6f)
+        assertEquals("cover blocked the beam", hp, me.hp, 0.01f)
+    }
+
+    @Test fun sweepHitsInTheOpen() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val ang = kotlin.math.atan2(me.py - b.y, me.px - b.x)
+        g.addSweep(b.x, b.y, ang - 0.3f, 0.6f, 26f, 0.05f, 0.5f, 50f, 0xFFFF2D55, b.uid)
+        val hp = me.hp
+        run(g, 0.7f)
+        assertTrue("the sweep crossed the operative", me.hp < hp)
+    }
+
+    @Test fun mortarLandsOnTheMark() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val hp = me.hp
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Mortar(1, 80f, 1.0f, 30f))
+        run(g, 0.2f)
+        assertTrue(g.hazards.items.any { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.MORTAR })
+        assertEquals("no damage mid-flight", hp, me.hp, 0.01f)
+        run(g, 1.0f)
+        assertTrue("shell hit the spot you stood on", me.hp < hp)
+    }
+
+    @Test fun barriersTravelToTheGuest() {
+        val w = com.cyberoperative.game.engine.CoopWorld()
+        w.barriers += floatArrayOf(300f, 400f, 24f, 0.9f, 8f, 1.5f)
+        val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
+        assertEquals(1, back.barriers.size)
+        assertEquals(300f, back.barriers[0][0], 0.5f)
+        assertEquals(1.5f, back.barriers[0][5], 0.01f)
+    }
+}

@@ -116,6 +116,7 @@ class ArenaRenderer {
             drawDecor(g, time)
             drawTopWall(g, time)
             drawHazardsUnder(g, time)
+            drawBarrierGhosts(g, time)
             drawPulses(g)
             drawShadows(g)
             drawEnemyMarkers(g, time)
@@ -629,6 +630,7 @@ class ArenaRenderer {
         ObstacleKind.ENERGY_BARRIER -> 22f
         ObstacleKind.ANTENNA_TOWER -> 128f
         ObstacleKind.SHOP_COUNTER -> 40f
+        ObstacleKind.BARRIER_CUBE -> BARRIER_HEIGHT
     }
 
     private data class Look(val top: Color, val front: Color, val trim: Color)
@@ -652,6 +654,7 @@ class ArenaRenderer {
             ObstacleKind.ENERGY_BARRIER -> Look(Color(0xFF331018), Color(0xFF220A10), Palette.Red)
             ObstacleKind.ANTENNA_TOWER -> Look(Color(0xFF26303F), Color(0xFF181F2A), Palette.Red)
             ObstacleKind.SHOP_COUNTER -> Look(Color(0xFF2B2416), Color(0xFF1C170D), Palette.Gold)
+            ObstacleKind.BARRIER_CUBE -> Look(Color(0xFF26324F), Color(0xFF111A2E), Palette.Red)
         }
     }
 
@@ -887,6 +890,15 @@ class ArenaRenderer {
                 val on = ((time * 2f).toInt() + index) % 2 == 0
                 drawCircle(Palette.Red.copy(alpha = if (on) 0.35f else 0.08f), 12f, Offset(r.centerX, topY - 6f))
                 drawCircle(Palette.Red.copy(alpha = if (on) 1f else 0.25f), 4f, Offset(r.centerX, topY - 6f))
+            }
+            ObstacleKind.BARRIER_CUBE -> {
+                // Vault Sentinel's cubes: a lit seam across the face and a lock glyph on top.
+                val p = 0.5f + 0.5f * sin(time * 4f + index)
+                drawLine(Palette.Red.copy(alpha = 0.5f + 0.4f * p), Offset(r.left + 5f, frontTop + h * 0.45f), Offset(r.right - 5f, frontTop + h * 0.45f), 2.5f)
+                drawRect(Palette.Red.copy(alpha = 0.85f), Offset(r.centerX - 7f, frontTop + h * 0.65f), Size(14f, 4f))
+                val ins = r.width * 0.26f
+                drawRect(Palette.Red.copy(alpha = 0.55f), Offset(r.left + ins, topY + ins * 0.8f), Size(r.width - ins * 2f, r.height - ins * 1.6f), style = Stroke(1.6f))
+                drawCircle(Palette.Red.copy(alpha = 0.6f + 0.4f * p), 3.5f, Offset(r.centerX, topY + r.height / 2f))
             }
             ObstacleKind.SHOP_COUNTER -> {
                 // Glowing gold edge and the mods for sale laid out on the counter.
@@ -1405,11 +1417,68 @@ class ArenaRenderer {
                     drawCircle(col.copy(alpha = 0.35f), h.radius * f, Offset(h.x, h.y))
                     drawCircle(col.copy(alpha = 0.85f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
                 }
+                HazardKind.MORTAR -> {
+                    // Landing marker: crosshair ring that fills as the shell comes down.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    drawCircle(col.copy(alpha = 0.1f), h.radius, Offset(h.x, h.y))
+                    drawCircle(col.copy(alpha = 0.32f), h.radius * f, Offset(h.x, h.y))
+                    drawCircle(col.copy(alpha = 0.9f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
+                    val t = h.radius * 0.35f
+                    drawLine(col, Offset(h.x - t, h.y), Offset(h.x + t, h.y), 2f)
+                    drawLine(col, Offset(h.x, h.y - t), Offset(h.x, h.y + t), 2f)
+                    // Shell shadow sliding along the ground toward the marker.
+                    val sx = h.x2 + (h.x - h.x2) * f
+                    val sy = h.y2 + (h.y - h.y2) * f
+                    drawOval(Color.Black.copy(alpha = 0.35f), Offset(sx - 9f, sy - 4f), Size(18f, 8f))
+                }
+                HazardKind.SWEEP -> if (h.timer < h.windup) {
+                    // Telegraph: the arc it will sweep, with the start line pulsing.
+                    val f = h.timer / h.windup
+                    val start = kotlin.math.atan2(h.y2 - h.y, h.x2 - h.x)
+                    val r = 150f
+                    drawArc(
+                        col.copy(alpha = 0.12f + 0.12f * f), Math.toDegrees(minOf(start, start + h.maxRadius).toDouble()).toFloat(),
+                        Math.toDegrees(kotlin.math.abs(h.maxRadius).toDouble()).toFloat(), true,
+                        Offset(h.x - r, h.y - r), Size(r * 2f, r * 2f)
+                    )
+                } else {}
                 HazardKind.LINE -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawLine(col.copy(alpha = 0.25f + 0.5f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f + 4f * f)
                 }
                 else -> {}
+            }
+        }
+    }
+
+    /**
+     * Barrier cubes that are not solid yet or are sinking: a pulsing floor
+     * outline (where it will rise — get clear) and the cube growing out of it.
+     */
+    private fun DrawScope.drawBarrierGhosts(g: GameEngine, time: Float) {
+        for (b in g.barriers) {
+            if (b.solid) continue
+            val rising = b.timer < b.rise
+            val k = if (rising) (b.timer / b.rise).coerceIn(0f, 1f)
+            else 1f - ((b.timer - b.rise - b.life) / com.cyberoperative.game.engine.Barrier.SINK_SECONDS).coerceIn(0f, 1f)
+            val w = b.half * 2f
+            val blink = if (rising && ((time * 10f).toInt() % 2 == 0)) 1f else 0.6f
+            drawRect(Palette.Red.copy(alpha = 0.12f + 0.18f * k), Offset(b.left, b.top), Size(w, w))
+            drawRect(Palette.Red.copy(alpha = 0.9f * blink), Offset(b.left, b.top), Size(w, w), style = Stroke(2.5f))
+            if (rising) {
+                // Corner ticks closing in as it rises.
+                val c = 8f + 10f * (1f - k)
+                drawLine(Palette.Red, Offset(b.left - c, b.top - c), Offset(b.left, b.top), 2f)
+                drawLine(Palette.Red, Offset(b.right + c, b.top - c), Offset(b.right, b.top), 2f)
+                drawLine(Palette.Red, Offset(b.left - c, b.bottom + c), Offset(b.left, b.bottom), 2f)
+                drawLine(Palette.Red, Offset(b.right + c, b.bottom + c), Offset(b.right, b.bottom), 2f)
+            }
+            // The cube itself, coming up (or going down) through the floor.
+            val hh = BARRIER_HEIGHT * k * k
+            if (hh > 2f) {
+                drawRect(Color(0xFF111A2E).copy(alpha = 0.85f), Offset(b.left, b.bottom - hh), Size(w, hh))
+                drawRect(Color(0xFF26324F).copy(alpha = 0.85f), Offset(b.left, b.top - hh), Size(w, w))
+                drawRect(Palette.Red.copy(alpha = 0.8f), Offset(b.left, b.top - hh), Size(w, w), style = Stroke(2f))
             }
         }
     }
@@ -1422,6 +1491,28 @@ class ArenaRenderer {
                 HazardKind.SHOCK_RING -> {
                     drawCircle(col.copy(alpha = 0.8f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.4f))
                     drawCircle(Color.White.copy(alpha = 0.5f), h.radius, Offset(h.x, h.y), style = Stroke(3f))
+                }
+                HazardKind.MORTAR -> {
+                    // The shell, high in its arc.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    val sx = h.x2 + (h.x - h.x2) * f
+                    val sy = h.y2 + (h.y - h.y2) * f - sin(f * Math.PI.toFloat()) * 220f
+                    drawCircle(col.copy(alpha = 0.3f), 13f, Offset(sx, sy))
+                    drawCircle(col, 7.5f, Offset(sx, sy))
+                    drawCircle(Color.White.copy(alpha = 0.9f), 3f, Offset(sx, sy))
+                }
+                HazardKind.SWEEP -> {
+                    if (h.timer < h.windup) {
+                        val f = h.timer / h.windup
+                        drawLine(col.copy(alpha = 0.2f + 0.35f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * f)
+                        drawLine(col.copy(alpha = 0.75f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f)
+                    } else {
+                        drawLine(col.copy(alpha = 0.5f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 1.4f)
+                        drawLine(Color.White.copy(alpha = 0.92f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 0.45f)
+                        // Burn mark where cover stops it.
+                        drawCircle(Color.White.copy(alpha = 0.85f), h.radius * 0.6f, Offset(h.x2, h.y2))
+                        drawCircle(col.copy(alpha = 0.5f), h.radius * 1.2f, Offset(h.x2, h.y2))
+                    }
                 }
                 HazardKind.BEAM -> {
                     if (h.timer < h.windup) {
@@ -1507,6 +1598,7 @@ class ArenaRenderer {
         const val WALL_HEIGHT = 80f
         const val TILE = 60f
         const val FIGURE_SCALE = 1.3f
+        const val BARRIER_HEIGHT = 58f
         private const val MAX_ITEMS = 160
     }
 }

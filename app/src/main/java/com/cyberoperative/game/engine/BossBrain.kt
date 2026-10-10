@@ -265,7 +265,78 @@ class BossBrain(private val g: GameEngine) {
             }
             is Pattern.Charge -> {}
             is Pattern.Aimed, is Pattern.Radial, is Pattern.Spiral -> {}
+            is Pattern.CoverDeploy -> deployCover(e, st, p)
+            is Pattern.Lockdown -> lockdown(e, p)
+            is Pattern.SweepBeam -> {
+                val aim = atan2(g.py - e.y, g.px - e.x)
+                val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
+                for (i in 0 until p.count) {
+                    // One beam starts to one side of you and crosses you; more beams spread evenly.
+                    val start = aim - sweep / 2f + MathUtil.TWO_PI * i / p.count
+                    g.addSweep(e.x, e.y, start, sweep, p.width, p.windup, p.duration, p.damage * e.damageMul, st.def.color, e.uid)
+                }
+            }
+            is Pattern.Mortar -> {}
         }
+    }
+
+    /** Wall segments of 1–3 cubes in a ring 110–330 units around the player. */
+    private fun deployCover(e: Enemy, st: BossState, p: Pattern.CoverDeploy) {
+        val size = CUBE * 2f
+        var placed = 0
+        var attempts = 0
+        while (placed < p.segments + st.cycle && attempts++ < 40) {
+            val a = g.rng.nextFloat() * MathUtil.TWO_PI
+            val d = 110f + g.rng.nextFloat() * 220f
+            val x = g.px + cos(a) * d
+            val y = g.py + sin(a) * d
+            if (MathUtil.dist(x, y, e.x, e.y) < e.radius + 90f) continue
+            val n = 1 + g.rng.nextInt(3)
+            val horizontal = g.rng.nextBoolean()
+            var any = false
+            for (k in 0 until n) {
+                val off = (k - (n - 1) / 2f) * size
+                val cx = if (horizontal) x + off else x
+                val cy = if (horizontal) y else y + off
+                if (g.addBarrier(cx, cy, CUBE, p.rise, p.life)) any = true
+            }
+            if (any) placed++
+        }
+        g.addPulse(e.x, e.y, 120f, 0.4f, st.def.color)
+    }
+
+    /** A square of cubes around the player, a [Pattern.Lockdown.gapCubes]-wide gap on the side away from the boss. */
+    private fun lockdown(e: Enemy, p: Pattern.Lockdown) {
+        val size = CUBE * 2f
+        val cx = g.px
+        val cy = g.py
+        val reach = p.inner + CUBE
+        val perSide = ((reach * 2f) / size).toInt() + 1
+        val away = atan2(cy - e.y, cx - e.x)
+        // 0 right, 1 bottom, 2 left, 3 top. The open side faces away from the boss
+        // unless a room wall or block is right behind it — then the next best side,
+        // so the box can never seal you in.
+        val preferred = (((away / (MathUtil.TWO_PI / 4f)).let { kotlin.math.round(it).toInt() } % 4) + 4) % 4
+        val order = intArrayOf(preferred, (preferred + 1) % 4, (preferred + 3) % 4, (preferred + 2) % 4)
+        val openSide = order.firstOrNull { side ->
+            val ex = cx + SIDE_X[side] * (reach + 70f)
+            val ey = cy + SIDE_Y[side] * (reach + 70f)
+            g.arena.isFree(ex, ey, g.playerRadius + 4f) && g.arena.lineOfSight(cx, cy, ex, ey, g.playerRadius)
+        } ?: return
+        for (side in 0 until 4) {
+            for (k in 0 until perSide) {
+                val t = -reach + k * (reach * 2f / (perSide - 1))
+                if (side == openSide && kotlin.math.abs(t) < (p.gapCubes * size) / 2f) continue
+                val (x, y) = when (side) {
+                    0 -> (cx + reach) to (cy + t)
+                    1 -> (cx + t) to (cy + reach)
+                    2 -> (cx - reach) to (cy + t)
+                    else -> (cx + t) to (cy - reach)
+                }
+                g.addBarrier(x, y, CUBE, p.rise, p.life, clearance = 6f)
+            }
+        }
+        g.addPulse(cx, cy, reach * 1.3f, 0.6f, e.boss?.def?.color ?: 0xFFFF2D55)
     }
 
     /** Returns true when the pattern has finished. */
@@ -358,9 +429,39 @@ class BossBrain(private val g: GameEngine) {
                 return false
             }
             is Pattern.Beam -> return st.patternTime >= p.windup + p.duration
+            is Pattern.SweepBeam -> return st.patternTime >= p.windup + p.duration
+            is Pattern.CoverDeploy -> return st.patternTime >= p.rise
+            is Pattern.Lockdown -> return st.patternTime >= p.rise
+            is Pattern.Mortar -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f) {
+                    for (i in 0 until p.count) {
+                        val x: Float
+                        val y: Float
+                        if (i == 0) { x = g.px; y = g.py } else {
+                            val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                            val d = 50f + g.rng.nextFloat() * 200f
+                            x = MathUtil.clamp(g.px + cos(a) * d, 40f, g.arena.width - 40f)
+                            y = MathUtil.clamp(g.py + sin(a) * d, 40f, g.arena.height - 40f)
+                        }
+                        g.addMortar(e.x, e.y - e.radius, x, y, p.radius, p.flight, p.damage * e.damageMul, st.def.color)
+                    }
+                    g.addPulse(e.x, e.y - e.radius, 50f, 0.25f, st.def.color)
+                    st.counter++
+                    st.subTimer = p.volleyGap
+                }
+                return st.counter >= p.volleys
+            }
             is Pattern.Blasts -> return st.patternTime >= p.delay * 0.6f
             is Pattern.Summon, is Pattern.ShockRing, is Pattern.Zones, is Pattern.Homing -> return st.patternTime >= 0.4f
         }
+    }
+
+    /** Test/render hook: start [p] now and keep the boss from picking its own patterns. */
+    internal fun forcePattern(p: Pattern) {
+        val e = g.boss ?: return
+        val st = e.boss ?: return
+        startPattern(e, st, p)
     }
 
     /** Euros for the kill before the operative's own multipliers. */
@@ -392,6 +493,10 @@ class BossBrain(private val g: GameEngine) {
          * cannot act or be hit until then.
          */
         const val INTRO_SECONDS = 3.2f
+        /** Half the size of a barrier cube. */
+        const val CUBE = 24f
+        private val SIDE_X = floatArrayOf(1f, 0f, -1f, 0f)
+        private val SIDE_Y = floatArrayOf(0f, 1f, 0f, -1f)
         const val INTRO_BAR_END = 1.4f
         const val INTRO_NAME_END = 2.0f
         const val INTRO_GROWL_AT = 2.0f

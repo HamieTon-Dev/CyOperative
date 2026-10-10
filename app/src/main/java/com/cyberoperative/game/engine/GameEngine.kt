@@ -457,6 +457,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Shake, flash, hit-stop and slow motion (Boss Expansion S12). */
     val fx = ScreenFx()
 
+    /** Boss-raised cubes: rising, solid or sinking. */
+    val barriers = ArrayList<Barrier>()
+    private var barrierSolidCount = 0
+
 
     init {
         for (o in ops) {
@@ -621,6 +625,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         updateProjectiles(dt)
         updateZaps(dt)
         updateHazards(dt)
+        updateBarriers(dt)
         cur = ops[primary]
         if (coop) {
             if (updateCoop(dt)) return
@@ -745,6 +750,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun clearAll() {
+        barriers.clear(); barrierSolidCount = 0
         for (e in enemies.items) e.active = false
         for (p in projectiles.items) p.active = false
         for (h in hazards.items) h.active = false
@@ -1000,7 +1006,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         vaultOpening = 0f
         vaultCracked = true
         // The block is gone: rebuild the room without it.
-        arena = Arena(plan.arena)
+        rebuildArena()
         val cx = arena.width / 2f
         val cy = arena.height / 2f
         val payout = vaultPayout(level)
@@ -2497,13 +2503,105 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.hitMask = 0; h.ownerUid = -1
     }
 
+    /** Telegraphed sweeping laser (see [HazardKind.SWEEP]). */
+    fun addSweep(
+        x: Float, y: Float, startAngle: Float, sweep: Float, width: Float, windup: Float, active: Float,
+        damage: Float, color: Long, ownerUid: Int
+    ) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.SWEEP
+        h.x = x; h.y = y; h.angle = startAngle; h.angVel = sweep / active; h.maxRadius = sweep
+        h.radius = width; h.windup = windup
+        h.timer = 0f; h.duration = windup + active; h.damage = damage; h.color = color
+        h.hitMask = 0; h.ownerUid = ownerUid
+        clipRay(h)
+    }
+
+    /** Lobbed shell from ([fromX], [fromY]) landing on ([x], [y]) after [flight]. */
+    fun addMortar(fromX: Float, fromY: Float, x: Float, y: Float, radius: Float, flight: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.MORTAR
+        h.x = x; h.y = y; h.x2 = fromX; h.y2 = fromY; h.radius = radius
+        h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color
+        h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** Sets a sweep's end to where its ray first meets an obstacle or wall. */
+    private fun clipRay(h: Hazard) {
+        val dx = cos(h.angle)
+        val dy = sin(h.angle)
+        var d = 0f
+        val step = 8f
+        while (d < SWEEP_LENGTH) {
+            val nx = h.x + dx * (d + step)
+            val ny = h.y + dy * (d + step)
+            if (nx < 0f || ny < 0f || nx > arena.width || ny > arena.height) break
+            // Start past the boss's own footprint so a block it stands against doesn't swallow the beam.
+            if (d > 30f && arena.obstacleAt(nx, ny, 1f) >= 0) break
+            d += step
+        }
+        h.x2 = h.x + dx * d
+        h.y2 = h.y + dy * d
+    }
+
+    // --- Barrier cubes (Boss Expansion S6) --------------------------------
+
+
+    /**
+     * Raises a cube centred on ([x], [y]) if the spot is inside the room, clear of
+     * walls, other cubes, the boss and every operative. Returns whether it rose.
+     */
+    fun addBarrier(x: Float, y: Float, half: Float, rise: Float, life: Float, clearance: Float = 26f): Boolean {
+        if (x - half < 24f || y - half < 24f || x + half > arena.width - 24f || y + half > arena.height - 24f) return false
+        val r = com.cyberoperative.game.core.Rect(x - half, y - half, x + half, y + half)
+        for (i in 0 until arena.obstacles.size) if (arena.rect(i).let { it.left < r.right + 4f && it.right > r.left - 4f && it.top < r.bottom + 4f && it.bottom > r.top - 4f }) return false
+        for (b in barriers) if (b.left < r.right + 2f && b.right > r.left - 2f && b.top < r.bottom + 2f && b.bottom > r.top - 2f) return false
+        for (o in ops) if (!o.gone && r.intersectsCircle(o.px, o.py, playerRadius + clearance)) return false
+        val b = boss
+        if (b != null && r.intersectsCircle(b.x, b.y, b.radius + 12f)) return false
+        barriers += Barrier(x, y, half, rise, life)
+        return true
+    }
+
+    /** Ends every cube early (boss down, room over). */
+    fun sinkBarriers() {
+        for (b in barriers) if (b.timer < b.rise + b.life) b.timer = b.rise + b.life
+    }
+
+    private fun updateBarriers(dt: Float) {
+        if (barriers.isEmpty() && barrierSolidCount == 0) return
+        for (b in barriers) b.timer += dt
+        barriers.removeAll { it.done }
+        val solid = barriers.count { it.solid }
+        // Rebuild only when a cube changes state (rose or started sinking).
+        if (solid != barrierSolidCount || barriers.any { it.solid && it.timer - dt < it.rise }) {
+            barrierSolidCount = solid
+            rebuildArena()
+            // Anyone the cube rose under is pushed out to its nearest side.
+            forEachAlive {
+                if (arena.pushOut(px, py, playerRadius)) { px = arena.out[0]; py = arena.out[1] }
+            }
+            for (e in enemies.items) if (e.active && e.boss == null && arena.pushOut(e.x, e.y, e.radius)) { e.x = arena.out[0]; e.y = arena.out[1] }
+        }
+    }
+
+    /** The room's obstacles plus the data cache and any solid barrier cubes (cache stays last). */
+    private fun rebuildArena() {
+        val extra = ArrayList<com.cyberoperative.game.data.ObstacleSpec>()
+        for (b in barriers) if (b.solid) extra += com.cyberoperative.game.data.ObstacleSpec(
+            com.cyberoperative.game.core.Rect(b.left, b.top, b.right, b.bottom), com.cyberoperative.game.data.ObstacleKind.BARRIER_CUBE
+        )
+        if (vaultPresent) extra += Arena.vaultObstacle(plan.arena)
+        arena = Arena(plan.arena, extra)
+    }
+
     private fun updateHazards(dt: Float) {
         for (h in hazards.items) {
             if (!h.active) continue
             h.timer += dt
             when (h.kind) {
                 HazardKind.LINE -> if (h.timer >= h.duration) h.active = false
-                HazardKind.BLAST -> if (h.timer >= h.duration) {
+                HazardKind.BLAST, HazardKind.MORTAR -> if (h.timer >= h.duration) {
                     h.active = false
                     forEachAlive {
                         if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) {
@@ -2511,6 +2609,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                     addPulse(h.x, h.y, h.radius, 0.3f, h.color)
+                    if (h.kind == HazardKind.MORTAR) {
+                        repeat(10) { addParticle(h.x, h.y, h.color, 220f, 0.45f, 3f) }
+                        if (MathUtil.dist2(ops[primary].px, ops[primary].py, h.x, h.y) < 260f * 260f) fx.shake(3.5f, 0.2f)
+                    }
                 }
                 HazardKind.ZONE -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
@@ -2539,6 +2641,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                                 h.hitMask = h.hitMask or bit
                                 damagePlayer(h.damage, h.x, h.y)
                             }
+                        }
+                    }
+                }
+                HazardKind.SWEEP -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    // The laser stays on its emitter while the boss shifts.
+                    val owner = boss
+                    if (owner != null && owner.uid == h.ownerUid) { h.x = owner.x; h.y = owner.y }
+                    if (h.timer >= h.windup) h.angle += h.angVel * dt
+                    clipRay(h)
+                    if (h.timer >= h.windup) forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit == 0 && distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
+                            h.hitMask = h.hitMask or bit
+                            damagePlayer(h.damage, h.x, h.y)
                         }
                     }
                 }
@@ -2641,6 +2758,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
         for (h in hazards.items) h.active = false
+        sinkBarriers()
     }
 
     /**
@@ -2694,6 +2812,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         fun debugJumpToLevel(target: Int) {
         startLevel(target, null, true)
     }
+
+    /** Test hook: make the boss start [p] right now. */
+    fun debugBossPattern(p: com.cyberoperative.game.data.Pattern) = bossBrain.forcePattern(p)
 
     /** Test hook: start a specific plan (e.g. a given event or boss). */
     fun debugStartPlan(forced: LevelPlan) {
@@ -2815,6 +2936,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             w.pulses += n
         }
         w.sounds += sounds.take(16)
+        for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer)
         return w
     }
 
@@ -2851,8 +2973,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (w.vaultCracked && !vaultCracked) {
             vaultCracked = true
-            arena = Arena(plan.arena)
+            rebuildArena()
         }
+        barriers.clear()
+        for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4]).also { it.timer = n[5] }
+        val solidNow = barriers.count { it.solid }
+        if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
         phase = w.phase; phaseTimer = w.phaseTimer; slideIn = w.slideIn
         score = w.score; kills = w.kills; eurosEarned = w.euros; diamondsEarned = w.diamonds
@@ -3065,6 +3191,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val REVIVE_SECONDS = 3f
         const val STEP = 1f / 120f
         const val MAX_FRAME = 0.1f
+        /** How far a sweeping laser reaches when nothing stops it. */
+        const val SWEEP_LENGTH = 1500f
         const val MOVE_DEADZONE = 0.12f
         /** How long the stick must be released before the first shot. */
         const val STOP_TO_FIRE_DELAY = 0.04f

@@ -12,6 +12,8 @@ import com.cyberoperative.game.core.Rect
  */
 enum class ObstacleKind(val label: String) {
     SERVER_RACK("SERVER RACK"),
+    /** Barrier cube a boss raises out of the floor (never placed by arena layouts). */
+    BARRIER_CUBE("BARRIER CUBE"),
     FIREWALL_NODE("FIREWALL NODE"),
     DATA_PILLAR("DATA PILLAR"),
     COOLING_UNIT("COOLING UNIT"),

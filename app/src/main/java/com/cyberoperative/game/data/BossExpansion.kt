@@ -17,34 +17,39 @@ object BossExpansion {
 
     /**
      * Vault Sentinel (Boss Pack Alpha 01, TANK). A fortress server guardian:
-     * deploys cover blocks, sweeps the arena with laser barriers, boxes you
-     * in and shells marked spots. Patterns here are provisional until the
-     * Stage B systems (sweep beams, lobbed shells, dynamic cover) land.
+     * raises barrier cubes out of the floor that hem you in, sweeps the room
+     * with lasers that the cubes stop, boxes you in with a lockdown (one side
+     * open, away from it) and shells the box with mortars. Body drawn 20%
+     * larger than first shown (owner, 2026-10-10: "can it be slightly larger?").
      */
     val VAULT_SENTINEL = BossDef(
         "vault_sentinel", "VAULT SENTINEL", "[▣]", "Fortress Server Guardian",
-        "A fortress-like server guardian that deploys cover blocks and sweeps the arena with " +
-            "lethal laser barriers. Holds the line, controls space.",
-        0xFFFF2D55, 60f, 2560f, 42f, 28f, BossMove.HOVER, listOf(
+        "A fortress-like server guardian that raises barrier cubes out of the floor and sweeps the " +
+            "arena with lethal lasers. Its cubes cage you — but they also stop its lasers. Shells fly over them.",
+        0xFFFF2D55, 72f, 2560f, 42f, 28f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.5f, listOf(
-                Pattern.Beam(1.0f, 0.5f, 26f, 26f, count = 3, spreadDeg = 40f),
-                Pattern.Blasts(4, 90f, 1.2f, 24f)
+                Pattern.CoverDeploy(4, 8f),
+                Pattern.SweepBeam(1.1f, 2.4f, 110f, 26f, 26f),
+                Pattern.Mortar(3, 80f, 1.3f, 24f)
             ), "PHASE 1"),
             BossPhase(P2, 1.05f, 1.3f, listOf(
-                Pattern.Beam(0.9f, 0.5f, 26f, 26f, count = 5, spreadDeg = 70f),
-                Pattern.Blasts(6, 90f, 1.1f, 24f),
-                Pattern.Radial(16, 170f, 12f, waves = 2, rotateDeg = 11f)
+                Pattern.Lockdown(110f, 5f),
+                Pattern.Mortar(4, 80f, 1.2f, 24f, volleys = 2),
+                Pattern.SweepBeam(1.0f, 2.6f, 140f, 26f, 26f, count = 2),
+                Pattern.CoverDeploy(5, 8f)
             ), "LOCKDOWN"),
             BossPhase(P3, 1.1f, 1.1f, listOf(
-                Pattern.Beam(0.8f, 0.6f, 28f, 28f, count = 7, spreadDeg = 120f),
-                Pattern.Blasts(8, 95f, 1.0f, 26f),
-                Pattern.ShockRing(340f, 210f, 24f)
+                Pattern.CoverDeploy(6, 7f),
+                Pattern.SweepBeam(0.9f, 2.8f, 150f, 28f, 28f, count = 3),
+                Pattern.Lockdown(105f, 4.5f, rise = 1.0f),
+                Pattern.Mortar(5, 85f, 1.1f, 26f, volleys = 2),
+                Pattern.Radial(18, 180f, 12f, waves = 2, rotateDeg = 10f)
             ), "VAULT BREACHED")
         ), euros = 326, score = 7000, role = BossRole.TANK, tier = 3, armor = 6f,
         abilities = listOf("Cover Deploy", "Laser Sweep", "Lockdown Cube", "Pulse Mortar")
     )
 
-    val all: List<BossDef> = emptyList()
+    val all: List<BossDef> = listOf(VAULT_SENTINEL)
 
     /** Every expansion boss defined so far, built or not (design renders). */
     val designed: List<BossDef> = listOf(VAULT_SENTINEL)

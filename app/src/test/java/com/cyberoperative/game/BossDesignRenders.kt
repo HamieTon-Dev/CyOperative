@@ -27,6 +27,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.data.BossDef
 import com.cyberoperative.game.data.BossExpansion
+import com.cyberoperative.game.data.Pattern
 import com.cyberoperative.game.data.ThreatTier
 import com.cyberoperative.game.engine.AiState
 import com.cyberoperative.game.engine.LevelPlanner
@@ -75,7 +76,47 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     @Test fun render() {
         assumeTrue(enabled)
         val def = BossExpansion.designed.first { it.id == bossId }
-        if (shot == "sheet") sheet(def) else fight(def)
+        when {
+            shot == "sheet" -> sheet(def)
+            shot == "fight" -> fight(def)
+            else -> attack(def, ATTACKS.getValue(def.id).first { it.name == shot })
+        }
+    }
+
+    /** One attack moment: the patterns to fire in order (with a wait after each). */
+    class AttackShot(val name: String, val steps: List<Pair<Pattern, Float>>)
+
+    private fun attack(def: BossDef, a: AttackShot) {
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(tutorialDone = true) }
+        val session = GameSession(repo, AudioManager(ctx))
+        val g = session.engine
+        g.debugStartPlan(LevelPlanner.bossPlan(130, Random(3)).copy(boss = def, glitchedBoss = false))
+        val me = g.operatives[0]
+        fun hold(seconds: Float) {
+            var t = 0f
+            while (t < seconds) {
+                me.invuln = 99f; me.hp = me.build.stats.maxHp
+                g.setInput(0f, 0f)
+                g.boss?.let { b ->
+                    b.boss?.let { st -> if (st.active == null) st.rest = 99f }
+                    if (b.state != AiState.SPAWNING) { b.hp = b.maxHp * 0.9f; b.x = g.arena.width / 2f; b.y = g.arena.height * 0.27f }
+                }
+                me.px = g.arena.width / 2f; me.py = g.arena.height * 0.64f
+                g.update(1f / 60f); t += 1f / 60f
+            }
+        }
+        hold(BossBrainIntro + 0.2f)
+        for (p in g.projectiles.items) p.active = false
+        for ((pattern, wait) in a.steps) {
+            g.debugBossPattern(pattern)
+            hold(wait)
+        }
+        g.sounds.clear()
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { GameScreen(session, false, {}, {}) } }
+        capture("${def.id}_${a.name}")
     }
 
     private fun sheet(def: BossDef) {
@@ -136,8 +177,24 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     }
 
     companion object {
+        private val BossBrainIntro = com.cyberoperative.game.engine.BossBrain.INTRO_SECONDS
+
+        /** Attack moments shown to the owner per boss. */
+        val ATTACKS: Map<String, List<AttackShot>> = mapOf(
+            "vault_sentinel" to listOf(
+                AttackShot("atk1_cover_rising", listOf(Pattern.CoverDeploy(5, 8f) to 0.45f)),
+                AttackShot("atk2_cover_up", listOf(Pattern.CoverDeploy(5, 8f) to 1.6f)),
+                AttackShot("atk3_sweep_telegraph", listOf(Pattern.CoverDeploy(5, 8f) to 1.3f, Pattern.SweepBeam(1.1f, 2.4f, 110f, 26f, 26f) to 0.7f)),
+                AttackShot("atk4_sweep_firing", listOf(Pattern.CoverDeploy(5, 8f) to 1.3f, Pattern.SweepBeam(1.1f, 2.4f, 110f, 26f, 26f, count = 2) to 2.0f)),
+                AttackShot("atk5_lockdown", listOf(Pattern.Lockdown(110f, 6f) to 1.5f)),
+                AttackShot("atk6_mortar_on_box", listOf(Pattern.Lockdown(110f, 6f) to 1.3f, Pattern.Mortar(4, 80f, 1.3f, 24f) to 0.75f))
+            )
+        )
+
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
-        fun params(): List<Array<Any>> = BossExpansion.designed.flatMap { b -> listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight")) }
+        fun params(): List<Array<Any>> = BossExpansion.designed.flatMap { b ->
+            listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight")) + ATTACKS[b.id].orEmpty().map { arrayOf<Any>(b.id, it.name) }
+        }
     }
 }

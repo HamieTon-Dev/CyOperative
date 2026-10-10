@@ -62,6 +62,24 @@ sealed class Pattern {
 
     /** Slow homing packets. */
     data class Homing(val count: Int, val speed: Float, val turn: Float, val damage: Float, val life: Float = 4.5f) : Pattern()
+
+    /**
+     * Barrier cubes rise out of the floor around the player in short wall
+     * segments of 1–3 cubes (owner: "barrier blocks out of the floor restricting
+     * player movement"). They block movement and shots, both ways.
+     */
+    data class CoverDeploy(val segments: Int, val life: Float, val rise: Float = 0.9f) : Pattern()
+
+    /** A box of cubes rises around the player, one side open (away from the boss). */
+    data class Lockdown(val inner: Float, val life: Float, val rise: Float = 1.1f, val gapCubes: Int = 3) : Pattern()
+
+    /** Telegraphed laser that sweeps [sweepDeg]; [count] beams spaced evenly. Cover stops it. */
+    data class SweepBeam(
+        val windup: Float, val duration: Float, val sweepDeg: Float, val width: Float, val damage: Float, val count: Int = 1
+    ) : Pattern()
+
+    /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
+    data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
 
 data class BossPhase(
@@ -140,6 +158,10 @@ val Pattern.displayName: String
         Pattern.Teleport -> "Blink"
         is Pattern.Beam -> "Data Beam"
         is Pattern.Homing -> "Homing Packets"
+        is Pattern.CoverDeploy -> "Cover Deploy"
+        is Pattern.Lockdown -> "Lockdown Cube"
+        is Pattern.SweepBeam -> "Laser Sweep"
+        is Pattern.Mortar -> "Pulse Mortar"
     }
 
 object Bosses {
