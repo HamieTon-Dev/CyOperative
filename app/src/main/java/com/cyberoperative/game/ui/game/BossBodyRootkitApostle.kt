@@ -17,24 +17,33 @@ import kotlin.math.sin
  * grows and the floor bloom spreads with each phase.
  */
 internal object RootkitApostleBody : BossBody {
+    /** Underground: a cracked, heaving mound with crystal tips poking through and the eye glinting below. */
+    override fun DrawScope.drawHidden(p: BossPose): Boolean {
+        val r = p.radius
+        val t = p.time
+        val pink = p.color
+        val gy = p.cy + r * 0.62f
+        val heave = 0.85f + 0.15f * sin(t * 9f)
+        drawOval(Color.Black.copy(alpha = 0.55f), Offset(p.cx - r * 0.9f, gy - r * 0.3f), Size(r * 1.8f, r * 0.6f))
+        drawOval(Color(0xFF1A0A1E), Offset(p.cx - r * 0.7f * heave, gy - r * 0.32f * heave), Size(r * 1.4f * heave, r * 0.5f * heave))
+        for (i in 0 until 7) {
+            val a = i * 0.9f + t * 0.6f
+            val l = r * (0.7f + 0.3f * sin(t * 5f + i))
+            drawLine(pink.copy(alpha = 0.8f), Offset(p.cx, gy - r * 0.08f), Offset(p.cx + cos(a) * l, gy - r * 0.08f + sin(a) * l * 0.38f), 2f)
+        }
+        for (i in 0 until 3) {
+            val bx = p.cx + (i - 1) * r * 0.35f
+            crystal(bx, gy - r * 0.1f, -1.571f + (i - 1) * 0.35f, r * (0.3f + 0.1f * sin(t * 6f + i)), r * 0.14f, darker(pink, 0.52f), darker(pink, 0.18f), pink)
+        }
+        val blink = 0.5f + 0.5f * sin(t * 3f)
+        drawCircle(Color(0xFFFF2D3C).copy(alpha = 0.35f + 0.5f * blink), r * 0.07f, Offset(p.cx, gy - r * 0.12f))
+        return true
+    }
+
     // Owner, 2026-10-10: "Darker body".
     private val SHELL = Color(0xFF07030A)
     private val SHELL_LIT = Color(0xFF1C0A20)
     private val EYE = Color(0xFFFF2D3C)
-
-    /** Two-tone crystal spike from [base] toward angle [a], [len] long, [w] wide at the base. */
-    private fun DrawScope.crystal(bx: Float, by: Float, a: Float, len: Float, w: Float, lit: Color, dark: Color, edge: Color, squash: Float = 1f) {
-        val tx = bx + cos(a) * len
-        val ty = by + sin(a) * len * squash
-        val px = -sin(a) * w / 2f
-        val py = cos(a) * w / 2f * squash
-        val left = Path().apply { moveTo(bx + px, by + py); lineTo(tx, ty); lineTo(bx, by); close() }
-        val right = Path().apply { moveTo(bx - px, by - py); lineTo(tx, ty); lineTo(bx, by); close() }
-        drawPath(left, lit)
-        drawPath(right, dark)
-        drawLine(edge, Offset(bx + px, by + py), Offset(tx, ty), 1.4f)
-        drawLine(edge.copy(alpha = edge.alpha * 0.6f), Offset(bx - px, by - py), Offset(tx, ty), 1.2f)
-    }
 
     override fun DrawScope.draw(p: BossPose) {
         val r = p.radius

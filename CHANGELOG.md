@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.11.2 (versionCode 24) — 2026-10-10 · Rootkit Apostle
+### Added
+- **Rootkit Apostle** (Boss Pack Gamma) joins the roster at **level 140**: AMBUSHER, threat HIGH,
+  bounty base €326.
+  - **Body:** a black armoured orb with a dark magenta crystal crown and a mask eye. The eye
+    breathes slowly from dim to bright and blazes when it attacks (owner-approved design).
+  - **Burrow Drift:** it dives underground (it can't be hit there) and tunnels toward you as a
+    heaving, cracked mound with a glowing trail. Its exit is marked before it erupts. In later
+    phases it erupts with rings of spikes.
+  - **Spike Eruption:** lines of crystal spikes ripple out of the floor toward you: one line,
+    then three, then all around.
+    - Each spot shows a cracked diamond warning first.
+    - Each spike hits once as it bursts.
+  - **Infected Zone:** it infects where you stand and the spots you've stood in longest lately,
+    so camping gets punished and you have to keep relocating.
+  - **Rootkit Bloom:** rings of spikes burst outward from it in waves, with three straight safe
+    lanes cut through every ring.
+  - **Phases:** PHASE 1 → INFECTION → ROOTKIT BLOOM.
+
 ## 0.11.1 (versionCode 23) — 2026-10-10 · Vault Sentinel
 ### Added
 - **Vault Sentinel** joins the roster at **level 130**: TANK, threat HIGH, bounty base €326. Its body

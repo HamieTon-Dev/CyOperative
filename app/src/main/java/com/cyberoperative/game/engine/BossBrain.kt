@@ -126,7 +126,7 @@ class BossBrain(private val g: GameEngine) {
 
         val dashing = st.active is Pattern.Charge && st.chargeStage == 1
         val teleporting = st.active is Pattern.Teleport
-        if (!dashing && !teleporting && st.active !is Pattern.Charge) move(e, st, dt)
+        if (!dashing && !teleporting && st.active !is Pattern.Charge && st.active !is Pattern.Burrow) move(e, st, dt)
 
         val p = st.active
         if (p == null) {
@@ -277,7 +277,100 @@ class BossBrain(private val g: GameEngine) {
                 }
             }
             is Pattern.Mortar -> {}
+            is Pattern.Burrow -> {
+                g.addPulse(e.x, e.y, e.radius * 1.6f, 0.45f, st.def.color)
+                repeat(24) { g.addParticle(e.x, e.y, st.def.color, 260f, 0.6f, 3f) }
+            }
+            is Pattern.SpikeEruption -> {
+                val aim = atan2(g.py - e.y, g.px - e.x)
+                val spread = Math.toRadians(p.spreadDeg.toDouble()).toFloat()
+                for (l in 0 until p.lines) {
+                    val a = if (p.lines >= 8) aim + MathUtil.TWO_PI * l / p.lines
+                    else aim + (if (p.lines == 1) 0f else (l / (p.lines - 1f) - 0.5f) * spread)
+                    for (k in 0 until p.spikes) {
+                        val d = e.radius + 30f + k * p.spacing
+                        g.addSpike(e.x + cos(a) * d, e.y + sin(a) * d, p.radius, p.delay + k * p.step, p.damage * e.damageMul, st.def.color)
+                    }
+                }
+            }
+            is Pattern.Infect -> {
+                g.addZone(g.px, g.py, p.radius, p.duration, p.dps * e.damageMul, st.def.color, telegraph = p.telegraph, kind = HazardKind.INFECTED)
+                for ((x, y) in g.dwellHotspots(p.count - 1, p.radius * 2f, g.px, g.py)) {
+                    g.addZone(x, y, p.radius, p.duration, p.dps * e.damageMul, st.def.color, telegraph = p.telegraph, kind = HazardKind.INFECTED)
+                }
+            }
+            is Pattern.Bloom -> bloom(e.x, e.y, p.rings, p.lanes, p.delay, p.ringGap, p.radius, p.damage * e.damageMul, st.def.color)
         }
+    }
+
+    /**
+     * Rings of spikes around ([cx], [cy]), each ring a little later than the one
+     * inside it, with [lanes] straight safe lanes cut through all of them.
+     */
+    private fun bloom(cx: Float, cy: Float, rings: Int, lanes: Int, delay: Float, ringGap: Float, radius: Float, damage: Float, color: Long) {
+        val laneAngles = FloatArray(lanes) { g.rng.nextFloat() * MathUtil.TWO_PI }
+        for (ring in 1..rings) {
+            val rr = 60f + ring * 88f
+            val n = kotlin.math.ceil(MathUtil.TWO_PI * rr / (radius * 1.9f)).toInt()
+            val laneHalf = (g.playerRadius * 2.6f) / rr
+            for (k in 0 until n) {
+                val a = MathUtil.TWO_PI * k / n
+                if (laneAngles.any { kotlin.math.abs(angleDiff(a, it)) < laneHalf }) continue
+                g.addSpike(cx + cos(a) * rr, cy + sin(a) * rr, radius, delay + (ring - 1) * ringGap, damage, color)
+            }
+        }
+    }
+
+    private fun angleDiff(a: Float, b: Float): Float {
+        var d = (a - b) % MathUtil.TWO_PI
+        if (d > Math.PI) d -= MathUtil.TWO_PI
+        if (d < -Math.PI) d += MathUtil.TWO_PI
+        return d
+    }
+
+    /** Burrow Drift: 0 dive, 1 tunnel toward the operative, 2 exit marked, 3 erupt. */
+    private fun runBurrow(e: Enemy, st: BossState, p: Pattern.Burrow, dt: Float): Boolean {
+        st.subTimer += dt
+        when (st.chargeStage) {
+            0 -> if (st.subTimer >= 0.45f) {
+                e.state = AiState.HIDDEN
+                st.chargeStage = 1; st.subTimer = 0f
+            }
+            1 -> {
+                val dx = g.px - e.x
+                val dy = g.py - e.y
+                val d = kotlin.math.sqrt(dx * dx + dy * dy)
+                if (d > 1f) {
+                    val step = kotlin.math.min(d, p.speed * dt)
+                    e.x = MathUtil.clamp(e.x + dx / d * step, e.radius, g.arena.width - e.radius)
+                    e.y = MathUtil.clamp(e.y + dy / d * step, e.radius, g.arena.height - e.radius)
+                }
+                // Glowing crack trail behind it.
+                st.spiralAcc += dt
+                if (st.spiralAcc >= 0.035f) {
+                    st.spiralAcc = 0f
+                    g.addParticle(e.x + (g.rng.nextFloat() - 0.5f) * 34f, e.y + (g.rng.nextFloat() - 0.5f) * 16f, st.def.color, 22f, 1.8f, 5f)
+                    g.addParticle(e.x, e.y, 0xFFFFFFFF, 30f, 0.5f, 2.5f)
+                }
+                if (st.subTimer >= p.travel || d < 30f) {
+                    // It can't surface inside a wall.
+                    g.arena.pushOut(e.x, e.y, e.radius)
+                    e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                    g.addBlast(e.x, e.y, p.eruptRadius, p.telegraph, p.damage * e.damageMul, st.def.color)
+                    st.chargeStage = 2; st.subTimer = 0f
+                }
+            }
+            2 -> if (st.subTimer >= p.telegraph) {
+                e.state = AiState.MOVE
+                g.addPulse(e.x, e.y, p.eruptRadius * 1.5f, 0.5f, st.def.color)
+                repeat(40) { g.addParticle(e.x, e.y, st.def.color, 320f, 0.8f, 3.5f) }
+                g.fx.shake(8f, 0.4f)
+                if (p.bloomRings > 0) bloom(e.x, e.y, p.bloomRings, 3, 0.55f, 0.28f, 32f, p.damage * 0.8f * e.damageMul, st.def.color)
+                st.chargeStage = 3; st.subTimer = 0f
+            }
+            else -> return st.subTimer >= 0.4f
+        }
+        return false
     }
 
     /** Wall segments of 1–3 cubes in a ring 110–330 units around the player. */
@@ -430,6 +523,10 @@ class BossBrain(private val g: GameEngine) {
             }
             is Pattern.Beam -> return st.patternTime >= p.windup + p.duration
             is Pattern.SweepBeam -> return st.patternTime >= p.windup + p.duration
+            is Pattern.Burrow -> return runBurrow(e, st, p, dt)
+            is Pattern.SpikeEruption -> return st.patternTime >= p.delay + p.spikes * p.step
+            is Pattern.Infect -> return st.patternTime >= p.telegraph
+            is Pattern.Bloom -> return st.patternTime >= p.delay + p.rings * p.ringGap
             is Pattern.CoverDeploy -> return st.patternTime >= p.rise
             is Pattern.Lockdown -> return st.patternTime >= p.rise
             is Pattern.Mortar -> {

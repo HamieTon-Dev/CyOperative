@@ -957,6 +957,12 @@ class ArenaRenderer {
             return
         }
         if (e.state == AiState.HIDDEN) {
+            val hb = e.boss
+            val hiddenBody = hb?.let { BossBodies.forId(it.def.id) }
+            if (hb != null && hiddenBody != null) {
+                val pose = BossPose(e.x, e.y - 18f, e.radius, base, time, hb.phaseIndex, false, false, 0f, (e.hp / e.maxHp).coerceIn(0f, 1f), glitch)
+                if (with(hiddenBody) { drawHidden(pose) }) return
+            }
             drawOval(base.copy(alpha = 0.15f), Offset(e.x - e.radius, e.y - e.radius * 0.4f), Size(e.radius * 2f, e.radius * 0.8f), style = Stroke(2f))
             return
         }
@@ -1411,11 +1417,26 @@ class ArenaRenderer {
                         drawCircle(col.copy(alpha = 0.7f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
                     }
                 }
+                HazardKind.INFECTED -> drawInfected(h, col, time)
                 HazardKind.BLAST -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))
                     drawCircle(col.copy(alpha = 0.35f), h.radius * f, Offset(h.x, h.y))
                     drawCircle(col.copy(alpha = 0.85f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
+                }
+                HazardKind.SPIKE -> if (h.timer < h.duration) {
+                    // Warning: a cracked diamond filling in where the crystals will burst.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    val pts = floatArrayOf(0f, -h.radius * 0.7f, h.radius, 0f, 0f, h.radius * 0.7f, -h.radius, 0f)
+                    drawPath(polyPath(h.x, h.y, pts), col.copy(alpha = 0.1f + 0.3f * f))
+                    drawPath(polyPath(h.x, h.y, pts), col.copy(alpha = 0.5f + 0.4f * f), style = Stroke(2f))
+                    drawLine(col.copy(alpha = 0.7f * f), Offset(h.x - h.radius * 0.5f, h.y), Offset(h.x + h.radius * 0.5f, h.y), 1.5f)
+                } else {
+                    // Scorched crack star under the burst crystals.
+                    for (i in 0 until 5) {
+                        val a = i * 1.2566f + h.x
+                        drawLine(col.copy(alpha = 0.6f), Offset(h.x, h.y), Offset(h.x + cos(a) * h.radius, h.y + sin(a) * h.radius * 0.6f), 1.8f)
+                    }
                 }
                 HazardKind.MORTAR -> {
                     // Landing marker: crosshair ring that fills as the shell comes down.
@@ -1483,6 +1504,47 @@ class ArenaRenderer {
         }
     }
 
+    /**
+     * Rootkit infection: while it spreads, veins crawl out from the centre; once
+     * live, a dark corrupted pool with pulsing veins, flickering code bits and
+     * crystal shards around the rim.
+     */
+    private fun DrawScope.drawInfected(h: com.cyberoperative.game.engine.Hazard, col: Color, time: Float) {
+        val c = Offset(h.x, h.y)
+        val spread = if (h.timer < h.windup) (h.timer / max(0.01f, h.windup)) else 1f
+        val live = h.timer >= h.windup
+        val fade = ((h.duration - h.timer) / 0.5f).coerceIn(0f, 1f)
+        val p = 0.5f + 0.5f * sin(time * 4f + h.x * 0.01f)
+        if (!live) drawCircle(col.copy(alpha = 0.7f), h.radius, c, style = Stroke(2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 8f), time * 30f)))
+        drawCircle(Color(0xFF14040F).copy(alpha = (if (live) 0.75f else 0.4f) * fade), h.radius * spread, c)
+        drawCircle(col.copy(alpha = (0.14f + 0.12f * p) * fade * spread), h.radius * spread, c)
+        // Veins.
+        for (i in 0 until 9) {
+            val a = i * 0.698f + h.y * 0.01f
+            val l = h.radius * spread * (0.75f + 0.25f * sin(time * 2f + i))
+            val mid = Offset(h.x + cos(a + 0.25f) * l * 0.5f, h.y + sin(a + 0.25f) * l * 0.5f)
+            drawLine(col.copy(alpha = 0.75f * fade), c, mid, 2f)
+            drawLine(col.copy(alpha = 0.55f * fade), mid, Offset(h.x + cos(a) * l, h.y + sin(a) * l), 1.5f)
+        }
+        if (!live) return
+        // Code bits flickering across the pool.
+        for (i in 0 until 14) {
+            val on = ((time * 6f).toInt() + i * 7) % 5 != 0
+            if (!on) continue
+            val a = i * 2.39f
+            val d = h.radius * (0.2f + 0.7f * ((i * 0.37f) % 1f))
+            drawRect(lighter(col, 0.4f).copy(alpha = 0.8f * fade), Offset(h.x + cos(a) * d - 2f, h.y + sin(a) * d - 2f), Size(if (i % 2 == 0) 4f else 7f, 3f))
+        }
+        drawCircle(col.copy(alpha = (0.6f + 0.3f * p) * fade), h.radius, c, style = Stroke(2.5f))
+        // Crystal shards breaking through the rim.
+        for (i in 0 until 7) {
+            val a = i * 0.897f + 0.4f
+            val bx = h.x + cos(a) * h.radius * 0.92f
+            val by = h.y + sin(a) * h.radius * 0.92f
+            crystal(bx, by, -1.571f + 0.3f * cos(i * 1.3f), h.radius * (0.22f + 0.08f * (i % 3)) * fade, 8f, darker(col, 0.55f), darker(col, 0.2f), col)
+        }
+    }
+
     private fun DrawScope.drawHazardsOver(g: GameEngine) {
         for (h in g.hazards.items) {
             if (!h.active) continue
@@ -1492,6 +1554,23 @@ class ArenaRenderer {
                     drawCircle(col.copy(alpha = 0.8f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.4f))
                     drawCircle(Color.White.copy(alpha = 0.5f), h.radius, Offset(h.x, h.y), style = Stroke(3f))
                 }
+                HazardKind.SPIKE -> if (h.timer >= h.duration) {
+                    // Crystals shoot up, hold, then sink back into the floor.
+                    val a = h.timer - h.duration
+                    val k = when {
+                        a < 0.1f -> a / 0.1f
+                        a > h.maxRadius - 0.2f -> ((h.maxRadius - a) / 0.2f).coerceIn(0f, 1f)
+                        else -> 1f
+                    }
+                    if (k > 0.02f) {
+                        val lit = darker(col, 0.62f)
+                        val dark = darker(col, 0.22f)
+                        val hgt = h.radius * 2.1f * k
+                        crystal(h.x - h.radius * 0.35f, h.y + 2f, -1.571f - 0.35f, hgt * 0.7f, h.radius * 0.5f, lit, dark, col)
+                        crystal(h.x + h.radius * 0.35f, h.y + 2f, -1.571f + 0.4f, hgt * 0.65f, h.radius * 0.5f, lit, dark, col)
+                        crystal(h.x, h.y + 4f, -1.571f, hgt, h.radius * 0.6f, lit, dark, col)
+                    }
+                } else {}
                 HazardKind.MORTAR -> {
                     // The shell, high in its arc.
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)

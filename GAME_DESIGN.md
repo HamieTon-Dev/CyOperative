@@ -128,6 +128,11 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Laser sweeps are clipped by any obstacle; mortars ignore cover.
   - Lockdown leaves a 2-cube gap on the side away from the boss (falls back to another side if a wall
     or block is behind it).
+- Rootkit Apostle (L140):
+  - Burrow: untargetable while underground; exit telegraphed 0.7–0.8 s.
+  - Spikes: 0.75 s warning, one hit, rippling 0.08 s per step.
+  - Infected Zone: on you plus your top dwell cells (100-unit grid, ~10 s memory).
+  - Bloom: rings every 88 units with 3 operative-wide lanes.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 

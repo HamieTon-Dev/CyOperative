@@ -23,7 +23,7 @@ game to feel premium." Source sheets in `docs/boss-concepts/`: Boss Pack Alpha, 
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
 
-Status: **BUILDING — Stage A done (v0.11.0); Vault Sentinel done early (v0.11.1) at the owner's request; next: rest of Stage B.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
+Status: **BUILDING — Stage A done (v0.11.0); Vault Sentinel (v0.11.1) and Rootkit Apostle (v0.11.2) built boss-by-boss with owner approval. Next: Ransom King body (Gamma order), then the rest.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
 
 **Design approval rule (owner, 2026-10-10):** "I want to see and approve, or request changes to the
 physical look of each boss as you make them" + "show me its attacks as you work on it as well". Every boss body (new and classic) is rendered
@@ -211,7 +211,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 ### Stage E — Nullshade Specter + the last three (v0.11.4)
 - [ ] E1 S11 darkness, light bubble, eye glints, power-restore sequence
 - [ ] E2 Nullshade Specter
-- [ ] E3 Rootkit Apostle
+- [x] E3 Rootkit Apostle (built early, v0.11.2)
 - [ ] E4 Ransom King
 - [ ] E5 Spectral Firewall
 - [ ] E6 Renders + tests
@@ -230,7 +230,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Boss | Sent | Status | Owner notes |
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
-| Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ⏳ revision 2 sent (darker body, breathing eye; animated GIF) | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
+| Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ body approved (rev 2) — "Approved, build its attacks". Attacks built and sent (atk1–atk6) | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 
 ---
 
@@ -261,3 +261,13 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - 2026-10-10 — Rootkit Apostle revision 2 (darker shell and crystals, eye breathes dim↔bright over ~3 s, blazes while charging).
   - New `anim` render: 48 frames in `app/build/boss_anim/<id>/`, stitched into `docs/bosses/designs/<id>_anim.gif`
     with PIL (resize 540, 128 colours, 100 ms frames).
+- 2026-10-10 — v0.11.2 (24): Rootkit Apostle attacks.
+  - Patterns `Burrow` (dive → tunnel → marked exit → erupt + bloom) and `SpikeEruption`
+    (HazardKind.SPIKE: warn, burst once, linger).
+  - `Infect`: HazardKind.INFECTED, a zone with an infection look, placed on the operatives' dwell
+    hotspots (`GameEngine.dwellHotspots`, 100-unit grid, ~10 s fade).
+  - `Bloom`: spike rings with 3 safe lanes.
+  - BossBody.drawHidden draws the burrowing mound.
+  - In the roster at L140. Tests: RootkitApostleTest.
+  - The attack render harness now places the operative on camp spots and turns boss damage down,
+    so fresh operatives survive level-140 hits in screenshots.

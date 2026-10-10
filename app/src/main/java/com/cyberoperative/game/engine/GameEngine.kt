@@ -626,6 +626,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         updateZaps(dt)
         updateHazards(dt)
         updateBarriers(dt)
+        if (phase == Phase.COMBAT) updateDwell(dt)
         cur = ops[primary]
         if (coop) {
             if (updateCoop(dt)) return
@@ -2477,9 +2478,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.hitMask = 0; h.ownerUid = -1
     }
 
-    fun addZone(x: Float, y: Float, radius: Float, duration: Float, dps: Float, color: Long, telegraph: Float) {
+    fun addZone(x: Float, y: Float, radius: Float, duration: Float, dps: Float, color: Long, telegraph: Float, kind: HazardKind = HazardKind.ZONE) {
         val h = hazards.obtain() ?: return
-        h.active = true; h.kind = HazardKind.ZONE
+        h.active = true; h.kind = kind
         h.x = x; h.y = y; h.radius = radius
         h.timer = 0f; h.windup = telegraph; h.duration = telegraph + duration
         h.damage = dps; h.color = color; h.tick = 0f; h.hitMask = 0; h.ownerUid = -1
@@ -2524,6 +2525,51 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.x = x; h.y = y; h.x2 = fromX; h.y2 = fromY; h.radius = radius
         h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color
         h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** Crystal spike cluster at ([x], [y]) bursting after [delay] (see [HazardKind.SPIKE]). */
+    fun addSpike(x: Float, y: Float, radius: Float, delay: Float, damage: Float, color: Long) {
+        if (x < 16f || y < 16f || x > arena.width - 16f || y > arena.height - 16f) return
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.SPIKE
+        h.x = x; h.y = y; h.radius = radius; h.maxRadius = SPIKE_LINGER
+        h.timer = 0f; h.duration = delay; h.damage = damage; h.color = color
+        h.hitMask = 0; h.ownerUid = -1; h.tick = 0f
+    }
+
+    // --- Where the operatives have been standing (Infected Zone) ----------
+
+    private var dwell = FloatArray(0)
+    private var dwellCols = 0
+    private var dwellRows = 0
+
+    private fun updateDwell(dt: Float) {
+        val cols = (arena.width / DWELL_CELL).toInt() + 1
+        val rows = (arena.height / DWELL_CELL).toInt() + 1
+        if (cols != dwellCols || rows != dwellRows) { dwellCols = cols; dwellRows = rows; dwell = FloatArray(cols * rows) }
+        // Old standing time fades over ~10 s.
+        val keep = 1f - dt / 10f
+        for (i in dwell.indices) dwell[i] *= keep
+        forEachAlive {
+            val c = (px / DWELL_CELL).toInt().coerceIn(0, cols - 1)
+            val r = (py / DWELL_CELL).toInt().coerceIn(0, rows - 1)
+            dwell[r * cols + c] += dt
+        }
+    }
+
+    /** Centres of the [n] cells the operatives have stood in longest lately, at least [minSep] apart. */
+    fun dwellHotspots(n: Int, minSep: Float, avoidX: Float, avoidY: Float): List<Pair<Float, Float>> {
+        val order = dwell.indices.filter { dwell[it] > 0.3f }.sortedByDescending { dwell[it] }
+        val out = ArrayList<Pair<Float, Float>>()
+        for (i in order) {
+            if (out.size >= n) break
+            val x = (i % dwellCols + 0.5f) * DWELL_CELL
+            val y = (i / dwellCols + 0.5f) * DWELL_CELL
+            if (MathUtil.dist(x, y, avoidX, avoidY) < minSep) continue
+            if (out.any { MathUtil.dist(x, y, it.first, it.second) < minSep }) continue
+            out += x to y
+        }
+        return out
     }
 
     /** Sets a sweep's end to where its ray first meets an obstacle or wall. */
@@ -2614,7 +2660,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         if (MathUtil.dist2(ops[primary].px, ops[primary].py, h.x, h.y) < 260f * 260f) fx.shake(3.5f, 0.2f)
                     }
                 }
-                HazardKind.ZONE -> {
+                HazardKind.ZONE, HazardKind.INFECTED -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
                     if (h.timer >= h.windup) {
                         h.tick -= dt
@@ -2642,6 +2688,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                                 damagePlayer(h.damage, h.x, h.y)
                             }
                         }
+                    }
+                }
+                HazardKind.SPIKE -> {
+                    if (h.timer >= h.duration + h.maxRadius) { h.active = false; continue }
+                    if (h.tick == 0f && h.timer >= h.duration) {
+                        h.tick = 1f
+                        forEachAlive {
+                            if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) damagePlayer(h.damage, h.x, h.y)
+                        }
+                        repeat(4) { addParticle(h.x, h.y, h.color, 160f, 0.35f, 2.5f) }
                     }
                 }
                 HazardKind.SWEEP -> {
@@ -3193,6 +3249,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val MAX_FRAME = 0.1f
         /** How far a sweeping laser reaches when nothing stops it. */
         const val SWEEP_LENGTH = 1500f
+        /** How long burst crystal spikes stay on screen (no damage after the burst). */
+        const val SPIKE_LINGER = 0.7f
+        /** Grid size for tracking where operatives stand (Infected Zone). */
+        const val DWELL_CELL = 100f
         const val MOVE_DEADZONE = 0.12f
         /** How long the stick must be released before the first shot. */
         const val STOP_TO_FIRE_DELAY = 0.04f

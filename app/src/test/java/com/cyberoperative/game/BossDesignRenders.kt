@@ -64,6 +64,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     private val enabled = System.getProperty("cyberop.renderPreviews") == "true"
     private val outDir = File(System.getProperty("cyberop.previewDir") ?: "build/screens").resolveSibling("bosses").resolve("designs")
 
+    /** The level the boss appears at (130 for one not in the roster yet). */
+    private fun levelOf(def: BossDef): Int = com.cyberoperative.game.data.Bosses.roster.indexOf(def).let { if (it < 0) 130 else 10 * (it + 1) }
+
     private fun capture(name: String) {
         compose.mainClock.advanceTimeBy(100)
         outDir.mkdirs()
@@ -85,7 +88,11 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     }
 
     /** One attack moment: the patterns to fire in order (with a wait after each). */
-    class AttackShot(val name: String, val steps: List<Pair<Pattern, Float>>)
+    class AttackShot(
+        val name: String, val steps: List<Pair<Pattern, Float>>,
+        /** Spots (arena fractions) the operative stands in for 1.5 s each first. */
+        val camp: List<Pair<Float, Float>> = emptyList()
+    )
 
     private fun attack(def: BossDef, a: AttackShot) {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
@@ -93,8 +100,11 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         repo.update { it.copy(tutorialDone = true) }
         val session = GameSession(repo, AudioManager(ctx))
         val g = session.engine
-        g.debugStartPlan(LevelPlanner.bossPlan(130, Random(3)).copy(boss = def, glitchedBoss = false))
+        g.debugStartPlan(LevelPlanner.bossPlan(levelOf(def), Random(3)).copy(boss = def, glitchedBoss = false))
         val me = g.operatives[0]
+        var pin = true
+        var standX = g.arena.width / 2f
+        var standY = g.arena.height * 0.64f
         fun hold(seconds: Float) {
             var t = 0f
             while (t < seconds) {
@@ -102,14 +112,28 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 g.setInput(0f, 0f)
                 g.boss?.let { b ->
                     b.boss?.let { st -> if (st.active == null) st.rest = 99f }
-                    if (b.state != AiState.SPAWNING) { b.hp = b.maxHp * 0.9f; b.x = g.arena.width / 2f; b.y = g.arena.height * 0.27f }
+                    if (b.state != AiState.SPAWNING) {
+                        b.hp = b.maxHp * 0.9f
+                        if (pin) { b.x = g.arena.width / 2f; b.y = g.arena.height * 0.27f }
+                    }
                 }
-                me.px = g.arena.width / 2f; me.py = g.arena.height * 0.64f
+                me.px = standX; me.py = standY
                 g.update(1f / 60f); t += 1f / 60f
             }
         }
         hold(BossBrainIntro + 0.2f)
+        // Screenshots only: a fresh operative can't take level-140 hits, so keep it alive.
+        g.boss?.damageMul = 0.001f
         for (p in g.projectiles.items) p.active = false
+        for ((fx, fy) in a.camp) {
+            standX = g.arena.width * fx; standY = g.arena.height * fy
+            hold(1.5f)
+        }
+        standX = g.arena.width / 2f; standY = g.arena.height * 0.64f
+        hold(0.1f)
+        for (p in g.projectiles.items) p.active = false
+        // From here the boss moves on its own (burrowing, dashing).
+        pin = false
         for ((pattern, wait) in a.steps) {
             g.debugBossPattern(pattern)
             hold(wait)
@@ -194,7 +218,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         repo.update { it.copy(tutorialDone = true) }
         val session = GameSession(repo, AudioManager(ctx))
         val g = session.engine
-        g.debugStartPlan(LevelPlanner.bossPlan(130, Random(3)).copy(boss = def, glitchedBoss = false))
+        g.debugStartPlan(LevelPlanner.bossPlan(levelOf(def), Random(3)).copy(boss = def, glitchedBoss = false))
         val me = g.operatives[0]
         var t = 0f
         while (t < 6.5f) {
@@ -223,6 +247,14 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk4_sweep_firing", listOf(Pattern.CoverDeploy(5, 8f) to 1.3f, Pattern.SweepBeam(1.1f, 2.4f, 110f, 26f, 26f, count = 2) to 2.0f)),
                 AttackShot("atk5_lockdown", listOf(Pattern.Lockdown(110f, 6f) to 1.5f)),
                 AttackShot("atk6_mortar_on_box", listOf(Pattern.Lockdown(110f, 6f) to 1.3f, Pattern.Mortar(4, 80f, 1.3f, 24f) to 0.75f))
+            ),
+            "rootkit_apostle" to listOf(
+                AttackShot("atk1_burrow_drift", listOf(Pattern.Burrow(3.0f, 120f, 0.8f, 100f, 30f) to 1.6f)),
+                AttackShot("atk2_eruption_marked", listOf(Pattern.Burrow(1.2f, 400f, 1.2f, 100f, 30f) to 1.95f)),
+                AttackShot("atk3_erupt_bloom", listOf(Pattern.Burrow(1.0f, 400f, 0.6f, 100f, 30f, bloomRings = 2) to 2.35f)),
+                AttackShot("atk4_spike_eruption", listOf(Pattern.SpikeEruption(3, 8, 50f, 26f) to 0.95f)),
+                AttackShot("atk5_infected_zones", listOf(Pattern.Infect(4, 110f, 7f, 20f) to 1.6f), camp = listOf(0.2f to 0.5f, 0.8f to 0.78f, 0.25f to 0.85f)),
+                AttackShot("atk6_rootkit_bloom", listOf(Pattern.Bloom(3, 28f) to 1.05f))
             )
         )
 

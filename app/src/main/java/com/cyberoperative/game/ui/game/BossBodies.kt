@@ -43,6 +43,9 @@ class BossPose(
 /** One boss's look. Each new boss gets its own; see [BossBodies]. */
 fun interface BossBody {
     fun DrawScope.draw(p: BossPose)
+
+    /** Drawn while the boss is underground / hidden; return false to use the default faint outline. */
+    fun DrawScope.drawHidden(p: BossPose): Boolean = false
 }
 
 /**
@@ -94,6 +97,20 @@ internal fun DrawScope.slab(cx: Float, cy: Float, pts: FloatArray, depth: Float,
     drawPath(polyPath(cx, cy + depth, pts), side)
     drawPath(polyPath(cx, cy, pts), top)
     drawPath(polyPath(cx, cy, pts), outline, style = Stroke(2.5f))
+}
+
+/** Two-tone crystal spike from ([bx], [by]) toward angle [a], [len] long, [w] wide at the base. */
+internal fun DrawScope.crystal(bx: Float, by: Float, a: Float, len: Float, w: Float, lit: Color, dark: Color, edge: Color, squash: Float = 1f) {
+    val tx = bx + cos(a) * len
+    val ty = by + sin(a) * len * squash
+    val px = -sin(a) * w / 2f
+    val py = cos(a) * w / 2f * squash
+    val left = Path().apply { moveTo(bx + px, by + py); lineTo(tx, ty); lineTo(bx, by); close() }
+    val right = Path().apply { moveTo(bx - px, by - py); lineTo(tx, ty); lineTo(bx, by); close() }
+    drawPath(left, lit)
+    drawPath(right, dark)
+    drawLine(edge, Offset(bx + px, by + py), Offset(tx, ty), 1.4f)
+    drawLine(edge.copy(alpha = edge.alpha * 0.6f), Offset(bx - px, by - py), Offset(tx, ty), 1.2f)
 }
 
 /** Soft neon glow: a few widening translucent rings. */

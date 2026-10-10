@@ -50,38 +50,40 @@ object BossExpansion {
     )
 
     /**
-     * Rootkit Apostle (Boss Pack Gamma 01, AMBUSHER). A corrupted entity that
-     * burrows beneath the arena, erupts without warning and infects safe areas
-     * with rootkit code, forcing you to keep moving. Patterns are provisional
-     * until Burrow Drift / Spike Eruption / Infected Zone are built.
+     * Rootkit Apostle (Boss Pack Gamma 01, AMBUSHER). Burrows beneath the arena
+     * and erupts under you, bursts crystal spikes out of the floor and infects
+     * the spots you've been standing in, so you have to keep relocating.
+     * Body approved by the owner (rev 2: darker shell, breathing eye).
      */
     val ROOTKIT_APOSTLE = BossDef(
         "rootkit_apostle", "ROOTKIT APOSTLE", "[\\/]", "Corrupted Ambusher",
         "A corrupted entity that burrows beneath the arena, erupts without warning, and infects safe " +
             "areas with rootkit code, forcing you to constantly relocate.",
         0xFFFF2E9A, 76f, 2400f, 72f, 28f, BossMove.HOVER, listOf(
-            BossPhase(P1, 1f, 1.4f, listOf(
-                Pattern.Teleport,
-                Pattern.Blasts(5, 80f, 1.1f, 24f),
-                Pattern.Zones(2, 110f, 6f, 16f)
+            BossPhase(P1, 1f, 1.3f, listOf(
+                Pattern.Burrow(2.0f, 260f, 0.8f, 95f, 30f),
+                Pattern.SpikeEruption(1, 8, 0f, 26f),
+                Pattern.Infect(2, 100f, 6f, 18f),
+                Pattern.SpikeEruption(3, 6, 60f, 26f)
             ), "PHASE 1"),
-            BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.Teleport,
-                Pattern.Blasts(7, 80f, 1.0f, 24f),
-                Pattern.Radial(20, 190f, 12f, waves = 2, rotateDeg = 9f),
-                Pattern.Zones(3, 110f, 6f, 16f)
+            BossPhase(P2, 1.1f, 1.15f, listOf(
+                Pattern.Burrow(1.8f, 290f, 0.75f, 100f, 30f, bloomRings = 1),
+                Pattern.SpikeEruption(3, 8, 50f, 26f),
+                Pattern.Infect(3, 105f, 6.5f, 18f),
+                Pattern.Bloom(2, 26f)
             ), "INFECTION"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.Teleport,
-                Pattern.Blasts(9, 85f, 0.9f, 26f),
-                Pattern.Radial(24, 200f, 12f, waves = 3, rotateDeg = 8f),
-                Pattern.Zones(4, 120f, 6f, 18f)
+                Pattern.Burrow(1.6f, 320f, 0.7f, 105f, 32f, bloomRings = 2),
+                Pattern.SpikeEruption(8, 7, 0f, 28f),
+                Pattern.Infect(4, 110f, 7f, 20f),
+                Pattern.Bloom(3, 28f),
+                Pattern.Radial(20, 200f, 12f, waves = 2, rotateDeg = 9f)
             ), "ROOTKIT BLOOM")
         ), euros = 326, score = 7000, role = BossRole.AMBUSHER, tier = 3, armor = 4.2f,
         abilities = listOf("Burrow Drift", "Spike Eruption", "Infected Zone", "Rootkit Bloom")
     )
 
-    val all: List<BossDef> = listOf(VAULT_SENTINEL)
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)
 
     /** Every expansion boss defined so far, built or not (design renders). */
     val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)

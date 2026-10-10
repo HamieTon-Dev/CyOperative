@@ -167,7 +167,15 @@ enum class HazardKind {
      * Lobbed shell (Boss Expansion S4): a BLAST whose shell arcs from
      * [Hazard.x2]/[Hazard.y2] (the launcher) to the marked spot. Flies over cover.
      */
-    MORTAR
+    MORTAR,
+    /**
+     * Crystal spike cluster bursting from the floor (Rootkit Apostle): telegraphed
+     * for [Hazard.duration], hits once as it bursts, then the crystals linger
+     * (visual only) for [GameEngine.SPIKE_LINGER].
+     */
+    SPIKE,
+    /** A ZONE drawn as rootkit infection (Rootkit Apostle's Infected Zone); same damage rules. */
+    INFECTED
 }
 
 class Hazard {

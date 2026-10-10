@@ -179,3 +179,90 @@ class VaultSentinelTest {
         assertEquals(1.5f, back.barriers[0][5], 0.01f)
     }
 }
+
+/** Rootkit Apostle: burrow and erupt, spike lines, infected zones on your favourite spots, bloom lanes. */
+class RootkitApostleTest {
+
+    private fun fight(): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = 11L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(140, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.ROOTKIT_APOSTLE, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.1f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    private fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    @Test fun burrowsTunnelsThenErupts() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        val start = kotlin.math.hypot(b.x - me.px, b.y - me.py)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Burrow(2.0f, 260f, 0.8f, 95f, 30f))
+        run(g, 0.6f)
+        assertTrue("underground", b.state == com.cyberoperative.game.engine.AiState.HIDDEN)
+        assertTrue("can't be hit underground", !b.targetable)
+        run(g, 1.2f)
+        assertTrue("tunnelled toward the operative", kotlin.math.hypot(b.x - me.px, b.y - me.py) < start - 200f)
+        run(g, 1.0f)
+        assertTrue("exit was marked", g.hazards.items.any { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.BLAST } || b.state != com.cyberoperative.game.engine.AiState.HIDDEN)
+        run(g, 1.5f)
+        assertTrue("surfaced", b.state == com.cyberoperative.game.engine.AiState.MOVE && b.targetable)
+    }
+
+    @Test fun spikesHitOnceAfterTheirWarning() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val hp = me.hp
+        g.addSpike(me.px, me.py, 32f, 0.5f, 40f, 0xFFFF2E9A)
+        run(g, 0.4f)
+        assertEquals("no damage during the warning", hp, me.hp, 0.01f)
+        run(g, 0.2f)
+        val after = me.hp
+        assertTrue("burst hit", after < hp)
+        me.invuln = 0f
+        run(g, 0.5f)
+        assertEquals("lingering crystals don't hit again", after, me.hp, 0.01f)
+    }
+
+    @Test fun infectionFollowsWhereYouStood() {
+        val g = fight()
+        val me = g.operatives[0]
+        val camp = g.arena.width * 0.25f to g.arena.height * 0.7f
+        // Camp in one spot, then step away.
+        var t = 0f
+        while (t < 5f) { me.px = camp.first; me.py = camp.second; run(g, 0.1f); t += 0.1f }
+        me.px = g.arena.width * 0.75f; me.py = g.arena.height * 0.7f
+        run(g, 0.2f)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Infect(2, 100f, 6f, 18f))
+        val zones = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.INFECTED }
+        assertTrue("zone where you stand", zones.any { kotlin.math.hypot(it.x - me.px, it.y - me.py) < 10f })
+        assertTrue("zone on the spot you camped", zones.any { kotlin.math.hypot(it.x - camp.first, it.y - camp.second) < 90f })
+    }
+
+    @Test fun bloomLeavesSafeLanes() {
+        val g = fight()
+        val b = g.boss!!
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Bloom(3, 26f, lanes = 3))
+        val spikes = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.SPIKE }
+        assertTrue(spikes.size > 10)
+        // Walk each ring's circumference: there must be gaps wider than an operative.
+        for (ring in 1..3) {
+            val rr = 60f + ring * 88f
+            val angles = spikes.filter { kotlin.math.abs(kotlin.math.hypot(it.x - b.x, it.y - b.y) - rr) < 2f }
+                .map { kotlin.math.atan2(it.y - b.y, it.x - b.x) }.sorted()
+            if (angles.isEmpty()) continue
+            val gaps = angles.zipWithNext { a, c -> c - a } + (angles.first() + 2 * Math.PI.toFloat() - angles.last())
+            assertTrue("ring $ring has a lane", gaps.max() * rr > 32f * 2f + g.playerRadius * 2f)
+        }
+    }
+}

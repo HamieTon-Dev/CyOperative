@@ -78,6 +78,27 @@ sealed class Pattern {
         val windup: Float, val duration: Float, val sweepDeg: Float, val width: Float, val damage: Float, val count: Int = 1
     ) : Pattern()
 
+    /**
+     * Burrow Drift: dives underground (can't be hit), tunnels toward you for up
+     * to [travel] s leaving a glowing trail, marks its exit for [telegraph] s,
+     * then erupts ([eruptRadius] blast) with [bloomRings] rings of spikes.
+     */
+    data class Burrow(
+        val travel: Float, val speed: Float, val telegraph: Float, val eruptRadius: Float, val damage: Float, val bloomRings: Int = 0
+    ) : Pattern()
+
+    /** Spike Eruption: [lines] lines of crystal spikes rippling out toward you (8+ lines = all around). */
+    data class SpikeEruption(
+        val lines: Int, val spikes: Int, val spreadDeg: Float, val damage: Float,
+        val spacing: Float = 62f, val radius: Float = 32f, val delay: Float = 0.75f, val step: Float = 0.08f
+    ) : Pattern()
+
+    /** Infected Zone: corrupts where you stand and the spots you've stood in longest. */
+    data class Infect(val count: Int, val radius: Float, val duration: Float, val dps: Float, val telegraph: Float = 1.0f) : Pattern()
+
+    /** Rootkit Bloom: rings of spikes around the boss with [lanes] safe lanes running through them. */
+    data class Bloom(val rings: Int, val damage: Float, val lanes: Int = 3, val radius: Float = 32f, val delay: Float = 0.75f, val ringGap: Float = 0.3f) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -167,6 +188,10 @@ val Pattern.displayName: String
         is Pattern.Lockdown -> "Lockdown Cube"
         is Pattern.SweepBeam -> "Laser Sweep"
         is Pattern.Mortar -> "Pulse Mortar"
+        is Pattern.Burrow -> "Burrow Drift"
+        is Pattern.SpikeEruption -> "Spike Eruption"
+        is Pattern.Infect -> "Infected Zone"
+        is Pattern.Bloom -> "Rootkit Bloom"
     }
 
 object Bosses {
