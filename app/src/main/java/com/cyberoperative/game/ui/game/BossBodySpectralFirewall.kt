@@ -26,6 +26,8 @@ internal object SpectralFirewallBody : BossBody {
     private val BRICK_HOT = Color(0xFFFFD45A)
     private val BRICK = Color(0xFFFF7A1A)
     private val BRICK_DEEP = Color(0xFFD9301A)
+    /** Charred accents on the firewall slabs. */
+    private val CHAR = Color(0xFF2A0A06)
 
     override fun DrawScope.draw(p: BossPose) {
         val r = p.radius
@@ -54,7 +56,8 @@ internal object SpectralFirewallBody : BossBody {
             val a1 = a0 + (6.283f / slots) * 0.78f
             val mid = (a0 + a1) / 2f
             if ((sin(mid) >= 0f) != front) return
-            val h = r * 0.5f * (0.85f + 0.15f * (sin(mid) + 1f) / 2f)
+            // Owner, 2026-10-10: "darker accents and be slightly taller".
+            val h = r * 0.64f * (0.85f + 0.15f * (sin(mid) + 1f) / 2f)
             val flick = 0.85f + 0.15f * sin(t * 11f + i * 2.3f)
             val n = 7
             val slab = Path()
@@ -71,14 +74,45 @@ internal object SpectralFirewallBody : BossBody {
             slab.close()
             val gy = ground - r * 0.1f + sin(mid) * ringR * squash
             drawPath(slab, Brush.verticalGradient(listOf(BRICK_HOT.copy(alpha = 0.95f * flick), BRICK.copy(alpha = 0.92f), BRICK_DEEP.copy(alpha = 0.88f)), startY = gy - h - r * 0.1f, endY = gy + r * 0.1f))
-            drawPath(slab, Color(0xFFFFE7A0).copy(alpha = 0.5f * flick), style = Stroke(1.6f))
-            // Brick seams and flames along the top edge.
+            // Charred base band along the bottom of the wall.
+            val base = Path()
+            for (k in 0..n) {
+                val a = a0 + (a1 - a0) * k / n
+                val x = p.cx + cos(a) * ringR
+                val y = ground - r * 0.1f + sin(a) * ringR * squash - h * 0.2f
+                if (k == 0) base.moveTo(x, y) else base.lineTo(x, y)
+            }
+            for (k in n downTo 0) {
+                val a = a0 + (a1 - a0) * k / n
+                base.lineTo(p.cx + cos(a) * ringR, ground - r * 0.1f + sin(a) * ringR * squash)
+            }
+            base.close()
+            drawPath(base, CHAR.copy(alpha = 0.8f))
+            // Dark mortar: vertical seams and a horizontal course line.
             for (k in 1 until 3) {
                 val a = a0 + (a1 - a0) * k / 3f
                 val x = p.cx + cos(a) * ringR
                 val yb = ground - r * 0.1f + sin(a) * ringR * squash
-                drawLine(BRICK_DEEP.copy(alpha = 0.55f), Offset(x, yb - h), Offset(x, yb), 1.3f)
+                drawLine(CHAR.copy(alpha = 0.85f), Offset(x, yb - h), Offset(x, yb), 2.2f)
             }
+            val course = Path()
+            for (k in 0..n) {
+                val a = a0 + (a1 - a0) * k / n
+                val x = p.cx + cos(a) * ringR
+                val y = ground - r * 0.1f + sin(a) * ringR * squash - h * 0.55f
+                if (k == 0) course.moveTo(x, y) else course.lineTo(x, y)
+            }
+            drawPath(course, CHAR.copy(alpha = 0.7f), style = Stroke(1.8f))
+            // Charred outline and a dark cap along the top edge.
+            drawPath(slab, CHAR, style = Stroke(2.6f))
+            val cap = Path()
+            for (k in 0..n) {
+                val a = a0 + (a1 - a0) * k / n
+                val x = p.cx + cos(a) * ringR
+                val y = ground - r * 0.1f + sin(a) * ringR * squash - h
+                if (k == 0) cap.moveTo(x, y) else cap.lineTo(x, y)
+            }
+            drawPath(cap, CHAR, style = Stroke(4f))
             for (k in 0 until 3) {
                 val a = a0 + (a1 - a0) * (k + 0.5f) / 3f
                 val x = p.cx + cos(a) * ringR

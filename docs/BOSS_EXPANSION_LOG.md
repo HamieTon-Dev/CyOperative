@@ -233,7 +233,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
-| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ⏳ body waiting | Owner card: `boss-concepts/spectral_firewall_card.webp` |
+| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ⏳ revision 2 sent (taller slabs, darker accents) | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller" |
 
 ---
 
@@ -330,3 +330,4 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - While the Firewall Ring attack is pushed out to the walls, the boss's own ring is gone: an
     exposed window.
   - Build this with the attacks.
+- 2026-10-10 — Spectral Firewall revision 2: slabs 28% taller, with a charred outline, dark mortar seams and course line, a dark base band and a dark top cap.
