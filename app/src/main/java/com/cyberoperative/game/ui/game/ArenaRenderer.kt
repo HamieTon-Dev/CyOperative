@@ -1465,6 +1465,21 @@ class ArenaRenderer {
                 HazardKind.KEY_ZONE -> drawKeyZone(h, time)
                 HazardKind.BURN_SECTOR -> drawBurnSector(h, time)
                 HazardKind.MINE -> drawHostileMine(h, time)
+                HazardKind.EGG -> {
+                    // A pulsing egg sac that swells and cracks as it's about to hatch.
+                    val f = (h.timer / h.duration).coerceIn(0f, 1f)
+                    val c = Offset(h.x, h.y - 10f)
+                    val beat = 1f + (0.05f + 0.12f * f) * sin(time * (6f + 14f * f))
+                    drawOval(Color.Black.copy(alpha = 0.35f), Offset(h.x - 18f, h.y - 4f), Size(36f, 10f))
+                    drawOval(Brush.radialGradient(listOf(lighter(col, 0.4f), col, darker(col, 0.3f)), center = Offset(c.x - 4f, c.y - 6f), radius = 26f), Offset(c.x - 16f * beat, c.y - 20f * beat), Size(32f * beat, 40f * beat))
+                    drawOval(darker(col, 0.25f), Offset(c.x - 16f * beat, c.y - 20f * beat), Size(32f * beat, 40f * beat), style = Stroke(2f))
+                    // Something moving inside.
+                    drawCircle(Color.White.copy(alpha = 0.25f + 0.5f * f), 5f + 3f * f, Offset(c.x + sin(time * 7f) * 4f, c.y + cos(time * 5f) * 4f))
+                    if (f > 0.6f) {
+                        drawLine(Color.White.copy(alpha = 0.8f), Offset(c.x - 6f, c.y - 14f), Offset(c.x + 2f, c.y - 2f), 1.6f)
+                        drawLine(Color.White.copy(alpha = 0.8f), Offset(c.x + 2f, c.y - 2f), Offset(c.x - 3f, c.y + 8f), 1.6f)
+                    }
+                }
                 HazardKind.BLAST -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))

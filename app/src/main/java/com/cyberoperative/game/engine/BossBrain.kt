@@ -492,6 +492,26 @@ class BossBrain(private val g: GameEngine) {
             }
             is Pattern.LineWarp -> lineWarp(e, st, p)
             is Pattern.DashSlash, is Pattern.BacklineDive -> {}
+            is Pattern.SwarmHatch -> {
+                for (k in 0 until p.eggs) {
+                    val a = MathUtil.TWO_PI * k / p.eggs + g.rng.nextFloat() * 0.5f
+                    val d = e.radius + 70f + g.rng.nextFloat() * 120f
+                    g.addEgg(MathUtil.clamp(e.x + cos(a) * d, 40f, g.arena.width - 40f), MathUtil.clamp(e.y + sin(a) * d, 40f, g.arena.height - 40f), p.hatch, p.perEgg + st.cycle, st.def.color)
+                }
+                g.addPulse(e.x, e.y, e.radius * 2f, 0.4f, st.def.color)
+            }
+            is Pattern.CorruptionTrail -> { st.spiralAcc = 0f }
+            is Pattern.QueenRoar -> {
+                g.addShockRing(e.x, e.y, p.maxRadius, p.speed, p.damage * e.damageMul, st.def.color)
+                g.addPulse(e.x, e.y, e.radius * 2.5f, 0.5f, 0xFFFFFFFF)
+                g.fx.shake(8f, 0.45f)
+                for (m in g.enemies.items) {
+                    if (!m.active || m.boss != null) continue
+                    if (m.hasteTimer <= 0f) { m.hasteMul = p.haste; m.speed *= p.haste }
+                    m.hasteTimer = p.seconds
+                }
+                g.showBanner("QUEEN ROAR", "Her swarm surges", 1.0f)
+            }
             is Pattern.Scythes -> {
                 val aim = atan2(g.py - e.y, g.px - e.x)
                 val spread = Math.toRadians(p.spreadDeg.toDouble()).toFloat()
@@ -1052,6 +1072,24 @@ class BossBrain(private val g: GameEngine) {
             }
             is Pattern.LineWarp -> return st.patternTime >= 0.4f + p.beamWindup + 0.3f
             is Pattern.DashSlash -> return runDashSlash(e, st, p, dt)
+            is Pattern.SwarmHatch -> return st.patternTime >= 0.6f
+            is Pattern.QueenRoar -> return st.patternTime >= 0.6f
+            is Pattern.CorruptionTrail -> {
+                // Surges after you (on top of her normal movement) and drops pools as she goes.
+                val dx = g.px - e.x; val dy = g.py - e.y
+                val d = kotlin.math.sqrt(dx * dx + dy * dy)
+                if (d > e.radius) {
+                    val step = e.speed * (p.speedMul - 1f) * dt
+                    g.arena.pushOut(e.x + dx / d * step, e.y + dy / d * step, e.radius)
+                    e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                }
+                st.spiralAcc += dt
+                if (st.spiralAcc >= 0.3f) {
+                    st.spiralAcc = 0f
+                    g.addZone(e.x, e.y, p.poolRadius, p.poolLife, p.dps * e.damageMul, st.def.color, telegraph = 0.35f, kind = HazardKind.INFECTED)
+                }
+                return st.patternTime >= p.duration
+            }
             is Pattern.Scythes -> return st.patternTime >= p.flight * 0.6f
             is Pattern.BacklineDive -> return runBacklineDive(e, st, p, dt)
             is Pattern.CrossBeam -> return st.patternTime >= p.windup + p.duration

@@ -28,6 +28,9 @@ class Enemy {
     var damageMul = 1f
     var attackRateMul = 1f
     var damageTakenMul = 1f
+    /** Queen Roar: extra speed for this long (speed is restored when it runs out). */
+    var hasteTimer = 0f
+    var hasteMul = 1f
     var rewardMul = 1f
 
     var state = AiState.SPAWNING
@@ -206,7 +209,9 @@ enum class HazardKind {
      * Packet scythe on a boomerang loop from ([Hazard.x], [Hazard.y]) along [Hazard.angle]:
      * out [Hazard.maxRadius] and back, bulging [Hazard.windup] sideways. Current spot in x2/y2.
      */
-    SCYTHE
+    SCYTHE,
+    /** Worm Queen egg: pulses for [Hazard.duration] s, then hatches [Hazard.tick] swarmlings. */
+    EGG
 }
 
 class Hazard {

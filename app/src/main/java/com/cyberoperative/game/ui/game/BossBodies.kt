@@ -73,7 +73,8 @@ object BossBodies {
         "ransom_king" to RansomKingBody,
         "spectral_firewall" to SpectralFirewallBody,
         "pulse_bishop" to PulseBishopBody,
-        "packet_reaper" to PacketReaperBody
+        "packet_reaper" to PacketReaperBody,
+        "worm_queen" to WormQueenBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]

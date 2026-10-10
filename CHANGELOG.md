@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.9 (versionCode 31) — 2026-10-10 · Worm Queen
+### Added
+- **Worm Queen** (Boss Pack Alpha) is the **level 170** boss: SUMMONER, threat HIGH, base bounty
+  €326. Her body is a huge dark armoured brood-sphere with crimson spikes and a glowing pink core,
+  sitting in a spreading corruption pool with swarmlings crawling over her.
+  - **Swarm Hatch:** pulsing egg sacs land around her, then crack and hatch into packs of
+    **swarmlings**, a new small spiked enemy.
+  - **Corruption Trail:** she surges after you, leaving infected pools along her path.
+  - **Spike Burst:** rings of crystal spikes burst outward, with safe lanes through them.
+  - **Queen Roar:** a shockwave, and her whole swarm surges at extra speed for a few seconds.
+  - **Phases:** PHASE 1 → BROOD SURGE → INFESTATION.
+
 ## 0.11.8 (versionCode 30) — 2026-10-10 · Packet Reaper
 ### Added
 - **Packet Reaper** (Boss Pack Alpha) is the **level 160** boss: ASSASSIN, threat HIGH, base bounty

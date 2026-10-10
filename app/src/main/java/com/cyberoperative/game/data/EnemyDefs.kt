@@ -235,7 +235,21 @@ object Enemies {
     /** Originals plus the 338 strain × code variants (see [EnemyVariants]). */
     val glitched: List<EnemyDef> = listOf(GLITCH_DAEMON, GLITCH_SHARD, GLITCH_HYDRA)
 
-    val all: List<EnemyDef> = originals + glitched + EnemyVariants.all
+    // --- Boss Expansion adds (never spawned on their own; bosses bring them) ---
+
+    /** Worm Queen's brood: a small spiked red orb that rushes in packs. */
+    val SWARMLING = EnemyDef(
+        id = "swarmling", name = "SWARMLING", tag = "*",
+        codex = "Hatched from the Worm Queen's eggs. Tiny, spiked and never alone.",
+        shape = ShapeKind.STAR, color = 0xFFFF2D6A, radius = 15f,
+        baseHp = 22f, baseSpeed = 150f, contactDamage = 9f, ai = AiKind.SWARMER,
+        xp = 1f, euros = 1, score = 6, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
+    )
+
+    /** Expansion adds, appended last so existing indices (co-op wire, saves) never shift. */
+    val expansion: List<EnemyDef> = listOf(SWARMLING)
+
+    val all: List<EnemyDef> = originals + glitched + EnemyVariants.all + expansion
 
     private val byId = all.associateBy { it.id }
 

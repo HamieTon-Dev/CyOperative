@@ -831,3 +831,32 @@ class PacketReaperTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         assertTrue("appeared behind (below) the operative", b.y > me.py)
     }
 }
+
+class WormQueenTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.WORM_QUEEN }, 170) {
+    @Test fun eggsHatchIntoSwarmlings() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SwarmHatch(3, 1.0f, 3))
+        assertTrue(hazards(g, com.cyberoperative.game.engine.HazardKind.EGG).size >= 2)
+        run(g, 1.2f)
+        assertTrue("hatched", g.enemies.items.count { it.active && it.def.id == "swarmling" } >= 6)
+    }
+
+    @Test fun trailLeavesInfectedPools() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CorruptionTrail(2f, 1.6f, 55f, 7f, 16f))
+        run(g, 2.1f)
+        assertTrue(hazards(g, com.cyberoperative.game.engine.HazardKind.INFECTED).size >= 4)
+    }
+
+    @Test fun roarHastesTheSwarmThenWearsOff() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SwarmHatch(2, 0.3f, 3))
+        run(g, 0.5f)
+        val s = g.enemies.items.first { it.active && it.def.id == "swarmling" }
+        val base = s.speed
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.QueenRoar(380f, 230f, 20f, 1.6f, 1f))
+        assertEquals(base * 1.6f, s.speed, 0.5f)
+        run(g, 1.2f)
+        assertEquals("speed restored", base, s.speed, 0.5f)
+    }
+}

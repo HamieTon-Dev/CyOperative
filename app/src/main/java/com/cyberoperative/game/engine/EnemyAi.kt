@@ -29,6 +29,10 @@ class EnemyAi(private val g: GameEngine) {
             g.focusNearest(e.x, e.y)
             if (e.hitFlash > 0f) e.hitFlash -= dt
             if (e.contactCooldown > 0f) e.contactCooldown -= dt
+            if (e.hasteTimer > 0f) {
+                e.hasteTimer -= dt
+                if (e.hasteTimer <= 0f) { e.speed /= e.hasteMul; e.hasteMul = 1f }
+            }
             if (e.state == AiState.SPAWNING) {
                 e.stateTimer -= dt
                 if (e.stateTimer <= 0f) e.state = AiState.MOVE

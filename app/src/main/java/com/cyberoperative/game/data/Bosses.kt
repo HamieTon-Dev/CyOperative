@@ -166,6 +166,15 @@ sealed class Pattern {
     /** Backline Dive: vanishes, marks a spot behind you for [warn] s, then dives through you. */
     data class BacklineDive(val warn: Float, val speed: Float, val damage: Float) : Pattern()
 
+    /** Swarm Hatch: [eggs] eggs land around her and hatch after [hatch] s into [perEgg] swarmlings each. */
+    data class SwarmHatch(val eggs: Int, val hatch: Float, val perEgg: Int) : Pattern()
+
+    /** Corruption Trail: she surges after you for [duration] s, leaving infected pools along her path. */
+    data class CorruptionTrail(val duration: Float, val speedMul: Float, val poolRadius: Float, val poolLife: Float, val dps: Float) : Pattern()
+
+    /** Queen Roar: a shockwave, and her swarm surges ([haste]× speed for [seconds] s). */
+    data class QueenRoar(val maxRadius: Float, val speed: Float, val damage: Float, val haste: Float, val seconds: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -282,6 +291,9 @@ val Pattern.displayName: String
         is Pattern.DashSlash -> if (trail) "Trail Burst" else "Dash Slash"
         is Pattern.Scythes -> "Packet Scythes"
         is Pattern.BacklineDive -> "Backline Dive"
+        is Pattern.SwarmHatch -> "Swarm Hatch"
+        is Pattern.CorruptionTrail -> "Corruption Trail"
+        is Pattern.QueenRoar -> "Queen Roar"
     }
 
 object Bosses {

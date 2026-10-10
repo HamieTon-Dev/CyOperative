@@ -535,6 +535,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.radius = 30f; h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = -1
     }
 
+    /** Worm Queen egg; see [HazardKind.EGG]. */
+    fun addEgg(x: Float, y: Float, hatch: Float, count: Int, color: Long) {
+        if (!arena.isFree(x, y, 16f)) return
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.EGG
+        h.x = x; h.y = y; h.radius = 20f; h.timer = 0f; h.duration = hatch; h.tick = count.toFloat()
+        h.damage = 0f; h.color = color; h.hitMask = 0; h.ownerUid = -1
+    }
+
     /** Hostile mine; see [HazardKind.MINE]. */
     fun addMine(x: Float, y: Float, arm: Float, life: Float, radius: Float, damage: Float, color: Long) {
         if (!arena.isFree(x, y, 14f)) return
@@ -2473,6 +2482,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
         e.damageTakenMul = elite?.damageTakenMul ?: 1f
+        e.hasteTimer = 0f; e.hasteMul = 1f
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
         e.state = if (telegraph) AiState.SPAWNING else AiState.MOVE
         e.stateTimer = if (telegraph) SPAWN_TELEGRAPH else 0f
@@ -2913,6 +2923,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     }
                 }
                 HazardKind.SLASH -> if (h.timer >= h.duration) h.active = false
+                HazardKind.EGG -> if (h.timer >= h.duration) {
+                    h.active = false
+                    val def = com.cyberoperative.game.data.Enemies.SWARMLING
+                    for (k in 0 until h.tick.toInt()) {
+                        if (aliveCount() >= com.cyberoperative.game.core.Scaling.MAX_ALIVE) break
+                        val a = MathUtil.TWO_PI * k / h.tick
+                        spawnEnemyAt(def, null, h.x + cos(a) * 18f, h.y + sin(a) * 18f, telegraph = false)?.isChild = true
+                    }
+                    addPulse(h.x, h.y, 50f, 0.3f, h.color)
+                    repeat(8) { addParticle(h.x, h.y, h.color, 180f, 0.4f, 3f) }
+                }
                 HazardKind.SCYTHE -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
                     val u = h.timer / h.duration

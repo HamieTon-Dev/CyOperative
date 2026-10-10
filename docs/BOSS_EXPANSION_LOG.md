@@ -234,8 +234,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] C3 Packet Reaper (v0.11.8, autonomous)
 - [ ] C4 S8 multi-part bodies
 - [ ] C5 Circuit Hydra
-- [ ] C6 S9 eggs + minion buffs
-- [ ] C7 Worm Queen
+- [x] C6 S9 eggs + minion buffs (HazardKind.EGG, Enemy.hasteTimer)
+- [x] C7 Worm Queen (v0.11.9, autonomous)
 - [ ] C8 Renders + reference page update + bot-beatable tests
 
 ### Stage D — Boss Pack Beta (v0.11.3)
@@ -275,6 +275,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks ✅ approved; Firewall Ring waves raised to 1/3/4 by phase ("phase three… push more than two rings… 3 on phase 2 and 4 rings on phase 3") | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
 | Pulse Bishop | 2026-10-10 | 🤖 built autonomously (owner delegated) | card: boss_pack_beta_cards.webp |
 | Packet Reaper | 2026-10-10 | 🤖 built autonomously | card: packet_reaper_card.png |
+| Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
 
 ---
 
@@ -394,3 +395,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     → 0.45 s fuse) and ConvergenceFlash (`Operative.pulled`, wire v7).
   - The body is drawn at radius 80. Tests: PulseBishopTest.
 - 2026-10-10 — v0.11.8 (30): Packet Reaper (autonomous). Patterns DashSlash (+trail), Scythes (HazardKind.SCYTHE boomerang loop), BacklineDive; HazardKind.SLASH crescent. Tests: PacketReaperTest.
+- 2026-10-10 — v0.11.9 (31): Worm Queen (autonomous).
+  - New enemy SWARMLING, appended as `Enemies.expansion` so indices are stable.
+  - Patterns SwarmHatch (HazardKind.EGG), CorruptionTrail and QueenRoar (`Enemy.hasteTimer/hasteMul`);
+    Spike Burst reuses Bloom.
+  - Tests: WormQueenTest.
