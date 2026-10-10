@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.11.4 (versionCode 26) — 2026-10-10 · Ransom King
+### Added
+- **Ransom King** (Boss Pack Gamma) is the **level 210** boss: LOCKDOWN, threat HIGH, base bounty
+  €362. Owner-approved body: a block-golem king with an evil cursed crown.
+  - **Key Zone:** he fights ENCRYPTED, with a red lock-shield dome that cuts his damage taken to a
+    quarter.
+    - Golden key zones appear around the arena. Each one shows a fill meter and a timer.
+    - Stand in a zone to unlock it. Once every zone in the wave is unlocked, he's DECRYPTED for
+      6 s and takes 50% extra damage, then the shield reforms.
+    - The boss bar tells you which state he's in.
+  - **Lock Grid:** walls of padlocked red cubes rise across the arena near you, sealing it into
+    sections. Every wall has openings, and walls never rise on top of you.
+  - **Royal Seizure:** a golden crown-slam circle marks your spot. If it catches you, you're
+    SEIZED (can't move, gold chains) for about a second, inside a padlock cage with one side
+    open, away from him.
+  - **Ransom Pulse:** rings of lock-light with padlocks ride outward. A ring that tags you makes
+    you ENCRYPTED for 3.5 s, shown by a padlock and a meter over your head. Standing still is
+    safe, but moving fills the meter, and when it's full the ransom bursts on you.
+  - **Phases:** PHASE 1 → RANSOM DEMAND → TOTAL LOCKDOWN.
+### Changed
+- Boss cubes can now sit flush against each other to form solid walls.
+- Co-op wire format v5: shield, cube style and SEIZED/ENCRYPTED states are synced, and a seized
+  guest can't move. Both players need this version.
+
 ## 0.11.3 (versionCode 25) — 2026-10-10 · Nullshade Specter
 ### Added
 - **Nullshade Specter**, the EXTREME "Blackout Hunter", is the **level 240** boss. It also turns up

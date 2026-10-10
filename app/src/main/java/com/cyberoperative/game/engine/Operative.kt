@@ -19,6 +19,12 @@ class Operative(val index: Int, baseStats: RunStats) {
     var moving = false
     var invuln = 0f
     var hurtFlash = 0f
+    /** SEIZED by Royal Seizure: can't move for this long. */
+    var rooted = 0f
+    /** ENCRYPTED by Ransom Pulse: time left, movement charge 0..1 and the burst it will deal. */
+    var encrypted = 0f
+    var encryptCharge = 0f
+    var encryptDamage = 0f
     var inputX = 0f
     var inputY = 0f
     var fireCooldown = 0f

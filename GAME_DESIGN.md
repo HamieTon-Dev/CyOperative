@@ -137,6 +137,12 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Blackout overlay at alpha 0.985 (0.935 while its eyes are open); light bubble 175 units.
   - Eye windows: open 2.8/2.0/1.7 s, shut 2.6/1.9/1.5 s by phase; it can't be hit while shut.
   - Ghost Dash hits once per pass.
+- Ransom King (L210):
+  - Key shield: ×0.25 damage while up; every key zone of a wave (1.3 s each to unlock) breaks it,
+    then ×1.5 for 6 s.
+  - Lock Grid walls 7 s with 2 gaps of 3 cubes.
+  - Royal Seizure roots 1.0–1.2 s plus a 3.5 s cage.
+  - ENCRYPTED 3.5 s; 1.1 s of movement bursts it (1.8× ring damage).
 - Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.

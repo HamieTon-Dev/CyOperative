@@ -191,6 +191,21 @@ internal object RansomKingBody : BossBody {
         for (s in listOf(-1f, 1f)) drawCircle(Color(0xFF7A0A12), r * 0.035f, Offset(cx + s * cw * 0.3f, bandTop + r * 0.1f))
 
         for (i in 0 until locks) lockCube(i, front = true)
+
+        // Ransom shield: a red hex-lattice dome while he's ENCRYPTED.
+        if (p.shield > 0f) {
+            val dc = Offset(p.cx, p.cy - r * 0.15f)
+            val dr = r * 1.55f
+            drawCircle(red.copy(alpha = 0.08f * p.shield), dr, dc)
+            drawCircle(red.copy(alpha = (0.5f + 0.2f * pulse) * p.shield), dr, dc, style = Stroke(2.5f))
+            for (k in 0 until 14) {
+                val a = k * 0.449f + t * 0.3f
+                val hx = dc.x + cos(a) * dr * 0.78f
+                val hy = dc.y + sin(a) * dr * 0.78f
+                drawPath(polyPath(hx, hy, ngon(6, r * 0.16f, 0.52f)), red.copy(alpha = 0.25f * p.shield), style = Stroke(1.4f))
+            }
+            padlock(Offset(dc.x, dc.y - dr - r * 0.05f), r * 0.32f, Color(0xFFFFC233).copy(alpha = 0.85f * p.shield))
+        }
     }
 
     /** Padlock glyph: shackle arc over a body with a keyhole. */

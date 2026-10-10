@@ -567,6 +567,16 @@ internal fun BossHealthBar(h: HudSnapshot) {
             }
             drawRoundRect(color.copy(alpha = 0.9f * flicker), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
+        if (h.bossShield >= 0) {
+            // Ransom King: shielded until the key zones are captured.
+            val up = h.bossShield == 1
+            Text(
+                if (up) "🔒 ENCRYPTED — CAPTURE THE KEY ZONES" else "🔓 DECRYPTED — HIT HIM NOW",
+                color = if (up) Color(0xFFFFC233) else Color(0xFFFF3B3B),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         if (h.bossLock >= 0) {
             // Nullshade: you can only lock on while its eyes are open.
             val open = h.bossLock == 1

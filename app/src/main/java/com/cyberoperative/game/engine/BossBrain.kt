@@ -45,6 +45,10 @@ class BossState(val def: BossDef, val cycle: Int) {
     var blackedOut = false
     /** Operatives already hit by the current dash (bit per operative). */
     var dashHits = 0
+    /** Ransom shield (Ransom King): up, key zones still to capture, seconds until it reforms. */
+    var shieldUp = true
+    var keysLeft = 0
+    var shieldTimer = 0f
     val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
@@ -131,6 +135,7 @@ class BossBrain(private val g: GameEngine) {
 
         if (st.glitched) glitchBurst(e, st, dt)
         if (st.def.stealth) stealth(e, st, dt)
+        if (st.def.keyShield) ransomShield(e, st, dt)
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash) && st.chargeStage == 1
         val teleporting = st.active is Pattern.Teleport
@@ -180,6 +185,41 @@ class BossBrain(private val g: GameEngine) {
         e.untargetable = !st.eyesOpen
         val target = if (st.eyesOpen) 0f else 1f
         g.bossVeil += (target - g.bossVeil) * kotlin.math.min(1f, dt * 6f)
+    }
+
+    /**
+     * Ransom shield: while up he takes a quarter damage. Capturing every key
+     * zone of a Key Zone wave breaks it for [DECRYPT_SECONDS] (he takes extra
+     * damage), then it reforms.
+     */
+    private fun ransomShield(e: Enemy, st: BossState, dt: Float) {
+        if (!st.shieldUp) {
+            st.shieldTimer -= dt
+            if (st.shieldTimer <= 0f) {
+                st.shieldUp = true
+                g.addPulse(e.x, e.y, e.radius * 2.2f, 0.5f, st.def.color)
+                g.showBanner("RE-ENCRYPTED", "Capture the key zones to break his shield", 1.3f)
+            }
+        }
+        e.damageTakenMul = if (st.shieldUp) SHIELD_DAMAGE_MUL else DECRYPTED_DAMAGE_MUL
+        g.bossShield = if (st.shieldUp) 1f else 0f
+    }
+
+    /** A key zone was unlocked; the last one of the wave breaks the shield. */
+    internal fun keyCaptured() {
+        val e = g.boss ?: return
+        val st = e.boss ?: return
+        if (!st.def.keyShield || !st.shieldUp) return
+        st.keysLeft--
+        if (st.keysLeft > 0) return
+        st.shieldUp = false
+        st.shieldTimer = DECRYPT_SECONDS
+        g.addPulse(e.x, e.y, e.radius * 3f, 0.6f, 0xFFFFC233)
+        repeat(40) { g.addParticle(e.x, e.y - e.radius, 0xFFFFC233, 360f, 0.8f, 3.5f) }
+        g.fx.hitStop(0.08f)
+        g.fx.flash(0xFFFFC233, 0.3f, 0.35f)
+        g.fx.shake(8f, 0.4f)
+        g.showBanner("DECRYPTED", "Shield down — hit him now", 1.4f)
     }
 
     /** *GLITCHED* boss: on top of its own patterns, a random corrupted volley every few seconds. */
@@ -337,7 +377,92 @@ class BossBrain(private val g: GameEngine) {
                 }
             }
             is Pattern.GhostDash, is Pattern.Needles, is Pattern.SparkAmbush, is Pattern.GridSurge -> {}
+            is Pattern.KeyZone -> keyZones(e, st, p)
+            is Pattern.LockGrid -> lockGrid(e, p)
+            is Pattern.RoyalSeizure -> {
+                st.anchorX = g.px; st.anchorY = g.py
+                g.addBlast(g.px, g.py, p.radius, p.delay, p.damage * e.damageMul, 0xFFFFC233)
+                g.addPulse(e.x, e.y - e.radius, 70f, 0.3f, 0xFFFFC233)
+            }
+            is Pattern.RansomPulse -> {}
             is Pattern.Bloom -> bloom(e.x, e.y, p.rings, p.lanes, p.delay, p.ringGap, p.radius, p.damage * e.damageMul, st.def.color)
+        }
+    }
+
+    /** Golden key zones spread around the arena, away from walls and each other. */
+    private fun keyZones(e: Enemy, st: BossState, p: Pattern.KeyZone) {
+        if (!st.shieldUp) return
+        for (h in g.hazards.items) if (h.active && h.kind == HazardKind.KEY_ZONE) h.active = false
+        var placed = 0
+        var tries = 0
+        val spots = ArrayList<Pair<Float, Float>>()
+        while (placed < p.count && tries++ < 60) {
+            val x = 80f + g.rng.nextFloat() * (g.arena.width - 160f)
+            val y = 140f + g.rng.nextFloat() * (g.arena.height - 260f)
+            if (!g.arena.isFree(x, y, p.radius * 0.6f)) continue
+            if (MathUtil.dist(x, y, e.x, e.y) < e.radius + p.radius + 60f) continue
+            if (spots.any { MathUtil.dist(x, y, it.first, it.second) < p.radius * 3f }) continue
+            spots += x to y
+            g.addKeyZone(x, y, p.radius, p.duration, 0xFFFFC233)
+            placed++
+        }
+        st.keysLeft = placed
+        if (placed > 0) g.showBanner("KEY ZONES", "Stand in them to break his shield", 1.2f)
+    }
+
+    /**
+     * Walls of padlocked cubes across the arena near the operative, alternating
+     * horizontal and vertical, each with [Pattern.LockGrid.gaps] openings three
+     * cubes wide, never through the operative.
+     */
+    private fun lockGrid(e: Enemy, p: Pattern.LockGrid) {
+        val size = CUBE * 2f
+        for (line in 0 until p.lines) {
+            val horizontal = line % 2 == 0
+            val side = if (g.rng.nextBoolean()) 1f else -1f
+            var off = side * (95f + g.rng.nextFloat() * 90f + (line / 2) * 120f)
+            val length = if (horizontal) g.arena.width else g.arena.height
+            // Keep the wall inside the room: if it would land past a wall, put it on the other side of you.
+            val span = if (horizontal) g.arena.height else g.arena.width
+            val at = (if (horizontal) g.py else g.px) + off
+            if (at < 90f || at > span - 90f) off = -off
+            val n = (length / size).toInt()
+            val gapAt = IntArray(p.gaps) { 1 + g.rng.nextInt((n - 4).coerceAtLeast(1)) }
+            for (k in 0 until n) {
+                if (gapAt.any { k >= it && k < it + 3 }) continue
+                val along = (k + 0.5f) * size
+                val x = if (horizontal) along else g.px + off
+                val y = if (horizontal) g.py + off else along
+                g.addBarrier(x, y, CUBE, p.rise, p.life, clearance = 6f, style = Barrier.STYLE_LOCK)
+            }
+        }
+        g.addPulse(e.x, e.y, 160f, 0.4f, 0xFFFF3B3B)
+    }
+
+    /** Padlock cage around a Royal Seizure impact, open on the side away from the king. */
+    private fun seizureCage(e: Enemy, cx: Float, cy: Float, life: Float) {
+        val size = CUBE * 2f
+        val inner = 95f
+        val reach = inner + CUBE
+        val perSide = ((reach * 2f) / size).toInt() + 1
+        val away = atan2(cy - e.y, cx - e.x)
+        val preferred = (((away / (MathUtil.TWO_PI / 4f)).let { kotlin.math.round(it).toInt() } % 4) + 4) % 4
+        val order = intArrayOf(preferred, (preferred + 1) % 4, (preferred + 3) % 4, (preferred + 2) % 4)
+        val openSide = order.firstOrNull { side ->
+            val ex = cx + SIDE_X[side] * (reach + 70f)
+            val ey = cy + SIDE_Y[side] * (reach + 70f)
+            g.arena.isFree(ex, ey, g.playerRadius + 4f) && g.arena.lineOfSight(cx, cy, ex, ey, g.playerRadius)
+        } ?: return
+        for (side in 0 until 4) for (k in 0 until perSide) {
+            val t = -reach + k * (reach * 2f / (perSide - 1))
+            if (side == openSide && kotlin.math.abs(t) < size * 1.1f) continue
+            val (x, y) = when (side) {
+                0 -> (cx + reach) to (cy + t)
+                1 -> (cx + t) to (cy + reach)
+                2 -> (cx - reach) to (cy + t)
+                else -> (cx + t) to (cy - reach)
+            }
+            g.addBarrier(x, y, CUBE, 0.35f, life, clearance = 4f, style = Barrier.STYLE_LOCK)
         }
     }
 
@@ -649,6 +774,34 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.Beam -> return st.patternTime >= p.windup + p.duration
             is Pattern.SweepBeam -> return st.patternTime >= p.windup + p.duration
             is Pattern.Burrow -> return runBurrow(e, st, p, dt)
+            is Pattern.KeyZone -> return st.patternTime >= 0.5f
+            is Pattern.LockGrid -> return st.patternTime >= p.rise
+            is Pattern.RoyalSeizure -> {
+                if (st.counter == 0 && st.patternTime >= p.delay) {
+                    st.counter = 1
+                    // The crown comes down: anyone in the circle is seized and caged.
+                    var caught = false
+                    g.forEachOperativeHit(st.anchorX, st.anchorY, p.radius + g.playerRadius * 0.6f, 0) { _ ->
+                        g.root(p.root)
+                        caught = true
+                    }
+                    g.addPulse(st.anchorX, st.anchorY, p.radius * 1.6f, 0.45f, 0xFFFFC233)
+                    repeat(24) { g.addParticle(st.anchorX, st.anchorY, 0xFFFFC233, 280f, 0.6f, 3f) }
+                    g.fx.shake(7f, 0.35f)
+                    if (caught) seizureCage(e, st.anchorX, st.anchorY, p.cageLife)
+                }
+                return st.patternTime >= p.delay + 0.4f
+            }
+            is Pattern.RansomPulse -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f) {
+                    g.addRansomRing(e.x, e.y, p.maxRadius, p.speed, p.damage * e.damageMul, st.def.color)
+                    g.addPulse(e.x, e.y, 80f, 0.3f, 0xFFFFC233)
+                    st.counter++
+                    st.subTimer = p.gap
+                }
+                return st.counter >= p.rings && st.subTimer <= p.gap * 0.5f
+            }
             is Pattern.GhostDash -> return runGhostDash(e, st, p, dt)
             is Pattern.Needles -> {
                 st.subTimer -= dt
@@ -749,6 +902,10 @@ class BossBrain(private val g: GameEngine) {
         const val INTRO_SECONDS = 3.2f
         /** Half the size of a barrier cube. */
         const val CUBE = 24f
+        /** Damage the Ransom King takes with his shield up / broken. */
+        const val SHIELD_DAMAGE_MUL = 0.25f
+        const val DECRYPTED_DAMAGE_MUL = 1.5f
+        const val DECRYPT_SECONDS = 6f
         private val SIDE_X = floatArrayOf(1f, 0f, -1f, 0f)
         private val SIDE_Y = floatArrayOf(0f, 1f, 0f, -1f)
         const val INTRO_BAR_END = 1.4f

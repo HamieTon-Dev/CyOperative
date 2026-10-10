@@ -124,6 +124,7 @@ class ArenaRenderer {
             drawSorted(g, time, skin, body)
             drawXray(g, time)
             drawOrbitFront(g, time)
+            drawStatuses(g, time)
             if (g.darknessNow > 0.01f) {
                 drawDarkness(g, time)
                 // Telegraphs must still be readable in the dark.
@@ -637,7 +638,7 @@ class ArenaRenderer {
         ObstacleKind.ENERGY_BARRIER -> 22f
         ObstacleKind.ANTENNA_TOWER -> 128f
         ObstacleKind.SHOP_COUNTER -> 40f
-        ObstacleKind.BARRIER_CUBE -> BARRIER_HEIGHT
+        ObstacleKind.BARRIER_CUBE, ObstacleKind.LOCK_CUBE -> BARRIER_HEIGHT
     }
 
     private data class Look(val top: Color, val front: Color, val trim: Color)
@@ -662,6 +663,7 @@ class ArenaRenderer {
             ObstacleKind.ANTENNA_TOWER -> Look(Color(0xFF26303F), Color(0xFF181F2A), Palette.Red)
             ObstacleKind.SHOP_COUNTER -> Look(Color(0xFF2B2416), Color(0xFF1C170D), Palette.Gold)
             ObstacleKind.BARRIER_CUBE -> Look(Color(0xFF26324F), Color(0xFF111A2E), Palette.Red)
+            ObstacleKind.LOCK_CUBE -> Look(Color(0xFF5A1418), Color(0xFF2E080C), Color(0xFFFF3B3B))
         }
     }
 
@@ -898,6 +900,13 @@ class ArenaRenderer {
                 drawCircle(Palette.Red.copy(alpha = if (on) 0.35f else 0.08f), 12f, Offset(r.centerX, topY - 6f))
                 drawCircle(Palette.Red.copy(alpha = if (on) 1f else 0.25f), 4f, Offset(r.centerX, topY - 6f))
             }
+            ObstacleKind.LOCK_CUBE -> {
+                // Ransom King's cube: glowing red with a padlock on its face.
+                val p = 0.5f + 0.5f * sin(time * 4f + index)
+                drawRect(Color(0xFFFF3B3B).copy(alpha = 0.18f + 0.12f * p), Offset(r.left, frontTop), Size(r.width, h))
+                drawPadlock(Offset(r.centerX, frontTop + h * 0.55f), r.width * 0.5f, Color(0xFFFF8A80).copy(alpha = 0.7f + 0.3f * p))
+                drawRect(Color(0xFFFF3B3B).copy(alpha = 0.35f), Offset(r.left + 4f, topY + 4f), Size(r.width - 8f, r.height - 8f), style = Stroke(1.4f))
+            }
             ObstacleKind.BARRIER_CUBE -> {
                 // Vault Sentinel's cubes: a lit seam across the face and a lock glyph on top.
                 val p = 0.5f + 0.5f * sin(time * 4f + index)
@@ -991,7 +1000,8 @@ class ArenaRenderer {
             val pose = BossPose(
                 cx, cy, e.radius, base, time, boss.phaseIndex, e.state == AiState.WINDUP, e.hitFlash > 0f,
                 kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch,
-                veiled = if (boss.def.stealth) g.bossVeil else 0f
+                veiled = if (boss.def.stealth) g.bossVeil else 0f,
+                shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else 0f
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1443,6 +1453,7 @@ class ArenaRenderer {
                     }
                 }
                 HazardKind.INFECTED -> drawInfected(h, col, time)
+                HazardKind.KEY_ZONE -> drawKeyZone(h, time)
                 HazardKind.BLAST -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))
@@ -1552,6 +1563,7 @@ class ArenaRenderer {
             val k = if (rising) (b.timer / b.rise).coerceIn(0f, 1f)
             else 1f - ((b.timer - b.rise - b.life) / com.cyberoperative.game.engine.Barrier.SINK_SECONDS).coerceIn(0f, 1f)
             val w = b.half * 2f
+            val lock = b.style == com.cyberoperative.game.engine.Barrier.STYLE_LOCK
             val blink = if (rising && ((time * 10f).toInt() % 2 == 0)) 1f else 0.6f
             drawRect(Palette.Red.copy(alpha = 0.12f + 0.18f * k), Offset(b.left, b.top), Size(w, w))
             drawRect(Palette.Red.copy(alpha = 0.9f * blink), Offset(b.left, b.top), Size(w, w), style = Stroke(2.5f))
@@ -1566,9 +1578,64 @@ class ArenaRenderer {
             // The cube itself, coming up (or going down) through the floor.
             val hh = BARRIER_HEIGHT * k * k
             if (hh > 2f) {
-                drawRect(Color(0xFF111A2E).copy(alpha = 0.85f), Offset(b.left, b.bottom - hh), Size(w, hh))
-                drawRect(Color(0xFF26324F).copy(alpha = 0.85f), Offset(b.left, b.top - hh), Size(w, w))
+                drawRect((if (lock) Color(0xFF2E080C) else Color(0xFF111A2E)).copy(alpha = 0.85f), Offset(b.left, b.bottom - hh), Size(w, hh))
+                drawRect((if (lock) Color(0xFF5A1418) else Color(0xFF26324F)).copy(alpha = 0.85f), Offset(b.left, b.top - hh), Size(w, w))
                 drawRect(Palette.Red.copy(alpha = 0.8f), Offset(b.left, b.top - hh), Size(w, w), style = Stroke(2f))
+            }
+        }
+    }
+
+    /** Padlock glyph: shackle arc over a body with a keyhole. */
+    private fun DrawScope.drawPadlock(c: Offset, s: Float, col: Color) {
+        drawArc(col, 180f, 180f, false, Offset(c.x - s * 0.28f, c.y - s * 0.62f), Size(s * 0.56f, s * 0.56f), style = Stroke(s * 0.1f))
+        drawRect(col, Offset(c.x - s * 0.38f, c.y - s * 0.34f), Size(s * 0.76f, s * 0.6f))
+        drawCircle(Color(0xFF14040A), s * 0.08f, Offset(c.x, c.y - s * 0.1f))
+        drawRect(Color(0xFF14040A), Offset(c.x - s * 0.03f, c.y - s * 0.08f), Size(s * 0.06f, s * 0.16f))
+    }
+
+    /** Golden key zone: a diamond with a warning sign that fills as you stand in it. */
+    private fun DrawScope.drawKeyZone(h: com.cyberoperative.game.engine.Hazard, time: Float) {
+        val gold = Color(0xFFFFC233)
+        val c = Offset(h.x, h.y)
+        val pulse = 0.5f + 0.5f * sin(time * 5f + h.x)
+        val fade = ((h.duration - h.timer) / 1.5f).coerceIn(0.35f, 1f)
+        val d = floatArrayOf(0f, -h.radius, h.radius * 1.25f, 0f, 0f, h.radius, -h.radius * 1.25f, 0f)
+        drawPath(polyPath(h.x, h.y, d), gold.copy(alpha = (0.12f + 0.08f * pulse) * fade))
+        // Unlock progress fills the diamond from the middle out.
+        if (h.windup > 0f) {
+            val k = h.windup.coerceIn(0f, 1f)
+            val di = FloatArray(d.size) { d[it] * k }
+            drawPath(polyPath(h.x, h.y, di), gold.copy(alpha = 0.45f))
+        }
+        drawPath(polyPath(h.x, h.y, d), gold.copy(alpha = (0.75f + 0.25f * pulse) * fade), style = Stroke(3f))
+        // Warning triangle.
+        val tri = floatArrayOf(0f, -h.radius * 0.38f, h.radius * 0.36f, h.radius * 0.26f, -h.radius * 0.36f, h.radius * 0.26f)
+        drawPath(polyPath(h.x, h.y, tri), gold.copy(alpha = 0.9f * fade), style = Stroke(2.5f))
+        drawLine(gold.copy(alpha = 0.9f * fade), Offset(h.x, h.y - h.radius * 0.16f), Offset(h.x, h.y + h.radius * 0.06f), 2.5f)
+        drawCircle(gold.copy(alpha = 0.9f * fade), 2f, Offset(h.x, h.y + h.radius * 0.15f))
+        // Timer arc: how long the zone stays.
+        val left = (1f - h.timer / h.duration).coerceIn(0f, 1f)
+        drawArc(gold.copy(alpha = 0.5f), -90f, 360f * left, false, Offset(h.x - h.radius * 1.4f, h.y - h.radius * 1.4f), Size(h.radius * 2.8f, h.radius * 2.8f), style = Stroke(2f))
+    }
+
+    /** SEIZED (gold chains round the feet) and ENCRYPTED (padlock over the head with its burst meter). */
+    private fun DrawScope.drawStatuses(g: GameEngine, time: Float) {
+        for (o in g.operatives) {
+            if (!o.alive) continue
+            if (o.rooted > 0f) {
+                val c = Offset(o.px, o.py)
+                for (k in 0 until 10) {
+                    val a = k * 0.628f + time * 2f
+                    drawOval(Color(0xFFFFC233).copy(alpha = 0.85f), Offset(c.x + cos(a) * 26f - 4f, c.y + sin(a) * 9f - 3f), Size(8f, 6f), style = Stroke(2f))
+                }
+                drawPadlock(Offset(c.x + 22f, c.y - 4f), 16f, Color(0xFFFFC233))
+            }
+            if (o.encrypted > 0f) {
+                val c = Offset(o.px, o.py - 78f)
+                val blink = if (o.encryptCharge > 0.7f && ((time * 12f).toInt() % 2 == 0)) 1f else 0.85f
+                drawCircle(Color(0xFF14040A).copy(alpha = 0.7f), 15f, c)
+                drawArc(Color(0xFFFF3B3B).copy(alpha = blink), -90f, 360f * o.encryptCharge, false, Offset(c.x - 15f, c.y - 15f), Size(30f, 30f), style = Stroke(3.5f))
+                drawPadlock(Offset(c.x, c.y + 4f), 16f, Color(0xFFFF3B3B).copy(alpha = blink))
             }
         }
     }
@@ -1619,6 +1686,16 @@ class ArenaRenderer {
             if (!h.active) continue
             val col = Color(h.color)
             when (h.kind) {
+                HazardKind.RANSOM_RING -> {
+                    // A ring of red lock-light with padlocks riding it.
+                    drawCircle(col.copy(alpha = 0.75f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.2f))
+                    drawCircle(Color(0xFFFFC233).copy(alpha = 0.7f), h.radius, Offset(h.x, h.y), style = Stroke(2.5f))
+                    val n = 8
+                    for (k in 0 until n) {
+                        val a = k * 6.283f / n + h.timer * 0.8f
+                        drawPadlock(Offset(h.x + cos(a) * h.radius, h.y + sin(a) * h.radius + 6f), 16f, Color(0xFFFFC233))
+                    }
+                }
                 HazardKind.SHOCK_RING -> {
                     drawCircle(col.copy(alpha = 0.8f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.4f))
                     drawCircle(Color.White.copy(alpha = 0.5f), h.radius, Offset(h.x, h.y), style = Stroke(3f))

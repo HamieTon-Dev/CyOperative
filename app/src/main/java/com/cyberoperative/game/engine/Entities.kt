@@ -178,7 +178,11 @@ enum class HazardKind {
      */
     SPIKE,
     /** A ZONE drawn as rootkit infection (Rootkit Apostle's Infected Zone); same damage rules. */
-    INFECTED
+    INFECTED,
+    /** Golden key zone (Ransom King): stand in it to unlock it; [Hazard.windup] is the unlock progress 0..1. */
+    KEY_ZONE,
+    /** Ransom Pulse ring: like SHOCK_RING, and the operative it tags is ENCRYPTED. */
+    RANSOM_RING
 }
 
 class Hazard {
@@ -208,7 +212,7 @@ class Hazard {
  * Barrier cube raised out of the floor by a boss (Boss Expansion S6). Telegraphed
  * for [rise] seconds, solid (a real obstacle) for [life], then sinks.
  */
-class Barrier(val x: Float, val y: Float, val half: Float, val rise: Float, val life: Float) {
+class Barrier(val x: Float, val y: Float, val half: Float, val rise: Float, val life: Float, val style: Int = 0) {
     var timer = 0f
     val solid: Boolean get() = timer >= rise && timer < rise + life
     val done: Boolean get() = timer >= rise + life + SINK_SECONDS
@@ -217,7 +221,12 @@ class Barrier(val x: Float, val y: Float, val half: Float, val rise: Float, val 
     val right get() = x + half
     val bottom get() = y + half
 
-    companion object { const val SINK_SECONDS = 0.35f }
+    companion object {
+        const val SINK_SECONDS = 0.35f
+        /** [style] values: Vault Sentinel's cube, Ransom King's padlocked cube. */
+        const val STYLE_VAULT = 0
+        const val STYLE_LOCK = 1
+    }
 }
 
 /** Purely visual expanding ring (EMP, explosions, level clear). */

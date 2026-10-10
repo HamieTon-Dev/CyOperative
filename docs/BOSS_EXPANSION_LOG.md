@@ -212,7 +212,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] E1 S11 darkness, light bubble, eye glints, power-restore sequence
 - [x] E2 Nullshade Specter (v0.11.3)
 - [x] E3 Rootkit Apostle (built early, v0.11.2)
-- [ ] E4 Ransom King
+- [x] E4 Ransom King (v0.11.4)
 - [ ] E5 Spectral Firewall
 - [ ] E6 Renders + tests
 
@@ -232,7 +232,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
-| Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ⏳ revision 3 sent (evil cursed crown, level) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
+| Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
 
 ---
 
@@ -301,3 +301,13 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Def: slot 9 (L210), LOCKDOWN, HIGH, base €362; provisional patterns; `designed` only.
 - 2026-10-10 — Ransom King revision 2: the crown is 1.2× head width and tilted, with 7 sharp two-tone gold spikes fanning out at uneven heights and angles, a skewed band with gems and flames behind.
 - 2026-10-10 — Ransom King revision 3: the crown is level again; blackened iron-gold bent thorn spikes with red-hot cracks, a slit-pupil eye gem, smoky crimson fire and ember drips.
+- 2026-10-10 — v0.11.4 (26): Ransom King attacks.
+  - Key shield: `BossDef.keyShield`, BossBrain.ransomShield/keyCaptured, damage ×0.25 shielded and
+    ×1.5 for 6 s once decrypted. HazardKind.KEY_ZONE has its progress in `windup` (synced).
+  - LockGrid (Barrier.STYLE_LOCK → ObstacleKind.LOCK_CUBE). Walls flip inside the room, cubes can
+    sit flush.
+  - RoyalSeizure: `Operative.rooted`; the host ignores a seized guest's position and the guest mirror
+    doesn't move.
+  - RansomPulse: HazardKind.RANSOM_RING → `encrypt()`; moving fills the burst meter over 1.1 s.
+  - HUD shield line and status markers over the operatives. Co-op wire v5.
+  - The bot captures key zones. Tests: RansomKingTest.

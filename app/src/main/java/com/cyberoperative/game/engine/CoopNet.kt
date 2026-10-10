@@ -62,6 +62,8 @@ class CoopWorld {
     var darkness = 0f
     var lightFlicker = 0f
     var bossVeil = 0f
+    /** Ransom shield (v5): 1 up, 0 broken, -1 none. */
+    var bossShield = -1f
 }
 
 class NetOp {
@@ -70,6 +72,8 @@ class NetOp {
     var orbAngle = 0f; var bladeAngle = 0f; var targetUid = -1
     var beamActive = false; var beamX2 = 0f; var beamY2 = 0f; var beamHeat = 0f; var beamCooldown = 0f
     var downed = false; var reviveProgress = 0f; var gone = false
+    /** Statuses (v5): SEIZED time, ENCRYPTED time and its burst meter. */
+    var rooted = 0f; var encrypted = 0f; var encryptCharge = 0f
     var pending = 0; var rerolls = 0; var batchTotal = 0; var batchTaken = 0
     /** Owned upgrades: index into Upgrades.all → level. */
     val owned = LinkedHashMap<Int, Int>()
@@ -182,6 +186,7 @@ object CoopCodec {
                 o.sec(p.invuln); o.sec(p.hurtFlash); o.ang(p.orbAngle); o.ang(p.bladeAngle); o.var32(p.targetUid + 1)
                 if (p.beamActive) { o.pos(p.beamX2); o.pos(p.beamY2) }
                 o.sec(p.beamHeat); o.sec(p.beamCooldown); o.sec(p.reviveProgress)
+                o.sec(p.rooted); o.sec(p.encrypted); o.writeByte((p.encryptCharge * 255f).toInt().coerceIn(0, 255))
                 o.var32(p.pending); o.var32(p.rerolls); o.var32(p.batchTotal); o.var32(p.batchTaken)
                 o.var32(p.owned.size)
                 for ((k, v) in p.owned) { o.var32(k); o.var32(v) }
@@ -240,11 +245,12 @@ object CoopCodec {
 
             o.var32(w.barriers.size)
             for (b in w.barriers) {
-                o.pos(b[0]); o.pos(b[1]); o.pos(b[2]); o.sec(b[3]); o.sec(b[4]); o.sec(b[5])
+                o.pos(b[0]); o.pos(b[1]); o.pos(b[2]); o.sec(b[3]); o.sec(b[4]); o.sec(b[5]); o.writeByte(b.getOrElse(6) { 0f }.toInt())
             }
             o.writeByte((w.darkness * 255f).toInt().coerceIn(0, 255))
             o.sec(w.lightFlicker)
             o.writeByte((w.bossVeil * 255f).toInt().coerceIn(0, 255))
+            o.writeByte((w.bossShield + 1f).toInt().coerceIn(0, 2))
         }
         return bytes.toByteArray()
     }
@@ -274,6 +280,7 @@ object CoopCodec {
                 p.invuln = i.sec(); p.hurtFlash = i.sec(); p.orbAngle = i.ang(); p.bladeAngle = i.ang(); p.targetUid = i.var32() - 1
                 if (p.beamActive) { p.beamX2 = i.pos(); p.beamY2 = i.pos() }
                 p.beamHeat = i.sec(); p.beamCooldown = i.sec(); p.reviveProgress = i.sec()
+                p.rooted = i.sec(); p.encrypted = i.sec(); p.encryptCharge = i.readUnsignedByte() / 255f
                 p.pending = i.var32(); p.rerolls = i.var32(); p.batchTotal = i.var32(); p.batchTaken = i.var32()
                 repeat(i.var32()) { val k = i.var32(); p.owned[k] = i.var32() }
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
@@ -338,10 +345,11 @@ object CoopCodec {
             }
 
             repeat(i.var32()) { w.sounds += GameSound.entries[i.readUnsignedByte()] }
-            repeat(i.var32()) { w.barriers += floatArrayOf(i.pos(), i.pos(), i.pos(), i.sec(), i.sec(), i.sec()) }
+            repeat(i.var32()) { w.barriers += floatArrayOf(i.pos(), i.pos(), i.pos(), i.sec(), i.sec(), i.sec(), i.readUnsignedByte().toFloat()) }
             w.darkness = i.readUnsignedByte() / 255f
             w.lightFlicker = i.sec()
             w.bossVeil = i.readUnsignedByte() / 255f
+            w.bossShield = i.readUnsignedByte() - 1f
             w
         }
     } catch (_: Exception) {
@@ -371,5 +379,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 4
+    const val VERSION = 5
 }

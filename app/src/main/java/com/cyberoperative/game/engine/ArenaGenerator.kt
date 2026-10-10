@@ -226,7 +226,7 @@ object ArenaGenerator {
         ObstacleKind.ENERGY_BARRIER -> 170f to 26f
         ObstacleKind.ANTENNA_TOWER -> 36f to 36f
         ObstacleKind.SHOP_COUNTER -> 320f to 50f
-        ObstacleKind.BARRIER_CUBE -> 52f to 52f
+        ObstacleKind.BARRIER_CUBE, ObstacleKind.LOCK_CUBE -> 52f to 52f
     }
 
     private fun decor(height: Float, obstacles: List<ObstacleSpec>, rng: Random): List<DecorSpec> {

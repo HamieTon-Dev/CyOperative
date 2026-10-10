@@ -54,6 +54,8 @@ data class HudSnapshot(
     val bossAbilities: List<String> = emptyList(),
     /** Stealth boss: 1 eyes open (lock on), 0 in the shadows, -1 not a stealth boss. */
     val bossLock: Int = -1,
+    /** Ransom shield: 1 up, 0 broken, -1 not a shield boss. */
+    val bossShield: Int = -1,
     /** Seconds into the boss entrance (quantized), or -1 when none is running. */
     val bossIntro: Float = -1f,
     val bossPercent: Int = 0,
@@ -360,6 +362,7 @@ class GameSession(
             bossTag = b?.boss?.def?.tag ?: "",
             bossColor = b?.boss?.def?.color ?: 0,
             bossRole = b?.boss?.def?.role?.label ?: "",
+            bossShield = if (b?.boss?.def?.keyShield == true && g.bossIntroElapsed < 0f && g.bossShield >= 0f) (if (g.bossShield > 0.5f) 1 else 0) else -1,
             bossLock = if (b?.boss?.def?.stealth == true && g.bossIntroElapsed < 0f) (if (g.bossVeil > 0.5f || b.state == com.cyberoperative.game.engine.AiState.HIDDEN) 0 else 1) else -1,
             bossRoleColor = b?.boss?.def?.role?.color ?: 0,
             bossTier = b?.boss?.def?.tier ?: 0,

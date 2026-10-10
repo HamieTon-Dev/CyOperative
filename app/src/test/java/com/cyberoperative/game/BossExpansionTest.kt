@@ -363,3 +363,103 @@ class NullshadeSpecterTest {
         assertEquals(0.18f, back.lightFlicker, 0.01f)
     }
 }
+
+/** Ransom King: key-zone shield, lock grid, royal seizure root + cage, ransom pulse encryption, co-op sync. */
+class RansomKingTest {
+
+    private fun fight(): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = 17L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(210, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.RANSOM_KING, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.2f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    private fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    @Test fun capturingEveryKeyZoneBreaksTheShield() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        run(g, 0.1f)
+        assertEquals("shield up", 1f, g.bossShield, 0f)
+        assertEquals(BossBrain.SHIELD_DAMAGE_MUL, b.damageTakenMul, 0.001f)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.KeyZone(2, 58f, 30f))
+        val zones = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.KEY_ZONE }
+        assertEquals(2, zones.size)
+        for (z in zones.toList()) {
+            var t = 0f
+            while (t < 2f && z.active) { me.px = z.x; me.py = z.y; run(g, 0.05f); t += 0.05f }
+            assertTrue("zone unlocked", !z.active)
+        }
+        assertEquals("shield broken", 0f, g.bossShield, 0f)
+        assertEquals(BossBrain.DECRYPTED_DAMAGE_MUL, b.damageTakenMul, 0.001f)
+        run(g, BossBrain.DECRYPT_SECONDS + 0.2f)
+        assertEquals("shield reforms", 1f, g.bossShield, 0f)
+    }
+
+    @Test fun lockGridWallsHaveGaps() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.LockGrid(1, 6f))
+        run(g, 1.2f)
+        val cubes = g.barriers.filter { it.solid && it.style == com.cyberoperative.game.engine.Barrier.STYLE_LOCK }
+        assertTrue("a wall rose", cubes.size >= 8)
+        val across = (g.arena.width / (BossBrain.CUBE * 2f)).toInt()
+        assertTrue("the wall has openings", cubes.size <= across - 3)
+        assertTrue(g.arena.obstacles.any { it.kind == com.cyberoperative.game.data.ObstacleKind.LOCK_CUBE })
+    }
+
+    @Test fun royalSeizureRootsAndCages() {
+        val g = fight()
+        val me = g.operatives[0]
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.RoyalSeizure(105f, 0.6f, 20f, 1.0f, 3f))
+        run(g, 0.7f)
+        assertTrue("seized", me.rooted > 0f)
+        val x = me.px; val y = me.py
+        run(g, 0.5f, 1f to 0f)
+        assertEquals("can't move while seized", x, me.px, 0.01f)
+        assertEquals(y, me.py, 0.01f)
+        assertTrue("caged", g.barriers.count { it.style == com.cyberoperative.game.engine.Barrier.STYLE_LOCK } >= 6)
+        run(g, 0.6f)
+        assertEquals(0f, me.rooted, 0f)
+    }
+
+    @Test fun encryptedMovementBurstsTheRansom() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.RansomPulse(1, 0.5f, 900f, 300f, 10f))
+        var t = 0f
+        while (t < 4f && me.encrypted <= 0f) { run(g, 0.05f); t += 0.05f }
+        assertTrue("tagged by the ring", me.encrypted > 0f)
+        // Standing still: nothing happens.
+        val hp = me.hp
+        run(g, 0.5f)
+        assertEquals(hp, me.hp, 0.01f)
+        // Moving charges the burst.
+        run(g, 1.3f, 0f to 1f)
+        assertTrue("ransom burst on the move", me.hp < hp)
+        assertEquals(0f, me.encrypted, 0f)
+    }
+
+    @Test fun statusesTravelToTheGuest() {
+        val w = com.cyberoperative.game.engine.CoopWorld()
+        w.bossShield = 1f
+        w.barriers += floatArrayOf(100f, 200f, 24f, 1f, 6f, 2f, 1f)
+        w.ops += com.cyberoperative.game.engine.NetOp().apply { rooted = 0.8f; encrypted = 2f; encryptCharge = 0.5f }
+        val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
+        assertEquals(1f, back.bossShield, 0f)
+        assertEquals(1f, back.barriers[0][6], 0f)
+        assertEquals(0.8f, back.ops[0].rooted, 0.01f)
+        assertEquals(2f, back.ops[0].encrypted, 0.01f)
+        assertEquals(0.5f, back.ops[0].encryptCharge, 0.01f)
+    }
+}

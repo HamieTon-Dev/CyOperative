@@ -37,6 +37,13 @@ class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
     }
 
     private fun combat(dt: Float) {
+        // Like a player: go and unlock any key zone (Ransom King's shield).
+        val key = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.KEY_ZONE }
+            .minByOrNull { MathUtil.dist2(it.x, it.y, g.px, g.py) }
+        if (key != null && g.operatives[0].rooted <= 0f) {
+            if (MathUtil.dist2(key.x, key.y, g.px, g.py) > (key.radius * 0.5f) * (key.radius * 0.5f)) goTo(key.x, key.y, dt) else g.setInput(0f, 0f)
+            return
+        }
         if (dodge) {
             if (dodgeTimer > 0f) {
                 dodgeTimer -= dt

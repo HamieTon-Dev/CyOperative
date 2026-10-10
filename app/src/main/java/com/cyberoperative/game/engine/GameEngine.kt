@@ -471,6 +471,59 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** What the renderer shows right now. */
     val darknessNow: Float get() = if (lightFlicker > 0f) darkness * 0.35f else darkness
 
+    /** Ransom shield on the current boss: 1 = up (reduced damage), 0 = broken, -1 = no shield boss. */
+    var bossShield = -1f
+
+    /** Golden key zone (see [HazardKind.KEY_ZONE]). */
+    fun addKeyZone(x: Float, y: Float, radius: Float, duration: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.KEY_ZONE
+        h.x = x; h.y = y; h.radius = radius
+        h.timer = 0f; h.duration = duration; h.windup = 0f; h.damage = 0f; h.color = color
+        h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** Ransom Pulse ring (see [HazardKind.RANSOM_RING]). */
+    fun addRansomRing(x: Float, y: Float, maxRadius: Float, speed: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.RANSOM_RING
+        h.x = x; h.y = y; h.radius = 10f; h.maxRadius = maxRadius
+        h.timer = 0f; h.duration = maxRadius / speed; h.damage = damage; h.color = color
+        h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** SEIZED: the current operative can't move for [seconds]. */
+    fun root(seconds: Float) {
+        cur.rooted = max(cur.rooted, seconds)
+        addText(px, py - 44f, "SEIZED", TextKind.PLAYER_HURT)
+    }
+
+    /** ENCRYPTED: for [ENCRYPT_SECONDS], moving charges a burst of [burst] damage. */
+    fun encrypt(burst: Float) {
+        cur.encrypted = ENCRYPT_SECONDS
+        cur.encryptCharge = 0f
+        cur.encryptDamage = burst
+        addText(px, py - 44f, "ENCRYPTED", TextKind.PLAYER_HURT)
+    }
+
+    /** Ticks SEIZED / ENCRYPTED on the current operative (host). */
+    private fun updateStatuses(dt: Float) {
+        if (cur.rooted > 0f) cur.rooted = max(0f, cur.rooted - dt)
+        if (cur.encrypted > 0f) {
+            cur.encrypted = max(0f, cur.encrypted - dt)
+            if (moving) cur.encryptCharge += dt / ENCRYPT_MOVE_SECONDS
+            if (cur.encryptCharge >= 1f) {
+                // Moved too much while encrypted: the ransom bursts.
+                cur.encrypted = 0f; cur.encryptCharge = 0f
+                damagePlayer(cur.encryptDamage, px, py, ignoreInvuln = true)
+                addPulse(px, py, 120f, 0.4f, 0xFFFF3B3B)
+                repeat(14) { addParticle(px, py, 0xFFFFC233, 240f, 0.5f, 3f) }
+                if (cur === ops[primary]) fx.shake(6f, 0.3f)
+            }
+            if (cur.encrypted <= 0f) cur.encryptCharge = 0f
+        }
+    }
+
     /** Calls [hit] with the operative's bit for each live operative within [radius] not yet in [mask]. */
     internal inline fun forEachOperativeHit(x: Float, y: Float, radius: Float, mask: Int, hit: (Int) -> Unit) {
         for (o in ops) {
@@ -730,7 +783,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         fx.clear()
-        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f
+        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f
+        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f }
         updateAdaptive()
         skipShopPrompt = false
         topGateLocked = false
@@ -1471,7 +1525,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         // Movement. A co-op guest moves its own operative and reports where it is.
         val mag = sqrt(inputX * inputX + inputY * inputY)
         moving = if (cur.remote) cur.netMoving else mag > MOVE_DEADZONE
-        if (cur.remote) {
+        updateStatuses(dt)
+        if (cur.remote && cur.rooted > 0f) {
+            // SEIZED: the guest's reported position is ignored until it breaks free.
+            stillTime += dt
+        } else if (cur.remote) {
             arena.pushOut(cur.netX, cur.netY, playerRadius)
             px = arena.out[0]
             py = arena.out[1]
@@ -1480,7 +1538,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 stillTime = 0f
                 followUpLeft = 0
             } else stillTime += dt
-        } else if (moving) {
+        } else if (moving && cur.rooted <= 0f) {
             val m = min(1f, mag)
             val speed = s.moveSpeed * m
             val nx = px + inputX / mag * speed * dt
@@ -2651,15 +2709,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * Raises a cube centred on ([x], [y]) if the spot is inside the room, clear of
      * walls, other cubes, the boss and every operative. Returns whether it rose.
      */
-    fun addBarrier(x: Float, y: Float, half: Float, rise: Float, life: Float, clearance: Float = 26f): Boolean {
+    fun addBarrier(x: Float, y: Float, half: Float, rise: Float, life: Float, clearance: Float = 26f, style: Int = Barrier.STYLE_VAULT): Boolean {
         if (x - half < 24f || y - half < 24f || x + half > arena.width - 24f || y + half > arena.height - 24f) return false
         val r = com.cyberoperative.game.core.Rect(x - half, y - half, x + half, y + half)
         for (i in 0 until arena.obstacles.size) if (arena.rect(i).let { it.left < r.right + 4f && it.right > r.left - 4f && it.top < r.bottom + 4f && it.bottom > r.top - 4f }) return false
-        for (b in barriers) if (b.left < r.right + 2f && b.right > r.left - 2f && b.top < r.bottom + 2f && b.bottom > r.top - 2f) return false
+        // Cubes may sit flush against each other (walls), just not overlap.
+        for (b in barriers) if (b.left < r.right - 0.5f && b.right > r.left + 0.5f && b.top < r.bottom - 0.5f && b.bottom > r.top + 0.5f) return false
         for (o in ops) if (!o.gone && r.intersectsCircle(o.px, o.py, playerRadius + clearance)) return false
         val b = boss
         if (b != null && r.intersectsCircle(b.x, b.y, b.radius + 12f)) return false
-        barriers += Barrier(x, y, half, rise, life)
+        barriers += Barrier(x, y, half, rise, life, style)
         return true
     }
 
@@ -2689,7 +2748,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun rebuildArena() {
         val extra = ArrayList<com.cyberoperative.game.data.ObstacleSpec>()
         for (b in barriers) if (b.solid) extra += com.cyberoperative.game.data.ObstacleSpec(
-            com.cyberoperative.game.core.Rect(b.left, b.top, b.right, b.bottom), com.cyberoperative.game.data.ObstacleKind.BARRIER_CUBE
+            com.cyberoperative.game.core.Rect(b.left, b.top, b.right, b.bottom),
+            if (b.style == Barrier.STYLE_LOCK) com.cyberoperative.game.data.ObstacleKind.LOCK_CUBE else com.cyberoperative.game.data.ObstacleKind.BARRIER_CUBE
         )
         if (vaultPresent) extra += Arena.vaultObstacle(plan.arena)
         arena = Arena(plan.arena, extra)
@@ -2741,6 +2801,32 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                                 h.hitMask = h.hitMask or bit
                                 damagePlayer(h.damage, h.x, h.y)
                             }
+                        }
+                    }
+                }
+                HazardKind.KEY_ZONE -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    var inside = false
+                    forEachAlive { if (MathUtil.dist2(px, py, h.x, h.y) < h.radius * h.radius) inside = true }
+                    h.windup = if (inside) h.windup + dt / KEY_CAPTURE_SECONDS else max(0f, h.windup - dt * 0.25f)
+                    if (h.windup >= 1f) {
+                        h.active = false
+                        addPulse(h.x, h.y, h.radius * 1.8f, 0.5f, 0xFFFFC233)
+                        repeat(18) { addParticle(h.x, h.y, 0xFFFFC233, 220f, 0.6f, 3f) }
+                        addText(h.x, h.y - 30f, "UNLOCKED", TextKind.INFO)
+                        sound(GameSound.ACCESS_GRANTED)
+                        bossBrain.keyCaptured()
+                    }
+                }
+                HazardKind.RANSOM_RING -> {
+                    h.radius = 10f + (h.maxRadius - 10f) * (h.timer / h.duration)
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit == 0 && kotlin.math.abs(MathUtil.dist(px, py, h.x, h.y) - h.radius) < RING_THICKNESS + playerRadius * 0.5f) {
+                            h.hitMask = h.hitMask or bit
+                            damagePlayer(h.damage, h.x, h.y)
+                            encrypt(h.damage * 1.8f)
                         }
                     }
                 }
@@ -2984,6 +3070,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val n = NetOp()
             n.x = o.px; n.y = o.py; n.hp = o.hp; n.firewall = o.firewall; n.facing = o.facing
             n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
+            n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge
             n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
@@ -3046,8 +3133,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             w.pulses += n
         }
         w.sounds += sounds.take(16)
-        for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer)
-        w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil
+        for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
+        w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
         return w
     }
 
@@ -3087,8 +3174,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             rebuildArena()
         }
         barriers.clear()
-        for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4]).also { it.timer = n[5] }
-        darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil
+        for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
+        darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
@@ -3110,6 +3197,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val hostPlaces = !local || newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
             if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
             o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
+            o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge
             if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
             o.targetUid = n.targetUid
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
@@ -3207,7 +3295,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val me = ops[primary]
         if (me.alive && phase != Phase.UPGRADE && phase != Phase.DEAD && phase != Phase.TRANSITION && slideIn <= 0f) {
             val mag = sqrt(me.inputX * me.inputX + me.inputY * me.inputY)
-            me.moving = mag > MOVE_DEADZONE
+            if (me.rooted > 0f) me.rooted = max(0f, me.rooted - dt)
+            me.moving = mag > MOVE_DEADZONE && me.rooted <= 0f
             if (me.moving) {
                 val speed = stats.moveSpeed * min(1f, mag)
                 arena.pushOut(me.px + me.inputX / mag * speed * dt, me.py + me.inputY / mag * speed * dt, playerRadius)
@@ -3305,6 +3394,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val MAX_FRAME = 0.1f
         /** How far a sweeping laser reaches when nothing stops it. */
         const val SWEEP_LENGTH = 1500f
+        /** Seconds standing in a key zone to unlock it. */
+        const val KEY_CAPTURE_SECONDS = 1.3f
+        /** How long ENCRYPTED lasts, and how much moving fills its burst meter. */
+        const val ENCRYPT_SECONDS = 3.5f
+        const val ENCRYPT_MOVE_SECONDS = 1.1f
         /** How long burst crystal spikes stay on screen (no damage after the burst). */
         const val SPIKE_LINGER = 0.7f
         /** Grid size for tracking where operatives stand (Infected Zone). */

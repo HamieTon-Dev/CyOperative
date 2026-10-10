@@ -114,6 +114,21 @@ sealed class Pattern {
     /** Grid Reboot Surge: rapid EMP rings while the lights stutter on and off. */
     data class GridSurge(val rings: Int, val gap: Float, val maxRadius: Float, val speed: Float, val damage: Float) : Pattern()
 
+    /** Key Zone: golden zones appear; standing in each until it unlocks breaks the ransom shield once all are taken. */
+    data class KeyZone(val count: Int, val radius: Float, val duration: Float) : Pattern()
+
+    /** Lock Grid: [lines] walls of padlocked cubes seal the arena into sections, each wall with [gaps] openings. */
+    data class LockGrid(val lines: Int, val life: Float, val rise: Float = 1.0f, val gaps: Int = 2) : Pattern()
+
+    /**
+     * Royal Seizure: a crown slam on your spot; anyone caught is SEIZED (can't move)
+     * for [root] s inside a padlock cage with one side open.
+     */
+    data class RoyalSeizure(val radius: Float, val delay: Float, val damage: Float, val root: Float, val cageLife: Float) : Pattern()
+
+    /** Ransom Pulse: lock rings expand from the king; a ring that tags you ENCRYPTS you (moving charges a burst). */
+    data class RansomPulse(val rings: Int, val gap: Float, val maxRadius: Float, val speed: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -178,7 +193,9 @@ data class BossDef(
     /** Hidden between eye windows; only targetable while visible (Nullshade). */
     val stealth: Boolean = false,
     /** Named signature abilities for the dossier card and codex; derived from the patterns when empty. */
-    val abilities: List<String> = emptyList()
+    val abilities: List<String> = emptyList(),
+    /** Ransom shield: takes reduced damage until every key zone is captured (Ransom King). */
+    val keyShield: Boolean = false
 ) {
     /** Up to [max] ability names: the named ones, or one per distinct pattern kind. */
     fun abilityNames(max: Int = 4): List<String> =
@@ -211,6 +228,10 @@ val Pattern.displayName: String
         is Pattern.Needles -> "Static Needles"
         is Pattern.SparkAmbush -> "Spark Ambush"
         is Pattern.GridSurge -> "Grid Reboot Surge"
+        is Pattern.KeyZone -> "Key Zone"
+        is Pattern.LockGrid -> "Lock Grid"
+        is Pattern.RoyalSeizure -> "Royal Seizure"
+        is Pattern.RansomPulse -> "Ransom Pulse"
     }
 
 object Bosses {

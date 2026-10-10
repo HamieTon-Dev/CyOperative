@@ -93,7 +93,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         /** Spots (arena fractions) the operative stands in for 1.5 s each first. */
         val camp: List<Pair<Float, Float>> = emptyList(),
         /** Final touch before the capture (e.g. force a stealth boss's eyes open or shut). */
-        val after: (com.cyberoperative.game.engine.GameEngine) -> Unit = {}
+        val after: (com.cyberoperative.game.engine.GameEngine) -> Unit = {},
+        /** Seconds to keep running after [after] before the capture. */
+        val afterHold: Float = 0f
     )
 
     private fun attack(def: BossDef, a: AttackShot) {
@@ -142,6 +144,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
             hold(wait)
         }
         a.after(g)
+        if (a.afterHold > 0f) hold(a.afterHold)
+        // Don't catch the boss mid hit-flash in a screenshot.
+        g.boss?.hitFlash = 0f
         if (a.name != "atk1_emp_blackout") g.showBanner("", "", 0f)
         g.sounds.clear()
         compose.mainClock.autoAdvance = false
@@ -274,8 +279,23 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk5_spark_ambush_marked", listOf(Pattern.SparkAmbush(0.9f, 90f, 30f, 12) to 0.55f)),
                 AttackShot("atk6_spark_ambush_burst", listOf(Pattern.SparkAmbush(0.9f, 90f, 30f, 12) to 1.0f), after = { g -> eyes(g, true) }),
                 AttackShot("atk7_grid_reboot_surge", listOf(Pattern.GridSurge(3, 0.55f, 420f, 270f, 26f) to 0.62f), after = { g -> g.lightFlicker = 0.18f })
+            ),
+            "ransom_king" to listOf(
+                AttackShot("atk1_key_zones_shielded", listOf(Pattern.KeyZone(3, 58f, 11f) to 0.8f)),
+                AttackShot("atk2_key_zone_unlocking", listOf(Pattern.KeyZone(3, 58f, 11f) to 0.3f), after = { g -> zoneUnder(g, 1) }, afterHold = 0.8f),
+                AttackShot("atk3_decrypted_shield_down", listOf(Pattern.KeyZone(1, 58f, 11f) to 0.3f), after = { g -> zoneUnder(g, 1) }, afterHold = 1.7f),
+                AttackShot("atk4_lock_grid", listOf(Pattern.LockGrid(2, 7f) to 1.4f)),
+                AttackShot("atk5_royal_seizure_marked", listOf(Pattern.RoyalSeizure(110f, 1.0f, 28f, 1.1f, 3.5f) to 0.6f)),
+                AttackShot("atk6_seized_and_caged", listOf(Pattern.RoyalSeizure(110f, 0.8f, 28f, 1.5f, 3.5f) to 1.25f)),
+                AttackShot("atk7_ransom_pulse_encrypted", listOf(Pattern.RansomPulse(2, 0.6f, 440f, 240f, 22f) to 1.7f), after = { g -> g.operatives[0].encryptCharge = 0.6f })
             )
         )
+
+        /** Moves [n] key zones under the operative so they get unlocked during the hold. */
+        private fun zoneUnder(g: com.cyberoperative.game.engine.GameEngine, n: Int) {
+            val me = g.operatives[0]
+            g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.KEY_ZONE }.take(n).forEach { it.x = me.px; it.y = me.py }
+        }
 
         /** Force a stealth boss's eyes open (lockable) or shut (in the shadows). */
         private fun eyes(g: com.cyberoperative.game.engine.GameEngine, open: Boolean) {

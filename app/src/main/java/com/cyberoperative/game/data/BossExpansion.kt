@@ -122,8 +122,9 @@ object BossExpansion {
      * Ransom King (Boss Pack Gamma 02, LOCKDOWN). A malware king that locks down
      * sections of the arena, creates key zones and punishes movement with
      * seizing attacks; poor positioning means confinement and heavy penalties.
-     * Patterns are provisional until Key Zone / Lock Grid / Royal Seizure /
-     * Ransom Pulse are built.
+     * Starts ENCRYPTED (takes a quarter damage) until you capture every key
+     * zone; Lock Grid walls seal sections, Royal Seizure roots and cages you,
+     * Ransom Pulse ENCRYPTS you so moving bursts the ransom on you.
      */
     val RANSOM_KING = BossDef(
         "ransom_king", "RANSOM KING", "[K$]", "Malware King",
@@ -131,21 +132,27 @@ object BossExpansion {
             "with seizing attacks. Poor positioning leads to confinement and heavy penalties.",
         0xFFFF3B3B, 74f, 2640f, 60f, 29f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
-                Pattern.CoverDeploy(4, 7f),
-                Pattern.ShockRing(360f, 210f, 24f)
+                Pattern.KeyZone(2, 58f, 11f),
+                Pattern.RansomPulse(2, 0.7f, 420f, 230f, 22f),
+                Pattern.LockGrid(1, 7f),
+                Pattern.RoyalSeizure(105f, 1.1f, 28f, 1.0f, 3.5f)
             ), "PHASE 1"),
             BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.Lockdown(110f, 5f),
-                Pattern.ShockRing(380f, 220f, 24f),
+                Pattern.KeyZone(3, 58f, 11f),
+                Pattern.LockGrid(2, 7f),
+                Pattern.RoyalSeizure(110f, 1.0f, 28f, 1.1f, 3.5f),
+                Pattern.RansomPulse(3, 0.6f, 440f, 240f, 22f),
                 Pattern.Aimed(5, 40f, 300f, 14f, bursts = 2)
             ), "RANSOM DEMAND"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.Lockdown(105f, 4.5f),
-                Pattern.ShockRing(400f, 240f, 26f),
+                Pattern.KeyZone(3, 56f, 10f),
+                Pattern.LockGrid(3, 6.5f),
+                Pattern.RoyalSeizure(115f, 0.9f, 30f, 1.2f, 3.5f),
+                Pattern.RansomPulse(3, 0.5f, 460f, 250f, 24f),
                 Pattern.Radial(18, 190f, 13f, waves = 2, rotateDeg = 10f)
             ), "TOTAL LOCKDOWN")
         ), euros = 362, score = 8000, role = BossRole.LOCKDOWN, tier = 3, armor = 5.1f,
-        abilities = listOf("Key Zone", "Lock Grid", "Royal Seizure", "Ransom Pulse")
+        abilities = listOf("Key Zone", "Lock Grid", "Royal Seizure", "Ransom Pulse"), keyShield = true
     )
 
     /**
@@ -158,7 +165,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, RANSOM_KING, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }
