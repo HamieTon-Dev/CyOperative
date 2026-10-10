@@ -101,6 +101,45 @@ mechanics can keep moving while a design waits. Track it in §6.
 | Room rules + visual sequence (lights out → sparks → light bubble → eyes → power restores) | ✅ | S11 |
 | Threat tier EXTREME, bounty above White Eye | ✅ | S13 |
 
+### Owner cards for the last 7 bosses (2026-10-10) — built autonomously
+Owner: "You understand the art direction now. I think you can do the next 7 bosses autonomously…
+These 7 bosses could spawn at any boss level."
+Cards: `boss-concepts/packet_reaper_card.png`, `circuit_hydra_card.png`, `worm_queen_card.png`,
+`boss_pack_beta_cards.webp` (Pulse Bishop, Glitch Forge, Black Ice Overlord, Botnet Monarch).
+
+| Boss (role) | HP / SPD / DMG / ARM / BOUNTY | Abilities (from the cards) | How it's built |
+|---|---|---|---|
+| **Packet Reaper** (ASSASSIN, "fast, relentless, hunts backlines") | 1,200 / 10 / 32 / 8 / €12,325 | Dash Slash · Packet Scythes · Backline Dive · Trail Burst | dash with slash arcs; curving boomerang scythe shots that return; blink behind you then dive; dash path erupts after a delay |
+| **Circuit Hydra** (AREA CONTROL, "splits, beams, dominates space") | 1,700 / 6 / 30 / 14 / €14,500 | Split Heads · Beam Arc · Segment Burst · Coil Crush | serpent body of glowing spheres trailing the head; splits into 2→3 beam heads by phase; fans of beams; every segment fires a ring; body coils around you and tightens, with a gap |
+| **Worm Queen** (SUMMONER, "spawns, corrupts, overwhelms") | 1,800 / 5 / 26 / 16 / €13,050 | Swarm Hatch · Corruption Trail · Spike Burst · Queen Roar | eggs hatch into spiky swarmlings; leaves infected pools; spike rings; roar shockwave that speeds her swarm up |
+| **Pulse Bishop** (CONTROLLER, "punishes predictable movement") | 1,400 / 7 / 30 / 10 / €13,775 | Line Warp · Cross Beam · Bishop Mines · Convergence Flash | warps across lanes leaving a light streak; + shaped beams that turn; mines arm then detonate when you come near; PULL toward it then a blinding (readable) flash blast |
+| **Glitch Forge** (SUMMONER, "warps reality") | 1,550 / 4 / 24 / 18 / €13,775 | Decoy Clone · Corrupt Floor · Cube Barrage · Core Pulse | hologram clones that shoot and pop in one hit; floor tiles glitch into hazards in a grid; homing data cubes; big pulse that corrupts tiles |
+| **Black Ice Overlord** (STATUS, "absolute cold") | 1,750 / 4 / 31 / 18 / €15,225 | Ice Laser · Freeze Patch · Crystal Volley · Permafrost Shell | freezing sweep laser; icy zones stack CHILL (slow; 5 stacks = FROZEN briefly); arcing crystal shells; shell phase (75% less damage, chills nearby) broken by sustained fire |
+| **Botnet Monarch** (COMMANDER, "overwhelms with numbers") | 1,650 / 5 / 27 / 15 / €15,225 | Drone Ring · Summon Wave · Orbital Barrage · Sync Burst | orbiting drones that shoot (killable); drone waves; targeted orbital strikes with sky beams; drones link with lines then fire together |
+
+**"Spawn at any boss level" (interpretation):** each keeps its planned slot (L150–220), and in
+addition, from level 20 on, any boss room has a 25% chance to bring one of these seven instead of
+the scheduled boss (scaled to that level like every boss). Level 10 stays the first-boss intro.
+
+### World Kit — tiles, blocks and textures (owner sheet `boss-concepts/world_kit.webp`)
+Owner: "The world kit could help every level look even better, including possibly boss levels."
+| # | Item | Have today | Verdict |
+|---|---|---|---|
+| 01 | Grid floor tile | PLATES floor | ✅ refresh: bevelled plates with a cyan rim glow |
+| 02 | Broken grid tile | — | ✅ new: cracked plate variant sprinkled to break repetition |
+| 03 | Vent grate tile | small vent marks | ✅ upgrade to a full recessed grate tile |
+| 04 | Power conduit tile | glowing trenches | ✅ new: red conduit lines with L/T bends between tiles |
+| 05 | Server rack wall | SERVER_RACK | ✅ already close; polish LED rows |
+| 06 | Relay pillar | DATA_PILLAR | ✅ restyle: tall block with a glowing square frame on top |
+| 07 | Data vault crate | CRATES | ✅ restyle: X-braced crate, stackable |
+| 08 | Firewall barricade | ENERGY_BARRIER | ✅ restyle: hex-energy pane between two posts |
+| 09 | Spark panel | — | ✅ new floor decor: animated electric sparks |
+| 10 | Cable run | CABLE decor | ✅ restyle: thick red/yellow cable bundles |
+| 11 | EMP dark-zone emitter | darkness system (Nullshade) | ✅ new decor: a local dark field for high-drama rooms (events/boss) |
+| 12 | Light beacon | FLOOR_LIGHT | ✅ new: area light pylon that lights the floor around it |
+Design notes from the sheet: block silhouettes for cover, tile variants break repetition, spark
+panels and dark-zone emitters reserved for higher-drama rooms. **All 12 are viable.** Build after the 7 bosses.
+
 ### Boss Pack Gamma — "4 high-tier corruption & control bosses" (sheet added 2026-10-10)
 `docs/boss-concepts/boss_pack_gamma.webp`. This replaces my own D4 proposals in §4 for Rootkit
 Apostle, Ransom King and Spectral Firewall, and adds a role label for Nullshade.
@@ -344,3 +383,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     `drawBossBorder`. Owner: "Can the boss arena match the boss color theme… unique to each boss."
   - Tests: SpectralFirewallTest.
 - 2026-10-10 — v0.11.6 (28): Spectral Firewall's Firewall Ring now launches 1/3/4 walls by phase, then spread out further at the owner's request ("spread the rings out a little bit more"): wave gap 1.15 s / 1.05 s, about 200 units apart. Render atk9, test ringWavesBuildByPhase.
+- 2026-10-10 — Owner handed over the last 7 bosses to build autonomously, plus the World Kit
+  sheet. All logged in §2, including the any-boss-level rule and World Kit viability (all 12 viable).
+  Building order: Pulse Bishop, Packet Reaper, Worm Queen, Glitch Forge, Botnet Monarch,
+  Circuit Hydra, Black Ice Overlord, then World Kit.
