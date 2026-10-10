@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.1 (versionCode 53) — 2026-10-11 · Build number on screen
+### Added
+- **Build stamp** (owner): a small, soft label in the bottom-right corner of every screen, menus and
+  gameplay included, so testers can tell which build they're on. It reads like "v0.16.1 (53)",
+  with "-debug" on debug builds. Code: `ui/common/BuildStamp.kt`, overlaid in `AppRoot`.
+
 ## 0.16.0 (versionCode 52) — 2026-10-11 · Balance pass, bigger Packet Flood, power governor
 ### Fixed (owner: "At level 180 I'm doing 26,000+ damage… Maybe we are upgrading too often?")
 - **Root cause: mastery compounded.** Every upgrade levelled past its max ("MASTERY") multiplied

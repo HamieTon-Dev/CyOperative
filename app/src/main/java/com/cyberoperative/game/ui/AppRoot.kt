@@ -1,6 +1,10 @@
 package com.cyberoperative.game.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import com.cyberoperative.game.ui.common.BuildStamp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -99,6 +103,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
         }
     }
 
+    Box(Modifier.fillMaxSize()) {
     when (val s = screen) {
         Screen.DevSplash -> DeveloperSplash { screen = Screen.Boot }
         Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) { screen = Screen.Menu }
@@ -194,5 +199,8 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 )
             }
         }
+    }
+    // Build number, always visible (soft, bottom-right) so testers can say what they are on.
+    BuildStamp()
     }
 }

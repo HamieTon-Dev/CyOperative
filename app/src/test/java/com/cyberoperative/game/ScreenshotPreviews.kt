@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import com.cyberoperative.game.ui.common.BuildStamp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.nativeCanvas
@@ -65,7 +66,14 @@ class ScreenshotPreviews {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
         compose.mainClock.autoAdvance = false
-        compose.setContent { CyberOperativeTheme { MainMenuScreen(repo.current) {} } }
+        compose.setContent {
+            CyberOperativeTheme {
+                androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize()) {
+                    MainMenuScreen(repo.current) {}
+                    BuildStamp()
+                }
+            }
+        }
         compose.mainClock.advanceTimeBy(1500)
         save("main_menu")
     }
