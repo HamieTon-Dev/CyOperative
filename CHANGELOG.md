@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.3 (versionCode 55) — 2026-10-11 · Currency always fits
+### Fixed
+- **Currency chips** (Upgrades screen top right, main menu and the others) use a compact format of
+  at most 6 characters:
+  - up to 9,999 in full;
+  - then 74.7K, 747K, 1.23M, 12.3M, 125M, and on through B, T, Q and Qi.
+  - Values always round down, so the chip never shows more than you have.
+- The chip no longer wraps, and the header slot grows with it if needed (it was a fixed 72dp).
+
 ## 0.16.2 (versionCode 54) — 2026-10-11 · No more one-shots
 ### Changed (owner: "at level 210 boss 1 shots player with a substantial build… At most 4 hits")
 - **All threat damage halved on Normal.** Hard is cut to ×0.75 instead. Hard builds carry 4 fewer

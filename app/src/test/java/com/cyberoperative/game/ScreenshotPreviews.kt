@@ -400,7 +400,7 @@ class ScreenshotPreviews {
         assumeTrue(enabled)
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
-        repo.update { it.copy(euros = 60_000, operativeXp = 22_000L, permanentUpgrades = mapOf("weapon_slots" to 2, "max_hp" to 8)) }
+        repo.update { it.copy(euros = 74_710, operativeXp = 22_000L, permanentUpgrades = mapOf("weapon_slots" to 2, "max_hp" to 8)) }
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.PermanentUpgradesScreen(repo, AudioManager(ctx)) {} } }
         compose.mainClock.advanceTimeBy(300)
