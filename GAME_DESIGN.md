@@ -161,7 +161,9 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   the mouths and follow them (Hazard.head); body drawn 1.6× the hit radius.
   - Head Shield: heads are hydra_head enemies with 3.5% of its max HP each; while any lives the core
     is untargetable (GameEngine.bossHeadMask). All down → core exposed 6 s (BossBrain.EXPOSE_SECONDS),
-    then they all regrow. Beam Arc: one 34-wide beam per living head.
+    then they all regrow (a phase change ends the window early). Heads 6% HP each; base HP 3,400.
+  - Beam Arc: one 34-wide beam per living head. Neck Volley: 4 rings rippling up each living neck.
+  - Head Bite (Pattern.HeadBite): nearest 1/2/2 heads mark a 74-wide lane (reach 820), lunge and snap.
 - Worm Queen lays egg clusters every 2.4/1.9/1.4 s by phase (3–5 swarmlings each); swarmlings
   cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.
 - World Kit decor in every room (own seeded random; layouts unchanged).

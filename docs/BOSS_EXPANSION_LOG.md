@@ -458,3 +458,11 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Tests: headsShieldTheCoreUntilAllAreDown, beamArcOneBeamPerLivingHead; full suite green.
   - Renders: circuit_hydra_atk1–6.
   - Next: ask the owner about Segment Burst, Coil Crush and tuning (head HP, exposed window).
+- 2026-10-10 — Circuit Hydra step 3 answers: Segment Burst → **neck volleys**; Coil Crush → **a bite**;
+  heads at **6% HP** with a 6 s window; "maybe increase health pool to ensure we see all 5 heads by
+  phase 3".
+- 2026-10-10 — v0.11.18 (40): Neck Volley, Head Bite and tuning.
+  - Head Bite: BossState bite arrays, `applyBites` stretches the rig, a wide LINE lane telegraph,
+    `forEachOperativeOnSegment`.
+  - A phase change ends the exposure; base HP 3,400.
+  - Tests: headBiteLungesDownTheLaneAndCanBeDodged, neckVolleyRipplesUpTheNecks; full suite green.

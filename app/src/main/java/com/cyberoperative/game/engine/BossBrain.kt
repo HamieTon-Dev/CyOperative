@@ -13,6 +13,7 @@ import com.cyberoperative.game.data.ShapeKind
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sin
 
 /** Runtime state of the boss currently in the arena. */
@@ -29,6 +30,16 @@ class BossState(val def: BossDef, val cycle: Int) {
     var headCount = 0
     var exposed = 0f
     var shieldSparkCd = 0f
+    var headPhase = 0
+    /** Head Bite: per bite the head slot, target point, lunge extension 0..1, whether it struck. */
+    val biteHead = IntArray(2) { -1 }
+    val biteTarget = FloatArray(4)
+    val biteExt = FloatArray(2)
+    val biteHit = BooleanArray(2)
+    val biteFrom = FloatArray(4)
+    val biteMask = IntArray(2)
+    /** Head Bite progress per bite: 0 = waiting, 1 = lane marked, 2 = lunging. */
+    val biteStage = IntArray(2)
     var counter = 0
     var subTimer = 0f
     var angleOffset = 0f
@@ -253,9 +264,15 @@ class BossBrain(private val g: GameEngine) {
         st.rigTime += dt
         st.shieldSparkCd -= dt
         g.bossTrail = HydraRig.layout(e.x, e.y, e.radius, st.phaseIndex, st.rigTime, g.bossTrail)
+        applyBites(e, st)
         if (!st.def.headShield) return
         val rig = g.bossTrail
         val n = HydraRig.heads(st.phaseIndex)
+        // A new phase closes the exposed window at once: the new head grows with the rest.
+        if (st.phaseIndex != st.headPhase) {
+            st.headPhase = st.phaseIndex
+            if (st.exposed > 0f) st.exposed = 0.0001f
+        }
         if (st.exposed > 0f) {
             st.exposed -= dt
             if (st.exposed <= 0f) {
@@ -289,6 +306,25 @@ class BossBrain(private val g: GameEngine) {
         g.bossHeadMask = mask
         // Shielded: aim and shots go past the core to the heads.
         e.untargetable = mask != 0
+    }
+
+    /** Head Bite: stretches each biting head's neck out toward its target. */
+    private fun applyBites(e: Enemy, st: BossState) {
+        if (st.active !is Pattern.HeadBite) { st.biteExt.fill(0f); return }
+        val rig = g.bossTrail
+        val n = rig.size / 4
+        val by = HydraRig.baseY(e.y, e.radius)
+        for (i in 0 until 2) {
+            val k = st.biteHead[i]
+            val f = st.biteExt[i]
+            if (k < 0 || k >= n || f <= 0f) continue
+            val tx = st.biteTarget[i * 2]; val ty = st.biteTarget[i * 2 + 1]
+            val bx = HydraRig.baseX(e.x, e.radius, k, n, st.phaseIndex)
+            rig[k * 4 + 2] += (tx - rig[k * 4 + 2]) * f
+            rig[k * 4 + 3] += (ty - rig[k * 4 + 3]) * f
+            rig[k * 4] += ((bx + tx) / 2f - rig[k * 4]) * f * 0.8f
+            rig[k * 4 + 1] += ((by + ty) / 2f - e.radius * 1.2f - rig[k * 4 + 1]) * f * 0.8f
+        }
     }
 
     /** Grows head [k] on its neck, with HP from the hydra's. */
@@ -707,20 +743,19 @@ class BossBrain(private val g: GameEngine) {
                     }
                 }
             }
-            is Pattern.SegmentBurst -> {
-                // Rings of shots from two vertebrae on every neck.
+            is Pattern.SegmentBurst -> { st.counter = 0 }
+            is Pattern.HeadBite -> {
+                // The heads nearest the operative bite, one after another.
                 val rig = g.bossTrail
                 val n = rig.size / 4
-                val by = HydraRig.baseY(e.y, e.radius)
-                for (hi in 0 until n) {
-                    val bx = HydraRig.baseX(e.x, e.radius, hi, n, st.phaseIndex)
-                    for (u in floatArrayOf(0.35f, 0.7f)) {
-                        val (x, y) = HydraRig.neckPoint(rig, hi, bx, by, u)
-                        val off = g.rng.nextFloat()
-                        for (j in 0 until p.perSegment) g.fireEnemyProjectile(x, y, MathUtil.TWO_PI * (j + off) / p.perSegment, p.speed, p.damage * e.damageMul, 7f, ProjKind.BOSS)
-                        g.addPulse(x, y, 40f, 0.3f, st.def.color)
-                    }
+                val mask = if (g.bossHeadMask < 0) (1 shl n) - 1 else g.bossHeadMask
+                val order = (0 until n).filter { (mask shr it) and 1 == 1 }
+                    .sortedBy { MathUtil.dist2(rig[it * 4 + 2], rig[it * 4 + 3], g.px, g.py) }
+                for (i in 0 until 2) {
+                    st.biteHead[i] = if (i < p.bites) order.getOrElse(i) { -1 } else -1
+                    st.biteExt[i] = 0f; st.biteHit[i] = false; st.biteStage[i] = 0
                 }
+                st.counter = 0
             }
             is Pattern.IceLaser -> {
                 val aim = atan2(g.py - e.y, g.px - e.x)
@@ -1383,7 +1418,84 @@ class BossBrain(private val g: GameEngine) {
                 return st.counter >= p.volleys && st.subTimer <= p.gap - 0.3f
             }
             is Pattern.BeamArc -> return st.patternTime >= p.windup + p.duration
-            is Pattern.SegmentBurst -> return st.patternTime >= 0.4f
+            is Pattern.SegmentBurst -> {
+                // Neck Volley: a surge runs up every living neck, vertebra by vertebra,
+                // each one spitting a small ring of green sparks.
+                val steps = 4
+                while (st.counter < steps && st.patternTime >= st.counter * 0.14f) {
+                    val u = 0.2f + 0.22f * st.counter
+                    val rig = g.bossTrail
+                    val n = rig.size / 4
+                    val mask = if (g.bossHeadMask < 0) (1 shl n) - 1 else g.bossHeadMask
+                    val by = HydraRig.baseY(e.y, e.radius)
+                    val ring = max(3, p.perSegment / 2)
+                    for (hi in 0 until n) {
+                        if ((mask shr hi) and 1 == 0) continue
+                        val (x, y) = HydraRig.neckPoint(rig, hi, HydraRig.baseX(e.x, e.radius, hi, n, st.phaseIndex), by, u)
+                        val off = (st.counter * 0.5f + hi * 0.3f)
+                        for (j in 0 until ring) {
+                            g.fireEnemyProjectile(x, y, MathUtil.TWO_PI * (j + off) / ring, p.speed, p.damage * e.damageMul, 7f, ProjKind.BOSS)?.tint = VOLLEY_TINT
+                        }
+                        g.addPulse(x, y, 34f, 0.25f, st.def.color)
+                    }
+                    st.counter++
+                }
+                return st.counter >= steps && st.patternTime >= steps * 0.14f
+            }
+            is Pattern.HeadBite -> {
+                val lunge = 0.16f; val hold = 0.12f; val back = 0.45f
+                for (i in 0 until 2) {
+                    val k = st.biteHead[i]
+                    if (k < 0) continue
+                    val rig = g.bossTrail
+                    if (rig.size < (k + 1) * 4 || (g.bossHeadMask >= 0 && (g.bossHeadMask shr k) and 1 == 0)) { st.biteHead[i] = -1; st.biteExt[i] = 0f; continue }
+                    val t0 = i * 0.55f
+                    val t = st.patternTime - t0
+                    if (t < 0f) continue
+                    if (st.biteStage[i] == 0) {
+                        st.biteStage[i] = 1
+                        // Mark the strike lane from the head toward the operative, out to its reach.
+                        val hx = rig[k * 4 + 2]; val hy = rig[k * 4 + 3]
+                        val a = atan2(g.py - hy, g.px - hx)
+                        val reach = min(p.reach, MathUtil.dist(hx, hy, g.px, g.py) + 90f)
+                        st.biteTarget[i * 2] = MathUtil.clamp(hx + cos(a) * reach, 30f, g.arena.width - 30f)
+                        st.biteTarget[i * 2 + 1] = MathUtil.clamp(hy + sin(a) * reach, 30f, g.arena.height - 30f)
+                        g.addLine(hx, hy, st.biteTarget[i * 2], st.biteTarget[i * 2 + 1], p.windup, st.def.color, -1)?.radius = p.width / 2f
+                    }
+                    val s = t - p.windup
+                    st.biteExt[i] = when {
+                        s < 0f -> 0f
+                        s < lunge -> { val q = s / lunge; 1f - (1f - q) * (1f - q) }
+                        s < lunge + hold -> 1f
+                        s < lunge + hold + back -> 1f - (s - lunge - hold) / back
+                        else -> 0f
+                    }
+                    if (s >= 0f && st.biteStage[i] == 1) {
+                        st.biteStage[i] = 2
+                        // Lunge starts: remember where the jaws set off from.
+                        st.biteFrom[i * 2] = rig[k * 4 + 2]; st.biteFrom[i * 2 + 1] = rig[k * 4 + 3]
+                        st.biteMask[i] = 0
+                    }
+                    if (s >= 0f && s < lunge + hold) {
+                        // The jaws sweep the lane from where they started to where they are now.
+                        val jx = st.biteFrom[i * 2] + (st.biteTarget[i * 2] - st.biteFrom[i * 2]) * st.biteExt[i]
+                        val jy = st.biteFrom[i * 2 + 1] + (st.biteTarget[i * 2 + 1] - st.biteFrom[i * 2 + 1]) * st.biteExt[i]
+                        g.forEachOperativeOnSegment(st.biteFrom[i * 2], st.biteFrom[i * 2 + 1], jx, jy, p.width / 2f + g.playerRadius * 0.6f, st.biteMask[i]) { bit ->
+                            st.biteMask[i] = st.biteMask[i] or bit
+                            g.damagePlayer(p.damage * e.damageMul, jx, jy)
+                        }
+                        if (st.biteExt[i] >= 1f && !st.biteHit[i]) {
+                            // Snap.
+                            st.biteHit[i] = true
+                            g.addPulse(jx, jy, 70f, 0.3f, st.def.color)
+                            g.fx.shake(7f, 0.25f)
+                            repeat(10) { g.addParticle(jx, jy, st.def.color, 220f, 0.4f, 3f) }
+                        }
+                    }
+                }
+                val last = (if (st.biteHead[1] >= 0) 0.55f else 0f) + p.windup + lunge + hold + back
+                return st.patternTime >= last
+            }
             is Pattern.CoilCrush -> return st.patternTime >= (p.from - p.to) / p.speed
             is Pattern.OrbitalBarrage -> {
                 st.subTimer -= dt
@@ -1599,7 +1711,9 @@ class BossBrain(private val g: GameEngine) {
         /** Circuit Hydra: how long the core stays exposed once every head is down. */
         const val EXPOSE_SECONDS = 6f
         /** Circuit Hydra: each head's HP as a share of the hydra's max HP. */
-        const val HEAD_HP_SHARE = 0.035f
+        const val HEAD_HP_SHARE = 0.06f
+        /** Neck Volley sparks. */
+        const val VOLLEY_TINT = 0xFF7CFF8AL
 
         /**
          * Boss entrance timeline (owner, 2026-10-07): 0–1.4 s the health bar

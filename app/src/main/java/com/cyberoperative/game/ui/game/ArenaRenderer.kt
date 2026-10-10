@@ -1466,7 +1466,7 @@ class ArenaRenderer {
                 drawCircle(Color.White.copy(alpha = 0.9f), p.radius * 0.5f, c)
             } else {
                 // Hostile packets: hot red-orange streaks with a glow (key art).
-                val col = if (p.kind == ProjKind.BOSS) Palette.Magenta else Color(0xFFFF4A2A)
+                val col = if (p.tint != 0L) Color(p.tint) else if (p.kind == ProjKind.BOSS) Palette.Magenta else Color(0xFFFF4A2A)
                 val tail = Offset(p.x - p.vx * 0.09f, p.y - lift - p.vy * 0.09f)
                 drawLine(col.copy(alpha = 0.16f), c, tail, p.radius * 3f)
                 drawLine(col.copy(alpha = 0.55f), c, tail, p.radius * 1.2f)
@@ -1738,7 +1738,17 @@ class ArenaRenderer {
                 } else {}
                 HazardKind.LINE -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
-                    drawLine(col.copy(alpha = 0.25f + 0.5f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f + 4f * f)
+                    if (h.radius > 6f) {
+                        // A wide strike lane (Circuit Hydra's bite): a filling strip with hot edges and a jaw mark at the end.
+                        val w = h.radius * 2f
+                        val a = kotlin.math.atan2(h.y2 - h.y, h.x2 - h.x)
+                        val nx = -sin(a) * h.radius; val ny = cos(a) * h.radius
+                        drawLine(col.copy(alpha = 0.10f + 0.12f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), w)
+                        val fx = h.x + (h.x2 - h.x) * f; val fy = h.y + (h.y2 - h.y) * f
+                        drawLine(col.copy(alpha = 0.22f), Offset(h.x, h.y), Offset(fx, fy), w)
+                        for (sd in listOf(-1f, 1f)) drawLine(col.copy(alpha = 0.5f + 0.4f * f), Offset(h.x + nx * sd, h.y + ny * sd), Offset(h.x2 + nx * sd, h.y2 + ny * sd), 2f)
+                        drawCircle(col.copy(alpha = 0.3f + 0.5f * f), h.radius * (1.2f - 0.3f * f), Offset(h.x2, h.y2), style = Stroke(3f))
+                    } else drawLine(col.copy(alpha = 0.25f + 0.5f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f + 4f * f)
                 }
                 else -> {}
             }

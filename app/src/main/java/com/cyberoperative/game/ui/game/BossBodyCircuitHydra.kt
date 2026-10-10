@@ -149,7 +149,9 @@ internal object CircuitHydraBody : BossBody {
         // Necks rise from behind the core in a wide fan; heads are drawn last.
         // A severed neck (head destroyed) slumps to the floor beside the core and sparks.
         fun alive(h: Int) = p.heads < 0 || (p.heads shr h) and 1 == 1
-        for (h in 0 until heads) {
+        // A neck lunging down in front of the core (Head Bite) is drawn over it.
+        fun lunging(h: Int) = rig[h * 4 + 3] > ccy + r * 0.3f
+        fun neck(h: Int) {
             val bx = HydraRig.baseX(p.cx, p.radius, h, heads, p.phase)
             val live = alive(h)
             var cxp = rig[h * 4]; var cyp = rig[h * 4 + 1]; var hx = rig[h * 4 + 2]; var hy = rig[h * 4 + 3]
@@ -160,7 +162,9 @@ internal object CircuitHydraBody : BossBody {
                 cxp = bx + side * r * 0.55f
                 cyp = by - r * 0.55f
             }
-            val n = if (live) 12 else 7
+            // Enough vertebrae to stay solid when a neck stretches out to bite.
+            val len = kotlin.math.hypot(hx - bx, hy - by) + kotlin.math.hypot(cxp - bx, cyp - by) * 0.5f
+            val n = if (live) maxOf(12, (len / (r * 0.2f)).toInt()) else 7
             val reach = if (live) 0.9f else 1f
             for (i in 0 until n) {
                 val u = i / (n - 1f) * reach
@@ -182,6 +186,7 @@ internal object CircuitHydraBody : BossBody {
                 }
             }
         }
+        for (h in 0 until heads) if (!alive(h) || !lunging(h)) neck(h)
         // Core: armoured octagon hull with PCB traces and a toxic reactor.
         drawOval(Color.Black.copy(alpha = 0.4f), Offset(p.cx - r * 0.95f, ccy + r * 0.55f), Size(r * 1.9f, r * 0.6f))
         val hull = Path().apply {
@@ -230,6 +235,7 @@ internal object CircuitHydraBody : BossBody {
                 drawLine(TOXIC.copy(alpha = 0.18f), rc, Offset(p.cx + cos(a) * dome, ccy - dome * 0.05f + sin(a) * dome * 0.85f), 1.2f)
             }
         }
+        for (h in 0 until heads) if (alive(h) && lunging(h)) neck(h)
         for (h in 0 until heads) if (alive(h)) head(rig[h * 4 + 2], rig[h * 4 + 3], HydraRig.facing(rig, h, ax, ay), r * HydraRig.HEAD, p.winding, p.hitFlash, t)
     }
 }

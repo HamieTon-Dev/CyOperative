@@ -687,6 +687,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
+    /** Like [forEachOperativeHit], for anyone within [radius] of the segment (x0, y0)–(x1, y1). */
+    internal inline fun forEachOperativeOnSegment(x0: Float, y0: Float, x1: Float, y1: Float, radius: Float, mask: Int, hit: (Int) -> Unit) {
+        for (o in ops) {
+            if (!o.alive) continue
+            val bit = 1 shl o.index
+            if (mask and bit != 0) continue
+            if (distToSegment(o.px, o.py, x0, y0, x1, y1) < radius) {
+                val prev = cur
+                cur = o
+                hit(bit)
+                cur = prev
+            }
+        }
+    }
+
     /** EMP Blackout: the room goes dark at once. */
     fun blackout(x: Float, y: Float, color: Long) {
         darkness = 1f; darknessTarget = 1f

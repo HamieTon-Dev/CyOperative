@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.18 (versionCode 40) — 2026-10-10 · Circuit Hydra: Neck Volley + Head Bite
+### Changed
+- **Neck Volley** (was Segment Burst; owner pick): a surge runs up every living neck, vertebra by
+  vertebra. Each vertebra spits a small ring of toxic-green sparks.
+- **Head Bite** (replaces Coil Crush; owner pick):
+  - The head nearest you marks a wide strike lane toward you. In phases 2 and 3 a second head follows.
+  - It then lunges down the lane on a stretching neck and snaps its jaws for a big hit, then pulls
+    back. Step out of the lane to dodge it.
+- **Tuning** (owner): each head has 6% of the hydra's HP (was 3.5%), the core stays exposed for 6 s,
+  and the hydra's HP is up 25% (2,720 → 3,400 base).
+- **Phase changes:** a new phase closes the exposed window at once, and every head regrows with the
+  new one, so the fight always shows 3, then 4, then 5 heads.
+- Hostile shots can now be tinted per attack.
+
 ## 0.11.17 (versionCode 39) — 2026-10-10 · Circuit Hydra: Head Shield
 ### Changed
 - **Circuit Hydra, Head Shield** (owner pick: "Heads shield the core"):

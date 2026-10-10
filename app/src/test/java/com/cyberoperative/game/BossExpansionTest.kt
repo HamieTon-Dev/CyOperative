@@ -1021,32 +1021,51 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         assertEquals(2, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
     }
 
-    @Test fun coilClosesInWithAGap() {
+    @Test fun headBiteLungesDownTheLaneAndCanBeDodged() {
+        // Standing still in the lane: the jaws reach you.
         val g = fight()
         val me = g.operatives[0]
-        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CoilCrush(280f, 70f, 110f, 20f))
-        val coil = hazards(g, com.cyberoperative.game.engine.HazardKind.COIL).single()
-        val r0 = coil.radius
-        run(g, 1f)
-        assertTrue(coil.radius < r0 && coil.y2.toInt() == 1)
-        // Walking out through the gap gets you clear.
-        val gap = coil.x2 / 1000f
+        run(g, 1.5f)
         me.invuln = 0f
         val hp = me.hp
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.HeadBite(1, 0.6f, 30f))
+        run(g, 1f / 60f)
+        assertEquals("the strike lane is marked", 1, hazards(g, com.cyberoperative.game.engine.HazardKind.LINE).size)
         var t = 0f
+        var maxReach = 0f
+        val b = g.boss!!
         while (t < 1.4f) {
-            val a = coil.x2 / 1000f
-            run(g, 0.05f, kotlin.math.cos(a) to kotlin.math.sin(a)); t += 0.05f
+            run(g, 0.05f); t += 0.05f
+            val rig = g.bossTrail
+            for (k in 0 until rig.size / 4) maxReach = maxOf(maxReach, rig[k * 4 + 3] - b.y)
         }
-        assertEquals("slipped out through the gap", hp, me.hp, 0.01f)
+        assertTrue("bitten", me.hp < hp)
+        assertTrue("a neck stretched out toward the operative", maxReach > 200f)
+
+        // Stepping sideways out of the lane during the warning: no bite.
+        val g2 = fight()
+        val me2 = g2.operatives[0]
+        run(g2, 1.5f)
+        me2.invuln = 0f
+        val hp2 = me2.hp
+        g2.debugBossPattern(com.cyberoperative.game.data.Pattern.HeadBite(1, 0.6f, 30f))
+        run(g2, 0.5f, 1f to 0f)
+        var t2 = 0f
+        while (t2 < 1f) { run(g2, 0.05f, 1f to 0f); t2 += 0.05f }
+        assertEquals("dodged out of the lane", hp2, me2.hp, 0.01f)
     }
 
-    @Test fun segmentBurstFiresFromTheBody() {
+    @Test fun neckVolleyRipplesUpTheNecks() {
         val g = fight()
         run(g, 1.5f)
         for (p in g.projectiles.items) p.active = false
         g.debugBossPattern(com.cyberoperative.game.data.Pattern.SegmentBurst(6, 190f, 10f))
-        assertTrue(g.projectiles.items.count { it.active && !it.friendly } >= 24)
+        run(g, 1f / 60f)
+        val first = g.projectiles.items.count { it.active && !it.friendly }
+        run(g, 0.6f)
+        val all = g.projectiles.items.count { it.active && !it.friendly && it.tint == BossBrain.VOLLEY_TINT }
+        assertTrue("starts at the base and keeps firing up the necks ($first then $all)", first in 1 until all)
+        assertTrue("about 3 necks × 4 vertebrae × 3 sparks ($all)", all >= 30)
     }
 }
 

@@ -207,6 +207,13 @@ sealed class Pattern {
     /** Coil Crush: its body coils around you at [from] and tightens to [to]; slip out through the gap. */
     data class CoilCrush(val from: Float, val to: Float, val speed: Float, val damage: Float, val gaps: Int = 1) : Pattern()
 
+    /**
+     * Head Bite (Circuit Hydra): the [bites] heads nearest you, one after another, mark a
+     * line toward you for [windup] s, then lunge along it on a stretching neck and snap
+     * their jaws ([damage] to anyone in the strike lane), then pull back.
+     */
+    data class HeadBite(val bites: Int, val windup: Float, val damage: Float, val reach: Float = 820f, val width: Float = 74f) : Pattern()
+
     /** Ice Laser: [count] freezing sweep beams; a hit adds CHILL stacks. */
     data class IceLaser(val count: Int, val windup: Float, val duration: Float, val sweepDeg: Float, val damage: Float) : Pattern()
 
@@ -352,7 +359,8 @@ val Pattern.displayName: String
         is Pattern.SyncBurst -> "Sync Burst"
         is Pattern.SplitHeads -> "Split Heads"
         is Pattern.BeamArc -> "Beam Arc"
-        is Pattern.SegmentBurst -> "Segment Burst"
+        is Pattern.SegmentBurst -> "Neck Volley"
+        is Pattern.HeadBite -> "Head Bite"
         is Pattern.CoilCrush -> "Coil Crush"
         is Pattern.IceLaser -> "Ice Laser"
         is Pattern.FreezePatch -> "Freeze Patch"

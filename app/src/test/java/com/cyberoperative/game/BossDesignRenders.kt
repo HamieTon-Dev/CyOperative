@@ -332,8 +332,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk2_head_shield", emptyList(), afterHold = 0.4f),
                 AttackShot("atk3_head_down", emptyList(), after = { g -> killHydraHeads(g, 1) }, afterHold = 0.6f),
                 AttackShot("atk4_core_exposed", emptyList(), after = { g -> killHydraHeads(g, 5) }, afterHold = 0.8f),
-                AttackShot("atk5_segment_burst", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.5f)),
-                AttackShot("atk6_coil_crush", listOf(Pattern.CoilCrush(300f, 70f, 130f, 30f) to 0.9f))
+                AttackShot("atk5_neck_volley", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.42f)),
+                AttackShot("atk6_head_bite_lane", listOf(Pattern.HeadBite(1, 0.9f, 34f) to 0.55f)),
+                AttackShot("atk7_head_bite_snap", listOf(Pattern.HeadBite(1, 0.9f, 34f) to 1.12f))
             ),
             "black_ice_overlord" to listOf(
                 AttackShot("atk1_ice_laser", listOf(Pattern.IceLaser(3, 0.95f, 2.4f, 110f, 25f) to 1.6f)),
