@@ -156,6 +156,8 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
     its home level.
   - Statuses: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL (9% slow per stack) → FROZEN 1.1 s at 5
     stacks.
+- Worm Queen lays egg clusters every 2.4/1.9/1.4 s by phase (3–5 swarmlings each); swarmlings
+  cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.
 - World Kit decor in every room (own seeded random; layouts unchanged).
 - Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.

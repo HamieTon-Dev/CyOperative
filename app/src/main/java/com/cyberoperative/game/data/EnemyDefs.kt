@@ -242,7 +242,7 @@ object Enemies {
         id = "swarmling", name = "SWARMLING", tag = "*",
         codex = "Hatched from the Worm Queen's eggs. Tiny, spiked and never alone.",
         shape = ShapeKind.STAR, color = 0xFFFF2D6A, radius = 15f,
-        baseHp = 22f, baseSpeed = 150f, contactDamage = 9f, ai = AiKind.SWARMER,
+        baseHp = 14f, baseSpeed = 150f, contactDamage = 6f, ai = AiKind.SWARMER,
         xp = 1f, euros = 1, score = 6, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
     )
 

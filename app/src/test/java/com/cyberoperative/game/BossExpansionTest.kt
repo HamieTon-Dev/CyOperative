@@ -841,6 +841,14 @@ class WormQueenTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossEx
         assertTrue("hatched", g.enemies.items.count { it.active && it.def.id == "swarmling" } >= 6)
     }
 
+    @Test fun aRealSwarm() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SwarmHatch(10, 0.8f, 5))
+        run(g, 5f)
+        val n = g.enemies.items.count { it.active && it.def.id == "swarmling" }
+        assertTrue("a swarm well past the normal cap ($n)", n > com.cyberoperative.game.core.Scaling.MAX_ALIVE)
+    }
+
     @Test fun trailLeavesInfectedPools() {
         val g = fight()
         g.debugBossPattern(com.cyberoperative.game.data.Pattern.CorruptionTrail(2f, 1.6f, 55f, 7f, 16f))

@@ -433,3 +433,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     hand-made rooms and the boss arena.
   - Restyled FLOOR_TILE, VENT, CABLE, DATA_PILLAR and ENERGY_BARRIER.
   - Renders: `docs/screenshots/world_kit_*.png`.
+- 2026-10-10 — v0.11.15 (37): Worm Queen swarm (owner: "needs more of those mini bots/eggs").
+  - BossDef.layEggs + BossState.eggTimer: egg cluster every 2.4 − 0.5·phase s, 3+phase swarmlings.
+  - SwarmHatch 6/8/10 eggs; `Scaling.MAX_ALIVE_SWARM = 70` for hatching; SWARMLING 14 HP, 6 dmg, 150 speed.
+  - Tests: WormQueenTest.aRealSwarm (>32 swarmlings alive).
+  - Next: Circuit Hydra redesign, step by step with the owner.

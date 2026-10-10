@@ -2993,7 +2993,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     h.active = false
                     val def = com.cyberoperative.game.data.Enemies.SWARMLING
                     for (k in 0 until h.tick.toInt()) {
-                        if (aliveCount() >= com.cyberoperative.game.core.Scaling.MAX_ALIVE) break
+                        if (aliveCount() >= com.cyberoperative.game.core.Scaling.MAX_ALIVE_SWARM) break
                         val a = MathUtil.TWO_PI * k / h.tick
                         spawnEnemyAt(def, null, h.x + cos(a) * 18f, h.y + sin(a) * 18f, telegraph = false)?.isChild = true
                     }

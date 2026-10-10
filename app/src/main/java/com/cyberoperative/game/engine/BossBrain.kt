@@ -55,6 +55,7 @@ class BossState(val def: BossDef, val cycle: Int) {
     /** Botnet Monarch: its drone ring's angle. */
     var orbitAngle = 0f
     var subTimer2 = 0f
+    var eggTimer = 2f
     /** Black Ice: shell HP left, its starting HP, time left, chill aura radius. */
     var shellHp = 0f
     var shellMax = 0f
@@ -155,6 +156,15 @@ class BossBrain(private val g: GameEngine) {
         updateOrbiters(e, st, dt)
         if (st.def.segments > 0) updateSerpent(e, st, dt)
         if (st.shellHp > 0f) updateShell(e, st, dt)
+        if (st.def.layEggs) {
+            // Owner, 2026-10-10: "needs more of those mini bots/eggs to be considered a swarm".
+            st.eggTimer -= dt
+            if (st.eggTimer <= 0f) {
+                st.eggTimer = 2.4f - 0.5f * st.phaseIndex
+                val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                g.addEgg(MathUtil.clamp(e.x + cos(a) * (e.radius + 40f), 40f, g.arena.width - 40f), MathUtil.clamp(e.y + sin(a) * (e.radius + 30f), 40f, g.arena.height - 40f), 2.4f, 3 + st.phaseIndex, st.def.color)
+            }
+        }
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash || st.active is Pattern.DashSlash || st.active is Pattern.BacklineDive) && st.chargeStage >= 1
         val teleporting = st.active is Pattern.Teleport

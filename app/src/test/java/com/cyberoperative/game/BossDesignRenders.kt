@@ -306,8 +306,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk6_backline_dive", listOf(Pattern.BacklineDive(0.55f, 900f, 32f) to 0.75f))
             ),
             "worm_queen" to listOf(
-                AttackShot("atk1_swarm_hatch_eggs", listOf(Pattern.SwarmHatch(5, 1.8f, 4) to 1.2f)),
-                AttackShot("atk2_swarm_hatched", listOf(Pattern.SwarmHatch(5, 1.0f, 4) to 1.6f)),
+                AttackShot("atk1_swarm_hatch_eggs", listOf(Pattern.SwarmHatch(10, 1.8f, 5) to 1.2f)),
+                AttackShot("atk2_swarm_hatched", listOf(Pattern.SwarmHatch(10, 1.0f, 5) to 1.6f)),
+                AttackShot("atk6_full_swarm", listOf(Pattern.SwarmHatch(10, 0.8f, 5) to 1.0f, Pattern.SwarmHatch(8, 0.8f, 5) to 3.0f)),
                 AttackShot("atk3_corruption_trail", listOf(Pattern.CorruptionTrail(4f, 1.8f, 62f, 9f, 20f) to 2.5f)),
                 AttackShot("atk4_spike_burst", listOf(Pattern.Bloom(3, 26f, lanes = 2) to 0.9f)),
                 AttackShot("atk5_queen_roar", listOf(Pattern.SwarmHatch(4, 0.5f, 3) to 1.0f, Pattern.QueenRoar(420f, 250f, 26f, 1.8f, 5f) to 0.6f))

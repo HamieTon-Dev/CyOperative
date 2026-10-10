@@ -266,25 +266,25 @@ object BossExpansion {
         "A broodmother that spawns corruption swarms and leaves trails that infest the arena over time.",
         0xFFFF2D9A, 80f, 2880f, 60f, 26f, BossMove.CHASE, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
-                Pattern.SwarmHatch(3, 2.2f, 3),
+                Pattern.SwarmHatch(6, 2.2f, 4),
                 Pattern.CorruptionTrail(3f, 1.6f, 55f, 7f, 16f),
                 Pattern.Bloom(2, 24f, lanes = 3),
                 Pattern.Radial(14, 180f, 11f, waves = 2, rotateDeg = 12f)
             ), "PHASE 1"),
             BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.SwarmHatch(4, 2.0f, 3),
+                Pattern.SwarmHatch(8, 2.0f, 5),
                 Pattern.QueenRoar(380f, 230f, 24f, 1.6f, 4f),
                 Pattern.CorruptionTrail(3.5f, 1.7f, 60f, 8f, 18f),
                 Pattern.Bloom(3, 25f, lanes = 3)
             ), "BROOD SURGE"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.SwarmHatch(5, 1.8f, 4),
+                Pattern.SwarmHatch(10, 1.8f, 5),
                 Pattern.QueenRoar(420f, 250f, 26f, 1.8f, 5f),
                 Pattern.CorruptionTrail(4f, 1.8f, 62f, 9f, 20f),
                 Pattern.Bloom(3, 26f, lanes = 2)
             ), "INFESTATION")
         ), euros = 326, score = 7500, role = BossRole.SUMMONER, tier = 3, armor = 4.8f,
-        abilities = listOf("Swarm Hatch", "Corruption Trail", "Spike Burst", "Queen Roar")
+        abilities = listOf("Swarm Hatch", "Corruption Trail", "Spike Burst", "Queen Roar"), layEggs = true
     )
 
     /**

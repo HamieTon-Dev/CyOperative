@@ -84,6 +84,8 @@ object Scaling {
 
     /** Max simultaneous enemies on screen (performance + readability cap). */
     const val MAX_ALIVE = 32
+    /** Worm Queen's brood may fill the room well past the normal cap (owner: "a swarm"). */
+    const val MAX_ALIVE_SWARM = 70
 
     /** Chance that a spawned enemy is an elite variant. */
     fun eliteChance(level: Int): Float = when {

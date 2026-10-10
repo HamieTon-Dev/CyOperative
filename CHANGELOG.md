@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.15 (versionCode 37) — 2026-10-10 · Worm Queen swarm
+### Changed
+- **Worm Queen is a real swarm now** (owner request):
+  - She drops a fresh egg cluster next to herself every 2.4 s (1.9 s in phase 2, 1.4 s in phase 3),
+    3–5 swarmlings per egg, on top of Swarm Hatch.
+  - Swarm Hatch lays 6/8/10 eggs by phase (was fewer), hatching faster.
+  - Swarm cap raised to 70 swarmlings (other enemies stay capped at 32).
+  - Swarmlings are lighter to match the numbers: 14 HP (was 22), contact damage 6 (was 9), faster.
+  - Her body shows more crawling swarmlings (5/7/9 by phase).
+
 ## 0.11.14 (versionCode 36) — 2026-10-10 · Wild bosses + World Kit
 ### Added
 - **Any boss level** (owner request): from level 20, every boss room has a 25% chance to bring one of

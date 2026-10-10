@@ -75,7 +75,7 @@ internal object WormQueenBody : BossBody {
         for (i in 0 until spikes) spike(i, back = false)
 
         // Swarmlings crawling over her.
-        for (k in 0 until 2 + p.phase) {
+        for (k in 0 until 5 + p.phase * 2) {
             val a = t * (0.7f + 0.2f * k) + k * 2.1f
             val sx = p.cx + cos(a) * r * 0.95f
             val sy = p.cy + sin(a) * r * 0.75f

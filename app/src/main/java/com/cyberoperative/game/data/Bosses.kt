@@ -278,6 +278,8 @@ data class BossDef(
     val tier: Int = 2,
     /** Flat damage removed from each hit (scaled with level like enemy armor). */
     val armor: Float = 0f,
+    /** Lays an egg every couple of seconds all fight long (Worm Queen). */
+    val layEggs: Boolean = false,
     /** Serpent body: [segments] trail behind the head (Circuit Hydra). */
     val segments: Int = 0,
     /** Hidden between eye windows; only targetable while visible (Nullshade). */
