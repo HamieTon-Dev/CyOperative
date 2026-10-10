@@ -483,3 +483,5 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     harness now covers the classics.
   - World Kit 05/07 done; `docs/screenshots/world_kit_crates.png`.
   - Full suite green.
+- 2026-10-10 — v0.12.1 (43): owner flagged the conduit and cable lines as "too bright to be part of
+  the floor". Dulled the CONDUIT (dark red, glow 0.12, core 0.45) and CABLE cores (0.45/0.4).

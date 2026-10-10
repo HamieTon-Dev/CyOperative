@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 (versionCode 43) — 2026-10-10 · Dimmer floor lines
+### Changed
+- **Floor power conduits and cable bundles are toned down** (owner: "too bright to be part of the
+  floor"). Conduits are a darker red with a faint glow and softer pulses. Cable cores are muted red
+  and yellow. They now read as part of the floor instead of as hazard lines.
+
 ## 0.12.0 (versionCode 42) — 2026-10-10 · Classic boss bodies + World Kit finish
 ### Added
 - **Every classic boss has its own body** (Stage F1, built autonomously at the owner's request). The

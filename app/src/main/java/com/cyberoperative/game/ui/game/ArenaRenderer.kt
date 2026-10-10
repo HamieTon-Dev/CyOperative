@@ -450,22 +450,23 @@ class ArenaRenderer {
                 }
                 DecorKind.CONDUIT -> {
                     // 04 Power conduit: red energy lines along tile seams with an L bend, pulses running along.
-                    val red = Color(0xFFFF3B3B)
+                    // Owner, 2026-10-10: "too bright to be part of the floor" — kept dim, recessed.
+                    val red = Color(0xFFB83030)
                     val corner = Offset(d.x + d.w, d.y)
                     val end = Offset(d.x + d.w, d.y + d.h)
                     for ((a, b) in listOf(Offset(d.x, d.y) to corner, corner to end)) {
                         drawLine(Color(0xFF14060A), a, b, 9f)
-                        drawLine(red.copy(alpha = 0.35f), a, b, 7f)
-                        drawLine(red.copy(alpha = 0.9f), a, b, 2.5f)
+                        drawLine(red.copy(alpha = 0.12f), a, b, 7f)
+                        drawLine(red.copy(alpha = 0.45f), a, b, 2f)
                     }
                     drawRect(Color(0xFF1A0A10), Offset(corner.x - 7f, corner.y - 7f), Size(14f, 14f))
-                    drawRect(red, Offset(corner.x - 7f, corner.y - 7f), Size(14f, 14f), style = Stroke(1.5f))
+                    drawRect(red.copy(alpha = 0.5f), Offset(corner.x - 7f, corner.y - 7f), Size(14f, 14f), style = Stroke(1.5f))
                     val total = d.w + d.h
                     for (k in 0 until 2) {
                         val q = ((time * 120f + k * total / 2f + (d.seed and 0xFF)) % total)
                         val pt = if (q < d.w) Offset(d.x + q, d.y) else Offset(corner.x, d.y + (q - d.w))
-                        drawCircle(Color.White.copy(alpha = 0.8f), 3f, pt)
-                        drawCircle(red.copy(alpha = 0.5f), 7f, pt)
+                        drawCircle(Color.White.copy(alpha = 0.35f), 2.5f, pt)
+                        drawCircle(red.copy(alpha = 0.2f), 6f, pt)
                     }
                 }
                 DecorKind.SPARK_PANEL -> {
@@ -520,12 +521,13 @@ class ArenaRenderer {
                     // 10 Cable run: a thick bundle — dark sheath with red and yellow cores.
                     drawPath(shapePath, Color(0xFF050910), style = Stroke(12f))
                     drawPath(shapePath, Color(0xFF1A2B44), style = Stroke(9f))
-                    drawPath(shapePath, Color(0xFFB0202A).copy(alpha = 0.85f), style = Stroke(3f))
+                    // Owner, 2026-10-10: dulled so the cores read as floor, not as a hazard line.
+                    drawPath(shapePath, Color(0xFF8A2028).copy(alpha = 0.45f), style = Stroke(3f))
                     shapePath.translate(Offset(0f, 3f))
-                    drawPath(shapePath, Color(0xFFE0A020).copy(alpha = 0.8f), style = Stroke(2.2f))
+                    drawPath(shapePath, Color(0xFFA07818).copy(alpha = 0.4f), style = Stroke(2.2f))
                     shapePath.translate(Offset(0f, -3f))
                     val f = ((time * 0.4f + (d.seed and 0xFF) / 255f) % 1f)
-                    drawCircle(themeAccent.copy(alpha = 0.45f), 2.5f, Offset(d.x + d.w * f, d.y + wob * (0.3f * f)))
+                    drawCircle(themeAccent.copy(alpha = 0.25f), 2.5f, Offset(d.x + d.w * f, d.y + wob * (0.3f * f)))
                 }
                 DecorKind.VENT -> {
                     // 03 Vent grate tile: a recessed grate with depth, slats lit from one side.
