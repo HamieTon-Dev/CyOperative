@@ -71,7 +71,8 @@ object Events {
         "malware_swarm", "MALWARE SWARM", "Survive the outbreak",
         "Threats spawn continuously. Survive until the timer reaches zero.",
         0xFFFF2EC4, minLevel = 5, weight = 1f,
-        rules = EventRules(timedSeconds = 30f, spawnInterval = 1.0f, enemyHpMul = 0.8f, rewardMul = 2f)
+        // Owner, 2026-10-11: "malware swarm needs more than double the amount of enemies" — 2.5× the old rate.
+        rules = EventRules(timedSeconds = 30f, spawnInterval = 0.4f, enemyHpMul = 0.8f, rewardMul = 2f)
     )
 
     val DATA_VAULT = EventDef(

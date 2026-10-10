@@ -163,4 +163,24 @@ class VaultAndScalingTest {
         val next = weapons.first { g.build.level(it.id) == 0 }
         assertTrue("a 4th weapon needs a free slot on Hard", g.build.needsSlot(next))
     }
+
+    @Test fun malwareSwarmSpawnsMoreThanTwiceAsMany() {
+        fun spawned(d: com.cyberoperative.game.engine.Difficulty, level: Int): Int {
+            val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = 5L, freeRevives = 0, difficulty = d))
+            g.debugStartPlan(LevelPlanner.eventPlan(level, Random(1), Events.MALWARE_SWARM, null))
+            val before = g.levelSpawned
+            var t = 0f
+            while (t < 30f && g.phase == Phase.COMBAT) {
+                // Keep the room thin so only the spawn rate counts.
+                for (e in g.enemies.items) if (e.active && g.rng.nextFloat() < 0.05f) g.killEnemy(e)
+                g.update(1f / 60f); t += 1f / 60f
+            }
+            return g.levelSpawned - before
+        }
+        // The old swarm spawned one every max(0.35, 1 − 0.006·level) s: ~34 over 30 s at level 20.
+        val old20 = (30f / maxOf(0.35f, 1f - 20 * 0.006f)).toInt()
+        val easy = spawned(com.cyberoperative.game.engine.Difficulty.EASY, 20)
+        assertTrue("easy swarm $easy vs old $old20", easy >= old20 * 2.2f)
+        assertTrue("normal swarm grows with the post-10 pressure", spawned(com.cyberoperative.game.engine.Difficulty.MEDIUM, 20) > easy)
+    }
 }

@@ -298,7 +298,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Campaign HUD: threats destroyed / threats in this level (incl. splits and summons). */
     var levelKills = 0
         private set
-    private var levelSpawned = 0
+    var levelSpawned = 0
+        private set
     val levelThreats: Int get() = max(plan.enemyCount, levelSpawned)
     /** Seconds left of the slide-in of a new room (gameplay waits for it). */
     var slideIn = 0f
@@ -1070,8 +1071,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (rules.timedSeconds > 0f) {
             timedRemaining -= dt
             spawnTimer -= dt
-            if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
-                spawnTimer = max(0.35f, rules.spawnInterval - level * 0.006f) / (if (coop) 1f + COOP_EXTRA_THREATS else 1f)
+            // A swarm may fill the room past the normal cap; Normal/Hard add their post-10 threat count.
+            if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE_SWARM) {
+                spawnTimer = max(0.35f * rules.spawnInterval, rules.spawnInterval * (1f - level * 0.006f)) /
+                    pressureCount() / (if (coop) 1f + COOP_EXTRA_THREATS else 1f)
                 val pool = Enemies.pool(level)
                 spawnEnemy(LevelPlanner.weightedPick(pool, rng), null, telegraph = true)
             }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.2 (versionCode 51) — 2026-10-11 · Bigger Malware Swarm
+### Changed
+- **Malware Swarm spawns 2.5× as many threats** (owner: "needs more than double"), and up to 70 can
+  be on screen at once (was 32).
+  - On Normal and Hard the swarm also grows with the post-level-10 threat count.
+  - Over the 30 seconds: about 80 at level 10 (was 32), about 105 at level 20 (was 34) and about 218
+    at level 52 (was 43).
+  - Swarm threats keep their lighter HP (×0.8).
+
 ## 0.15.1 (versionCode 50) — 2026-10-11 · Hard locks 4 weapon slots
 ### Changed
 - **Hard locks 4 weapon slots for the whole run** (owner). The lock always takes 4 away from whatever
