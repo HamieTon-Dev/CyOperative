@@ -213,7 +213,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] E2 Nullshade Specter (v0.11.3)
 - [x] E3 Rootkit Apostle (built early, v0.11.2)
 - [x] E4 Ransom King (v0.11.4)
-- [ ] E5 Spectral Firewall
+- [x] E5 Spectral Firewall (v0.11.5)
 - [ ] E6 Renders + tests
 
 ### Stage F — Premium pass (v0.12.0)
@@ -233,7 +233,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
-| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ⏳ revision 3 sent (solid charred red-hot metal plates, no grid) | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
+| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks built and sent (atk1–atk8) | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
 
 ---
 
@@ -332,3 +332,14 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Build this with the attacks.
 - 2026-10-10 — Spectral Firewall revision 2: slabs 28% taller, with a charred outline, dark mortar seams and course line, a dark base band and a dark top cap.
 - 2026-10-10 — Spectral Firewall revision 3: solid plates with no brick seams. Charred metal top and bottom, a glowing heat band and a white-hot centre, burn patches, heat cracks and rivets (all clipped to the plate), smaller flames.
+- 2026-10-10 — v0.11.5 (27): Spectral Firewall attacks and boss-coloured arenas.
+  - Ring shield (`BossDef.firewallRing`): `ringBlocks` in damageEnemy uses the shooter position
+    (`cur`) on the drawn perspective ellipse (RING_SQUASH 0.36, centre e.y + 0.8r − 18).
+    Plates: 9 slots, 6/7/8 filled, PLATE_SPAN 0.78. Touching a plate ignites.
+  - Hazards: FIRE_WALL (gap angle ×1000 in x2, count in y2, half-width in windup; synced) and
+    BURN_SECTOR. SWEEP with tick = 1 is a flame jet.
+  - BURNING status (`ignite`), co-op wire v6, HUD ring line. The bot stands in a ring gap
+    (`firewallGapPoint`).
+  - Arena theme: the boss arena uses `plan.boss.color` for trim, pools and walls, plus
+    `drawBossBorder`. Owner: "Can the boss arena match the boss color theme… unique to each boss."
+  - Tests: SpectralFirewallTest.

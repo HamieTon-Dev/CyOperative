@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.11.5 (versionCode 27) — 2026-10-10 · Spectral Firewall + boss-coloured arenas
+### Added
+- **Spectral Firewall** (Boss Pack Gamma) is the **level 230** boss: AREA DENIAL, threat HIGH, base
+  bounty €380. Owner-approved body: a spiked core and an orbiting ring of charred, red-hot metal
+  plates.
+  - **Ring shield** (owner's choice): the orbiting plates soak up your fire, so you shoot through the
+    gaps as they rotate past. There are 3 gaps in phase 1, 2 in phase 2 and 1 in phase 3. Walking
+    into a plate sets you on fire. Blocking matches what you see on screen.
+  - **Firewall Ring** (owner spec): burning walls with gaps burst out of the boss and push all the way
+    past the arena walls. The gaps drift, so you have to move to stay lined up, and touching a wall
+    sets you **ON FIRE**. While the walls are out, its own ring is gone and the core is exposed. The
+    boss bar shows "RING UP — FIRE THROUGH THE GAPS" or "RING LAUNCHED — CORE EXPOSED".
+  - **Burn Sector:** wedges of the arena, the first aimed at you, show dashed edges and warning signs,
+    then ignite.
+  - **Heat Collapse:** a fire wall closes in from the arena edges toward the boss. Slip through a gap.
+  - **Purge Spin:** roaring flame jets spin around it. They stop at cover and set you on fire.
+  - **ON FIRE:** a 2.5 s burn that ignores invulnerability, with flames shown on the operative.
+  - **Phases:** PHASE 1 → HEAT RISING → MELTDOWN.
+- **Boss-coloured arenas** (owner request): every boss arena (classic and new) takes its boss's
+  colours. The floor trim, light pools and walls are tinted, and a glowing border in the boss's accent
+  colour pulses around the edge of the screen.
+### Changed
+- Co-op wire format v6: the ring and ON FIRE are synced. Both players need this version.
+
 ## 0.11.4 (versionCode 26) — 2026-10-10 · Ransom King
 ### Added
 - **Ransom King** (Boss Pack Gamma) is the **level 210** boss: LOCKDOWN, threat HIGH, base bounty

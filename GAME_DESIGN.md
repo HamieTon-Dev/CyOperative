@@ -143,6 +143,12 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Lock Grid walls 7 s with 2 gaps of 3 cubes.
   - Royal Seizure roots 1.0–1.2 s plus a 3.5 s cage.
   - ENCRYPTED 3.5 s; 1.1 s of movement bursts it (1.8× ring damage).
+- Spectral Firewall (L230):
+  - Ring shield blocks fire from outside except through gaps (3/2/1 by phase).
+  - Firewall Ring walls go out past the far corner at 170–190 u/s with 3/2 gaps, drifting 0.35 rad/s.
+  - ON FIRE: 2.5 s, ticks every 0.5 s.
+  - Burn Sector warns 1.0–1.2 s; Heat Collapse closes inward with 2 gaps.
+- Boss arenas are tinted with the boss colour, with a pulsing edge border.
 - Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.

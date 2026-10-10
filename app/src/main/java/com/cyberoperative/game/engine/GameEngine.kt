@@ -492,6 +492,51 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.hitMask = 0; h.ownerUid = -1
     }
 
+    /** Spectral Firewall's orbiting ring: angle, plates filled (of [FIREWALL_SLOTS]), launched (gone). -1 filled = none. */
+    var bossRingAngle = 0f
+    var bossRingFilled = -1
+    var bossRingOut = false
+
+    /** ON FIRE: the current operative burns for [seconds] at [dps]. */
+    fun ignite(seconds: Float, dps: Float) {
+        if (cur.burning <= 0f) addText(px, py - 44f, "ON FIRE", TextKind.PLAYER_HURT)
+        cur.burning = max(cur.burning, seconds)
+        cur.burnDps = max(cur.burnDps, dps)
+    }
+
+    /** Fire wall ring from radius [from] to [to] around ([x], [y]); see [HazardKind.FIRE_WALL]. */
+    fun addFireWall(x: Float, y: Float, from: Float, to: Float, speed: Float, gaps: Int, gapAngle: Float, gapHalf: Float, damage: Float, color: Long, ownerUid: Int) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.FIRE_WALL
+        h.x = x; h.y = y; h.radius = from; h.maxRadius = to; h.angle = from
+        h.x2 = gapAngle * 1000f; h.y2 = gaps.toFloat(); h.windup = gapHalf
+        h.timer = 0f; h.duration = kotlin.math.abs(to - from) / speed
+        h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = ownerUid
+        h.angVel = (if (rng.nextBoolean()) 1f else -1f) * 0.35f
+    }
+
+    /** Burning pie slice; see [HazardKind.BURN_SECTOR]. */
+    fun addBurnSector(x: Float, y: Float, aim: Float, halfWidth: Float, reach: Float, warn: Float, burn: Float, dps: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.BURN_SECTOR
+        h.x = x; h.y = y; h.x2 = MathUtil.wrapAngle(aim).let { if (it < 0f) it + MathUtil.TWO_PI else it } * 1000f
+        h.maxRadius = halfWidth * 1000f; h.radius = reach
+        h.windup = warn; h.timer = 0f; h.duration = warn + burn
+        h.damage = dps; h.color = color; h.tick = 0f; h.hitMask = 0; h.ownerUid = -1
+    }
+
+    /** True if angle [a] (radians) falls inside one of a fire wall's gaps. */
+    internal fun inFireGap(h: Hazard, a: Float): Boolean {
+        val gaps = h.y2.toInt()
+        if (gaps <= 0) return false
+        val base = h.x2 / 1000f
+        for (k in 0 until gaps) {
+            val g = base + MathUtil.TWO_PI * k / gaps
+            if (kotlin.math.abs(MathUtil.wrapAngle(a - g)) < h.windup) return true
+        }
+        return false
+    }
+
     /** SEIZED: the current operative can't move for [seconds]. */
     fun root(seconds: Float) {
         cur.rooted = max(cur.rooted, seconds)
@@ -521,6 +566,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 if (cur === ops[primary]) fx.shake(6f, 0.3f)
             }
             if (cur.encrypted <= 0f) cur.encryptCharge = 0f
+        }
+        if (cur.burning > 0f) {
+            cur.burning = max(0f, cur.burning - dt)
+            cur.burnTick -= dt
+            if (cur.burnTick <= 0f) {
+                cur.burnTick = BURN_TICK
+                damagePlayer(cur.burnDps * BURN_TICK, px, py, ignoreInvuln = true)
+                repeat(3) { addParticle(px, py - 20f, 0xFFFF7A1A, 90f, 0.4f, 3f) }
+            }
+            if (cur.burning <= 0f) cur.burnDps = 0f
         }
     }
 
@@ -784,7 +839,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level = newLevel
         fx.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f
-        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f }
+        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f }
+        bossRingFilled = -1; bossRingOut = false
         updateAdaptive()
         skipShopPrompt = false
         topGateLocked = false
@@ -2223,6 +2279,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     fun damageEnemy(e: Enemy, raw: Float, crit: Boolean, kind: ProjKind, quiet: Boolean = false, showText: Boolean = true) {
         if (!e.targetable) return
+        // Spectral Firewall: its ring plates soak up fire from outside unless you're lined up with a gap.
+        if (e.boss != null && bossBrain.ringBlocks(e, px, py)) {
+            bossBrain.ringSpark(e, px, py)
+            return
+        }
         var d = raw
         if (e.isElite || e.boss != null) d *= stats.eliteDamageMul
         val armor = e.def.armor * sqrt(Scaling.enemyHp(level))
@@ -2620,14 +2681,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun addSweep(
         x: Float, y: Float, startAngle: Float, sweep: Float, width: Float, windup: Float, active: Float,
         damage: Float, color: Long, ownerUid: Int
-    ) {
-        val h = hazards.obtain() ?: return
+    ): Hazard? {
+        val h = hazards.obtain() ?: return null
         h.active = true; h.kind = HazardKind.SWEEP
         h.x = x; h.y = y; h.angle = startAngle; h.angVel = sweep / active; h.maxRadius = sweep
         h.radius = width; h.windup = windup
         h.timer = 0f; h.duration = windup + active; h.damage = damage; h.color = color
-        h.hitMask = 0; h.ownerUid = ownerUid
+        h.hitMask = 0; h.ownerUid = ownerUid; h.tick = 0f
         clipRay(h)
+        return h
     }
 
     /** Lobbed shell from ([fromX], [fromY]) landing on ([x], [y]) after [flight]. */
@@ -2804,6 +2866,41 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                 }
+                HazardKind.FIRE_WALL -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    val r0 = h.angle
+                    h.radius = r0 + (h.maxRadius - r0) * (h.timer / h.duration)
+                    // The gaps drift, so you have to move to stay lined up.
+                    h.x2 = MathUtil.wrapAngle(h.x2 / 1000f + h.angVel * dt) * 1000f
+                    forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit != 0) return@forEachAlive
+                        val d = MathUtil.dist(px, py, h.x, h.y)
+                        if (kotlin.math.abs(d - h.radius) < FIRE_WALL_THICKNESS + playerRadius * 0.5f && !inFireGap(h, atan2(py - h.y, px - h.x))) {
+                            h.hitMask = h.hitMask or bit
+                            damagePlayer(h.damage, h.x, h.y)
+                            ignite(BURN_SECONDS, h.damage * 0.35f)
+                        }
+                    }
+                }
+                HazardKind.BURN_SECTOR -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (h.timer >= h.windup) {
+                        h.tick -= dt
+                        if (h.tick <= 0f) {
+                            h.tick = 0.4f
+                            val aim = h.x2 / 1000f
+                            val half = h.maxRadius / 1000f
+                            forEachAlive {
+                                val d = MathUtil.dist(px, py, h.x, h.y)
+                                if (d < h.radius && kotlin.math.abs(MathUtil.wrapAngle(atan2(py - h.y, px - h.x) - aim)) < half) {
+                                    damagePlayer(h.damage * 0.4f, h.x, h.y, ignoreInvuln = true)
+                                    ignite(BURN_SECONDS, h.damage * 0.3f)
+                                }
+                            }
+                        }
+                    }
+                }
                 HazardKind.KEY_ZONE -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
                     var inside = false
@@ -2852,6 +2949,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         if (h.hitMask and bit == 0 && distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
                             h.hitMask = h.hitMask or bit
                             damagePlayer(h.damage, h.x, h.y)
+                            // Purge Spin flame jets set you on fire.
+                            if (h.tick > 0f) ignite(BURN_SECONDS, h.damage * 0.3f)
                         }
                     }
                 }
@@ -3009,6 +3108,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         startLevel(target, null, true)
     }
 
+    /** Bot/test hook: a spot lined up with one of Spectral Firewall's ring gaps. */
+    fun firewallGapPoint(scale: Float): Pair<Float, Float>? = boss?.let { bossBrain.ringGapPoint(it, scale) }
+
     /** Test hook: make the boss start [p] right now. */
     fun debugBossPattern(p: com.cyberoperative.game.data.Pattern) = bossBrain.forcePattern(p)
 
@@ -3070,7 +3172,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val n = NetOp()
             n.x = o.px; n.y = o.py; n.hp = o.hp; n.firewall = o.firewall; n.facing = o.facing
             n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
-            n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge
+            n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge; n.burning = o.burning
             n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
@@ -3135,6 +3237,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.sounds += sounds.take(16)
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
         w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
+        w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut
         return w
     }
 
@@ -3176,6 +3279,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         barriers.clear()
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
         darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
+        bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
@@ -3197,7 +3301,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val hostPlaces = !local || newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
             if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
             o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
-            o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge
+            o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge; o.burning = n.burning
             if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
             o.targetUid = n.targetUid
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
@@ -3394,6 +3498,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val MAX_FRAME = 0.1f
         /** How far a sweeping laser reaches when nothing stops it. */
         const val SWEEP_LENGTH = 1500f
+        /** ON FIRE: how long it lasts and how often it ticks. */
+        const val BURN_SECONDS = 2.5f
+        const val BURN_TICK = 0.5f
+        /** Half-thickness of a fire wall ring. */
+        const val FIRE_WALL_THICKNESS = 16f
+        /** Spectral Firewall's orbiting ring: plate slots and radius (× boss radius). */
+        const val FIREWALL_SLOTS = 9
+        const val FIREWALL_RING_SCALE = 1.6f
         /** Seconds standing in a key zone to unlock it. */
         const val KEY_CAPTURE_SECONDS = 1.3f
         /** How long ENCRYPTED lasts, and how much moving fills its burst meter. */

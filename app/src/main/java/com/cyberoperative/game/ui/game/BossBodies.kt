@@ -38,7 +38,11 @@ class BossPose(
     /** 0 = fully visible … 1 = in the shadows, eyes closed (Nullshade's lock windows). */
     val veiled: Float = 0f,
     /** 1 = ransom shield up (Ransom King), 0 = none / broken. */
-    val shield: Float = 0f
+    val shield: Float = 0f,
+    /** Spectral Firewall's orbiting ring: angle, plates filled (-1 = preview, use time), launched. */
+    val ring: Float = 0f,
+    val ringFilled: Int = -1,
+    val ringOut: Boolean = false
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color

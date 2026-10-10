@@ -37,6 +37,14 @@ class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
     }
 
     private fun combat(dt: Float) {
+        // Like a player: line up with a gap in Spectral Firewall's ring, then stand still and shoot.
+        if (g.bossRingFilled >= 0 && !g.bossRingOut) {
+            val gap = g.firewallGapPoint(2.2f)
+            if (gap != null) {
+                if (MathUtil.dist2(gap.first, gap.second, g.px, g.py) > 40f * 40f) goTo(gap.first, gap.second, dt) else g.setInput(0f, 0f)
+                return
+            }
+        }
         // Like a player: go and unlock any key zone (Ransom King's shield).
         val key = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.KEY_ZONE }
             .minByOrNull { MathUtil.dist2(it.x, it.y, g.px, g.py) }

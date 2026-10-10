@@ -567,6 +567,16 @@ internal fun BossHealthBar(h: HudSnapshot) {
             }
             drawRoundRect(color.copy(alpha = 0.9f * flicker), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
+        if (h.bossRing >= 0) {
+            // Spectral Firewall: its plates soak up your fire unless you shoot through a gap.
+            val up = h.bossRing == 1
+            Text(
+                if (up) "🔥 RING UP — FIRE THROUGH THE GAPS" else "💥 RING LAUNCHED — CORE EXPOSED",
+                color = if (up) Color(0xFFFF7A1A) else Color(0xFFFFD45A),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         if (h.bossShield >= 0) {
             // Ransom King: shielded until the key zones are captured.
             val up = h.bossShield == 1

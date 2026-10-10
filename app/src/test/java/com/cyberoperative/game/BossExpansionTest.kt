@@ -567,3 +567,128 @@ class RansomKingEdgeCaseTest {
         assertTrue("cages really rose at most spots ($caged)", caged >= spots.size - 2)
     }
 }
+
+/** Spectral Firewall: ring shield and gaps, Firewall Ring out to the walls (burns, exposes the core), burn sector, heat collapse, purge spin. */
+class SpectralFirewallTest {
+
+    private fun fight(seed: Long = 23L): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = seed, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(230, Random(seed)).copy(boss = com.cyberoperative.game.data.BossExpansion.SPECTRAL_FIREWALL, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.2f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    private fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    @Test fun ringBlocksShotsExceptThroughTheGaps() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        run(g, 0.1f)
+        assertEquals(6, g.bossRingFilled)
+        // Sweep all the way round the boss: some angles are blocked, some (the gaps) let damage through.
+        var blocked = 0; var through = 0
+        for (k in 0 until 72) {
+            val a = k * Math.PI.toFloat() * 2f / 72f
+            me.px = b.x + kotlin.math.cos(a) * 260f; me.py = b.y + 0.8f * b.radius - 18f + kotlin.math.sin(a) * 260f * 0.36f
+            val hp = b.hp
+            g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+            if (b.hp < hp) through++ else blocked++
+        }
+        assertTrue("most angles are covered by plates ($blocked)", blocked > 36)
+        assertTrue("the gaps let shots through ($through)", through > 6)
+        // Standing in a gap (as the bot does) always gets hits in.
+        val gap = g.firewallGapPoint(2.2f)!!
+        me.px = gap.first; me.py = gap.second
+        val hp = b.hp
+        g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("shot through a gap", b.hp < hp)
+    }
+
+    @Test fun firewallRingPushesToTheWallsBurnsAndExposesTheCore() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.FirewallRing(1, 2, 400f, 20f))
+        run(g, 0.8f)
+        val wall = g.hazards.items.first { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.FIRE_WALL }
+        assertTrue("ring launched: core exposed", g.bossRingOut)
+        // From anywhere, while the ring is out, the core takes damage.
+        val hp = b.hp
+        g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue(b.hp < hp)
+        // Stand in its path away from the gaps; it reaches you and sets you on fire.
+        val far = kotlin.math.hypot(g.arena.width, g.arena.height)
+        var burned = false
+        var t = 0f
+        while (t < 6f && wall.active) {
+            if (!burned) {
+                // Keep the operative on a plate (opposite a gap) at a fixed distance.
+                val a = wall.x2 / 1000f + Math.PI.toFloat() / 2f
+                me.px = (b.x + kotlin.math.cos(a) * 300f).coerceIn(30f, g.arena.width - 30f)
+                me.py = (b.y + kotlin.math.sin(a) * 300f).coerceIn(30f, g.arena.height - 30f)
+            }
+            run(g, 0.05f); t += 0.05f
+            if (me.burning > 0f) burned = true
+        }
+        assertTrue("touching the wall sets you on fire", burned)
+        assertTrue("it went all the way out", wall.maxRadius >= far - 1f)
+        run(g, 0.3f)
+        assertTrue("ring back once the wall is gone", !g.bossRingOut)
+    }
+
+    @Test fun burnSectorWarnsThenBurns() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BurnSector(1, 70f, 1.0f, 2.0f, 20f))
+        val hp = me.hp
+        run(g, 0.9f)
+        assertEquals("nothing during the warning", hp, me.hp, 0.01f)
+        run(g, 0.6f)
+        assertTrue("burning once it ignites", me.hp < hp && me.burning > 0f)
+    }
+
+    @Test fun heatCollapseClosesInWithGaps() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.HeatCollapse(2, 200f, 20f))
+        run(g, 0.2f)
+        val wall = g.hazards.items.first { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.FIRE_WALL }
+        val r0 = wall.radius
+        run(g, 1.0f)
+        assertTrue("closing in", wall.radius < r0)
+        assertEquals(2, wall.y2.toInt())
+        assertTrue("collapse doesn't take the ring away", !g.bossRingOut)
+    }
+
+    @Test fun purgeSpinSetsYouOnFire() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.PurgeSpin(4, 0.3f, 3f, 360f, 20f))
+        var t = 0f
+        while (t < 3.5f && me.burning <= 0f) { run(g, 0.05f); t += 0.05f }
+        assertTrue("a flame jet caught the operative", me.burning > 0f)
+    }
+
+    @Test fun ringAndBurnTravelToTheGuest() {
+        val w = com.cyberoperative.game.engine.CoopWorld()
+        w.bossRingAngle = 1.2f; w.bossRingFilled = 7; w.bossRingOut = true
+        w.ops += com.cyberoperative.game.engine.NetOp().apply { burning = 1.5f }
+        val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
+        assertEquals(1.2f, back.bossRingAngle, 0.03f)
+        assertEquals(7, back.bossRingFilled)
+        assertTrue(back.bossRingOut)
+        assertEquals(1.5f, back.ops[0].burning, 0.01f)
+    }
+}

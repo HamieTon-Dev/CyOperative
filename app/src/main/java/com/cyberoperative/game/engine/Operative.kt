@@ -25,6 +25,10 @@ class Operative(val index: Int, baseStats: RunStats) {
     var encrypted = 0f
     var encryptCharge = 0f
     var encryptDamage = 0f
+    /** ON FIRE (Spectral Firewall): time left and damage per second. */
+    var burning = 0f
+    var burnDps = 0f
+    var burnTick = 0f
     var inputX = 0f
     var inputY = 0f
     var fireCooldown = 0f

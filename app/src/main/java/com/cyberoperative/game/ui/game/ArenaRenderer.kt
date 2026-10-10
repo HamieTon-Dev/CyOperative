@@ -86,6 +86,10 @@ class ArenaRenderer {
         /** Settings → SCREEN SHAKE. */
         shake: Boolean = true
     ) = with(scope) {
+        // Boss arenas take the boss's colours (its accent, plus a lighter second tone).
+        val bc = g.plan.boss?.color
+        bossAccent = if (bc != null) Color(bc) else Palette.Red
+        bossAccent2 = if (bc != null) lighter(Color(bc), 0.35f) else Palette.Magenta
         this@ArenaRenderer.partnerSkin = partnerSkin
         this@ArenaRenderer.partnerBody = partnerBody
         val arena = g.arena
@@ -133,17 +137,21 @@ class ArenaRenderer {
             }
             drawProjectiles(g, time)
             drawZaps(g, time)
-            drawHazardsOver(g)
+            drawHazardsOver(g, time)
             drawParticles(g)
             if (showNumbers) drawTexts(g)
         }
         if (g.plan.kind == LevelKind.EVENT) drawSpectrumBorder(time)
+        if (g.plan.kind == LevelKind.BOSS) drawBossBorder(time)
         if (g.hurtFlash > 0f) drawRect(Palette.Red.copy(alpha = 0.18f * (g.hurtFlash / 0.25f)))
         val flash = g.fx.flashNow
         if (flash > 0f) drawRect(Color(g.fx.flashColor).copy(alpha = flash.coerceIn(0f, 1f)))
     }
 
     private var partnerSkin: OperativeSkin? = null
+    /** Colours of the current boss arena (see [drawBossBorder]). */
+    private var bossAccent: Color = Palette.Red
+    private var bossAccent2: Color = Palette.Magenta
     private var partnerBody: BodyStyle? = null
 
     /** Screen shake for the boss growl. */
@@ -195,12 +203,12 @@ class ArenaRenderer {
             event != null -> mix(Color(event.accent), Color(env.base), 0.06f)
             else -> shadeOf(env.base, st.shade)
         }
-        val plateA = if (boss) Color(0xFF1A0E18) else shadeOf(env.plateA, st.shade)
-        val plateB = if (boss) Color(0xFF160B14) else shadeOf(env.plateB, st.shade)
-        val hi = if (boss) Color(0x22FF6080) else Color(env.bevel)
+        val plateA = if (boss) mix(bossAccent, Color(0xFF120A12), 0.09f) else shadeOf(env.plateA, st.shade)
+        val plateB = if (boss) mix(bossAccent, Color(0xFF0F080F), 0.07f) else shadeOf(env.plateB, st.shade)
+        val hi = if (boss) bossAccent.copy(alpha = 0.13f) else Color(env.bevel)
         val lo = Color(0x66000000)
-        val accent = if (boss) Palette.Red else Color(env.accent)
-        val accent2 = if (boss) Palette.Magenta else Color(env.accent2)
+        val accent = if (boss) bossAccent else Color(env.accent)
+        val accent2 = if (boss) bossAccent2 else Color(env.accent2)
         val pattern = if (boss) FloorPattern.PLATES else st.pattern
         drawRect(base, Offset.Zero, Size(w, h))
         val step = if (boss) TILE else st.tile
@@ -327,7 +335,7 @@ class ArenaRenderer {
             ty += step * everyY
         }
         // Light pools in front of tall hardware, in the theme's light colour.
-        val pool = if (boss) Palette.Red else Color(env.light)
+        val pool = if (boss) bossAccent else Color(env.light)
         for (o in g.arena.obstacles) {
             if (o.kind != ObstacleKind.SERVER_RACK && o.kind != ObstacleKind.SMALL_SERVER && o.kind != ObstacleKind.DATA_PILLAR &&
                 o.kind != ObstacleKind.REACTOR && o.kind != ObstacleKind.ANTENNA_TOWER && o.kind != ObstacleKind.HOLO_WALL) continue
@@ -348,7 +356,7 @@ class ArenaRenderer {
             drawRect(col.copy(alpha = a), Offset(px, pyy), Size(5f, 5f))
         }
         // Side walls: a low raised kerb with a lit edge in the theme colour.
-        val wall = if (boss) Palette.Red else Color(env.wallTrim).copy(alpha = 0.75f)
+        val wall = if (boss) bossAccent else Color(env.wallTrim).copy(alpha = 0.75f)
         val kerb = if (boss) Color(0xFF0E1830) else Color(env.wallTone)
         drawRect(kerb, Offset(-14f, 0f), Size(14f, h))
         drawRect(kerb, Offset(w, 0f), Size(14f, h))
@@ -499,7 +507,7 @@ class ArenaRenderer {
             bx += 72f
             i++
         }
-        drawLine((if (boss) Palette.Red else Color(env.wallTrim)).copy(alpha = 0.8f), Offset(-14f, 0f), Offset(w + 14f, 0f), 3f)
+        drawLine((if (boss) bossAccent else Color(env.wallTrim)).copy(alpha = 0.8f), Offset(-14f, 0f), Offset(w + 14f, 0f), 3f)
 
         // Gate. Locked red after the player declined to skip the shop.
         val open = g.portalOpen && !g.topGateLocked
@@ -1001,7 +1009,8 @@ class ArenaRenderer {
                 cx, cy, e.radius, base, time, boss.phaseIndex, e.state == AiState.WINDUP, e.hitFlash > 0f,
                 kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch,
                 veiled = if (boss.def.stealth) g.bossVeil else 0f,
-                shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else 0f
+                shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else 0f,
+                ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1454,6 +1463,7 @@ class ArenaRenderer {
                 }
                 HazardKind.INFECTED -> drawInfected(h, col, time)
                 HazardKind.KEY_ZONE -> drawKeyZone(h, time)
+                HazardKind.BURN_SECTOR -> drawBurnSector(h, time)
                 HazardKind.BLAST -> {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     drawCircle(col.copy(alpha = 0.12f), h.radius, Offset(h.x, h.y))
@@ -1585,6 +1595,109 @@ class ArenaRenderer {
         }
     }
 
+    /**
+     * Fire wall ring: a band of red-hot charred metal and flame with open gaps,
+     * dark edges on both sides so its thickness reads at a glance.
+     */
+    private fun DrawScope.drawFireWall(g: GameEngine, h: com.cyberoperative.game.engine.Hazard, time: Float) {
+        val c = Offset(h.x, h.y)
+        val r = h.radius
+        if (r < 4f) return
+        val gaps = h.y2.toInt()
+        val base = h.x2 / 1000f
+        val half = h.windup
+        val box = Offset(c.x - r, c.y - r)
+        val size = Size(r * 2f, r * 2f)
+        val t = GameEngine.FIRE_WALL_THICKNESS
+        // Solid stretches between the gaps.
+        val segments = ArrayList<Pair<Float, Float>>()
+        if (gaps <= 0) segments += 0f to 360f
+        else for (k in 0 until gaps) {
+            val g0 = base + 6.2832f * k / gaps + half
+            val g1 = base + 6.2832f * (k + 1) / gaps - half
+            segments += Math.toDegrees(g0.toDouble()).toFloat() to Math.toDegrees((g1 - g0).toDouble()).toFloat()
+        }
+        val flick = 0.85f + 0.15f * sin(time * 14f)
+        for ((start, sweep) in segments) {
+            drawArc(Color(0xFFD9301A).copy(alpha = 0.3f), start, sweep, false, box, size, style = Stroke(t * 3.2f))
+            drawArc(Color(0xFF2A0A06), start, sweep, false, box, size, style = Stroke(t * 2.2f))
+            drawArc(Color(0xFFE8400F).copy(alpha = flick), start, sweep, false, box, size, style = Stroke(t * 1.7f))
+            drawArc(Color(0xFFFFD45A).copy(alpha = 0.85f * flick), start, sweep, false, box, size, style = Stroke(t * 0.5f))
+            // Flame tongues licking up along it.
+            val n = ((r * Math.toRadians(sweep.toDouble())) / 46f).toInt().coerceAtLeast(1)
+            for (k in 0..n) {
+                val a = Math.toRadians((start + sweep * k / n).toDouble()).toFloat()
+                val fx = c.x + cos(a) * r
+                val fy = c.y + sin(a) * r
+                val fh = t * (1.1f + 0.7f * sin(time * 10f + k * 1.9f + r * 0.02f).coerceAtLeast(0f))
+                val flame = Path().apply {
+                    moveTo(fx - t * 0.55f, fy)
+                    quadraticTo(fx - t * 0.35f, fy - fh * 0.6f, fx + sin(time * 7f + k) * t * 0.25f, fy - fh)
+                    quadraticTo(fx + t * 0.35f, fy - fh * 0.6f, fx + t * 0.55f, fy)
+                    close()
+                }
+                drawPath(flame, Color(0xFFFF7A1A).copy(alpha = 0.7f))
+            }
+        }
+        // Gap edges: dark posts so the openings are obvious.
+        if (gaps > 0) for (k in 0 until gaps) for (s in listOf(-1f, 1f)) {
+            val a = base + 6.2832f * k / gaps + s * half
+            drawLine(Color(0xFF2A0A06), Offset(c.x + cos(a) * (r - t * 1.2f), c.y + sin(a) * (r - t * 1.2f)), Offset(c.x + cos(a) * (r + t * 1.2f), c.y + sin(a) * (r + t * 1.2f)), 4f)
+        }
+    }
+
+    /** Burn Sector: a wedge with warning signs while it heats, then a slice of fire. */
+    private fun DrawScope.drawBurnSector(h: com.cyberoperative.game.engine.Hazard, time: Float) {
+        val aim = h.x2 / 1000f
+        val half = h.maxRadius / 1000f
+        val c = Offset(h.x, h.y)
+        val r = h.radius
+        val start = Math.toDegrees((aim - half).toDouble()).toFloat()
+        val sweep = Math.toDegrees((half * 2f).toDouble()).toFloat()
+        val box = Offset(c.x - r, c.y - r)
+        val size = Size(r * 2f, r * 2f)
+        if (h.timer < h.windup) {
+            val f = h.timer / h.windup
+            val blink = if (((time * 8f).toInt() % 2) == 0) 1f else 0.6f
+            drawArc(Color(0xFFFF7A1A).copy(alpha = 0.08f + 0.18f * f), start, sweep, true, box, size)
+            for (s in listOf(-1f, 1f)) {
+                val a = aim + s * half
+                drawLine(Color(0xFFFFC233).copy(alpha = 0.8f * blink), c, Offset(c.x + cos(a) * r, c.y + sin(a) * r), 3f,
+                    pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(18f, 12f), -time * 60f))
+            }
+            for (k in 1..3) {
+                val d = 140f * k
+                val tc = Offset(c.x + cos(aim) * d, c.y + sin(aim) * d)
+                val s = 26f
+                val tri = floatArrayOf(0f, -s * 0.6f, s * 0.6f, s * 0.45f, -s * 0.6f, s * 0.45f)
+                drawPath(polyPath(tc.x, tc.y, tri), Color(0xFF1A0A04).copy(alpha = 0.7f))
+                drawPath(polyPath(tc.x, tc.y, tri), Color(0xFFFFC233).copy(alpha = blink), style = Stroke(3f))
+                drawLine(Color(0xFFFFC233).copy(alpha = blink), Offset(tc.x, tc.y - s * 0.25f), Offset(tc.x, tc.y + s * 0.12f), 3f)
+                drawCircle(Color(0xFFFFC233).copy(alpha = blink), 2f, Offset(tc.x, tc.y + s * 0.28f))
+            }
+        } else {
+            val fade = ((h.duration - h.timer) / 0.4f).coerceIn(0f, 1f)
+            val flick = 0.8f + 0.2f * sin(time * 18f)
+            drawArc(Brush.radialGradient(listOf(Color(0xFFFFB04A).copy(alpha = 0.6f * fade), Color(0xFFE8400F).copy(alpha = 0.45f * fade * flick), Color(0xFF8A1A0A).copy(alpha = 0.3f * fade)), center = c, radius = r * 0.6f), start, sweep, true, box, size)
+            // Flames scattered across the burning slice.
+            for (k in 0 until 26) {
+                val q = ((k * 0.618f) % 1f)
+                val a = aim + (q * 2f - 1f) * half * 0.9f
+                val d = 90f + ((k * 0.381f) % 1f) * (r * 0.5f)
+                val fx = c.x + cos(a) * d
+                val fy = c.y + sin(a) * d
+                val fh = 22f * (0.6f + 0.4f * sin(time * 12f + k * 2.3f).coerceAtLeast(0f))
+                val flame = Path().apply {
+                    moveTo(fx - 9f, fy)
+                    quadraticTo(fx - 6f, fy - fh * 0.6f, fx + sin(time * 8f + k) * 4f, fy - fh)
+                    quadraticTo(fx + 6f, fy - fh * 0.6f, fx + 9f, fy)
+                    close()
+                }
+                drawPath(flame, Color(0xFFFF7A1A).copy(alpha = 0.75f * fade))
+            }
+        }
+    }
+
     /** Padlock glyph: shackle arc over a body with a keyhole. */
     private fun DrawScope.drawPadlock(c: Offset, s: Float, col: Color) {
         drawArc(col, 180f, 180f, false, Offset(c.x - s * 0.28f, c.y - s * 0.62f), Size(s * 0.56f, s * 0.56f), style = Stroke(s * 0.1f))
@@ -1629,6 +1742,22 @@ class ArenaRenderer {
                     drawOval(Color(0xFFFFC233).copy(alpha = 0.85f), Offset(c.x + cos(a) * 26f - 4f, c.y + sin(a) * 9f - 3f), Size(8f, 6f), style = Stroke(2f))
                 }
                 drawPadlock(Offset(c.x + 22f, c.y - 4f), 16f, Color(0xFFFFC233))
+            }
+            if (o.burning > 0f) {
+                // ON FIRE: flames licking up the operative.
+                for (k in 0 until 4) {
+                    val fx = o.px + (k - 1.5f) * 9f
+                    val fy = o.py - 6f
+                    val fh = 30f + 12f * sin(time * 14f + k * 1.9f)
+                    val flame = Path().apply {
+                        moveTo(fx - 7f, fy)
+                        quadraticTo(fx - 5f, fy - fh * 0.6f, fx + sin(time * 9f + k) * 4f, fy - fh)
+                        quadraticTo(fx + 5f, fy - fh * 0.6f, fx + 7f, fy)
+                        close()
+                    }
+                    drawPath(flame, Color(0xFFFF7A1A).copy(alpha = 0.7f))
+                    drawPath(flame, Color(0xFFFFD45A).copy(alpha = 0.5f), style = Stroke(1.2f))
+                }
             }
             if (o.encrypted > 0f) {
                 val c = Offset(o.px, o.py - 78f)
@@ -1681,11 +1810,12 @@ class ArenaRenderer {
         }
     }
 
-    private fun DrawScope.drawHazardsOver(g: GameEngine) {
+    private fun DrawScope.drawHazardsOver(g: GameEngine, time: Float) {
         for (h in g.hazards.items) {
             if (!h.active) continue
             val col = Color(h.color)
             when (h.kind) {
+                HazardKind.FIRE_WALL -> drawFireWall(g, h, time)
                 HazardKind.RANSOM_RING -> {
                     // A ring of red lock-light with padlocks riding it.
                     drawCircle(col.copy(alpha = 0.75f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.2f))
@@ -1731,6 +1861,20 @@ class ArenaRenderer {
                         val f = h.timer / h.windup
                         drawLine(col.copy(alpha = 0.2f + 0.35f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * f)
                         drawLine(col.copy(alpha = 0.75f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f)
+                    } else if (h.tick > 0f) {
+                        // Purge Spin flame jet: a roaring orange stream with a hot core and flickering edge.
+                        val f = 0.85f + 0.15f * sin(time * 30f + h.x)
+                        drawLine(Color(0xFFD9301A).copy(alpha = 0.45f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 1.8f * f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(Color(0xFFFF7A1A).copy(alpha = 0.85f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 1.1f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(Color(0xFFFFE08A).copy(alpha = 0.9f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 0.35f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        val len = kotlin.math.hypot(h.x2 - h.x, h.y2 - h.y)
+                        val n = (len / 40f).toInt()
+                        for (k in 1 until n) {
+                            val q = k / n.toFloat()
+                            val jx = h.x + (h.x2 - h.x) * q + sin(time * 25f + k * 1.7f) * h.radius * 0.5f
+                            val jy = h.y + (h.y2 - h.y) * q + cos(time * 21f + k) * h.radius * 0.5f
+                            drawCircle(Color(0xFFFFB04A).copy(alpha = 0.55f), h.radius * 0.35f, Offset(jx, jy))
+                        }
                     } else {
                         drawLine(col.copy(alpha = 0.5f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 1.4f)
                         drawLine(Color.White.copy(alpha = 0.92f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 0.45f)
@@ -1798,6 +1942,24 @@ class ArenaRenderer {
     }
 
     /** Spectrum / rainbow energy border for event levels (§26). */
+    /**
+     * Boss arena edge glow in the boss's own colour (owner, 2026-10-10: "an outer edge of the
+     * screen color that the boss uses as an accent color… unique to each boss").
+     */
+    private fun DrawScope.drawBossBorder(time: Float) {
+        val w = size.width
+        val h = size.height
+        val pulse = 0.75f + 0.25f * sin(time * 2.2f)
+        val glow = size.minDimension * 0.07f
+        val c = bossAccent
+        drawRect(Brush.verticalGradient(listOf(c.copy(alpha = 0.32f * pulse), Color.Transparent), startY = 0f, endY = glow), Offset.Zero, Size(w, glow))
+        drawRect(Brush.verticalGradient(listOf(Color.Transparent, c.copy(alpha = 0.32f * pulse)), startY = h - glow, endY = h), Offset(0f, h - glow), Size(w, glow))
+        drawRect(Brush.horizontalGradient(listOf(c.copy(alpha = 0.32f * pulse), Color.Transparent), startX = 0f, endX = glow), Offset.Zero, Size(glow, h))
+        drawRect(Brush.horizontalGradient(listOf(Color.Transparent, c.copy(alpha = 0.32f * pulse)), startX = w - glow, endX = w), Offset(w - glow, 0f), Size(glow, h))
+        drawRect(c.copy(alpha = 0.85f * pulse), Offset.Zero, Size(w, h), style = Stroke(5f))
+        drawRect(bossAccent2.copy(alpha = 0.5f * pulse), Offset(5f, 5f), Size(w - 10f, h - 10f), style = Stroke(1.5f))
+    }
+
     private fun DrawScope.drawSpectrumBorder(time: Float) {
         val w = size.width
         val h = size.height

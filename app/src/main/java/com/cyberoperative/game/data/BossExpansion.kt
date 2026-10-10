@@ -158,9 +158,10 @@ object BossExpansion {
     /**
      * Spectral Firewall (Boss Pack Gamma 03, AREA DENIAL). A rotating firewall
      * boss that constricts the arena with searing flame walls and heat zones,
-     * steadily shrinking safe space until only a small area remains. Patterns
-     * are provisional until Firewall Ring / Burn Sector / Heat Collapse /
-     * Purge Spin are built.
+     * steadily shrinking safe space until only a small area remains. Its
+     * orbiting ring blocks shots (fire through the gaps: 3/2/1 by phase) and
+     * is launched outward as the Firewall Ring (owner spec), leaving the core
+     * exposed; Burn Sector, Heat Collapse and Purge Spin set you ON FIRE.
      */
     val SPECTRAL_FIREWALL = BossDef(
         "spectral_firewall", "SPECTRAL FIREWALL", "[(#)]", "Rotating Firewall",
@@ -168,21 +169,26 @@ object BossExpansion {
             "steadily shrinking safe space until only a small area remains.",
         0xFFFF5A1F, 74f, 2720f, 60f, 31f, BossMove.DRIFT, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
-                Pattern.ShockRing(380f, 220f, 26f),
-                Pattern.Spiral(3, 2.6f, 10f, 100f, 190f, 12f)
+                Pattern.FirewallRing(1, 3, 170f, 26f),
+                Pattern.BurnSector(1, 70f, 1.2f, 2.5f, 24f),
+                Pattern.PurgeSpin(3, 0.9f, 3.0f, 240f, 24f),
+                Pattern.Spiral(3, 2.4f, 9f, 100f, 190f, 11f)
             ), "PHASE 1"),
             BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.Zones(3, 110f, 6f, 18f),
-                Pattern.ShockRing(400f, 230f, 26f),
-                Pattern.Spiral(4, 3f, 12f, -110f, 200f, 12f)
+                Pattern.FirewallRing(2, 2, 180f, 27f),
+                Pattern.BurnSector(2, 70f, 1.1f, 2.6f, 25f),
+                Pattern.HeatCollapse(2, 150f, 28f),
+                Pattern.PurgeSpin(4, 0.85f, 3.2f, 300f, 25f)
             ), "HEAT RISING"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.Zones(4, 115f, 6f, 20f),
-                Pattern.ShockRing(420f, 250f, 28f),
-                Pattern.Spiral(5, 3.4f, 14f, 120f, 210f, 13f)
+                Pattern.FirewallRing(2, 2, 190f, 28f, waveGap = 0.8f),
+                Pattern.BurnSector(3, 60f, 1.0f, 2.8f, 26f),
+                Pattern.HeatCollapse(2, 165f, 30f),
+                Pattern.PurgeSpin(4, 0.8f, 3.4f, 360f, 26f),
+                Pattern.Spiral(4, 3f, 12f, -120f, 200f, 12f)
             ), "MELTDOWN")
         ), euros = 380, score = 8500, role = BossRole.AREA_DENIAL, tier = 3, armor = 5.4f,
-        abilities = listOf("Firewall Ring", "Burn Sector", "Heat Collapse", "Purge Spin")
+        abilities = listOf("Firewall Ring", "Burn Sector", "Heat Collapse", "Purge Spin"), firewallRing = true
     )
 
     /**
@@ -195,7 +201,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, RANSOM_KING, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }

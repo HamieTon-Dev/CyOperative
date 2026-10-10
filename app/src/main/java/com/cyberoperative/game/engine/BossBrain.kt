@@ -49,6 +49,9 @@ class BossState(val def: BossDef, val cycle: Int) {
     var shieldUp = true
     var keysLeft = 0
     var shieldTimer = 0f
+    /** Spectral Firewall: orbiting ring angle and the slab-touch burn cooldown. */
+    var ringAngle = 0f
+    var ringTouch = 0f
     val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
@@ -136,6 +139,7 @@ class BossBrain(private val g: GameEngine) {
         if (st.glitched) glitchBurst(e, st, dt)
         if (st.def.stealth) stealth(e, st, dt)
         if (st.def.keyShield) ransomShield(e, st, dt)
+        if (st.def.firewallRing) firewallRing(e, st, dt)
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash) && st.chargeStage == 1
         val teleporting = st.active is Pattern.Teleport
@@ -203,6 +207,87 @@ class BossBrain(private val g: GameEngine) {
         }
         e.damageTakenMul = if (st.shieldUp) SHIELD_DAMAGE_MUL else DECRYPTED_DAMAGE_MUL
         g.bossShield = if (st.shieldUp) 1f else 0f
+    }
+
+    /** Plates in the orbiting ring this phase: 3 gaps, then 2, then 1. */
+    private fun ringFilled(st: BossState) = (GameEngine.FIREWALL_SLOTS - 3 + st.phaseIndex).coerceAtMost(GameEngine.FIREWALL_SLOTS - 1)
+
+    /**
+     * Spectral Firewall's orbiting ring: turns a little faster each phase, is gone
+     * while its Firewall Ring is out (exposed window), and burns anyone touching a plate.
+     */
+    private fun firewallRing(e: Enemy, st: BossState, dt: Float) {
+        st.ringAngle = MathUtil.wrapAngle(st.ringAngle + dt * (0.5f + 0.15f * st.phaseIndex))
+        g.bossRingAngle = st.ringAngle
+        g.bossRingFilled = ringFilled(st)
+        g.bossRingOut = g.hazards.items.any { it.active && it.kind == HazardKind.FIRE_WALL && it.ownerUid == e.uid && it.maxRadius > it.angle }
+        if (st.ringTouch > 0f) st.ringTouch -= dt
+        if (g.bossRingOut || st.ringTouch > 0f || e.state == AiState.SPAWNING) return
+        val ringR = e.radius * GameEngine.FIREWALL_RING_SCALE
+        var touched = false
+        g.forEachOperativeHit(e.x, ringCenterY(e), ringR * 1.3f, 0) { _ ->
+            val nd = ringDist(e, g.px, g.py)
+            if (kotlin.math.abs(nd - ringR) < g.playerRadius * 1.2f && onPlate(st, ringParam(e, g.px, g.py))) {
+                g.damagePlayer(st.def.contactDamage * 0.5f * e.damageMul, e.x, e.y)
+                g.ignite(GameEngine.BURN_SECONDS, st.def.contactDamage * 0.3f * e.damageMul)
+                touched = true
+            }
+        }
+        if (touched) st.ringTouch = 0.6f
+    }
+
+    // The ring is drawn in perspective (an ellipse squashed by RING_SQUASH around a point just
+    // below the boss), so every gameplay check uses that same ellipse: what you see is what blocks.
+
+    private fun ringCenterY(e: Enemy) = e.y + e.radius * 0.8f - 18f
+
+    /** Angle parameter on the ring's ellipse for a world point. */
+    private fun ringParam(e: Enemy, x: Float, y: Float) = atan2((y - ringCenterY(e)) / RING_SQUASH, x - e.x)
+
+    /** Distance from the ring centre with the squash undone (compare with the ring radius). */
+    private fun ringDist(e: Enemy, x: Float, y: Float): Float {
+        val dx = x - e.x
+        val dy = (y - ringCenterY(e)) / RING_SQUASH
+        return kotlin.math.sqrt(dx * dx + dy * dy)
+    }
+
+    /** True if ring angle [a] is covered by a plate (not a gap). */
+    private fun onPlate(st: BossState, a: Float): Boolean {
+        val slot = MathUtil.TWO_PI / GameEngine.FIREWALL_SLOTS
+        var rel = MathUtil.wrapAngle(a - st.ringAngle)
+        if (rel < 0f) rel += MathUtil.TWO_PI
+        val i = (rel / slot).toInt()
+        val frac = rel / slot - i
+        return i < ringFilled(st) && frac < PLATE_SPAN
+    }
+
+    /** Would a hit from ([x], [y]) be soaked up by the orbiting ring? (Not from inside it, nor while it's launched.) */
+    internal fun ringBlocks(e: Enemy, x: Float, y: Float): Boolean {
+        val st = e.boss ?: return false
+        if (!st.def.firewallRing || g.bossRingOut) return false
+        if (ringDist(e, x, y) <= e.radius * GameEngine.FIREWALL_RING_SCALE) return false
+        return onPlate(st, ringParam(e, x, y))
+    }
+
+    /** Sparks where a blocked shot hit the ring. */
+    internal fun ringSpark(e: Enemy, x: Float, y: Float) {
+        val a = ringParam(e, x, y)
+        val ringR = e.radius * GameEngine.FIREWALL_RING_SCALE
+        if (g.rng.nextFloat() < 0.5f) g.addParticle(e.x + cos(a) * ringR, ringCenterY(e) + sin(a) * ringR * RING_SQUASH - 20f, 0xFFFFD45A, 160f, 0.3f, 2.5f)
+    }
+
+    /** A world point lined up with the middle of a ring gap, [scale] × the ring radius out (bot, tests). */
+    internal fun ringGapPoint(e: Enemy, scale: Float): Pair<Float, Float>? {
+        val st = e.boss ?: return null
+        val slot = MathUtil.TWO_PI / GameEngine.FIREWALL_SLOTS
+        val filled = ringFilled(st)
+        if (filled >= GameEngine.FIREWALL_SLOTS) return null
+        val ringR = e.radius * GameEngine.FIREWALL_RING_SCALE * scale
+        // Pick the gap whose point is nearest the operative.
+        return (filled until GameEngine.FIREWALL_SLOTS).map { i ->
+            val a = st.ringAngle + (i + 0.5f) * slot
+            (e.x + cos(a) * ringR) to (ringCenterY(e) + sin(a) * ringR * RING_SQUASH)
+        }.minByOrNull { MathUtil.dist2(it.first, it.second, g.px, g.py) }
     }
 
     /** A key zone was unlocked; the last one of the wave breaks the shield. */
@@ -385,6 +470,33 @@ class BossBrain(private val g: GameEngine) {
                 g.addPulse(e.x, e.y - e.radius, 70f, 0.3f, 0xFFFFC233)
             }
             is Pattern.RansomPulse -> {}
+            is Pattern.FirewallRing -> {
+                g.addPulse(e.x, e.y, e.radius * 2f, p.windup, st.def.color)
+                g.fx.shake(3f, p.windup)
+            }
+            is Pattern.BurnSector -> {
+                val aim = atan2(g.py - e.y, g.px - e.x)
+                val half = Math.toRadians(p.widthDeg / 2.0).toFloat()
+                val reach = kotlin.math.hypot(g.arena.width, g.arena.height)
+                for (k in 0 until p.count) {
+                    val a = aim + MathUtil.TWO_PI * k / p.count
+                    g.addBurnSector(e.x, e.y, a, half, reach, p.warn, p.burn, p.dps * e.damageMul, st.def.color)
+                }
+            }
+            is Pattern.HeatCollapse -> {
+                val far = kotlin.math.hypot(g.arena.width, g.arena.height)
+                val gapHalf = 0.32f
+                g.addFireWall(e.x, e.y, far, e.radius * 1.2f, p.speed, p.gaps, atan2(g.py - e.y, g.px - e.x) + 1.2f, gapHalf, p.damage * e.damageMul, st.def.color, e.uid)
+                g.showBanner("HEAT COLLAPSE", "Slip through a gap", 1.0f)
+            }
+            is Pattern.PurgeSpin -> {
+                val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
+                val aim = atan2(g.py - e.y, g.px - e.x) + 0.6f
+                for (k in 0 until p.arms) {
+                    // tick = 1 flags the jet as fire: it sets you burning.
+                    g.addSweep(e.x, e.y, aim + MathUtil.TWO_PI * k / p.arms, sweep, 34f, p.windup, p.duration, p.damage * e.damageMul, st.def.color, e.uid)?.tick = 1f
+                }
+            }
             is Pattern.Bloom -> bloom(e.x, e.y, p.rings, p.lanes, p.delay, p.ringGap, p.radius, p.damage * e.damageMul, st.def.color)
         }
     }
@@ -792,6 +904,23 @@ class BossBrain(private val g: GameEngine) {
                 }
                 return st.patternTime >= p.delay + 0.4f
             }
+            is Pattern.FirewallRing -> {
+                if (st.patternTime < p.windup) return false
+                st.subTimer -= dt
+                if (st.subTimer <= 0f && st.counter < p.waves) {
+                    // Out from the boss all the way past the far corner of the room.
+                    val far = kotlin.math.hypot(g.arena.width, g.arena.height)
+                    val gapHalf = 0.3f
+                    g.addFireWall(e.x, e.y, e.radius * 1.2f, far, p.speed, p.gaps, atan2(g.py - e.y, g.px - e.x) + 0.9f + st.counter * 0.7f, gapHalf, p.damage * e.damageMul, st.def.color, e.uid)
+                    g.addPulse(e.x, e.y, e.radius * 2.4f, 0.4f, 0xFFFFD45A)
+                    st.counter++
+                    st.subTimer = p.waveGap
+                }
+                return st.counter >= p.waves && st.subTimer <= 0f
+            }
+            is Pattern.BurnSector -> return st.patternTime >= p.warn + 0.3f
+            is Pattern.HeatCollapse -> return st.patternTime >= 0.6f
+            is Pattern.PurgeSpin -> return st.patternTime >= p.windup + p.duration
             is Pattern.RansomPulse -> {
                 st.subTimer -= dt
                 if (st.subTimer <= 0f) {
@@ -906,6 +1035,10 @@ class BossBrain(private val g: GameEngine) {
         const val SHIELD_DAMAGE_MUL = 0.25f
         const val DECRYPTED_DAMAGE_MUL = 1.5f
         const val DECRYPT_SECONDS = 6f
+        /** Share of each ring slot a plate covers (the rest is a sliver gap). Matches the body drawing. */
+        const val PLATE_SPAN = 0.78f
+        /** Vertical squash of the ring's perspective ellipse (matches BossBodySpectralFirewall). */
+        const val RING_SQUASH = 0.36f
         private val SIDE_X = floatArrayOf(1f, 0f, -1f, 0f)
         private val SIDE_Y = floatArrayOf(0f, 1f, 0f, -1f)
         const val INTRO_BAR_END = 1.4f

@@ -37,7 +37,8 @@ internal object SpectralFirewallBody : BossBody {
         val hot = p.winding
         val pulse = 0.5f + 0.5f * sin(t * (3f + p.phase * 1.5f))
         val ground = p.cy + r * 0.9f
-        val spin = t * (0.5f + 0.15f * p.phase)
+        // In a fight the ring angle comes from the engine (it decides what blocks); previews spin on time.
+        val spin = if (p.ringFilled >= 0) p.ring else t * (0.5f + 0.15f * p.phase)
 
         // Heat glow and a scorched ring on the floor.
         drawOval(
@@ -48,10 +49,12 @@ internal object SpectralFirewallBody : BossBody {
 
         // Firewall ring: curved burning wall slabs orbiting with gaps; behind first, in front after the sphere.
         val slots = 9
-        val filled = when (p.phase) { 0 -> 6; 1 -> 7; else -> 8 }
+        val filled = if (p.ringFilled >= 0) p.ringFilled else when (p.phase) { 0 -> 6; 1 -> 7; else -> 8 }
         val ringR = r * (1.6f + (if (hot) 0.12f else 0f))
         val squash = 0.36f
         fun brick(i: Int, front: Boolean) {
+            // Launched as a Firewall Ring: the plates are out at the walls, the core is exposed.
+            if (p.ringOut) return
             if (i % slots >= filled) return
             val a0 = spin + i * (6.283f / slots)
             val a1 = a0 + (6.283f / slots) * 0.78f

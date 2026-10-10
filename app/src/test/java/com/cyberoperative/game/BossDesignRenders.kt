@@ -288,6 +288,16 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk5_royal_seizure_marked", listOf(Pattern.RoyalSeizure(110f, 1.0f, 28f, 1.1f, 3.5f) to 0.6f)),
                 AttackShot("atk6_seized_and_caged", listOf(Pattern.RoyalSeizure(110f, 0.8f, 28f, 1.5f, 3.5f) to 1.25f)),
                 AttackShot("atk7_ransom_pulse_encrypted", listOf(Pattern.RansomPulse(2, 0.6f, 440f, 240f, 22f) to 1.7f), after = { g -> g.operatives[0].encryptCharge = 0.6f })
+            ),
+            "spectral_firewall" to listOf(
+                AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
+                AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),
+                AttackShot("atk3_firewall_ring_waves", listOf(Pattern.FirewallRing(2, 2, 180f, 27f) to 2.7f)),
+                AttackShot("atk4_burn_sector_warning", listOf(Pattern.BurnSector(2, 70f, 1.2f, 2.5f, 24f) to 0.7f)),
+                AttackShot("atk5_burn_sector_burning", listOf(Pattern.BurnSector(2, 70f, 1.2f, 2.5f, 24f) to 1.7f)),
+                AttackShot("atk6_heat_collapse", listOf(Pattern.HeatCollapse(2, 150f, 28f) to 2.2f)),
+                AttackShot("atk7_purge_spin", listOf(Pattern.PurgeSpin(4, 0.85f, 3.2f, 300f, 25f) to 1.7f)),
+                AttackShot("atk8_on_fire", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.2f), after = { g -> g.operatives[0].burning = 2f })
             )
         )
 

@@ -129,6 +129,22 @@ sealed class Pattern {
     /** Ransom Pulse: lock rings expand from the king; a ring that tags you ENCRYPTS you (moving charges a burst). */
     data class RansomPulse(val rings: Int, val gap: Float, val maxRadius: Float, val speed: Float, val damage: Float) : Pattern()
 
+    /**
+     * Firewall Ring (owner spec): burning walls with [gaps] openings burst out of the
+     * boss and push all the way to the arena walls; touching one sets you on fire.
+     * [waves] rings, [waveGap] s apart. The boss's own ring is gone (exposed) while they fly.
+     */
+    data class FirewallRing(val waves: Int, val gaps: Int, val speed: Float, val damage: Float, val waveGap: Float = 0.9f, val windup: Float = 0.7f) : Pattern()
+
+    /** Burn Sector: [count] pie slices of the arena (the first aimed at you) ignite after a warning. */
+    data class BurnSector(val count: Int, val widthDeg: Float, val warn: Float, val burn: Float, val dps: Float) : Pattern()
+
+    /** Heat Collapse: a fire wall closes in from the arena edges toward the boss; slip through a gap. */
+    data class HeatCollapse(val gaps: Int, val speed: Float, val damage: Float) : Pattern()
+
+    /** Purge Spin: [arms] flame jets spin [sweepDeg] around the boss; they set you on fire. */
+    data class PurgeSpin(val arms: Int, val windup: Float, val duration: Float, val sweepDeg: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -195,7 +211,9 @@ data class BossDef(
     /** Named signature abilities for the dossier card and codex; derived from the patterns when empty. */
     val abilities: List<String> = emptyList(),
     /** Ransom shield: takes reduced damage until every key zone is captured (Ransom King). */
-    val keyShield: Boolean = false
+    val keyShield: Boolean = false,
+    /** Orbiting firewall ring that blocks shots except through its gaps (Spectral Firewall). */
+    val firewallRing: Boolean = false
 ) {
     /** Up to [max] ability names: the named ones, or one per distinct pattern kind. */
     fun abilityNames(max: Int = 4): List<String> =
@@ -232,6 +250,10 @@ val Pattern.displayName: String
         is Pattern.LockGrid -> "Lock Grid"
         is Pattern.RoyalSeizure -> "Royal Seizure"
         is Pattern.RansomPulse -> "Ransom Pulse"
+        is Pattern.FirewallRing -> "Firewall Ring"
+        is Pattern.BurnSector -> "Burn Sector"
+        is Pattern.HeatCollapse -> "Heat Collapse"
+        is Pattern.PurgeSpin -> "Purge Spin"
     }
 
 object Bosses {

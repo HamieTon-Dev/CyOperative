@@ -182,7 +182,18 @@ enum class HazardKind {
     /** Golden key zone (Ransom King): stand in it to unlock it; [Hazard.windup] is the unlock progress 0..1. */
     KEY_ZONE,
     /** Ransom Pulse ring: like SHOCK_RING, and the operative it tags is ENCRYPTED. */
-    RANSOM_RING
+    RANSOM_RING,
+    /**
+     * Fire wall ring (Spectral Firewall) moving from its start radius to [Hazard.maxRadius]
+     * (out to the walls or in toward the boss). Gaps: [Hazard.x2] = gap angle × 1000,
+     * [Hazard.y2] = gap count, [Hazard.windup] = gap half-width (rad). Touch = burn.
+     */
+    FIRE_WALL,
+    /**
+     * Burning pie slice: warns for [Hazard.windup] s, then burns. [Hazard.x2] = aim × 1000,
+     * [Hazard.maxRadius] = half-width (rad) × 1000, [Hazard.radius] = reach.
+     */
+    BURN_SECTOR
 }
 
 class Hazard {
