@@ -670,8 +670,9 @@ object Bosses {
     val GAMMA_IDS = setOf("rootkit_apostle", "ransom_king", "spectral_firewall", "nullshade")
     const val GAMMA_FROM = 120
 
-    /** Bosses that can turn up on [level]'s boss room. */
-    fun eligible(level: Int): List<BossDef> = roster.filter { level >= GAMMA_FROM || it.id !in GAMMA_IDS }
+    /** Bosses that can turn up on [level]'s boss room: a classic for the first boss (owner), no Gamma before [GAMMA_FROM]. */
+    fun eligible(level: Int): List<BossDef> =
+        if (level < 20) classics else roster.filter { level >= GAMMA_FROM || it.id !in GAMMA_IDS }
 
     /**
      * Owner, 2026-10-10: "dont assign bosses to set levels… randomize boss spawn on

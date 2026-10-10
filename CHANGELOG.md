@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.12.3 (versionCode 45) — 2026-10-10 · First boss is a classic
+### Changed
+- **First boss is always a classic** (owner): level 10 brings one of the 12 classic bosses at random.
+  From level 20 the full random deck applies, with the Gamma pack from level 120.
+
 ## 0.12.2 (versionCode 44) — 2026-10-10 · Random bosses
 ### Changed
 - **Bosses are random** (owner: "dont assign bosses to set levels… randomize boss spawn on boss

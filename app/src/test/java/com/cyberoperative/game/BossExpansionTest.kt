@@ -1163,8 +1163,9 @@ class RandomBossTest {
     @Test fun runsDiffer() {
         val orders = (0L until 50L).map { run(it, 60).map { b -> b.id } }.toSet()
         assertTrue("runs should differ (${orders.size} distinct)", orders.size > 40)
-        val firsts = (0L until 400L).map { Bosses.randomForLevel(10, it).id }.toSet()
-        assertTrue("any boss can open a run (${firsts.size})", firsts.size >= 15)
+        val firsts = (0L until 400L).map { Bosses.randomForLevel(10, it) }.toSet()
+        assertTrue("the first boss is always a classic", Bosses.classics.containsAll(firsts))
+        assertTrue("any classic can open a run (${firsts.size})", firsts.size == 12)
     }
 
     @Test fun sameRunSameBosses() {

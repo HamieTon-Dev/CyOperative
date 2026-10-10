@@ -497,3 +497,4 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     scaling).
   - This supersedes the "any boss level" wild rule of v0.11.14 and D1's fixed slots, which are now
     only the toughness curve.
+- 2026-10-10 — v0.12.3 (45): owner "keep level 10 to the classics". `Bosses.eligible(<20)` = classics.

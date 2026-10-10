@@ -170,7 +170,7 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
 - World Kit decor in every room (own seeded random; layouts unchanged).
 - **Random bosses (0.12.2, owner):** every boss level draws a random boss from the run's own shuffled
   deck (Bosses.randomForLevel, seeded by the run, so co-op agrees); no repeats until the deck runs out.
-  L10–110: the 20 non-Gamma bosses. From L120 the four Pack Gamma bosses (Rootkit Apostle, Ransom King,
+  L10 is always a random classic (owner); L20–110: the 20 non-Gamma bosses. From L120 the four Pack Gamma bosses (Rootkit Apostle, Ransom King,
   Spectral Firewall, Nullshade) join. The old schedule (Bosses.forLevel, BossExpansion.SLOTS) is now
   only the toughness curve: a boss's HP becomes ref·(own/ref)^0.25 and its damage ×(ref/own contact)
   clamped 0.6–1.6, where ref is that level's old scheduled boss. Endless uses the same deck.
