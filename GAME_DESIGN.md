@@ -145,7 +145,7 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - ENCRYPTED 3.5 s; 1.1 s of movement bursts it (1.8× ring damage).
 - Spectral Firewall (L230):
   - Ring shield blocks fire from outside except through gaps (3/2/1 by phase).
-  - Firewall Ring walls go out past the far corner at 170–190 u/s with 3/2 gaps, drifting 0.35 rad/s.
+  - Firewall Ring launches 1/3/4 walls by phase, out past the far corner at 170–190 u/s with 3/2 gaps, drifting 0.35 rad/s.
   - ON FIRE: 2.5 s, ticks every 0.5 s.
   - Burn Sector warns 1.0–1.2 s; Heat Collapse closes inward with 2 gaps.
 - Boss arenas are tinted with the boss colour, with a pulsing edge border.

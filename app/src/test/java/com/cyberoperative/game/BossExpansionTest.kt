@@ -647,6 +647,19 @@ class SpectralFirewallTest {
         assertTrue("ring back once the wall is gone", !g.bossRingOut)
     }
 
+    @Test fun ringWavesBuildByPhase() {
+        val def = com.cyberoperative.game.data.BossExpansion.SPECTRAL_FIREWALL
+        val waves = def.phases.map { ph -> ph.patterns.filterIsInstance<com.cyberoperative.game.data.Pattern.FirewallRing>().maxOf { it.waves } }
+        assertEquals(listOf(1, 3, 4), waves)
+        // All four phase-3 walls are out at once and each still has its gaps.
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.FirewallRing(4, 2, 190f, 28f, waveGap = 1.05f))
+        run(g, 4.0f)
+        val walls = g.hazards.items.filter { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.FIRE_WALL }
+        assertEquals(4, walls.size)
+        assertTrue(walls.all { it.y2.toInt() == 2 })
+    }
+
     @Test fun burnSectorWarnsThenBurns() {
         val g = fight()
         val me = g.operatives[0]

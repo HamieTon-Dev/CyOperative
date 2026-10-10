@@ -297,6 +297,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk5_burn_sector_burning", listOf(Pattern.BurnSector(2, 70f, 1.2f, 2.5f, 24f) to 1.7f)),
                 AttackShot("atk6_heat_collapse", listOf(Pattern.HeatCollapse(2, 150f, 28f) to 2.2f)),
                 AttackShot("atk7_purge_spin", listOf(Pattern.PurgeSpin(4, 0.85f, 3.2f, 300f, 25f) to 1.7f)),
+                AttackShot("atk9_phase3_four_rings", listOf(Pattern.FirewallRing(4, 2, 190f, 28f, waveGap = 1.05f) to 4.0f)),
                 AttackShot("atk8_on_fire", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.2f), after = { g -> g.operatives[0].burning = 2f })
             )
         )

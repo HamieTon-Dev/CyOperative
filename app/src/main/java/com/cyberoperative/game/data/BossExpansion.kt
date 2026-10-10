@@ -175,13 +175,14 @@ object BossExpansion {
                 Pattern.Spiral(3, 2.4f, 9f, 100f, 190f, 11f)
             ), "PHASE 1"),
             BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.FirewallRing(2, 2, 180f, 27f),
+                // Owner, 2026-10-10: build to 3 rings in phase 2 and 4 in phase 3, spread out (~200 units apart).
+                Pattern.FirewallRing(3, 2, 180f, 27f, waveGap = 1.15f),
                 Pattern.BurnSector(2, 70f, 1.1f, 2.6f, 25f),
                 Pattern.HeatCollapse(2, 150f, 28f),
                 Pattern.PurgeSpin(4, 0.85f, 3.2f, 300f, 25f)
             ), "HEAT RISING"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.FirewallRing(2, 2, 190f, 28f, waveGap = 0.8f),
+                Pattern.FirewallRing(4, 2, 190f, 28f, waveGap = 1.05f),
                 Pattern.BurnSector(3, 60f, 1.0f, 2.8f, 26f),
                 Pattern.HeatCollapse(2, 165f, 30f),
                 Pattern.PurgeSpin(4, 0.8f, 3.4f, 360f, 26f),

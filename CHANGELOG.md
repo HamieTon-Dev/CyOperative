@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.6 (versionCode 28) — 2026-10-10
+### Changed
+- **Spectral Firewall's Firewall Ring builds up** (owner request): phase 1 launches 1 wall, phase 2
+  launches 3 and phase 3 launches 4, spread about 200 units apart (1.15 s and 1.05 s between walls)
+  so there's room to line up between them. Each wall keeps its 2 drifting gaps, offset from the wall
+  before, so you weave between them.
+
 ## 0.11.5 (versionCode 27) — 2026-10-10 · Spectral Firewall + boss-coloured arenas
 ### Added
 - **Spectral Firewall** (Boss Pack Gamma) is the **level 230** boss: AREA DENIAL, threat HIGH, base

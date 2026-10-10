@@ -233,7 +233,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
-| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks built and sent (atk1–atk8) | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
+| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks ✅ approved; Firewall Ring waves raised to 1/3/4 by phase ("phase three… push more than two rings… 3 on phase 2 and 4 rings on phase 3") | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
 
 ---
 
@@ -343,3 +343,4 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Arena theme: the boss arena uses `plan.boss.color` for trim, pools and walls, plus
     `drawBossBorder`. Owner: "Can the boss arena match the boss color theme… unique to each boss."
   - Tests: SpectralFirewallTest.
+- 2026-10-10 — v0.11.6 (28): Spectral Firewall's Firewall Ring now launches 1/3/4 walls by phase, then spread out further at the owner's request ("spread the rings out a little bit more"): wave gap 1.15 s / 1.05 s, about 200 units apart. Render atk9, test ringWavesBuildByPhase.
