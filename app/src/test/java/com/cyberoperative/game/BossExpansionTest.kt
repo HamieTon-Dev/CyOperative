@@ -991,10 +991,24 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         assertEquals(0, g.bossHeadMask)
         g.damageEnemy(b, 500f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
         assertTrue("exposed core takes damage", b.hp < hp)
-        // After the window every head regrows.
-        run(g, BossBrain.EXPOSE_SECONDS + 1.5f)
+        // After the window every head regrows, then roars: nothing can be hurt until that's over.
+        run(g, BossBrain.EXPOSE_SECONDS + 0.3f)
         assertEquals(3, heads(g).size)
-        assertTrue(g.bossHeadMask > 0)
+        val h = heads(g)[0]
+        val before = h.hp
+        g.damageEnemy(h, 50f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertEquals("heads invulnerable during the roar", before, h.hp, 0.01f)
+        val coreHp = b.hp
+        g.damageEnemy(b, 500f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertEquals("core shielded again", coreHp, b.hp, 0.01f)
+        run(g, BossBrain.REGROW_GROW + BossBrain.REGROW_LEAN)
+        assertTrue("roaring", g.bossHeadMask and com.cyberoperative.game.engine.HydraRig.ROAR_BIT != 0)
+        g.damageEnemy(h, 50f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertEquals("still invulnerable mid-roar", before, h.hp, 0.01f)
+        run(g, BossBrain.REGROW_TOTAL)
+        assertEquals("roar over", 0b111, g.bossHeadMask)
+        g.damageEnemy(h, 50f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("heads can be hit again", h.hp < before)
     }
 
     @Test fun beamArcOneBeamPerLivingHead() {

@@ -163,6 +163,8 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
     is untargetable (GameEngine.bossHeadMask). All down → core exposed 6 s (BossBrain.EXPOSE_SECONDS),
     then they all regrow (a phase change ends the window early). Heads 6% HP each; base HP 3,400.
   - Beam Arc: one 34-wide beam per living head. Neck Volley: 4 rings rippling up each living neck.
+  - Regrow and roar (BossBrain.regrowAndRoar, 3.6 s): grow 0.8, lean in 0.4, roar 2.0 (shake),
+    settle 0.4; heads and core untouchable and no new attacks meanwhile; HydraRig.LEAN_BIT/ROAR_BIT.
   - Head Bite (Pattern.HeadBite): nearest 1/2/2 heads mark a 74-wide lane (reach 820), lunge and snap.
 - Worm Queen lays egg clusters every 2.4/1.9/1.4 s by phase (3–5 swarmlings each); swarmlings
   cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.

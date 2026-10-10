@@ -275,7 +275,7 @@ object CoopCodec {
             o.writeByte(w.bossTrail.size / 2)
             for (v in w.bossTrail) o.pos(v)
             o.writeByte(if (w.bossIceShell < 0f) 255 else (w.bossIceShell * 200f).toInt().coerceIn(0, 200))
-            o.writeByte(if (w.bossHeadMask < 0) 255 else w.bossHeadMask and 0x1F)
+            o.writeByte(if (w.bossHeadMask < 0) 255 else w.bossHeadMask and 0x7F)
         }
         return bytes.toByteArray()
     }

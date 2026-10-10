@@ -31,6 +31,8 @@ class BossState(val def: BossDef, val cycle: Int) {
     var exposed = 0f
     var shieldSparkCd = 0f
     var headPhase = 0
+    /** Regrow-and-roar sequence clock after the heads regrow; -1 = not running. */
+    var regrow = -1f
     /** Head Bite: per bite the head slot, target point, lunge extension 0..1, whether it struck. */
     val biteHead = IntArray(2) { -1 }
     val biteTarget = FloatArray(4)
@@ -278,8 +280,8 @@ class BossBrain(private val g: GameEngine) {
             if (st.exposed <= 0f) {
                 for (k in 0 until n) growHead(e, st, k)
                 st.headCount = n
+                st.regrow = 0f
                 g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 3f, 0.6f, st.def.color)
-                g.fx.shake(6f, 0.35f)
                 g.showBanner("HEADS REGROWN", "The core is shielded again", 1.0f)
             }
         } else if (n > st.headCount) {
@@ -287,6 +289,7 @@ class BossBrain(private val g: GameEngine) {
             for (k in st.headCount until n) growHead(e, st, k)
             st.headCount = n
         }
+        val roaring = regrowAndRoar(e, st, dt)
         var mask = 0
         for (k in 0 until 5) {
             val uid = st.headUid[k]
@@ -295,6 +298,8 @@ class BossBrain(private val g: GameEngine) {
             if (m == null || k >= n) { st.headUid[k] = -1; continue }
             mask = mask or (1 shl k)
             m.x = rig[k * 4 + 2]; m.y = rig[k * 4 + 3]
+            // Invulnerable until the regrow-and-roar is over.
+            m.untargetable = roaring
         }
         if (mask == 0 && st.exposed <= 0f && st.headCount > 0) {
             st.exposed = EXPOSE_SECONDS
@@ -303,9 +308,70 @@ class BossBrain(private val g: GameEngine) {
             g.fx.shake(8f, 0.4f)
             g.showBanner("CORE EXPOSED", "Hit the core before the heads regrow", 1.2f)
         }
-        g.bossHeadMask = mask
+        g.bossHeadMask = if (mask == 0) 0 else mask or regrowLook(st)
         // Shielded: aim and shots go past the core to the heads.
         e.untargetable = mask != 0
+    }
+
+    /**
+     * After the heads regrow (owner, 2026-10-10): they grow back out of their stumps,
+     * lean in toward the operative, point straight at them with jaws open and roar for
+     * 2 s while the screen shakes, then settle back and the fight goes on. Nothing can
+     * be hurt and no attacks start until it's over. Returns true while it runs.
+     */
+    private fun regrowAndRoar(e: Enemy, st: BossState, dt: Float): Boolean {
+        if (st.regrow < 0f) return false
+        val before = st.regrow
+        st.regrow += dt
+        val t = st.regrow
+        if (t >= REGROW_TOTAL) { st.regrow = -1f; return false }
+        // No new attacks start during the sequence.
+        if (st.active == null) st.rest = max(st.rest, 0.6f)
+        val grow = (t / REGROW_GROW).coerceIn(0f, 1f).let { 1f - (1f - it) * (1f - it) }
+        val leanIn = REGROW_GROW
+        val roarAt = leanIn + REGROW_LEAN
+        val backAt = roarAt + REGROW_ROAR
+        val lean = when {
+            t < leanIn -> 0f
+            t < roarAt -> (t - leanIn) / REGROW_LEAN
+            t < backAt -> 1f
+            else -> 1f - (t - backAt) / REGROW_LEAN
+        }.coerceIn(0f, 1f)
+        if (before < roarAt && t >= roarAt) {
+            g.sound(GameSound.BOSS_GROWL)
+            g.fx.shake(9f, REGROW_ROAR)
+            g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 3.4f, 0.8f, st.def.color)
+        }
+        val rig = g.bossTrail
+        val n = rig.size / 4
+        val by = HydraRig.baseY(e.y, e.radius)
+        for (k in 0 until n) {
+            val bx = HydraRig.baseX(e.x, e.radius, k, n, st.phaseIndex)
+            // Grow out from the neck root.
+            rig[k * 4] = bx + (rig[k * 4] - bx) * grow
+            rig[k * 4 + 1] = by + (rig[k * 4 + 1] - by) * grow
+            rig[k * 4 + 2] = bx + (rig[k * 4 + 2] - bx) * grow
+            rig[k * 4 + 3] = by + (rig[k * 4 + 3] - by) * grow
+            if (lean > 0f) {
+                // Lean in toward the operative, shaking with the roar.
+                val hx = rig[k * 4 + 2]; val hy = rig[k * 4 + 3]
+                val d = max(1f, MathUtil.dist(hx, hy, g.px, g.py))
+                val jit = if (t >= roarAt && t < backAt) sin(t * 47f + k * 2f) * 4f else 0f
+                rig[k * 4 + 2] = hx + (g.px - hx) / d * REGROW_LEAN_DIST * lean + jit
+                rig[k * 4 + 3] = hy + (g.py - hy) / d * REGROW_LEAN_DIST * lean
+                rig[k * 4] += (g.px - hx) / d * REGROW_LEAN_DIST * 0.4f * lean
+                rig[k * 4 + 1] += (g.py - hy) / d * REGROW_LEAN_DIST * 0.4f * lean
+            }
+        }
+        return true
+    }
+
+    /** Regrow-and-roar look flags for [GameEngine.bossHeadMask]. */
+    private fun regrowLook(st: BossState): Int {
+        val t = st.regrow
+        if (t < REGROW_GROW) return 0
+        val roarAt = REGROW_GROW + REGROW_LEAN
+        return HydraRig.LEAN_BIT or (if (t >= roarAt && t < roarAt + REGROW_ROAR) HydraRig.ROAR_BIT else 0)
     }
 
     /** Head Bite: stretches each biting head's neck out toward its target. */
@@ -1712,6 +1778,12 @@ class BossBrain(private val g: GameEngine) {
         const val EXPOSE_SECONDS = 6f
         /** Circuit Hydra: each head's HP as a share of the hydra's max HP. */
         const val HEAD_HP_SHARE = 0.06f
+        /** Regrow-and-roar timings: heads grow, lean in, roar, settle back. */
+        const val REGROW_GROW = 0.8f
+        const val REGROW_LEAN = 0.4f
+        const val REGROW_ROAR = 2f
+        const val REGROW_TOTAL = REGROW_GROW + REGROW_LEAN + REGROW_ROAR + REGROW_LEAN
+        const val REGROW_LEAN_DIST = 70f
         /** Neck Volley sparks. */
         const val VOLLEY_TINT = 0xFF7CFF8AL
 

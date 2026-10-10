@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.19 (versionCode 41) — 2026-10-10 · Circuit Hydra: regrow and roar
+### Changed
+- **Regrow and roar** (owner design): after the exposed window, the heads regrow in a sequence that
+  lasts about 3.6 s:
+  - The heads grow back out of their neck roots.
+  - They lean in toward you, stare straight at you with their jaws open, and roar for 2 seconds
+    while the screen shakes and shockwaves pour from their mouths.
+  - Then they settle back and the fight goes on.
+- **Invulnerable:** nothing can be hurt during the sequence, and no attacks start until it ends.
+- **Tracking:** heads keep turning to follow you during the fight, and lock straight onto you
+  during the roar.
+
 ## 0.11.18 (versionCode 40) — 2026-10-10 · Circuit Hydra: Neck Volley + Head Bite
 ### Changed
 - **Neck Volley** (was Segment Burst; owner pick): a surge runs up every living neck, vertebra by

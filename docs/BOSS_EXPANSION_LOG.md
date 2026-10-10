@@ -466,3 +466,11 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
     `forEachOperativeOnSegment`.
   - A phase change ends the exposure; base HP 3,400.
   - Tests: headBiteLungesDownTheLaneAndCanBeDodged, neckVolleyRipplesUpTheNecks; full suite green.
+- 2026-10-10 — Owner: heads should track the player (they already do: facing is 80% toward the
+  player). After a regrow: invulnerable until the animation ends; heads move toward the player, point
+  straight at them with jaws open in a charging look, roar for 2 s with screen shake, then return to
+  normal.
+- 2026-10-10 — v0.11.19 (41): regrow-and-roar.
+  - `BossState.regrow` drives grow, lean, roar and settle on the rig.
+  - The head mask carries LEAN_BIT/ROAR_BIT (co-op byte 0x7F); heads are untargetable meanwhile.
+  - Renders: circuit_hydra_atk8_regrow, atk9_lean_in, atk10_roar and circuit_hydra_regrow_sequence.png.

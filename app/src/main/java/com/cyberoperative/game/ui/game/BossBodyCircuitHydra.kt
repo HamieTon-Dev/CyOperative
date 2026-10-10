@@ -236,6 +236,25 @@ internal object CircuitHydraBody : BossBody {
             }
         }
         for (h in 0 until heads) if (alive(h) && lunging(h)) neck(h)
-        for (h in 0 until heads) if (alive(h)) head(rig[h * 4 + 2], rig[h * 4 + 3], HydraRig.facing(rig, h, ax, ay), r * HydraRig.HEAD, p.winding, p.hitFlash, t)
+        // Roar after regrowing: every head stares straight at you, jaws wide, sending out shockwaves.
+        val roar = p.heads > 0 && (p.heads and HydraRig.LEAN_BIT) != 0
+        val waves = p.heads > 0 && (p.heads and HydraRig.ROAR_BIT) != 0
+        for (h in 0 until heads) if (alive(h)) {
+            val hx = rig[h * 4 + 2]; val hy = rig[h * 4 + 3]
+            val face = if (roar) atan2(ay - hy, ax - hx) else HydraRig.facing(rig, h, ax, ay)
+            head(hx, hy, face, r * HydraRig.HEAD, p.winding || roar, p.hitFlash, t)
+            if (waves) {
+                val s = r * HydraRig.HEAD
+                val mx = hx + cos(face) * s * 1.4f; val my = hy + sin(face) * s * 1.4f
+                for (k in 0 until 3) {
+                    val q = ((t * 1.8f + k / 3f + h * 0.17f) % 1f)
+                    val rr = s * (0.6f + 3.2f * q)
+                    drawArc(
+                        TOXIC_HOT.copy(alpha = 0.95f * (1f - q)), face * 180f / PI.toFloat() - 45f, 90f, false,
+                        Offset(mx - rr, my - rr), Size(rr * 2f, rr * 2f), style = Stroke(6f * (1f - q) + 1.5f)
+                    )
+                }
+            }
+        }
     }
 }

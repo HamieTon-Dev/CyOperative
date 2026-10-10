@@ -20,6 +20,11 @@ object HydraRig {
     /** Head size relative to the scaled radius. */
     const val HEAD = 0.42f
 
+    /** Set in [GameEngine.bossHeadMask] while the regrown heads lean in and stare at you, jaws open. */
+    const val LEAN_BIT = 0x20
+    /** Set in [GameEngine.bossHeadMask] during the 2 s roar itself (shockwaves from the mouths). */
+    const val ROAR_BIT = 0x40
+
     fun heads(phase: Int): Int = 3 + phase.coerceIn(0, 2)
 
     /** Core centre y for a boss at [cy] with hit radius [radius]. */
