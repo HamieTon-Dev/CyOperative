@@ -23,7 +23,7 @@ game to feel premium." Source sheets in `docs/boss-concepts/`: Boss Pack Alpha, 
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
 
-Status: **BUILDING — Stage A done (v0.11.0); Vault Sentinel (v0.11.1) and Rootkit Apostle (v0.11.2) built boss-by-boss with owner approval. Next: Ransom King body (Gamma order), then the rest.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
+Status: **ALL 12 EXPANSION BOSSES BUILT (v0.11.14).** Five were approved boss-by-boss; the last seven were built autonomously at the owner's request. Wild-boss rolls and the World Kit are in. Next: Stage F (classic bodies, BOSS CODEX, victory sequence, balance). Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
 
 **Design approval rule (owner, 2026-10-10):** "I want to see and approve, or request changes to the
 physical look of each boss as you make them" + "show me its attacks as you work on it as well". Every boss body (new and classic) is rendered
@@ -425,3 +425,11 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Patterns IceLaser (SWEEP with tick 2), CrystalVolley (MORTAR with tick 2), FreezePatch and
     PermafrostShell (BossBrain.shellAbsorb, `GameEngine.bossIceShell`).
   - Co-op wire v10. Tests: BlackIceOverlordTest.
+- 2026-10-10 — v0.11.14 (36): wild bosses and World Kit.
+  - `LevelPlanner.rollWildBoss`: 25% from L20; BossBrain scales a wild boss's HP down below its
+    home level. Tests: WildBossTest.
+  - World Kit: DecorKind CRACKED_TILE, CONDUIT, SPARK_PANEL, BEACON and DARK_EMITTER, via
+    `ArenaGenerator.worldKit` with its own seeded Random (layouts unchanged), also applied to
+    hand-made rooms and the boss arena.
+  - Restyled FLOOR_TILE, VENT, CABLE, DATA_PILLAR and ENERGY_BARRIER.
+  - Renders: `docs/screenshots/world_kit_*.png`.

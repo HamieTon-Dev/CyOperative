@@ -424,26 +424,120 @@ class ArenaRenderer {
 
     private fun DrawScope.drawDecor(g: GameEngine, time: Float) {
         val env = styleOf(g).env
-        val themeAccent = if (g.plan.kind == LevelKind.BOSS) Palette.Red else Color(env.accent)
-        val themeAccent2 = if (g.plan.kind == LevelKind.BOSS) Palette.Magenta else Color(env.accent2)
+        val themeAccent = if (g.plan.kind == LevelKind.BOSS) bossAccent else Color(env.accent)
+        val themeAccent2 = if (g.plan.kind == LevelKind.BOSS) bossAccent2 else Color(env.accent2)
         for (d in g.arena.template.decor) {
             when (d.kind) {
-                DecorKind.FLOOR_TILE -> drawRect(themeAccent.copy(alpha = 0.04f), Offset(d.x + 3f, d.y + 3f), Size(d.w - 6f, d.h - 6f))
+                DecorKind.FLOOR_TILE -> {
+                    // 01 Grid floor tile: a lit plate with a soft rim glow.
+                    drawRect(themeAccent.copy(alpha = 0.05f), Offset(d.x + 3f, d.y + 3f), Size(d.w - 6f, d.h - 6f))
+                    drawRect(themeAccent.copy(alpha = 0.28f), Offset(d.x + 3f, d.y + 3f), Size(d.w - 6f, d.h - 6f), style = Stroke(1.4f))
+                }
+                DecorKind.CRACKED_TILE -> {
+                    // 02 Broken grid tile: dark fractures from an impact point, the rim glow broken.
+                    val ix = d.x + 18f + (d.seed and 0x1F); val iy = d.y + 18f + ((d.seed shr 5) and 0x1F)
+                    drawRect(Color(0xFF05080F).copy(alpha = 0.5f), Offset(d.x + 3f, d.y + 3f), Size(d.w - 6f, d.h - 6f))
+                    for (k in 0 until 6) {
+                        val a = k * 1.05f + (d.seed and 7) * 0.4f
+                        val l = 18f + ((d.seed shr (k + 3)) and 15)
+                        val mx = ix + cos(a) * l * 0.5f + sin(a * 3f) * 4f
+                        val my = iy + sin(a) * l * 0.5f
+                        drawLine(Color(0xFF020408), Offset(ix, iy), Offset(mx, my), 2.5f)
+                        drawLine(Color(0xFF020408), Offset(mx, my), Offset((ix + cos(a + 0.3f) * l).coerceIn(d.x + 2f, d.x + d.w - 2f), (iy + sin(a + 0.3f) * l).coerceIn(d.y + 2f, d.y + d.h - 2f)), 1.6f)
+                    }
+                    drawLine(themeAccent.copy(alpha = 0.25f), Offset(d.x + 3f, d.y + 3f), Offset(d.x + d.w * 0.45f, d.y + 3f), 1.4f)
+                    drawLine(themeAccent.copy(alpha = 0.25f), Offset(d.x + d.w - 3f, d.y + d.h * 0.4f), Offset(d.x + d.w - 3f, d.y + d.h - 3f), 1.4f)
+                }
+                DecorKind.CONDUIT -> {
+                    // 04 Power conduit: red energy lines along tile seams with an L bend, pulses running along.
+                    val red = Color(0xFFFF3B3B)
+                    val corner = Offset(d.x + d.w, d.y)
+                    val end = Offset(d.x + d.w, d.y + d.h)
+                    for ((a, b) in listOf(Offset(d.x, d.y) to corner, corner to end)) {
+                        drawLine(Color(0xFF14060A), a, b, 9f)
+                        drawLine(red.copy(alpha = 0.35f), a, b, 7f)
+                        drawLine(red.copy(alpha = 0.9f), a, b, 2.5f)
+                    }
+                    drawRect(Color(0xFF1A0A10), Offset(corner.x - 7f, corner.y - 7f), Size(14f, 14f))
+                    drawRect(red, Offset(corner.x - 7f, corner.y - 7f), Size(14f, 14f), style = Stroke(1.5f))
+                    val total = d.w + d.h
+                    for (k in 0 until 2) {
+                        val q = ((time * 120f + k * total / 2f + (d.seed and 0xFF)) % total)
+                        val pt = if (q < d.w) Offset(d.x + q, d.y) else Offset(corner.x, d.y + (q - d.w))
+                        drawCircle(Color.White.copy(alpha = 0.8f), 3f, pt)
+                        drawCircle(red.copy(alpha = 0.5f), 7f, pt)
+                    }
+                }
+                DecorKind.SPARK_PANEL -> {
+                    // 09 Spark panel: a floor plate crackling with blue electricity.
+                    val blue = Color(0xFF4AA8FF)
+                    drawRect(Color(0xFF0A1428), Offset(d.x + 4f, d.y + 4f), Size(d.w - 8f, d.h - 8f))
+                    drawRect(blue.copy(alpha = 0.6f), Offset(d.x + 4f, d.y + 4f), Size(d.w - 8f, d.h - 8f), style = Stroke(1.6f))
+                    val frame = (time * 12f).toInt()
+                    for (k in 0 until 3) {
+                        if ((frame + k + d.seed) % 4 == 0) continue
+                        var x = d.x + 8f + ((frame * 7 + k * 19 + d.seed) and 31)
+                        var y = d.y + 8f
+                        while (y < d.y + d.h - 10f) {
+                            val nx = (x + (((frame * 13 + k * 5 + y.toInt()) % 13) - 6)).coerceIn(d.x + 6f, d.x + d.w - 6f)
+                            val ny = y + 9f
+                            drawLine(blue.copy(alpha = 0.4f), Offset(x, y), Offset(nx, ny), 4f)
+                            drawLine(Color.White.copy(alpha = 0.85f), Offset(x, y), Offset(nx, ny), 1.4f)
+                            x = nx; y = ny
+                        }
+                    }
+                    drawCircle(blue.copy(alpha = 0.12f + 0.08f * sin(time * 9f + d.seed)), d.w * 0.7f, Offset(d.x + d.w / 2f, d.y + d.h / 2f))
+                }
+                DecorKind.BEACON -> {
+                    // 12 Light beacon: a pylon throwing a pool of cyan light on the floor.
+                    val c = Offset(d.x + d.w / 2f, d.y + d.h / 2f)
+                    val cyan = Color(0xFF3FF0FF)
+                    val p = 0.85f + 0.15f * sin(time * 2f + d.seed)
+                    drawOval(Brush.radialGradient(listOf(cyan.copy(alpha = 0.22f * p), cyan.copy(alpha = 0f)), center = c, radius = 150f), Offset(c.x - 150f, c.y - 80f), Size(300f, 160f))
+                    drawRect(Color(0xFF0C1A2A), Offset(c.x - 9f, c.y - 50f), Size(18f, 50f))
+                    drawRect(cyan.copy(alpha = 0.6f), Offset(c.x - 9f, c.y - 50f), Size(18f, 50f), style = Stroke(1.4f))
+                    drawRect(cyan.copy(alpha = 0.9f * p), Offset(c.x - 6f, c.y - 64f), Size(12f, 16f))
+                    drawCircle(cyan.copy(alpha = 0.3f * p), 18f, Offset(c.x, c.y - 56f))
+                    drawOval(Color(0xFF0C1A2A), Offset(c.x - 14f, c.y - 6f), Size(28f, 12f))
+                }
+                DecorKind.DARK_EMITTER -> {
+                    // 11 EMP dark-zone emitter: a purple device swallowing the light around it.
+                    val c = Offset(d.x + d.w / 2f, d.y + d.h / 2f)
+                    val purple = Color(0xFFB040FF)
+                    val p = 0.7f + 0.3f * sin(time * 3f + d.seed)
+                    drawOval(Brush.radialGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Black.copy(alpha = 0.35f), Color.Transparent), center = c, radius = 170f), Offset(c.x - 170f, c.y - 100f), Size(340f, 200f))
+                    drawOval(purple.copy(alpha = 0.5f * p), Offset(c.x - 120f, c.y - 70f), Size(240f, 140f), style = Stroke(2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f), -time * 30f)))
+                    drawRect(Color(0xFF14081E), Offset(c.x - 14f, c.y - 30f), Size(28f, 30f))
+                    drawRect(purple, Offset(c.x - 14f, c.y - 30f), Size(28f, 30f), style = Stroke(1.6f))
+                    drawCircle(purple.copy(alpha = p), 7f, Offset(c.x, c.y - 36f))
+                    drawCircle(purple.copy(alpha = 0.25f * p), 16f, Offset(c.x, c.y - 36f))
+                }
                 DecorKind.CABLE -> {
                     shapePath.reset()
                     val wob = (d.seed % 50) + 20f
                     shapePath.moveTo(d.x, d.y)
                     shapePath.cubicTo(d.x + d.w * 0.3f, d.y - wob, d.x + d.w * 0.6f, d.y + wob, d.x + d.w, d.y + wob * 0.3f)
-                    drawPath(shapePath, Color(0xFF050910), style = Stroke(7f))
-                    drawPath(shapePath, Color(0xFF1A2B44), style = Stroke(4f))
+                    // 10 Cable run: a thick bundle — dark sheath with red and yellow cores.
+                    drawPath(shapePath, Color(0xFF050910), style = Stroke(12f))
+                    drawPath(shapePath, Color(0xFF1A2B44), style = Stroke(9f))
+                    drawPath(shapePath, Color(0xFFB0202A).copy(alpha = 0.85f), style = Stroke(3f))
+                    shapePath.translate(Offset(0f, 3f))
+                    drawPath(shapePath, Color(0xFFE0A020).copy(alpha = 0.8f), style = Stroke(2.2f))
+                    shapePath.translate(Offset(0f, -3f))
                     val f = ((time * 0.4f + (d.seed and 0xFF) / 255f) % 1f)
                     drawCircle(themeAccent.copy(alpha = 0.45f), 2.5f, Offset(d.x + d.w * f, d.y + wob * (0.3f * f)))
                 }
                 DecorKind.VENT -> {
-                    drawRoundRect(Color(0xFF070C16), Offset(d.x, d.y), Size(d.w, d.h), CornerRadius(4f))
-                    var vx = d.x + 6f
-                    while (vx < d.x + d.w - 4f) { drawLine(Color(0xFF1C2B42), Offset(vx, d.y + 5f), Offset(vx, d.y + d.h - 5f), 2f); vx += 8f }
-                    drawRoundRect(Color(0xFF22344F), Offset(d.x, d.y), Size(d.w, d.h), CornerRadius(4f), style = Stroke(1.5f))
+                    // 03 Vent grate tile: a recessed grate with depth, slats lit from one side.
+                    drawRoundRect(Color(0xFF03060C), Offset(d.x, d.y), Size(d.w, d.h), CornerRadius(4f))
+                    drawRoundRect(Color(0xFF0A1220), Offset(d.x + 4f, d.y + 4f), Size(d.w - 8f, d.h - 8f), CornerRadius(3f))
+                    var vx = d.x + 9f
+                    while (vx < d.x + d.w - 6f) {
+                        drawLine(Color(0xFF02040A), Offset(vx + 1.5f, d.y + 8f), Offset(vx + 1.5f, d.y + d.h - 6f), 3f)
+                        drawLine(Color(0xFF2A3E5E), Offset(vx, d.y + 7f), Offset(vx, d.y + d.h - 7f), 2f)
+                        vx += 8f
+                    }
+                    drawRoundRect(themeAccent.copy(alpha = 0.35f), Offset(d.x, d.y), Size(d.w, d.h), CornerRadius(4f), style = Stroke(1.6f))
                 }
                 DecorKind.FLOOR_LIGHT -> {
                     val n = (d.h / 20f).toInt()
@@ -767,6 +861,12 @@ class ArenaRenderer {
                 }
             }
             ObstacleKind.DATA_PILLAR -> {
+                // 06 Relay pillar: a glowing square frame on top and lit corner strips.
+                val ins = min(r.width, r.height) * 0.2f
+                drawRect(Palette.Cyan.copy(alpha = 0.18f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f))
+                drawRect(Palette.Cyan.copy(alpha = 0.9f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f), style = Stroke(2.5f))
+                drawLine(Palette.Cyan.copy(alpha = 0.55f), Offset(r.left + 2f, frontTop + 4f), Offset(r.left + 2f, r.bottom - 4f), 2.5f)
+                drawLine(Palette.Cyan.copy(alpha = 0.55f), Offset(r.right - 2f, frontTop + 4f), Offset(r.right - 2f, r.bottom - 4f), 2.5f)
                 val f = (time * 0.6f + index * 0.3f) % 1f
                 drawLine(Palette.Cyan.copy(alpha = 0.7f * (1f - f)), Offset(r.left + 4f, r.bottom - f * h), Offset(r.right - 4f, r.bottom - f * h), 3f)
                 drawCircle(Palette.Cyan.copy(alpha = 0.35f), min(r.width, r.height) * 0.25f, Offset(r.centerX, topY + r.height / 2f))
@@ -887,6 +987,23 @@ class ArenaRenderer {
                 drawLine(look.trim.copy(alpha = 0.6f), Offset(r.centerX, frontTop + 6f), Offset(r.centerX, r.bottom - 6f), 3f)
             }
             ObstacleKind.ENERGY_BARRIER -> {
+                // 08 Firewall barricade: a hex energy pane between two posts.
+                val hp = 0.6f + 0.4f * sin(time * 3f + index)
+                val hexR = 7f
+                var hy = r.bottom - h + hexR
+                var row = 0
+                while (hy < r.bottom - hexR * 0.5f) {
+                    var hx = r.left + 10f + (if (row % 2 == 0) 0f else hexR * 0.9f)
+                    while (hx < r.right - 10f) {
+                        drawPath(polyPath(hx, hy, ngon(6, hexR, 0.52f)), look.trim.copy(alpha = 0.35f * hp), style = Stroke(1.2f))
+                        hx += hexR * 1.8f
+                    }
+                    hy += hexR * 1.5f; row++
+                }
+                for (px0 in listOf(r.left, r.right - 8f)) {
+                    drawRect(Color(0xFF1A1E28), Offset(px0, topY - 14f), Size(8f, h + r.height + 14f))
+                    drawRect(look.trim.copy(alpha = 0.8f), Offset(px0 + 2f, topY - 10f), Size(4f, 6f))
+                }
                 val p = 0.6f + 0.4f * sin(time * 8f + index)
                 drawRect(look.trim.copy(alpha = 0.25f * p), Offset(r.left, topY - 10f), Size(r.width, r.height + 10f))
                 drawLine(look.trim.copy(alpha = 0.9f * p), Offset(r.left + 2f, topY + r.height / 2f), Offset(r.right - 2f, topY + r.height / 2f), 3f)

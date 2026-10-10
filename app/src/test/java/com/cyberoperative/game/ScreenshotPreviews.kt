@@ -506,6 +506,21 @@ class ScreenshotPreviews {
     @Test fun env6() { assumeTrue(enabled); envShot("env_6", 20) }
     @Test fun env7() { assumeTrue(enabled); envShot("env_7", 23) }
 
+    // World Kit (owner sheet, 2026-10-10): rooms at several depths, plus a boss room.
+    @Test fun worldKit1() { assumeTrue(enabled); envShot("world_kit_l7", 7) }
+    @Test fun worldKit2() { assumeTrue(enabled); envShot("world_kit_l46", 46) }
+    @Test fun worldKit3() { assumeTrue(enabled); envShot("world_kit_l83", 83) }
+    @Test fun worldKitBoss() {
+        assumeTrue(enabled)
+        gameplay("world_kit_boss", 0f) { s ->
+            s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(90, kotlin.random.Random(1)).copy(boss = com.cyberoperative.game.data.Bosses.forLevel(90), glitchedBoss = false))
+            repeat(260) { s.engine.update(1f / 60f) }
+            for (e in s.engine.enemies.items) if (e.boss == null) e.active = false
+            for (p in s.engine.projectiles.items) p.active = false
+            for (h in s.engine.hazards.items) h.active = false
+        }
+    }
+
     private fun envShot(name: String, lvl: Int) = gameplay(name, 0f) { s ->
         s.engine.debugJumpToLevel(lvl)
         for (e in s.engine.enemies.items) e.active = false

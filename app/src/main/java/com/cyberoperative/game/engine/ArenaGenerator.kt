@@ -187,7 +187,7 @@ object ArenaGenerator {
         }
         if (placed.size < 3) return null
 
-        val template = ArenaTemplate("gen_${style.name.lowercase()}_$attempt", name(rng), height, placed.toList(), decor = decor(height, placed, rng))
+        val template = ArenaTemplate("gen_${style.name.lowercase()}_$attempt", name(rng), height, placed.toList(), decor = decor(height, placed, rng, level))
         val arena = Arena(template)
         if (!arena.isFree(arena.spawnX, arena.spawnY, 40f) || !arena.isFree(arena.portalX, arena.portalY, 50f)) return null
         if (!reachable(arena)) return null
@@ -229,8 +229,36 @@ object ArenaGenerator {
         ObstacleKind.BARRIER_CUBE, ObstacleKind.LOCK_CUBE -> 52f to 52f
     }
 
-    private fun decor(height: Float, obstacles: List<ObstacleSpec>, rng: Random): List<DecorSpec> {
+    /**
+     * World Kit decor (owner sheet, 2026-10-10): tile variants break up repetition,
+     * conduits add colour and direction, beacons light the way; spark panels and
+     * dark-zone emitters only in deeper, higher-drama rooms. Used by generated and
+     * hand-made rooms alike.
+     */
+    fun worldKit(height: Float, rng: Random, level: Int, obstacles: List<ObstacleSpec> = emptyList()): List<DecorSpec> {
         val out = ArrayList<DecorSpec>()
+        repeat(2 + rng.nextInt(4)) {
+            out += DecorSpec(DecorKind.CRACKED_TILE, (rng.nextInt(12) * 60).toFloat(), (rng.nextInt((height / 60).toInt()) * 60).toFloat(), 60f, 60f, rng.nextInt())
+        }
+        repeat(1 + rng.nextInt(2)) {
+            out += DecorSpec(DecorKind.CONDUIT, (1 + rng.nextInt(10)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, (2 + rng.nextInt(4)) * 60f, (1 + rng.nextInt(3)) * 60f, rng.nextInt())
+        }
+        repeat(1 + rng.nextInt(2)) {
+            out += DecorSpec(DecorKind.BEACON, 60f + rng.nextFloat() * (W - 120f), 220f + rng.nextFloat() * (height - 440f), 26f, 26f, rng.nextInt())
+        }
+        if (level >= 15) repeat(rng.nextInt(2)) {
+            out += DecorSpec(DecorKind.SPARK_PANEL, (1 + rng.nextInt(10)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, 60f, 60f, rng.nextInt())
+        }
+        if (level >= 40 && rng.nextFloat() < 0.3f) {
+            out += DecorSpec(DecorKind.DARK_EMITTER, 80f + rng.nextFloat() * (W - 160f), 260f + rng.nextFloat() * (height - 520f), 24f, 24f, rng.nextInt())
+        }
+        return out.filter { d -> obstacles.none { it.rect.contains(d.x + d.w / 2f, d.y + d.h / 2f) } }
+    }
+
+    private fun decor(height: Float, obstacles: List<ObstacleSpec>, rng: Random, level: Int = 1): List<DecorSpec> {
+        val out = ArrayList<DecorSpec>()
+        // World Kit uses its own seeded random so the room's layout and spawns stay as they were.
+        out += worldKit(height, Random(level * 7919L + height.toInt() * 31L + obstacles.size), level)
         out += DecorSpec(DecorKind.WARNING_STRIPES, W / 2f - 120f, 120f, 240f, 22f)
         repeat(3 + rng.nextInt(3)) {
             out += DecorSpec(DecorKind.CABLE, rng.nextFloat() * W, 160f + rng.nextFloat() * (height - 320f), 120f + rng.nextFloat() * 260f, 0f, rng.nextInt())

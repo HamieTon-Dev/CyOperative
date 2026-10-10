@@ -149,7 +149,11 @@ object LevelPlanner {
                 t = pool[rng.nextInt(pool.size)]
             }
         }
-        return if (rng.nextBoolean()) Arenas.mirrored(t) else t
+        val chosen = if (rng.nextBoolean()) Arenas.mirrored(t) else t
+        // Hand-made layouts get the World Kit dressing too. Its own seeded random keeps the
+        // level's spawns exactly as they were (and identical for both co-op players).
+        val kitRng = Random(level * 7919L + chosen.id.hashCode())
+        return chosen.copy(decor = chosen.decor + ArenaGenerator.worldKit(chosen.height, kitRng, level, chosen.obstacles))
     }
 
     fun buildWaves(level: Int, rng: Random, budget: Int, waveCount: Int, rules: EventRules): List<List<SpawnSpec>> {

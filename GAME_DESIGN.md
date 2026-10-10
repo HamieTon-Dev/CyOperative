@@ -149,6 +149,14 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - ON FIRE: 2.5 s, ticks every 0.5 s.
   - Burn Sector warns 1.0–1.2 s; Heat Collapse closes inward with 2 gaps.
 - Boss arenas are tinted with the boss colour, with a pulsing edge border.
+- Pulse Bishop (L150), Packet Reaper (L160), Worm Queen (L170), Glitch Forge (L180),
+  Botnet Monarch (L190), Circuit Hydra (L200), Black Ice Overlord (L220): see CHANGELOG
+  0.11.7–0.11.13.
+  - From L20 any boss room has a 25% chance of one of these seven ("wild"); HP is toned down below
+    its home level.
+  - Statuses: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL (9% slow per stack) → FROZEN 1.1 s at 5
+    stacks.
+- World Kit decor in every room (own seeded random; layouts unchanged).
 - Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.

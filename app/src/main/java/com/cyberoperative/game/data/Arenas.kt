@@ -45,7 +45,20 @@ enum class ObstacleKind(val label: String) {
 }
 
 /** Non-colliding floor decoration (procedural arenas). */
-enum class DecorKind { CABLE, VENT, FLOOR_LIGHT, HOLO_PANEL, DATA_POOL, WARNING_STRIPES, FLOOR_TILE }
+enum class DecorKind {
+    CABLE, VENT, FLOOR_LIGHT, HOLO_PANEL, DATA_POOL, WARNING_STRIPES, FLOOR_TILE,
+    // World Kit (owner sheet docs/boss-concepts/world_kit.webp, 2026-10-10).
+    /** 02 Broken grid tile: a cracked floor plate. */
+    CRACKED_TILE,
+    /** 04 Power conduit: red energy line running along the tile seams with an L bend. */
+    CONDUIT,
+    /** 09 Spark panel: a floor panel with animated electric sparks. */
+    SPARK_PANEL,
+    /** 12 Light beacon: a pylon that lights the floor around it. */
+    BEACON,
+    /** 11 EMP dark-zone emitter: darkens the floor around it (high-drama rooms only). */
+    DARK_EMITTER
+}
 
 data class DecorSpec(val kind: DecorKind, val x: Float, val y: Float, val w: Float, val h: Float, val seed: Int = 0)
 
@@ -143,7 +156,21 @@ object Arenas {
     val bossArena = ArenaTemplate("boss_core", "COMPROMISED CORE", 1160f, listOf(
         o(110f, 300f, 64f, 64f, P), o(546f, 300f, 64f, 64f, P),
         o(110f, 800f, 64f, 64f, P), o(546f, 800f, 64f, 64f, P)
-    ), bossArena = true)
+    ), bossArena = true, decor = listOf(
+        // World Kit for boss rooms: conduits feeding the centre, beacons by the pillars,
+        // spark panels and EMP dark-zone emitters in the corners.
+        DecorSpec(DecorKind.CONDUIT, 60f, 540f, 240f, 120f, 1),
+        DecorSpec(DecorKind.CONDUIT, 420f, 540f, 240f, 120f, 2),
+        DecorSpec(DecorKind.BEACON, 142f, 420f, 26f, 26f, 3),
+        DecorSpec(DecorKind.BEACON, 578f, 420f, 26f, 26f, 4),
+        DecorSpec(DecorKind.SPARK_PANEL, 300f, 960f, 60f, 60f, 5),
+        DecorSpec(DecorKind.SPARK_PANEL, 360f, 180f, 60f, 60f, 6),
+        DecorSpec(DecorKind.DARK_EMITTER, 60f, 1080f, 24f, 24f, 7),
+        DecorSpec(DecorKind.DARK_EMITTER, 660f, 1080f, 24f, 24f, 8),
+        DecorSpec(DecorKind.CRACKED_TILE, 240f, 660f, 60f, 60f, 9),
+        DecorSpec(DecorKind.CRACKED_TILE, 480f, 360f, 60f, 60f, 10),
+        DecorSpec(DecorKind.CRACKED_TILE, 180f, 960f, 60f, 60f, 11)
+    ))
 
     fun eligible(level: Int): List<ArenaTemplate> = templates.filter { level >= it.minLevel }
 

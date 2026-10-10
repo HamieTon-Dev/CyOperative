@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.11.14 (versionCode 36) — 2026-10-10 · Wild bosses + World Kit
+### Added
+- **Any boss level** (owner request): from level 20, every boss room has a 25% chance to bring one of
+  the seven Pack Alpha/Beta bosses instead of the scheduled one: Pulse Bishop, Packet Reaper, Worm
+  Queen, Glitch Forge, Botnet Monarch, Circuit Hydra or Black Ice Overlord. Early in a run they're
+  toned down to the scheduled boss's toughness, and they keep their premium bounty. Level 10 is
+  always the first-boss intro.
+- **World Kit** (owner sheet), for every room (generated and hand-made) and the boss arena:
+  - **New decor:**
+    - **Broken grid tiles:** cracked floor plates.
+    - **Power conduits:** red energy lines with L bends and pulses running along them.
+    - **Spark panels:** electric sparks, from level 15.
+    - **Light beacons:** cyan pylons that light the floor around them.
+    - **EMP dark-zone emitters:** purple devices that swallow the light around them, from level 40
+      and in boss rooms.
+  - **Upgraded pieces:**
+    - **Floor tiles:** a rim glow.
+    - **Vents:** recessed grates with depth.
+    - **Cables:** thick bundles with red and yellow cores.
+    - **Relay pillars:** a glowing square frame and lit corners.
+    - **Firewall barricades:** a hex energy pane between posts.
+  - The boss arena is dressed with conduits, beacons, spark panels and dark-zone emitters in the
+    boss's colours.
+  - Layouts and spawns are unchanged: decoration uses its own seed.
+
 ## 0.11.13 (versionCode 35) — 2026-10-10 · Black Ice Overlord
 ### Added
 - **Black Ice Overlord** (Boss Pack Beta) is the **level 220** boss: STATUS, threat HIGH, base bounty
