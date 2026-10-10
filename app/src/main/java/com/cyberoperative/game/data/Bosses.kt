@@ -282,8 +282,10 @@ data class BossDef(
     val armor: Float = 0f,
     /** Lays an egg every couple of seconds all fight long (Worm Queen). */
     val layEggs: Boolean = false,
-    /** Serpent body: [segments] trail behind the head (Circuit Hydra). */
+    /** Neck-and-head rig (Circuit Hydra); any value > 0 turns it on. */
     val segments: Int = 0,
+    /** The core is immune while any head lives; kill them all to expose it (Circuit Hydra). */
+    val headShield: Boolean = false,
     /** Hidden between eye windows; only targetable while visible (Nullshade). */
     val stealth: Boolean = false,
     /** Named signature abilities for the dossier card and codex; derived from the patterns when empty. */

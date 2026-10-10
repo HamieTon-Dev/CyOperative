@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.17 (versionCode 39) — 2026-10-10 · Circuit Hydra: Head Shield
+### Changed
+- **Circuit Hydra, Head Shield** (owner pick: "Heads shield the core"):
+  - **Heads:** every head is a target with its own HP bar.
+  - **Shield:** while any head lives, a green shield dome covers the core. Aim and shots pass the core
+    and go to the heads.
+  - **Exposed core:** destroy every head and the core blazes open for 6 seconds ("CORE EXPOSED").
+    Then all the heads regrow.
+  - **Destroyed heads:** the neck slumps to the floor and sparks, and that head's beam dies with it.
+  - **Phases:** each new phase grows another head (3 → 4 → 5).
+- **Beam Arc** (owner pick): one thick sweeping beam from each living head's mouth, with neighbouring
+  heads sweeping in opposite directions (it used to fire fans of 3).
+- Split Heads is gone; phase 2 is now called "FOURTH HEAD".
+- Co-op wire format v11 (synced head state).
+
 ## 0.11.16 (versionCode 38) — 2026-10-10 · Circuit Hydra redesign: body
 ### Changed
 - **Circuit Hydra has a new body** (owner-directed, step by step):

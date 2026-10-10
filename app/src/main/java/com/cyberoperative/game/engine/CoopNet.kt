@@ -74,6 +74,7 @@ class CoopWorld {
     var bossTrail = FloatArray(0)
     /** Black Ice shell (v10): fraction left, -1 none. */
     var bossIceShell = -1f
+    var bossHeadMask = -1
 }
 
 class NetOp {
@@ -274,6 +275,7 @@ object CoopCodec {
             o.writeByte(w.bossTrail.size / 2)
             for (v in w.bossTrail) o.pos(v)
             o.writeByte(if (w.bossIceShell < 0f) 255 else (w.bossIceShell * 200f).toInt().coerceIn(0, 200))
+            o.writeByte(if (w.bossHeadMask < 0) 255 else w.bossHeadMask and 0x1F)
         }
         return bytes.toByteArray()
     }
@@ -379,6 +381,7 @@ object CoopCodec {
             w.bossSync = i.readUnsignedByte() / 255f
             w.bossTrail = FloatArray(i.readUnsignedByte() * 2) { i.pos() }
             w.bossIceShell = i.readUnsignedByte().let { if (it == 255) -1f else it / 200f }
+            w.bossHeadMask = i.readUnsignedByte().let { if (it == 255) -1 else it }
             w
         }
     } catch (_: Exception) {
@@ -408,5 +411,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 10
+    const val VERSION = 11
 }

@@ -270,11 +270,11 @@ object Enemies {
         xp = 1f, euros = 1, score = 8, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
     )
 
-    /** Circuit Hydra's extra beam head; hits on it drain the hydra's shared HP bar. */
+    /** One of Circuit Hydra's heads (HP set from the hydra's on spawn); while any lives, the core is shielded. */
     val HYDRA_HEAD = EnemyDef(
         id = "hydra_head", name = "HYDRA HEAD", tag = "Θ",
-        codex = "A beam head split off the Circuit Hydra. Damage dealt to it hurts the hydra itself.",
-        shape = ShapeKind.CIRCLE, color = 0xFFFF4A2A, radius = 30f,
+        codex = "One of the Circuit Hydra's dragon heads. While any head lives, the hydra's core is shielded.",
+        shape = ShapeKind.CIRCLE, color = 0xFF4CFF6A, radius = 40f,
         baseHp = 60f, baseSpeed = 0f, contactDamage = 14f, ai = AiKind.CHASER,
         xp = 0f, euros = 0, score = 0, minLevel = 999, weight = 0f
     )

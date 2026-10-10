@@ -1132,7 +1132,8 @@ class ArenaRenderer {
                 shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else if (g.bossIceShell > 0f) g.bossIceShell else 0f,
                 ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut,
                 trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0),
-                aimX = g.px, aimY = g.py - lift
+                aimX = g.px, aimY = g.py - lift,
+                heads = if (boss.def.headShield) g.bossHeadMask else -1
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1249,10 +1250,15 @@ class ArenaRenderer {
         }
     }
 
-    /** Circuit Hydra's split heads sit on the body's own heads, which the body draws; only a hit flash here. */
+    /** Circuit Hydra's heads are drawn by its body; here only a hit flash and a small HP bar. */
     @Suppress("UNUSED_PARAMETER")
     private fun DrawScope.drawHydraHead(g: GameEngine, e: Enemy, time: Float) {
-        if (e.hitFlash > 0f) drawCircle(Color.White.copy(alpha = 0.35f), e.radius, Offset(e.x, e.y - 18f))
+        val y = e.y - 18f
+        if (e.hitFlash > 0f) drawCircle(Color.White.copy(alpha = 0.35f), e.radius * 0.9f, Offset(e.x, y))
+        val w = 54f
+        val f = (e.hp / e.maxHp).coerceIn(0f, 1f)
+        drawRect(Color.Black.copy(alpha = 0.6f), Offset(e.x - w / 2f - 1f, y - e.radius - 15f), Size(w + 2f, 7f))
+        drawRect(Color(e.def.color), Offset(e.x - w / 2f, y - e.radius - 14f), Size(w * f, 5f))
     }
 
     /** Glitch Forge's decoy: a translucent flickering mini forge cube with scanlines. */

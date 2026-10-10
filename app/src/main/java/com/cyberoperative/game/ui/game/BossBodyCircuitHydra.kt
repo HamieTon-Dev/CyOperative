@@ -147,18 +147,39 @@ internal object CircuitHydraBody : BossBody {
         val ay = if (p.aimY.isNaN()) p.cy + sin(p.aim) * 2000f else p.aimY
         val by = HydraRig.baseY(p.cy, p.radius)
         // Necks rise from behind the core in a wide fan; heads are drawn last.
+        // A severed neck (head destroyed) slumps to the floor beside the core and sparks.
+        fun alive(h: Int) = p.heads < 0 || (p.heads shr h) and 1 == 1
         for (h in 0 until heads) {
             val bx = HydraRig.baseX(p.cx, p.radius, h, heads, p.phase)
-            val cxp = rig[h * 4]; val cyp = rig[h * 4 + 1]; val hx = rig[h * 4 + 2]; val hy = rig[h * 4 + 3]
-            val n = 12
+            val live = alive(h)
+            var cxp = rig[h * 4]; var cyp = rig[h * 4 + 1]; var hx = rig[h * 4 + 2]; var hy = rig[h * 4 + 3]
+            if (!live) {
+                val side = if (hx < p.cx) -1f else 1f
+                hx = bx + side * r * (0.9f + 0.15f * (h % 2))
+                hy = ccy + r * 0.45f + sin(t * 2f + h) * r * 0.02f
+                cxp = bx + side * r * 0.55f
+                cyp = by - r * 0.55f
+            }
+            val n = if (live) 12 else 7
+            val reach = if (live) 0.9f else 1f
             for (i in 0 until n) {
-                val u = i / (n - 1f) * 0.9f
+                val u = i / (n - 1f) * reach
                 val x = (1 - u) * (1 - u) * bx + 2 * (1 - u) * u * cxp + u * u * hx
                 val y = (1 - u) * (1 - u) * by + 2 * (1 - u) * u * cyp + u * u * hy
                 val dx = 2 * (1 - u) * (cxp - bx) + 2 * u * (hx - cxp)
                 val dy = 2 * (1 - u) * (cyp - by) + 2 * u * (hy - cyp)
-                val glow = 0.5f + 0.5f * sin(t * 6f - i * 0.8f - h)
+                val glow = if (live) 0.5f + 0.5f * sin(t * 6f - i * 0.8f - h) else 0.1f
                 vertebra(x, y, atan2(dy, dx), r * (0.27f - 0.08f * u), glow, p.hitFlash)
+            }
+            if (!live) {
+                // Severed end: a torn collar with flickering sparks.
+                drawCircle(METAL_DARK, r * 0.2f, Offset(hx, hy))
+                drawCircle(TOXIC.copy(alpha = 0.5f + 0.5f * sin(t * 23f + h)), r * 0.2f, Offset(hx, hy), style = Stroke(2f))
+                for (k in 0 until 4) {
+                    val a = t * 9f + k * 1.7f + h
+                    val l = r * (0.12f + 0.12f * ((sin(t * 31f + k * 2.3f) + 1f) / 2f))
+                    drawLine(TOXIC_HOT, Offset(hx, hy), Offset(hx + cos(a) * l, hy + sin(a) * l), 1.8f)
+                }
             }
         }
         // Core: armoured octagon hull with PCB traces and a toxic reactor.
@@ -190,6 +211,25 @@ internal object CircuitHydraBody : BossBody {
         drawCircle(METAL_DARK, r * 0.27f, rc)
         drawCircle(Brush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.24f * (0.85f + 0.3f * beat)), r * 0.24f, rc)
         drawCircle(TOXIC.copy(alpha = 0.8f), r * 0.27f, rc, style = Stroke(2.5f))
-        for (h in 0 until heads) head(rig[h * 4 + 2], rig[h * 4 + 3], HydraRig.facing(rig, h, ax, ay), r * HydraRig.HEAD, p.winding, p.hitFlash, t)
+        if (p.heads == 0) {
+            // Core exposed: the reactor blazes and the hull seams glow white-hot.
+            val f = 0.5f + 0.5f * sin(t * 10f)
+            drawCircle(Brush.radialGradient(listOf(Color.White, TOXIC_HOT, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.7f), r * 0.7f * (0.85f + 0.15f * f), rc)
+            drawPath(hull, TOXIC_HOT.copy(alpha = 0.5f + 0.5f * f), style = Stroke(3f))
+        } else {
+            // Head shield: a translucent hex dome over the core, fed by power links from each living head.
+            val dome = r * 0.98f
+            for (h in 0 until heads) if (alive(h)) {
+                val bx = HydraRig.baseX(p.cx, p.radius, h, heads, p.phase)
+                drawLine(TOXIC.copy(alpha = 0.35f + 0.25f * sin(t * 5f + h)), Offset(bx, by), rc, 2f)
+            }
+            drawOval(TOXIC.copy(alpha = 0.10f + 0.04f * sin(t * 3f)), Offset(p.cx - dome, ccy - dome * 0.9f), Size(dome * 2f, dome * 1.7f))
+            drawOval(TOXIC.copy(alpha = 0.55f), Offset(p.cx - dome, ccy - dome * 0.9f), Size(dome * 2f, dome * 1.7f), style = Stroke(2f))
+            for (k in 0 until 6) {
+                val a = k * PI.toFloat() / 3f + t * 0.4f
+                drawLine(TOXIC.copy(alpha = 0.18f), rc, Offset(p.cx + cos(a) * dome, ccy - dome * 0.05f + sin(a) * dome * 0.85f), 1.2f)
+            }
+        }
+        for (h in 0 until heads) if (alive(h)) head(rig[h * 4 + 2], rig[h * 4 + 3], HydraRig.facing(rig, h, ax, ay), r * HydraRig.HEAD, p.winding, p.hitFlash, t)
     }
 }

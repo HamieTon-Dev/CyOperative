@@ -119,7 +119,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                     if (b.state != AiState.SPAWNING) {
                         b.hp = b.maxHp * 0.9f
                         // Stealth bosses sit lower so their eyes aren't hidden under the HUD in the shots.
-                        if (pin) { b.x = g.arena.width / 2f; b.y = g.arena.height * (if (def.stealth) 0.4f else 0.27f) }
+                        if (pin) { b.x = g.arena.width / 2f; b.y = g.arena.height * (if (def.stealth || def.headShield) 0.4f else 0.27f) }
                     }
                 }
                 me.px = standX; me.py = standY
@@ -328,11 +328,12 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk5_sync_burst", listOf(Pattern.DroneRing(8) to 1.2f, Pattern.SyncBurst(0.8f, 3, 300f, 18f) to 1.0f))
             ),
             "circuit_hydra" to listOf(
-                AttackShot("atk1_beam_arc", listOf(Pattern.BeamArc(3, 1.0f, 1.8f, 50f, 40f, 24f) to 1.6f)),
-                AttackShot("atk2_split_heads", listOf(Pattern.SplitHeads(2) to 1.6f)),
-                AttackShot("atk3_beam_arc_heads", listOf(Pattern.SplitHeads(2) to 1.5f, Pattern.BeamArc(4, 0.85f, 2.2f, 70f, 50f, 26f) to 1.5f)),
-                AttackShot("atk4_segment_burst", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.5f)),
-                AttackShot("atk5_coil_crush", listOf(Pattern.CoilCrush(300f, 70f, 130f, 30f) to 0.9f))
+                AttackShot("atk1_beam_arc", listOf(Pattern.BeamArc(1, 1.0f, 1.8f, 60f, 0f, 26f) to 1.6f)),
+                AttackShot("atk2_head_shield", emptyList(), afterHold = 0.4f),
+                AttackShot("atk3_head_down", emptyList(), after = { g -> killHydraHeads(g, 1) }, afterHold = 0.6f),
+                AttackShot("atk4_core_exposed", emptyList(), after = { g -> killHydraHeads(g, 5) }, afterHold = 0.8f),
+                AttackShot("atk5_segment_burst", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.5f)),
+                AttackShot("atk6_coil_crush", listOf(Pattern.CoilCrush(300f, 70f, 130f, 30f) to 0.9f))
             ),
             "black_ice_overlord" to listOf(
                 AttackShot("atk1_ice_laser", listOf(Pattern.IceLaser(3, 0.95f, 2.4f, 110f, 25f) to 1.6f)),
@@ -373,4 +374,13 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
             listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight"), arrayOf<Any>(b.id, "anim")) + ATTACKS[b.id].orEmpty().map { arrayOf<Any>(b.id, it.name) }
         }
     }
+}
+
+/** Destroys [count] of Circuit Hydra's heads (attack renders). */
+private fun killHydraHeads(g: com.cyberoperative.game.engine.GameEngine, count: Int) {
+    g.enemies.items.filter { it.active && it.def.id == "hydra_head" }.take(count)
+        .forEach {
+            it.state = com.cyberoperative.game.engine.AiState.MOVE
+            g.damageEnemy(it, 1e7f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        }
 }

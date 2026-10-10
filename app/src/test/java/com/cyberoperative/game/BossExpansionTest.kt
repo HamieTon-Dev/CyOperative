@@ -969,26 +969,40 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         }
     }
 
-    @Test fun splitHeadsShareTheHpBar() {
+    private fun heads(g: com.cyberoperative.game.engine.GameEngine) = g.enemies.items.filter { it.active && it.def.id == "hydra_head" }
+
+    @Test fun headsShieldTheCoreUntilAllAreDown() {
         val g = fight()
         val b = g.boss!!
-        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SplitHeads(2))
-        run(g, 1.2f)
-        val heads = g.enemies.items.filter { it.active && it.def.id == "hydra_head" }
-        assertEquals(2, heads.size)
+        run(g, 1.5f)
+        assertEquals("three heads in phase 1", 3, heads(g).size)
+        assertEquals(0b111, g.bossHeadMask)
         val hp = b.hp
-        g.damageEnemy(heads[0], 100f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
-        assertTrue("hit on a head drains the hydra", b.hp < hp)
-        assertTrue("head itself is untouched", heads[0].active)
+        g.damageEnemy(b, 500f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertEquals("core shielded while heads live", hp, b.hp, 0.01f)
+        // Heads take their own damage.
+        val h0 = heads(g)[0]
+        val h0hp = h0.hp
+        g.damageEnemy(h0, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue(h0.hp < h0hp)
+        // Kill every head: the core is exposed.
+        for (h in heads(g)) g.damageEnemy(h, 1e6f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        run(g, 0.1f)
+        assertEquals(0, g.bossHeadMask)
+        g.damageEnemy(b, 500f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("exposed core takes damage", b.hp < hp)
+        // After the window every head regrows.
+        run(g, BossBrain.EXPOSE_SECONDS + 1.5f)
+        assertEquals(3, heads(g).size)
+        assertTrue(g.bossHeadMask > 0)
     }
 
-    @Test fun beamArcFromEveryHead() {
+    @Test fun beamArcOneBeamPerLivingHead() {
         val g = fight()
-        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SplitHeads(2))
-        run(g, 1.2f)
-        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BeamArc(3, 0.8f, 1.5f, 50f, 40f, 20f))
+        run(g, 1.5f)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BeamArc(1, 0.8f, 1.5f, 60f, 0f, 20f))
         val beams = hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP)
-        assertEquals(9, beams.size)
+        assertEquals(3, beams.size)
         // Beams leave the mouths, out on the necks, not the core.
         val b = g.boss!!
         val rig = g.bossTrail
@@ -997,6 +1011,14 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
             val near = (0 until rig.size / 4).minOf { k -> kotlin.math.hypot(h.x - rig[k * 4 + 2], h.y - rig[k * 4 + 3]) }
             assertTrue("beam starts at a head ($near)", near < b.radius * 1.2f)
         }
+        // A destroyed head's beam dies with it, and it can't fire again.
+        val victim = heads(g).first()
+        g.damageEnemy(victim, 1e6f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        run(g, 0.1f)
+        assertEquals(2, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
+        for (h in hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP)) h.active = false
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BeamArc(1, 0.8f, 1.5f, 60f, 0f, 20f))
+        assertEquals(2, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
     }
 
     @Test fun coilClosesInWithAGap() {

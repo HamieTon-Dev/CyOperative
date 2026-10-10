@@ -24,6 +24,11 @@ class BossState(val def: BossDef, val cycle: Int) {
     var patternTime = 0f
     /** Circuit Hydra neck sway clock. */
     var rigTime = 0f
+    /** Circuit Hydra: enemy uid per head slot (-1 = no head), heads grown so far, exposed-core time left. */
+    val headUid = IntArray(5) { -1 }
+    var headCount = 0
+    var exposed = 0f
+    var shieldSparkCd = 0f
     var counter = 0
     var subTimer = 0f
     var angleOffset = 0f
@@ -239,20 +244,73 @@ class BossBrain(private val g: GameEngine) {
 
     /**
      * Circuit Hydra: lays out its necks and heads ([HydraRig]) into [GameEngine.bossTrail]
-     * each tick, so beams and bursts leave the heads and necks you see. Split heads
-     * (shootable, sharing its HP) sit on the extra heads past the first three.
+     * each tick, so beams and bursts leave the heads and necks you see. With
+     * [BossDef.headShield] every head is a shootable [Enemy] with its own HP: while
+     * any lives the core is shielded; kill them all and the core is exposed for
+     * [EXPOSE_SECONDS], then every head regrows. A new phase grows one more head.
      */
     private fun updateSerpent(e: Enemy, st: BossState, dt: Float) {
         st.rigTime += dt
+        st.shieldSparkCd -= dt
         g.bossTrail = HydraRig.layout(e.x, e.y, e.radius, st.phaseIndex, st.rigTime, g.bossTrail)
+        if (!st.def.headShield) return
         val rig = g.bossTrail
         val n = HydraRig.heads(st.phaseIndex)
-        var k = 3
-        for (m in g.enemies.items) {
-            if (!m.active || m.def.id != "hydra_head") continue
-            val h = k.coerceAtMost(n - 1)
-            m.x = rig[h * 4 + 2]; m.y = rig[h * 4 + 3]
-            k++
+        if (st.exposed > 0f) {
+            st.exposed -= dt
+            if (st.exposed <= 0f) {
+                for (k in 0 until n) growHead(e, st, k)
+                st.headCount = n
+                g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 3f, 0.6f, st.def.color)
+                g.fx.shake(6f, 0.35f)
+                g.showBanner("HEADS REGROWN", "The core is shielded again", 1.0f)
+            }
+        } else if (n > st.headCount) {
+            // Fight start, or a new phase: grow the missing heads.
+            for (k in st.headCount until n) growHead(e, st, k)
+            st.headCount = n
+        }
+        var mask = 0
+        for (k in 0 until 5) {
+            val uid = st.headUid[k]
+            if (uid < 0) continue
+            val m = g.enemies.items.firstOrNull { it.active && it.uid == uid && it.def.id == "hydra_head" }
+            if (m == null || k >= n) { st.headUid[k] = -1; continue }
+            mask = mask or (1 shl k)
+            m.x = rig[k * 4 + 2]; m.y = rig[k * 4 + 3]
+        }
+        if (mask == 0 && st.exposed <= 0f && st.headCount > 0) {
+            st.exposed = EXPOSE_SECONDS
+            g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 2.6f, 0.5f, 0xFFFFFFFF)
+            g.fx.flash(st.def.color, 0.25f, 0.3f)
+            g.fx.shake(8f, 0.4f)
+            g.showBanner("CORE EXPOSED", "Hit the core before the heads regrow", 1.2f)
+        }
+        g.bossHeadMask = mask
+        // Shielded: aim and shots go past the core to the heads.
+        e.untargetable = mask != 0
+    }
+
+    /** Grows head [k] on its neck, with HP from the hydra's. */
+    private fun growHead(e: Enemy, st: BossState, k: Int) {
+        val rig = g.bossTrail
+        if (rig.size < (k + 1) * 4) return
+        val h = g.spawnEnemyAt(Enemies.byId("hydra_head"), null, rig[k * 4 + 2], rig[k * 4 + 3], telegraph = true) ?: return
+        h.isChild = true
+        h.maxHp = e.maxHp * HEAD_HP_SHARE
+        h.hp = h.maxHp
+        st.headUid[k] = h.uid
+        g.addPulse(h.x, h.y, 60f, 0.4f, st.def.color)
+    }
+
+    /** A hit on the shielded core: it glances off (throttled feedback). */
+    internal fun headShieldSpark(e: Enemy) {
+        val st = e.boss ?: return
+        val cy = HydraRig.coreY(e.y, e.radius)
+        if (g.rng.nextFloat() < 0.5f) g.addParticle(e.x + (g.rng.nextFloat() - 0.5f) * e.radius, cy - e.radius * 0.6f, st.def.color, 140f, 0.3f, 2.5f)
+        if (st.shieldSparkCd <= 0f) {
+            st.shieldSparkCd = 0.8f
+            g.addText(e.x, cy - e.radius * 1.4f, "SHIELDED", TextKind.SHIELD)
         }
     }
 
@@ -631,19 +689,21 @@ class BossBrain(private val g: GameEngine) {
                 g.showBanner("SPLIT HEADS", "Every head drains the same HP bar", 1.0f)
             }
             is Pattern.BeamArc -> {
-                // Every head breathes its fan of beams from its mouth.
+                // Every living head breathes a thick sweeping beam from its mouth.
                 val rig = g.bossTrail
                 val n = rig.size / 4
+                val mask = if (g.bossHeadMask < 0) (1 shl n) - 1 else g.bossHeadMask
                 val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat()
                 val fan = Math.toRadians(p.fanDeg.toDouble()).toFloat()
                 for (hi in 0 until n) {
+                    if ((mask shr hi) and 1 == 0) continue
                     val face = HydraRig.facing(rig, hi, g.px, g.py)
                     val (mx, my) = HydraRig.mouth(rig, hi, e.radius, face)
                     val aim = atan2(g.py - my, g.px - mx)
                     val dir = if (hi % 2 == 0) 1f else -1f
                     for (k in 0 until p.count) {
                         val t = if (p.count == 1) 0f else k / (p.count - 1f) - 0.5f
-                        g.addSweep(mx, my, aim + t * fan - dir * sweep / 2f, dir * sweep, 22f, p.windup, p.duration, p.damage * e.damageMul, st.def.color, e.uid)?.head = hi
+                        g.addSweep(mx, my, aim + t * fan - dir * sweep / 2f, dir * sweep, if (p.count == 1) 34f else 22f, p.windup, p.duration, p.damage * e.damageMul, st.def.color, e.uid)?.head = hi
                     }
                 }
             }
@@ -1513,6 +1573,9 @@ class BossBrain(private val g: GameEngine) {
 
     fun onBossKilled(e: Enemy, st: BossState) {
         g.bossSync = 0f
+        // Circuit Hydra's heads fall with it.
+        for (uid in st.headUid) if (uid >= 0) g.enemies.items.firstOrNull { it.active && it.uid == uid }?.active = false
+        g.bossHeadMask = -1
         g.bossIceShell = -1f
         // Power restores after a blackout fight.
         if (g.darkness > 0f) { g.darknessTarget = 0f; g.bossVeil = 0f }
@@ -1533,6 +1596,11 @@ class BossBrain(private val g: GameEngine) {
     }
 
     companion object {
+        /** Circuit Hydra: how long the core stays exposed once every head is down. */
+        const val EXPOSE_SECONDS = 6f
+        /** Circuit Hydra: each head's HP as a share of the hydra's max HP. */
+        const val HEAD_HP_SHARE = 0.035f
+
         /**
          * Boss entrance timeline (owner, 2026-10-07): 0–1.4 s the health bar
          * grows from the centre and fills, 1.4–2.0 s the name glitches in,

@@ -449,3 +449,12 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - `BossBody.previewSpan`/`previewDrop` frame big bodies on the sheets.
   - Tests: CircuitHydraTest updated (rig per phase, float band, beams start at heads).
   - Next: ask the owner about each attack (Beam Arc, Segment Burst, Coil Crush, Split Heads/regrowth).
+- 2026-10-10 — Circuit Hydra step 2 answers: heads **shield the core** (kill all to expose it about 6 s,
+  then they regrow); Beam Arc = **one beam per head**.
+- 2026-10-10 — v0.11.17 (39): Head Shield + single-beam Beam Arc.
+  - `BossDef.headShield`; BossState headUid/headCount/exposed.
+  - `GameEngine.bossHeadMask` (co-op v11); the core is untargetable while shielded.
+  - Body draws the shield dome, slumped sparking stumps and the exposed core; heads have HP bars.
+  - Tests: headsShieldTheCoreUntilAllAreDown, beamArcOneBeamPerLivingHead; full suite green.
+  - Renders: circuit_hydra_atk1–6.
+  - Next: ask the owner about Segment Burst, Coil Crush and tuning (head HP, exposed window).

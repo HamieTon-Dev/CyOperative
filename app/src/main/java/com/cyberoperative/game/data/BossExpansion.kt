@@ -361,24 +361,22 @@ object BossExpansion {
         "A multi-core serpent that splits into beam heads, filling the arena with overlapping fire lanes.",
         0xFF4CFF6A, 66f, 2720f, 72f, 30f, BossMove.SWAY, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
-                Pattern.BeamArc(3, 1.0f, 1.8f, 50f, 40f, 24f),
+                Pattern.BeamArc(1, 1.0f, 1.8f, 60f, 0f, 26f),
                 Pattern.SegmentBurst(6, 190f, 13f),
                 Pattern.CoilCrush(280f, 70f, 110f, 28f)
             ), "PHASE 1"),
             BossPhase(P2, 1.1f, 1.2f, listOf(
-                Pattern.SplitHeads(1),
-                Pattern.BeamArc(3, 0.9f, 2.0f, 60f, 45f, 25f),
+                Pattern.BeamArc(1, 0.9f, 2.0f, 70f, 0f, 27f),
                 Pattern.SegmentBurst(7, 200f, 14f),
                 Pattern.CoilCrush(290f, 70f, 120f, 29f)
-            ), "SPLIT"),
+            ), "FOURTH HEAD"),
             BossPhase(P3, 1.2f, 1.0f, listOf(
-                Pattern.SplitHeads(2),
-                Pattern.BeamArc(4, 0.85f, 2.2f, 70f, 50f, 26f),
+                Pattern.BeamArc(1, 0.85f, 2.2f, 80f, 0f, 28f),
                 Pattern.SegmentBurst(8, 210f, 15f),
                 Pattern.CoilCrush(300f, 70f, 130f, 30f)
             ), "HYDRA STORM")
         ), euros = 362, score = 8000, role = BossRole.AREA_CONTROL, tier = 3, armor = 4.2f,
-        abilities = listOf("Split Heads", "Beam Arc", "Segment Burst", "Coil Crush"), segments = 10
+        abilities = listOf("Head Shield", "Beam Arc", "Segment Burst", "Coil Crush"), segments = 10, headShield = true
     )
 
     /**

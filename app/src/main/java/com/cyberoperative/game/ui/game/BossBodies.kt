@@ -47,7 +47,9 @@ class BossPose(
     val trail: FloatArray = FloatArray(0),
     /** The operative's position (lifted), when known; heads track it. */
     val aimX: Float = Float.NaN,
-    val aimY: Float = Float.NaN
+    val aimY: Float = Float.NaN,
+    /** Circuit Hydra's living heads: bit k = head k; -1 = all (previews); 0 = core exposed. */
+    val heads: Int = -1
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color
