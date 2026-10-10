@@ -99,6 +99,21 @@ sealed class Pattern {
     /** Rootkit Bloom: rings of spikes around the boss with [lanes] safe lanes running through them. */
     data class Bloom(val rings: Int, val damage: Float, val lanes: Int = 3, val radius: Float = 32f, val delay: Float = 0.75f, val ringGap: Float = 0.3f) : Pattern()
 
+    /** Ghost Dash: a telegraphed dash that hits what it passes and leaves a short corruption trail. */
+    data class GhostDash(val windup: Float, val speed: Float, val distance: Float, val damage: Float, val repeats: Int = 1) : Pattern()
+
+    /** Static Needles: fast, faint needle spreads aimed at you. */
+    data class Needles(val count: Int, val spreadDeg: Float, val speed: Float, val damage: Float, val bursts: Int = 1, val burstGap: Float = 0.3f) : Pattern()
+
+    /**
+     * Spark Ambush: melts into the shadows, then bursts out of a server block —
+     * the block is marked first, then sparks spray out of it and the boss steps out beside it.
+     */
+    data class SparkAmbush(val delay: Float, val radius: Float, val damage: Float, val shards: Int) : Pattern()
+
+    /** Grid Reboot Surge: rapid EMP rings while the lights stutter on and off. */
+    data class GridSurge(val rings: Int, val gap: Float, val maxRadius: Float, val speed: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -192,6 +207,10 @@ val Pattern.displayName: String
         is Pattern.SpikeEruption -> "Spike Eruption"
         is Pattern.Infect -> "Infected Zone"
         is Pattern.Bloom -> "Rootkit Bloom"
+        is Pattern.GhostDash -> "Ghost Dash"
+        is Pattern.Needles -> "Static Needles"
+        is Pattern.SparkAmbush -> "Spark Ambush"
+        is Pattern.GridSurge -> "Grid Reboot Surge"
     }
 
 object Bosses {
@@ -472,16 +491,37 @@ object Bosses {
     /** Boss Expansion Vol. 1 (owner, 2026-10-10), levels 130–240 in threat order. See BossExpansion.kt. */
     val expansion: List<BossDef> get() = BossExpansion.all
 
-    /** Order of appearance: index = (level / 10 - 1) % size. */
+    /** Every boss: the classics, then the built expansion bosses in their slot order. */
     val roster: List<BossDef> by lazy { classics + expansion }
 
     fun byId(id: String): BossDef? = roster.firstOrNull { it.id == id }
 
+    /**
+     * Levels 10–120: the classics. Levels 130–240: each expansion boss in its
+     * planned slot ([BossExpansion.SLOTS]); a slot whose boss isn't built yet
+     * keeps the classic that used to be there. Past 240 the whole roster rotates.
+     */
     fun forLevel(level: Int): BossDef {
         val index = ((level / 10) - 1).coerceAtLeast(0)
-        return roster[index % roster.size]
+        return when {
+            index < classics.size -> classics[index]
+            index < classics.size + BossExpansion.SLOTS.size ->
+                BossExpansion.inSlot(index - classics.size) ?: classics[index % classics.size]
+            else -> roster[(index - classics.size - BossExpansion.SLOTS.size) % roster.size]
+        }
     }
 
-    /** How many times the roster has looped (0 on the first pass). */
-    fun cycleForLevel(level: Int): Int = ((level / 10) - 1).coerceAtLeast(0) / roster.size
+    /** How tough this pass is: 0 for a boss's first appearance, rising each loop. */
+    fun cycleForLevel(level: Int): Int {
+        val index = ((level / 10) - 1).coerceAtLeast(0)
+        val firstPass = classics.size + BossExpansion.SLOTS.size
+        return when {
+            index < classics.size -> 0
+            index < firstPass -> if (BossExpansion.inSlot(index - classics.size) != null) 0 else 1
+            else -> 1 + (index - firstPass) / roster.size
+        }
+    }
+
+    /** The first level a boss is fought at (null if it never comes up by itself). */
+    fun firstLevelOf(def: BossDef): Int? = (1..(classics.size + BossExpansion.SLOTS.size)).firstOrNull { forLevel(it * 10) == def }?.times(10)
 }

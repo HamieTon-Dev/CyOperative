@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -123,6 +124,12 @@ class ArenaRenderer {
             drawSorted(g, time, skin, body)
             drawXray(g, time)
             drawOrbitFront(g, time)
+            if (g.darknessNow > 0.01f) {
+                drawDarkness(g, time)
+                // Telegraphs must still be readable in the dark.
+                drawHazardsUnder(g, time)
+                drawBarrierGhosts(g, time)
+            }
             drawProjectiles(g, time)
             drawZaps(g, time)
             drawHazardsOver(g)
@@ -960,7 +967,7 @@ class ArenaRenderer {
             val hb = e.boss
             val hiddenBody = hb?.let { BossBodies.forId(it.def.id) }
             if (hb != null && hiddenBody != null) {
-                val pose = BossPose(e.x, e.y - 18f, e.radius, base, time, hb.phaseIndex, false, false, 0f, (e.hp / e.maxHp).coerceIn(0f, 1f), glitch)
+                val pose = BossPose(e.x, e.y - 18f, e.radius, base, time, hb.phaseIndex, false, false, 0f, (e.hp / e.maxHp).coerceIn(0f, 1f), glitch, veiled = 1f)
                 if (with(hiddenBody) { drawHidden(pose) }) return
             }
             drawOval(base.copy(alpha = 0.15f), Offset(e.x - e.radius, e.y - e.radius * 0.4f), Size(e.radius * 2f, e.radius * 0.8f), style = Stroke(2f))
@@ -983,7 +990,8 @@ class ArenaRenderer {
         if (boss != null && customBody != null) {
             val pose = BossPose(
                 cx, cy, e.radius, base, time, boss.phaseIndex, e.state == AiState.WINDUP, e.hitFlash > 0f,
-                kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch
+                kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch,
+                veiled = if (boss.def.stealth) g.bossVeil else 0f
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1247,6 +1255,22 @@ class ArenaRenderer {
                 drawLine(Color.White, c, tail, p.radius * 0.45f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
                 continue
             }
+            if (p.kind == ProjKind.NEEDLE) {
+                // Static needle: a thin, faint shard with a flickering static trail.
+                val sp = max(1f, kotlin.math.hypot(p.vx, p.vy))
+                val dx = p.vx / sp
+                val dy = p.vy / sp
+                val tip = Offset(c.x + dx * 9f, c.y + dy * 9f)
+                val tail = Offset(c.x - dx * 26f, c.y - dy * 26f)
+                for (k in 0 until 3) {
+                    val j = sin(time * 60f + k * 2f + p.x) * 3f
+                    val a0 = Offset(c.x - dx * (8f + k * 7f) - dy * j, c.y - dy * (8f + k * 7f) + dx * j)
+                    drawLine(Color(0xFFE08CFF).copy(alpha = 0.35f - k * 0.08f), a0, Offset(a0.x - dx * 6f, a0.y - dy * 6f), 1.4f)
+                }
+                drawLine(Color(0xFFD040FF).copy(alpha = 0.3f), tail, tip, 5f)
+                drawLine(Color(0xFFF2D6FF).copy(alpha = 0.85f), Offset(c.x - dx * 8f, c.y - dy * 8f), tip, 2f)
+                continue
+            }
             if (p.friendly) {
                 val col = if (p.tint != 0L) Color(p.tint) else when (p.kind) {
                     ProjKind.LANCE -> Palette.Green
@@ -1474,6 +1498,50 @@ class ArenaRenderer {
     }
 
     /**
+     * EMP blackout (Boss Expansion S11): the room goes black except a soft light
+     * bubble around each operative; it lifts a little while a stealth boss has
+     * its eyes open. The boss's eyes are drawn on top so you can always track it.
+     */
+    private fun DrawScope.drawDarkness(g: GameEngine, time: Float) {
+        val d = g.darknessNow
+        val eyesOpen = 1f - g.bossVeil
+        // Owner, 2026-10-10: "The level should be extremely dark".
+        val alpha = (d * (0.985f - 0.05f * eyesOpen)).coerceIn(0f, 1f)
+        val w = g.arena.width
+        val h = g.arena.height
+        val bounds = androidx.compose.ui.geometry.Rect(-400f, -600f, w + 400f, h + 600f)
+        drawContext.canvas.saveLayer(bounds, androidx.compose.ui.graphics.Paint())
+        drawRect(Color(0xFF020104).copy(alpha = alpha), bounds.topLeft, bounds.size)
+        for (o in g.operatives) {
+            if (o.gone || !o.alive) continue
+            val c = Offset(o.px, o.py - 10f)
+            val rad = LIGHT_BUBBLE * (0.97f + 0.03f * sin(time * 2.3f + o.index))
+            drawCircle(
+                Brush.radialGradient(0f to Color.Black, 0.4f to Color.Black.copy(alpha = 0.92f), 0.75f to Color.Black.copy(alpha = 0.35f), 1f to Color.Transparent, center = c, radius = rad),
+                rad, c, blendMode = androidx.compose.ui.graphics.BlendMode.DstOut
+            )
+        }
+        drawContext.canvas.restore()
+        for (o in g.operatives) {
+            if (o.gone || !o.alive) continue
+            drawCircle(Palette.Cyan.copy(alpha = 0.07f * d), LIGHT_BUBBLE * 0.9f, Offset(o.px, o.py - 10f), style = Stroke(2f))
+        }
+        // The boss's eyes cut through the dark.
+        val b = g.boss
+        val bs = b?.boss
+        val body = bs?.let { BossBodies.forId(it.def.id) }
+        if (b != null && bs != null && body != null && b.active && b.state != AiState.SPAWNING && b.state != AiState.HIDDEN) {
+            val lift = 18f + sin(time * 4f + b.uid) * 2.5f
+            val pose = BossPose(
+                b.x, b.y - lift, b.radius, Color(bs.def.color), time, bs.phaseIndex, b.state == AiState.WINDUP, false,
+                kotlin.math.atan2(g.py - b.y, g.px - b.x), (b.hp / b.maxHp).coerceIn(0f, 1f), bs.glitched,
+                veiled = if (bs.def.stealth) g.bossVeil else 0f
+            )
+            with(body) { drawOverDark(pose) }
+        }
+    }
+
+    /**
      * Barrier cubes that are not solid yet or are sinking: a pulsing floor
      * outline (where it will rise — get clear) and the cube growing out of it.
      */
@@ -1679,6 +1747,8 @@ class ArenaRenderer {
         const val TILE = 60f
         const val FIGURE_SCALE = 1.3f
         const val BARRIER_HEIGHT = 58f
+        /** Radius of the light around each operative during a blackout. */
+        const val LIGHT_BUBBLE = 175f
         private const val MAX_ITEMS = 160
     }
 }

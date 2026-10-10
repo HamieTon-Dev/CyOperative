@@ -567,5 +567,15 @@ internal fun BossHealthBar(h: HudSnapshot) {
             }
             drawRoundRect(color.copy(alpha = 0.9f * flicker), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
+        if (h.bossLock >= 0) {
+            // Nullshade: you can only lock on while its eyes are open.
+            val open = h.bossLock == 1
+            Text(
+                if (open) "◉ EYES OPEN — LOCK ON" else "◌ IN THE SHADOWS — NO LOCK",
+                color = if (open) Color(0xFFFF2A3A) else Palette.TextMuted,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }

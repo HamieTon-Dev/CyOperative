@@ -33,7 +33,17 @@ class BossExpansionTest {
         for ((i, b) in Bosses.classics.withIndex()) assertEquals(b, Bosses.forLevel(10 * (i + 1)))
     }
 
-    @Test fun rareBossNeverBeforeItsLevel() {
+    @Test fun expansionBossesTakeTheirPlannedLevels() {
+        assertEquals(130, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.VAULT_SENTINEL))
+        assertEquals(140, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.ROOTKIT_APOSTLE))
+        assertEquals(240, Bosses.firstLevelOf(com.cyberoperative.game.data.BossExpansion.NULLSHADE_SPECTER))
+        // A slot whose boss isn't built yet keeps its classic, one loop tougher.
+        assertEquals(Bosses.classics[2], Bosses.forLevel(150))
+        assertEquals(1, Bosses.cycleForLevel(150))
+        assertEquals(0, Bosses.cycleForLevel(240))
+    }
+
+        @Test fun rareBossNeverBeforeItsLevel() {
         for (seed in 0 until 200) assertNull(LevelPlanner.rollRareBoss(LevelPlanner.RARE_BOSS_FROM - 10, Random(seed)))
     }
 
@@ -264,5 +274,92 @@ class RootkitApostleTest {
             val gaps = angles.zipWithNext { a, c -> c - a } + (angles.first() + 2 * Math.PI.toFloat() - angles.last())
             assertTrue("ring $ring has a lane", gaps.max() * rr > 32f * 2f + g.playerRadius * 2f)
         }
+    }
+}
+
+/** Nullshade Specter: blackout, eye-glint lock windows, ghost dash, spark ambush, power restore, co-op sync. */
+class NullshadeSpecterTest {
+
+    private fun fight(): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = 13L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(150, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.NULLSHADE_SPECTER, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.2f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    private fun run(g: GameEngine, seconds: Float) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(0f, 0f)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    @Test fun blackoutOpensTheFight() {
+        val g = fight()
+        run(g, 0.2f)
+        assertTrue("room is dark", g.darkness > 0.95f)
+    }
+
+    @Test fun onlyHittableWhileEyesAreOpen() {
+        val g = fight()
+        val b = g.boss!!
+        var sawClosed = false
+        var sawOpen = false
+        var t = 0f
+        while (t < 8f) {
+            run(g, 0.1f); t += 0.1f
+            val hp = b.hp
+            g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+            if (b.untargetable) { sawClosed = true; assertEquals("no damage in the shadows", hp, b.hp, 0.001f) }
+            else if (b.state == com.cyberoperative.game.engine.AiState.MOVE) { sawOpen = true; assertTrue("damage while eyes are open", b.hp < hp) }
+        }
+        assertTrue(sawClosed && sawOpen)
+    }
+
+    @Test fun ghostDashHitsOnceAndLeavesATrail() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val hp = me.hp
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.GhostDash(0.3f, 900f, 2000f, 30f))
+        run(g, 1.6f)
+        assertTrue("dash hit", me.hp < hp)
+        assertTrue("corruption trail", g.hazards.items.any { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.INFECTED })
+    }
+
+    @Test fun sparkAmbushComesOutOfAServerBlock() {
+        val g = fight()
+        val b = g.boss!!
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SparkAmbush(0.8f, 90f, 30f, 10))
+        run(g, 0.1f)
+        assertEquals(com.cyberoperative.game.engine.AiState.HIDDEN, b.state)
+        val mark = g.hazards.items.first { it.active && it.kind == com.cyberoperative.game.engine.HazardKind.BLAST }
+        assertTrue("marked spot is a block", g.arena.obstacleAt(mark.x, mark.y, 1f) >= 0)
+        run(g, 0.85f)
+        assertEquals(com.cyberoperative.game.engine.AiState.MOVE, b.state)
+        assertTrue("stepped out beside it", kotlin.math.hypot(b.x - mark.x, b.y - mark.y) < 260f)
+        assertTrue("sparks", g.projectiles.items.count { it.active && it.kind == com.cyberoperative.game.engine.ProjKind.NEEDLE } >= 8)
+    }
+
+    @Test fun powerRestoresOnTheKill() {
+        val g = fight()
+        run(g, 0.3f)
+        g.killEnemy(g.boss!!)
+        var t = 0f
+        while (t < 3f) { g.update(1f / 60f); t += 1f / 60f }
+        assertEquals(0f, g.darkness, 0.01f)
+    }
+
+    @Test fun darknessTravelsToTheGuest() {
+        val w = com.cyberoperative.game.engine.CoopWorld()
+        w.darkness = 1f; w.bossVeil = 0.4f; w.lightFlicker = 0.18f
+        val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
+        assertEquals(1f, back.darkness, 0.01f)
+        assertEquals(0.4f, back.bossVeil, 0.01f)
+        assertEquals(0.18f, back.lightFlicker, 0.01f)
     }
 }

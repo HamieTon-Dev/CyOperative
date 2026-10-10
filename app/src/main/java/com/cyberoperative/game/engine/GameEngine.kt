@@ -457,6 +457,57 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Shake, flash, hit-stop and slow motion (Boss Expansion S12). */
     val fx = ScreenFx()
 
+    /**
+     * Room lights (Boss Expansion S11): 0 = normal, 1 = blacked out by an EMP.
+     * [darknessTarget] is where it is heading (power restoring after a win).
+     */
+    var darkness = 0f
+    var darknessTarget = 0f
+    /** Seconds of a lights-flicker (grid reboot attempt): darkness eases off briefly. */
+    var lightFlicker = 0f
+    /** Stealth boss in the shadows: 1 = eyes closed (can't lock on), 0 = eyes open. */
+    var bossVeil = 0f
+
+    /** What the renderer shows right now. */
+    val darknessNow: Float get() = if (lightFlicker > 0f) darkness * 0.35f else darkness
+
+    /** Calls [hit] with the operative's bit for each live operative within [radius] not yet in [mask]. */
+    internal inline fun forEachOperativeHit(x: Float, y: Float, radius: Float, mask: Int, hit: (Int) -> Unit) {
+        for (o in ops) {
+            if (!o.alive) continue
+            val bit = 1 shl o.index
+            if (mask and bit != 0) continue
+            if (MathUtil.dist2(o.px, o.py, x, y) < radius * radius) {
+                val prev = cur
+                cur = o
+                hit(bit)
+                cur = prev
+            }
+        }
+    }
+
+    /** EMP Blackout: the room goes dark at once. */
+    fun blackout(x: Float, y: Float, color: Long) {
+        darkness = 1f; darknessTarget = 1f
+        addPulse(x, y, 900f, 1.0f, color)
+        addPulse(x, y, 420f, 0.6f, 0xFFFFFFFF)
+        fx.flash(0xFFFFFFFF, 0.45f, 0.35f)
+        fx.shake(9f, 0.5f)
+        sound(GameSound.FIREWALL_BREAK)
+    }
+
+    private fun updateDarkness(dt: Float) {
+        if (lightFlicker > 0f) lightFlicker = max(0f, lightFlicker - dt)
+        if (darkness < darknessTarget) darkness = min(darknessTarget, darkness + dt * 3f)
+        else if (darkness > darknessTarget) darkness = max(darknessTarget, darkness - dt * 0.8f)
+        // In the dark, the server blocks spit red sparks now and then.
+        if (darkness > 0.5f && arena.obstacles.isNotEmpty() && rng.nextFloat() < dt * 5f) {
+            val o = arena.obstacles[rng.nextInt(arena.obstacles.size)].rect
+            val sx = o.left + rng.nextFloat() * o.width
+            repeat(3) { addParticle(sx, o.top, 0xFFFF2A3A, 140f, 0.45f, 2.5f) }
+        }
+    }
+
     /** Boss-raised cubes: rising, solid or sinking. */
     val barriers = ArrayList<Barrier>()
     private var barrierSolidCount = 0
@@ -592,6 +643,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun step(dt: Float) {
         if (bannerTimer > 0f) bannerTimer -= dt
         updateEffects(dt)
+        // Runs on menus too, so the power-restore fade plays over the reward screen.
+        updateDarkness(dt)
         if (slideIn > 0f) {
             slideIn = max(0f, slideIn - dt)
             return
@@ -677,6 +730,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         fx.clear()
+        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f
         updateAdaptive()
         skipShopPrompt = false
         topGateLocked = false
@@ -2993,6 +3047,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         w.sounds += sounds.take(16)
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer)
+        w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil
         return w
     }
 
@@ -3033,6 +3088,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         barriers.clear()
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4]).also { it.timer = n[5] }
+        darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening

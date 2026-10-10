@@ -57,11 +57,14 @@ class Enemy {
     /** Split children give reduced score so splitting can't be farmed. */
     var isChild = false
 
-    val targetable: Boolean get() = active && state != AiState.SPAWNING && state != AiState.HIDDEN
+    /** Can't be locked on or hit right now (Nullshade between its eye windows). */
+    var untargetable = false
+
+    val targetable: Boolean get() = active && state != AiState.SPAWNING && state != AiState.HIDDEN && !untargetable
     val isElite: Boolean get() = elite != null
 }
 
-enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS, MISSILE, MINE, RAIL, BOOMERANG }
+enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS, MISSILE, MINE, RAIL, BOOMERANG, NEEDLE }
 
 class Projectile {
     var active = false

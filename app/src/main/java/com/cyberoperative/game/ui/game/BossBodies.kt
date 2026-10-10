@@ -48,6 +48,9 @@ fun interface BossBody {
 
     /** Drawn while the boss is underground / hidden; return false to use the default faint outline. */
     fun DrawScope.drawHidden(p: BossPose): Boolean = false
+
+    /** Drawn above the blackout overlay (what still cuts through the dark, e.g. eyes). */
+    fun DrawScope.drawOverDark(p: BossPose) {}
 }
 
 /**

@@ -163,39 +163,7 @@ internal object NullshadeSpecterBody : BossBody {
             center = Offset(hc.x, hc.y - r * 0.02f), radius = r * 0.42f
         ))
 
-        // Eyes: sharp almond slits angled up and out; white-hot cores.
-        val look = Offset(cos(p.aim) * r * 0.03f, sin(p.aim) * r * 0.02f)
-        val eyeW = r * 0.25f * (if (hot) 1.12f else 1f)
-        val glint = p.veiled > 0.5f && !hot
-        for (s in listOf(-1f, 1f)) {
-            val ec = Offset(hc.x + s * r * 0.185f + look.x, hc.y - r * 0.02f + look.y)
-            if (open <= 0.05f) continue
-            // Faint red light spilling around the eye.
-            // Owner, 2026-10-10: "Fainter glow around the eyes. They should be sharper", then "bigger eyes please".
-            drawOval(
-                Brush.radialGradient(listOf(EYE.copy(alpha = (if (glint) 0.08f else 0.14f) * open * (if (hot) 1.5f else 1f)), EYE.copy(alpha = 0f)), center = ec, radius = eyeW * 0.6f),
-                Offset(ec.x - eyeW * 0.6f, ec.y - eyeW * 0.32f), Size(eyeW * 1.2f, eyeW * 0.64f)
-            )
-            val h = eyeW * 0.3f * open
-            // Pointed blade-like slit: sharp inner and outer corners, angled up and out.
-            val eye = Path().apply {
-                moveTo(ec.x - s * eyeW * 0.55f, ec.y + h * 0.35f)
-                lineTo(ec.x - s * eyeW * 0.1f, ec.y - h * 0.55f)
-                lineTo(ec.x + s * eyeW * 0.62f, ec.y - h * 1.0f)
-                lineTo(ec.x + s * eyeW * 0.2f, ec.y + h * 0.55f)
-                close()
-            }
-            drawPath(eye, EYE.copy(alpha = if (glint) 0.7f else 1f))
-            if (!glint) {
-                val core = Path().apply {
-                    moveTo(ec.x - s * eyeW * 0.28f, ec.y + h * 0.1f)
-                    lineTo(ec.x + s * eyeW * 0.42f, ec.y - h * 0.62f)
-                    lineTo(ec.x + s * eyeW * 0.1f, ec.y + h * 0.25f)
-                    close()
-                }
-                drawPath(core, Color(0xFFFFE6E6).copy(alpha = if (hot) 1f else 0.9f))
-            }
-        }
+        drawEyes(p, r, hc, open, hot)
 
         // Phase 3: red static flickering through the cloud.
         if (p.phase >= 2 && vis > 0.3f) for (i in 0 until 3) {
@@ -210,5 +178,62 @@ internal object NullshadeSpecterBody : BossBody {
                 x = nx; y = ny
             }
         }
+    }
+
+    /** Sharp blade eyes angled up and out with white-hot cores; faint light around them. */
+    private fun DrawScope.drawEyes(p: BossPose, r: Float, hc: Offset, open: Float, hot: Boolean) {
+            val look = Offset(cos(p.aim) * r * 0.03f, sin(p.aim) * r * 0.02f)
+            val eyeW = r * 0.25f * (if (hot) 1.12f else 1f)
+            val glint = p.veiled > 0.5f && !hot
+            for (s in listOf(-1f, 1f)) {
+                val ec = Offset(hc.x + s * r * 0.185f + look.x, hc.y - r * 0.02f + look.y)
+                if (open <= 0.05f) continue
+                // Faint red light spilling around the eye.
+                // Owner, 2026-10-10: "Fainter glow around the eyes. They should be sharper", then "bigger eyes please".
+                drawOval(
+                    Brush.radialGradient(listOf(EYE.copy(alpha = (if (glint) 0.08f else 0.14f) * open * (if (hot) 1.5f else 1f)), EYE.copy(alpha = 0f)), center = ec, radius = eyeW * 0.6f),
+                    Offset(ec.x - eyeW * 0.6f, ec.y - eyeW * 0.32f), Size(eyeW * 1.2f, eyeW * 0.64f)
+                )
+                val h = eyeW * 0.3f * open
+                // Pointed blade-like slit: sharp inner and outer corners, angled up and out.
+                val eye = Path().apply {
+                    moveTo(ec.x - s * eyeW * 0.55f, ec.y + h * 0.35f)
+                    lineTo(ec.x - s * eyeW * 0.1f, ec.y - h * 0.55f)
+                    lineTo(ec.x + s * eyeW * 0.62f, ec.y - h * 1.0f)
+                    lineTo(ec.x + s * eyeW * 0.2f, ec.y + h * 0.55f)
+                    close()
+                }
+                drawPath(eye, EYE.copy(alpha = if (glint) 0.7f else 1f))
+                if (!glint) {
+                    val core = Path().apply {
+                        moveTo(ec.x - s * eyeW * 0.28f, ec.y + h * 0.1f)
+                        lineTo(ec.x + s * eyeW * 0.42f, ec.y - h * 0.62f)
+                        lineTo(ec.x + s * eyeW * 0.1f, ec.y + h * 0.25f)
+                        close()
+                    }
+                    drawPath(core, Color(0xFFFFE6E6).copy(alpha = if (hot) 1f else 0.9f))
+                }
+            }
+    }
+
+    /** Head position for a pose (shared by the body and the over-the-dark glints). */
+    private fun head(p: BossPose): Triple<Float, Float, Offset> {
+        val r = p.radius * 1.35f
+        val cy = p.cy + sin(p.time * 1.6f) * r * 0.04f
+        return Triple(r, cy, Offset(p.cx, cy - r * 0.55f))
+    }
+
+    /** Over the blackout: only the eyes cut through the dark. */
+    override fun DrawScope.drawOverDark(p: BossPose) {
+        val (r, _, hc) = head(p)
+        val open = eyeOpen(p.time, p.winding) * (if (p.veiled > 0.5f && !p.winding) 0.7f else 1f)
+        drawEyes(p, r, hc, open, p.winding)
+    }
+
+    /** Melted into the shadows (Spark Ambush): nothing but a faint pair of glints. */
+    override fun DrawScope.drawHidden(p: BossPose): Boolean {
+        val (r, _, hc) = head(p)
+        drawEyes(BossPose(p.cx, p.cy, p.radius, p.color, p.time, p.phase, false, false, p.aim, p.hp, p.glitched, 1f), r, hc, 0.6f, false)
+        return true
     }
 }

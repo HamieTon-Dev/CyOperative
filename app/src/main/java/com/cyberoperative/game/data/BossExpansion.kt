@@ -87,7 +87,9 @@ object BossExpansion {
      * Nullshade Specter (dossier + Boss Pack Gamma 04, BLACKOUT HUNTER, EXTREME).
      * Kills the room lights with EMP bursts; you track it by its eye-glints and
      * can only lock on while its eyes are open. Level 240 and a 5% rare stalker
-     * from level 150. Patterns are provisional until the darkness system lands.
+     * from level 150. EMP Blackout opens the fight (the room goes extremely
+     * dark; owner, 2026-10-10), Eye-Glint Lock windows, Ghost Dash, Static
+     * Needles, Spark Ambush from server blocks, Grid Reboot Surge in phase 3.
      */
     val NULLSHADE_SPECTER = BossDef(
         "nullshade", "NULLSHADE SPECTER", "[◣◢]", "Elite Blackout Boss",
@@ -95,24 +97,41 @@ object BossExpansion {
             "only its eye-glints and faint attack trails while it hunts from the shadows.",
         0xFFD040FF, 70f, 2320f, 114f, 24f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.2f, listOf(
-                Pattern.Teleport,
-                Pattern.Aimed(5, 40f, 300f, 14f, bursts = 2)
+                Pattern.GhostDash(0.75f, 720f, 520f, 34f),
+                Pattern.Needles(5, 40f, 360f, 16f, bursts = 2),
+                Pattern.SparkAmbush(0.9f, 90f, 30f, 10),
+                Pattern.Needles(7, 70f, 340f, 16f)
             ), "BLACKOUT INITIATION"),
             BossPhase(P2, 1.15f, 1.0f, listOf(
-                Pattern.Teleport,
-                Pattern.Charge(0.6f, 760f, 560f, 30f, repeats = 2),
-                Pattern.Aimed(7, 60f, 320f, 14f, bursts = 2)
+                Pattern.SparkAmbush(0.8f, 95f, 30f, 12),
+                Pattern.GhostDash(0.65f, 780f, 560f, 34f, repeats = 2),
+                Pattern.Needles(7, 60f, 380f, 16f, bursts = 2),
+                Pattern.SparkAmbush(0.8f, 95f, 30f, 12)
             ), "PHANTOM HUNT"),
             BossPhase(P3, 1.3f, 0.8f, listOf(
-                Pattern.ShockRing(380f, 260f, 26f),
-                Pattern.Charge(0.5f, 820f, 600f, 32f, repeats = 3),
-                Pattern.Aimed(9, 80f, 340f, 15f, bursts = 3)
+                Pattern.GridSurge(3, 0.55f, 420f, 270f, 26f),
+                Pattern.GhostDash(0.55f, 840f, 600f, 36f, repeats = 3),
+                Pattern.Needles(9, 80f, 400f, 17f, bursts = 3, burstGap = 0.25f),
+                Pattern.SparkAmbush(0.7f, 100f, 32f, 14)
             ), "GRID REBOOT FRENZY")
         ), euros = 435, score = 9000, role = BossRole.BLACKOUT_HUNTER, tier = 4, armor = 3.6f, stealth = true,
         abilities = listOf("EMP Blackout", "Eye-Glint Lock", "Ghost Dash", "Static Needles")
     )
 
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)
+    /**
+     * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
+     * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
+     */
+    val SLOTS: List<String> = listOf(
+        "vault_sentinel", "rootkit_apostle", "pulse_bishop", "packet_reaper", "worm_queen", "glitch_forge",
+        "botnet_monarch", "circuit_hydra", "ransom_king", "black_ice_overlord", "spectral_firewall", "nullshade"
+    )
+
+    /** Built bosses, in slot order. */
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+
+    /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
+    fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }
 
     /** Every expansion boss defined so far, built or not (design renders). */
     val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER)

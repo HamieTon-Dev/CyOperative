@@ -65,7 +65,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     private val outDir = File(System.getProperty("cyberop.previewDir") ?: "build/screens").resolveSibling("bosses").resolve("designs")
 
     /** The level the boss appears at (130 for one not in the roster yet). */
-    private fun levelOf(def: BossDef): Int = com.cyberoperative.game.data.Bosses.roster.indexOf(def).let { if (it < 0) 130 else 10 * (it + 1) }
+    private fun levelOf(def: BossDef): Int = com.cyberoperative.game.data.Bosses.firstLevelOf(def) ?: 130
 
     private fun capture(name: String) {
         compose.mainClock.advanceTimeBy(100)
@@ -91,7 +91,9 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
     class AttackShot(
         val name: String, val steps: List<Pair<Pattern, Float>>,
         /** Spots (arena fractions) the operative stands in for 1.5 s each first. */
-        val camp: List<Pair<Float, Float>> = emptyList()
+        val camp: List<Pair<Float, Float>> = emptyList(),
+        /** Final touch before the capture (e.g. force a stealth boss's eyes open or shut). */
+        val after: (com.cyberoperative.game.engine.GameEngine) -> Unit = {}
     )
 
     private fun attack(def: BossDef, a: AttackShot) {
@@ -114,7 +116,8 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                     b.boss?.let { st -> if (st.active == null) st.rest = 99f }
                     if (b.state != AiState.SPAWNING) {
                         b.hp = b.maxHp * 0.9f
-                        if (pin) { b.x = g.arena.width / 2f; b.y = g.arena.height * 0.27f }
+                        // Stealth bosses sit lower so their eyes aren't hidden under the HUD in the shots.
+                        if (pin) { b.x = g.arena.width / 2f; b.y = g.arena.height * (if (def.stealth) 0.4f else 0.27f) }
                     }
                 }
                 me.px = standX; me.py = standY
@@ -138,6 +141,8 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
             g.debugBossPattern(pattern)
             hold(wait)
         }
+        a.after(g)
+        if (a.name != "atk1_emp_blackout") g.showBanner("", "", 0f)
         g.sounds.clear()
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { GameScreen(session, false, {}, {}) } }
@@ -260,8 +265,24 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk4_spike_eruption", listOf(Pattern.SpikeEruption(3, 8, 50f, 26f) to 0.95f)),
                 AttackShot("atk5_infected_zones", listOf(Pattern.Infect(4, 110f, 7f, 20f) to 1.6f), camp = listOf(0.2f to 0.5f, 0.8f to 0.78f, 0.25f to 0.85f)),
                 AttackShot("atk6_rootkit_bloom", listOf(Pattern.Bloom(3, 28f) to 1.05f))
+            ),
+            "nullshade" to listOf(
+                AttackShot("atk1_emp_blackout", emptyList()),
+                AttackShot("atk2_shadows_static_needles", listOf(Pattern.Needles(7, 70f, 340f, 16f, bursts = 2) to 0.45f), after = { g -> eyes(g, false) }),
+                AttackShot("atk3_eye_glint_lock_window", listOf(Pattern.Needles(5, 40f, 360f, 16f) to 0.25f), after = { g -> eyes(g, true) }),
+                AttackShot("atk4_ghost_dash", listOf(Pattern.GhostDash(0.6f, 520f, 520f, 34f) to 1.15f), after = { g -> eyes(g, true) }),
+                AttackShot("atk5_spark_ambush_marked", listOf(Pattern.SparkAmbush(0.9f, 90f, 30f, 12) to 0.55f)),
+                AttackShot("atk6_spark_ambush_burst", listOf(Pattern.SparkAmbush(0.9f, 90f, 30f, 12) to 1.0f), after = { g -> eyes(g, true) }),
+                AttackShot("atk7_grid_reboot_surge", listOf(Pattern.GridSurge(3, 0.55f, 420f, 270f, 26f) to 0.62f), after = { g -> g.lightFlicker = 0.18f })
             )
         )
+
+        /** Force a stealth boss's eyes open (lockable) or shut (in the shadows). */
+        private fun eyes(g: com.cyberoperative.game.engine.GameEngine, open: Boolean) {
+            g.boss?.boss?.let { it.eyesOpen = open; it.eyeTimer = 9f }
+            g.boss?.untargetable = !open
+            g.bossVeil = if (open) 0f else 1f
+        }
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")

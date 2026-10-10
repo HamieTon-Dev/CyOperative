@@ -133,6 +133,11 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Spikes: 0.75 s warning, one hit, rippling 0.08 s per step.
   - Infected Zone: on you plus your top dwell cells (100-unit grid, ~10 s memory).
   - Bloom: rings every 88 units with 3 operative-wide lanes.
+- Nullshade Specter (L240; rare 5% from L150):
+  - Blackout overlay at alpha 0.985 (0.935 while its eyes are open); light bubble 175 units.
+  - Eye windows: open 2.8/2.0/1.7 s, shut 2.6/1.9/1.5 s by phase; it can't be hit while shut.
+  - Ghost Dash hits once per pass.
+- Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 

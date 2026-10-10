@@ -38,6 +38,13 @@ class BossState(val def: BossDef, val cycle: Int) {
     /** *GLITCHED* boss: tougher, flickers, and fires extra random patterns. */
     var glitched = false
     var glitchTimer = 3f
+    /** Stealth bosses: eyes open (lockable) and the time left in this window. */
+    var eyesOpen = false
+    var eyeTimer = 2.5f
+    /** The fight-opening EMP blackout has fired. */
+    var blackedOut = false
+    /** Operatives already hit by the current dash (bit per operative). */
+    var dashHits = 0
     val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
@@ -123,10 +130,12 @@ class BossBrain(private val g: GameEngine) {
         }
 
         if (st.glitched) glitchBurst(e, st, dt)
+        if (st.def.stealth) stealth(e, st, dt)
 
-        val dashing = st.active is Pattern.Charge && st.chargeStage == 1
+        val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash) && st.chargeStage == 1
         val teleporting = st.active is Pattern.Teleport
-        if (!dashing && !teleporting && st.active !is Pattern.Charge && st.active !is Pattern.Burrow) move(e, st, dt)
+        if (!dashing && !teleporting && st.active !is Pattern.Charge && st.active !is Pattern.Burrow &&
+            st.active !is Pattern.GhostDash && st.active !is Pattern.SparkAmbush) move(e, st, dt)
 
         val p = st.active
         if (p == null) {
@@ -143,6 +152,34 @@ class BossBrain(private val g: GameEngine) {
                 st.rest = max(0.45f, st.phase.gap / (1f + 0.12f * st.cycle))
             }
         }
+    }
+
+    /**
+     * Nullshade's room rules: an EMP blackout as the fight opens, then eye
+     * windows — it can only be locked on (and hit) while its eyes are open.
+     * Windows get shorter but more frequent each phase.
+     */
+    private fun stealth(e: Enemy, st: BossState, dt: Float) {
+        if (!st.blackedOut) {
+            st.blackedOut = true
+            g.blackout(e.x, e.y, st.def.color)
+            g.showBanner("EMP BLACKOUT", "Lock on only while its eyes are open", 1.8f)
+            st.eyesOpen = false
+            st.eyeTimer = 2.0f
+        }
+        st.eyeTimer -= dt
+        if (st.eyeTimer <= 0f) {
+            st.eyesOpen = !st.eyesOpen
+            st.eyeTimer = when (st.phaseIndex) {
+                0 -> if (st.eyesOpen) 2.8f else 2.6f
+                1 -> if (st.eyesOpen) 2.0f else 1.9f
+                else -> if (st.eyesOpen) 1.7f else 1.5f
+            }
+            if (st.eyesOpen) g.addPulse(e.x, e.y - e.radius, 60f, 0.3f, 0xFFFF2A3A)
+        }
+        e.untargetable = !st.eyesOpen
+        val target = if (st.eyesOpen) 0f else 1f
+        g.bossVeil += (target - g.bossVeil) * kotlin.math.min(1f, dt * 6f)
     }
 
     /** *GLITCHED* boss: on top of its own patterns, a random corrupted volley every few seconds. */
@@ -299,6 +336,7 @@ class BossBrain(private val g: GameEngine) {
                     g.addZone(x, y, p.radius, p.duration, p.dps * e.damageMul, st.def.color, telegraph = p.telegraph, kind = HazardKind.INFECTED)
                 }
             }
+            is Pattern.GhostDash, is Pattern.Needles, is Pattern.SparkAmbush, is Pattern.GridSurge -> {}
             is Pattern.Bloom -> bloom(e.x, e.y, p.rings, p.lanes, p.delay, p.ringGap, p.radius, p.damage * e.damageMul, st.def.color)
         }
     }
@@ -326,6 +364,93 @@ class BossBrain(private val g: GameEngine) {
         if (d > Math.PI) d -= MathUtil.TWO_PI
         if (d < -Math.PI) d += MathUtil.TWO_PI
         return d
+    }
+
+    /** Ghost Dash: 0 telegraph line, 1 dash (hits once per operative, trail of corruption), 2 recover. */
+    private fun runGhostDash(e: Enemy, st: BossState, p: Pattern.GhostDash, dt: Float): Boolean {
+        when (st.chargeStage) {
+            0 -> {
+                if (st.subTimer == 0f) {
+                    val ang = atan2(g.py - e.y, g.px - e.x)
+                    st.dirX = cos(ang); st.dirY = sin(ang)
+                    g.addLine(e.x, e.y, e.x + st.dirX * p.distance, e.y + st.dirY * p.distance, p.windup, st.def.color, e.uid)
+                    st.dashHits = 0
+                    st.spiralAcc = 0f
+                }
+                st.subTimer += dt
+                if (st.subTimer >= p.windup) { st.chargeStage = 1; st.subTimer = 0f }
+            }
+            1 -> {
+                st.subTimer += dt
+                val step = p.speed * dt
+                val nx = e.x + st.dirX * step
+                val ny = e.y + st.dirY * step
+                val blocked = g.arena.pushOut(nx, ny, e.radius)
+                e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                // Faint afterimage and a short corruption trail.
+                st.spiralAcc += step
+                if (st.spiralAcc >= 55f) {
+                    st.spiralAcc = 0f
+                    g.addZone(e.x, e.y, 30f, 2.4f, 10f * e.damageMul, st.def.color, telegraph = 0.15f, kind = HazardKind.INFECTED)
+                    repeat(4) { g.addParticle(e.x, e.y - e.radius * 0.5f, st.def.color, 50f, 0.7f, 5f) }
+                }
+                g.forEachOperativeHit(e.x, e.y, e.radius + g.playerRadius * 0.6f, st.dashHits) { bit ->
+                    st.dashHits = st.dashHits or bit
+                    g.damagePlayer(p.damage * e.damageMul, e.x, e.y)
+                }
+                if (blocked || st.subTimer * p.speed >= p.distance) {
+                    st.chargeStage = 2; st.subTimer = 0f
+                    g.addPulse(e.x, e.y, 90f, 0.3f, st.def.color)
+                }
+            }
+            else -> {
+                st.subTimer += dt
+                if (st.subTimer >= 0.35f) {
+                    st.counter++
+                    if (st.counter >= p.repeats) return true
+                    st.chargeStage = 0; st.subTimer = 0f
+                }
+            }
+        }
+        return false
+    }
+
+    /** Spark Ambush: 0 melt into shadow + mark a server block, 1 burst out beside it. */
+    private fun runSparkAmbush(e: Enemy, st: BossState, p: Pattern.SparkAmbush, dt: Float): Boolean {
+        st.subTimer += dt
+        when (st.chargeStage) {
+            0 -> if (st.subTimer <= dt) {
+                // Pick a block 150–520 units from the operative (any block if none fits).
+                val obs = g.arena.obstacles.indices.map { g.arena.rect(it) }
+                val pick = obs.filter { MathUtil.dist(it.centerX, it.centerY, g.px, g.py) in 150f..520f }.ifEmpty { obs }
+                if (pick.isEmpty()) return true
+                val r = pick[g.rng.nextInt(pick.size)]
+                st.anchorX = r.centerX; st.anchorY = r.centerY
+                st.dirX = r.width / 2f; st.dirY = r.height / 2f
+                g.addBlast(r.centerX, r.centerY, p.radius, p.delay, p.damage * e.damageMul, 0xFFFF2A3A)
+                e.state = AiState.HIDDEN
+                g.addPulse(e.x, e.y, 80f, 0.35f, st.def.color)
+            } else if (st.subTimer >= p.delay) {
+                // Sparks spray from the block; it steps out on the side facing you.
+                for (i in 0 until p.shards) {
+                    val a = MathUtil.TWO_PI * i / p.shards + g.rng.nextFloat() * 0.2f
+                    // Out of the block's faces, not its middle (the block would swallow them).
+                    val ca = kotlin.math.abs(cos(a)).coerceAtLeast(0.001f)
+                    val sa = kotlin.math.abs(sin(a)).coerceAtLeast(0.001f)
+                    val edge = kotlin.math.min(st.dirX / ca, st.dirY / sa) + 10f
+                    g.fireEnemyProjectile(st.anchorX + cos(a) * edge, st.anchorY + sin(a) * edge, a, 230f, p.damage * 0.6f * e.damageMul, 5f, ProjKind.NEEDLE)
+                }
+                repeat(26) { g.addParticle(st.anchorX, st.anchorY, 0xFFFF2A3A, 320f, 0.6f, 3f) }
+                val ang = atan2(g.py - st.anchorY, g.px - st.anchorX)
+                g.arena.pushOut(st.anchorX + cos(ang) * 110f, st.anchorY + sin(ang) * 110f, e.radius)
+                e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                e.state = AiState.MOVE
+                g.addPulse(e.x, e.y, 110f, 0.4f, st.def.color)
+                st.chargeStage = 1; st.subTimer = 0f
+            }
+            else -> return st.subTimer >= 0.3f
+        }
+        return false
     }
 
     /** Burrow Drift: 0 dive, 1 tunnel toward the operative, 2 exit marked, 3 erupt. */
@@ -524,6 +649,36 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.Beam -> return st.patternTime >= p.windup + p.duration
             is Pattern.SweepBeam -> return st.patternTime >= p.windup + p.duration
             is Pattern.Burrow -> return runBurrow(e, st, p, dt)
+            is Pattern.GhostDash -> return runGhostDash(e, st, p, dt)
+            is Pattern.Needles -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f) {
+                    val base = atan2(g.py - e.y, g.px - e.x)
+                    val spread = Math.toRadians(p.spreadDeg.toDouble()).toFloat()
+                    val n = p.count * mul
+                    for (i in 0 until n) {
+                        val t = if (n == 1) 0f else i / (n - 1f) - 0.5f
+                        g.fireEnemyProjectile(e.x, e.y - e.radius * 0.5f, base + t * spread, p.speed, p.damage * e.damageMul, 5f, ProjKind.NEEDLE)
+                    }
+                    st.counter++
+                    st.subTimer = p.burstGap
+                }
+                return st.counter >= p.bursts
+            }
+            is Pattern.SparkAmbush -> return runSparkAmbush(e, st, p, dt)
+            is Pattern.GridSurge -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f) {
+                    g.addShockRing(e.x, e.y, p.maxRadius, p.speed, p.damage * e.damageMul, st.def.color)
+                    g.addPulse(e.x, e.y, 90f, 0.3f, 0xFFFFFFFF)
+                    // The grid tries to reboot: the lights stutter on with each wave.
+                    g.lightFlicker = 0.18f
+                    g.fx.shake(5f, 0.2f)
+                    st.counter++
+                    st.subTimer = p.gap
+                }
+                return st.counter >= p.rings && st.subTimer <= p.gap * 0.5f
+            }
             is Pattern.SpikeEruption -> return st.patternTime >= p.delay + p.spikes * p.step
             is Pattern.Infect -> return st.patternTime >= p.telegraph
             is Pattern.Bloom -> return st.patternTime >= p.delay + p.rings * p.ringGap
@@ -566,6 +721,8 @@ class BossBrain(private val g: GameEngine) {
         (st.def.euros * (1f + 0.04f * g.level) * (if (st.glitched) 1.5f else 1f)).toInt()
 
     fun onBossKilled(e: Enemy, st: BossState) {
+        // Power restores after a blackout fight.
+        if (g.darkness > 0f) { g.darknessTarget = 0f; g.bossVeil = 0f }
         g.addPulse(e.x, e.y, 480f, 1.1f, st.def.color)
         g.addPulse(e.x, e.y, 260f, 0.7f, 0xFFFFFFFF)
         repeat(60) { g.addParticle(e.x, e.y, st.def.color, 360f, 1.2f, 4f) }

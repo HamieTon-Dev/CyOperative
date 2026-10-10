@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.11.3 (versionCode 25) — 2026-10-10 · Nullshade Specter
+### Added
+- **Nullshade Specter**, the EXTREME "Blackout Hunter", is the **level 240** boss. It also turns up
+  as a rare 5% stalker in boss rooms from level 150. Base bounty €435.
+  - **Body:** a darkness ghost traced from the owner's reference.
+    - A faceted hood with no outlines, over a pitch-black face.
+    - Big, sharp red eyes that blink and cast a faint red light.
+    - A body that is a cloud of black voxel blocks with magenta light between them, a clawed hand
+      and a magenta ring on the floor.
+  - **EMP Blackout:** the fight opens with an EMP and the room goes **extremely dark**. You keep a
+    small light bubble. Its eyes, every attack warning and the sparking server blocks stay visible.
+    When it dies, the power comes back on.
+  - **Eye-Glint Lock:** you can only lock on to it, and only hurt it, while its eyes are open. The
+    boss bar shows "EYES OPEN — LOCK ON" or "IN THE SHADOWS — NO LOCK". The windows get shorter but
+    come more often in each phase, and the room lifts very slightly while its eyes are open.
+  - **Ghost Dash:** a telegraphed dash that hits once and leaves a short corruption trail.
+  - **Static Needles:** spreads of faint, fast needles with static trails.
+  - **Spark Ambush:** it melts into the shadows. A server block is marked, then sparks spray out
+    of it and the specter steps out beside it.
+  - **Grid Reboot Surge (phase 3):** rapid EMP rings while the lights stutter on and off.
+  - **Phases:** BLACKOUT INITIATION → PHANTOM HUNT → GRID REBOOT FRENZY.
+### Changed
+- **Expansion bosses keep their planned levels** (130–240), whatever order they're built in.
+  A level whose new boss isn't finished yet keeps its old boss.
+- Co-op wire format v4 (darkness and eye state are synced). Both players need this version.
+
 ## 0.11.2 (versionCode 24) — 2026-10-10 · Rootkit Apostle
 ### Added
 - **Rootkit Apostle** (Boss Pack Gamma) joins the roster at **level 140**: AMBUSHER, threat HIGH,

@@ -209,8 +209,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [ ] D7 Renders + tests
 
 ### Stage E — Nullshade Specter + the last three (v0.11.4)
-- [ ] E1 S11 darkness, light bubble, eye glints, power-restore sequence
-- [ ] E2 Nullshade Specter
+- [x] E1 S11 darkness, light bubble, eye glints, power-restore sequence
+- [x] E2 Nullshade Specter (v0.11.3)
 - [x] E3 Rootkit Apostle (built early, v0.11.2)
 - [ ] E4 Ransom King
 - [ ] E5 Spectral Firewall
@@ -231,7 +231,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
-| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ⏳ revision 2 sent (traced from owner reference `boss-concepts/nullshade_reference_owner.webp`) | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
+| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") and sent (atk1–atk7) | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 
 ---
 
@@ -283,3 +283,14 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Big, sharp blade eyes with a faint glow; they blink every 3.6 s and cast faint red light.
   - The body is a voxel-block cloud with magenta light between the blocks, plus a clawed hand,
     a floor energy ring and no aura disc.
+- 2026-10-10 — v0.11.3 (25): Nullshade Specter attacks.
+  - Darkness (S11): `GameEngine.darkness/darknessTarget/lightFlicker/bossVeil`, `blackout()`, red
+    server sparks.
+  - The renderer draws the overlay (saveLayer, DstOut light bubble of 175 units, alpha 0.985),
+    then telegraphs, then the boss eyes via `BossBody.drawOverDark`. Owner: "extremely dark".
+  - Eye windows: `Enemy.untargetable` (BossBrain.stealth) and a HUD lock line.
+  - Patterns `GhostDash`, `Needles` (ProjKind.NEEDLE), `SparkAmbush`, `GridSurge`.
+  - Co-op wire v4.
+  - **Fixed level slots:** `BossExpansion.SLOTS` plus `Bosses.forLevel/cycleForLevel/firstLevelOf`.
+    Unbuilt slots keep their classic at cycle 1. Nullshade sits at L240.
+  - Tests: NullshadeSpecterTest, expansionBossesTakeTheirPlannedLevels.

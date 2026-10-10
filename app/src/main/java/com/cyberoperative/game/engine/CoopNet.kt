@@ -58,6 +58,10 @@ class CoopWorld {
     val sounds = ArrayList<GameSound>(16)
     /** Boss barrier cubes: x, y, half, rise, life, timer per cube (v3). */
     val barriers = ArrayList<FloatArray>(24)
+    /** Blackout state (v4): room darkness, flicker and the stealth boss's veil. */
+    var darkness = 0f
+    var lightFlicker = 0f
+    var bossVeil = 0f
 }
 
 class NetOp {
@@ -238,6 +242,9 @@ object CoopCodec {
             for (b in w.barriers) {
                 o.pos(b[0]); o.pos(b[1]); o.pos(b[2]); o.sec(b[3]); o.sec(b[4]); o.sec(b[5])
             }
+            o.writeByte((w.darkness * 255f).toInt().coerceIn(0, 255))
+            o.sec(w.lightFlicker)
+            o.writeByte((w.bossVeil * 255f).toInt().coerceIn(0, 255))
         }
         return bytes.toByteArray()
     }
@@ -332,6 +339,9 @@ object CoopCodec {
 
             repeat(i.var32()) { w.sounds += GameSound.entries[i.readUnsignedByte()] }
             repeat(i.var32()) { w.barriers += floatArrayOf(i.pos(), i.pos(), i.pos(), i.sec(), i.sec(), i.sec()) }
+            w.darkness = i.readUnsignedByte() / 255f
+            w.lightFlicker = i.sec()
+            w.bossVeil = i.readUnsignedByte() / 255f
             w
         }
     } catch (_: Exception) {
@@ -361,5 +371,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 3
+    const val VERSION = 4
 }
