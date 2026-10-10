@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.1 (versionCode 50) — 2026-10-11 · Hard locks 4 weapon slots
+### Changed
+- **Hard locks 4 weapon slots for the whole run** (owner). The lock always takes 4 away from whatever
+  you've unlocked: 7 base gives **3** slots, 9 (two extra unlocked) gives **5**, and all 12 gives
+  **8**. Nothing unlocks them during the run.
+  - The upgrade screen shows it, for example "WEAPON SLOTS 2 / 3 · 4 LOCKED (HARD)", and the Hard
+    description in the difficulty picker mentions −4 weapon slots.
+  - Normal and Easy are unchanged.
+
 ## 0.15.0 (versionCode 49) — 2026-10-11 · Normal and Hard get much tougher
 ### Changed (owner: "Normal mode is too easy. After level 10 nothing is hard anymore")
 - **Enemy HP on Normal:** +60% phased in over levels 5–15, then +2% more every level past 10.

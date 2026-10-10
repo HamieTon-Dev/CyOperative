@@ -533,6 +533,9 @@ class GameSession(
     /** Weapon slots this operative has (7 + WEAPON SLOTS upgrade). */
     fun weaponSlots(): Int = engine.build.weaponSlots
 
+    /** Slots locked by the difficulty this run (Hard: 4). */
+    fun lockedWeaponSlots(): Int = engine.config.difficulty.lockedWeaponSlots
+
     /** Weapons equipped now, for the swap grid. */
     fun equippedWeapons(): List<Pair<com.cyberoperative.game.data.UpgradeDef, Int>> =
         engine.build.weapons().map { com.cyberoperative.game.data.Upgrades.byId(it) to engine.build.level(it) }

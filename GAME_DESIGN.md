@@ -263,3 +263,5 @@ skip, pause, toggle shuffle or return to AUTO. Audio never plays in the backgrou
   - MEDIUM: all of it; bosses ×2 plus half the HP pressure; elites ×2 HP, 0.8× damage taken, +3 armour.
   - HARD: ×1.45 base plus 70% of the HP pressure, and everything else in full.
 - Applied in GameEngine.spawnEnemyAt / BossBrain.spawn / LevelPlanner.plan(countMul).
+- Hard locks 4 weapon slots for the run (Difficulty.lockedWeaponSlots; slots = unlocked − 4, min 1),
+  so 7 → 3, 9 → 5 and 12 → 8 (0.15.1).

@@ -145,4 +145,22 @@ class VaultAndScalingTest {
         val pe = LevelPlanner.plan(52, Random(9), null, true, countMul = easy.pressureCount(52))
         assertEquals(p.waves.sumOf { it.size }.toFloat(), 2f * pe.waves.sumOf { it.size }, 2f)
     }
+
+    @Test fun hardLocksFourWeaponSlotsWhateverIsUnlocked() {
+        fun slots(d: com.cyberoperative.game.engine.Difficulty, unlocked: Int) =
+            GameEngine(RunConfig(seed = 1L, difficulty = d, weaponSlots = unlocked)).build.weaponSlots
+        // Owner's examples: 7 base → 3; 2 extra unlocked (9) → 5; all five unlocked (12) → 8.
+        assertEquals(3, slots(com.cyberoperative.game.engine.Difficulty.HARD, 7))
+        assertEquals(5, slots(com.cyberoperative.game.engine.Difficulty.HARD, 9))
+        assertEquals(8, slots(com.cyberoperative.game.engine.Difficulty.HARD, 12))
+        assertEquals(7, slots(com.cyberoperative.game.engine.Difficulty.MEDIUM, 7))
+        assertEquals(7, slots(com.cyberoperative.game.engine.Difficulty.EASY, 7))
+        // With three weapons on Hard, a fourth needs a swap.
+        val g = GameEngine(RunConfig(seed = 1L, difficulty = com.cyberoperative.game.engine.Difficulty.HARD, weaponSlots = 7))
+        val weapons = com.cyberoperative.game.data.Upgrades.all.filter { com.cyberoperative.game.data.Upgrades.isWeapon(it) && !it.instant && it.evolvesFrom == null }
+        for (w in weapons) { if (g.build.weapons().size >= 3) break; if (!g.build.needsSlot(w)) g.build.take(w) }
+        assertEquals(3, g.build.weapons().size)
+        val next = weapons.first { g.build.level(it.id) == 0 }
+        assertTrue("a 4th weapon needs a free slot on Hard", g.build.needsSlot(next))
+    }
 }

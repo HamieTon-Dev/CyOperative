@@ -154,10 +154,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** The operatives on the field: [0] is the host / solo player, [1] the co-op partner. */
     private val ops = ArrayList<Operative>(2).apply {
         add(Operative(0, config.baseStats).also {
-            it.rerollsLeft = config.rerolls; it.build.qualityBonus = config.upgradeQuality; it.build.weaponSlots = config.weaponSlots
+            it.rerollsLeft = config.rerolls; it.build.qualityBonus = config.upgradeQuality
+            it.build.weaponSlots = config.difficulty.weaponSlots(config.weaponSlots)
         })
         config.ally?.let { a ->
-            add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality; it.build.weaponSlots = a.weaponSlots })
+            add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality; it.build.weaponSlots = config.difficulty.weaponSlots(a.weaponSlots) })
         }
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
         if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)

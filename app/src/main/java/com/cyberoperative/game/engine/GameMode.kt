@@ -38,15 +38,20 @@ enum class Difficulty(
     val bossHpMul: Float = 1f,
     /** Elites: HP multiplier and tougher armour (owner: "double HP and more armor"). */
     val eliteHpMul: Float = 1f,
-    val eliteArmor: Boolean = false
+    val eliteArmor: Boolean = false,
+    /** Weapon slots locked for the whole run, whatever slots are unlocked (owner, 2026-10-11: Hard −4). */
+    val lockedWeaponSlots: Int = 0
 ) {
     // Easy stays as it was (owner: "Easy mode is fine. Leave it for younger users").
     EASY("EASY", "Softer threats · ×0.8 rewards", 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C, extraScaling = 0.5f),
     MEDIUM("MEDIUM", "The intended challenge", 1f, 1f, 1f, 0.1f, 0xFF00E5FF,
         pressure = 1f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true),
     // Hard: its own ×1.45 plus 70% of Normal's HP bump, so it stays harder than Normal at every level.
-    HARD("HARD", "Tougher threats · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55,
-        pressure = 1f, hpPressureShare = 0.7f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true);
+    HARD("HARD", "Tougher threats · −4 weapon slots · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55,
+        pressure = 1f, hpPressureShare = 0.7f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true, lockedWeaponSlots = 4);
+
+    /** Weapon slots usable this run from [unlocked] (never below one). */
+    fun weaponSlots(unlocked: Int): Int = (unlocked - lockedWeaponSlots).coerceAtLeast(1)
 
     companion object {
         fun byName(name: String?): Difficulty = entries.firstOrNull { it.name == name } ?: MEDIUM
