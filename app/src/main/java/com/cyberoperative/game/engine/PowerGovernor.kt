@@ -20,14 +20,37 @@ import com.cyberoperative.game.data.Enemies
  */
 object PowerGovernor {
     const val LATE_BOSS_LEVEL = 120
-    /** Extra boss damage per level past [LATE_BOSS_LEVEL] (+2.5%: ×3 at 200, ×28 at 1200). */
-    const val LATE_BOSS_DAMAGE = 0.025f
+    /**
+     * Extra boss damage per level past [LATE_BOSS_LEVEL]: +0.5% (×1.45 at 210, ×6.4 at 1200).
+     * Was +2.5% in 0.16.0, which let a level-210 boss one-shot a strong build (owner, 2026-10-11).
+     */
+    const val LATE_BOSS_DAMAGE = 0.005f
+    /** Owner, 2026-10-11: "drop the damage globally that enemies do to the player by 50%". */
+    const val THREAT_DAMAGE_MUL = 0.5f
+    /**
+     * Hard keeps more of it (×0.75): Hard builds carry 4 fewer weapons and stack more defense,
+     * so at ×0.5 Hard bosses took more hits to kill you than Normal ones.
+     */
+    const val HARD_THREAT_DAMAGE_MUL = 0.75f
     /** Threat damage = HP lift ^ this. */
     const val DAMAGE_EXP = 0.5f
     /** Staying power a build may have before threats hit harder: this × base HP × the damage curve. */
     const val SURVIVAL_HEADROOM = 6f
 
     fun active(d: Difficulty): Boolean = d != Difficulty.EASY
+
+    /** Global threat-damage scale applied to every hit on the player. */
+    fun threatDamage(d: Difficulty): Float = when (d) {
+        Difficulty.EASY -> 1f
+        Difficulty.HARD -> HARD_THREAT_DAMAGE_MUL
+        else -> THREAT_DAMAGE_MUL
+    }
+
+    /**
+     * Largest share of max HP + Firewall a single hit may take (owner: "Boss should not one shot
+     * player. At most 4 hits could kill player on normal"): Normal/Easy 25% (≥ 4 hits), Hard 34% (≥ 3).
+     */
+    fun hitCap(d: Difficulty): Float = if (d == Difficulty.HARD) 0.34f else 0.25f
     fun enemySeconds(d: Difficulty): Float = if (d == Difficulty.HARD) 0.4f else 0.3f
     fun bossSeconds(d: Difficulty): Float = if (d == Difficulty.HARD) 80f else 60f
 

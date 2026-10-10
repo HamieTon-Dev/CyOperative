@@ -7,7 +7,8 @@ device, tune balance, then fill out the store/meta phases.
 ## IN PROGRESS
 - CO-060 On-device playtest & balance pass (needs a physical device / emulator run)
   - 0.16.0: pooled mastery + hidden power governor. Playtest L100+ on Normal and Hard and tune
-    `PowerGovernor` floors (enemy 0.3/0.4 s, boss 60/80 s) and the late boss damage (+2.5%/level).
+    `PowerGovernor` floors (enemy 0.3/0.4 s, boss 60/80 s), threat damage ×0.5/×0.75, hit cap 25%/34% and the late boss
+    damage (+0.5%/level).
 
 ## NEXT
 - CO-094 Owner chooses the default body design (A/B/C) — then polish that one

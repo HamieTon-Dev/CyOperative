@@ -2443,7 +2443,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             invuln = 0.2f
             return
         }
-        var dmg = amount * (1f - s.armor)
+        var dmg = amount * PowerGovernor.threatDamage(config.difficulty) * (1f - s.armor)
+        // No single hit takes more than a set share of the full HP + Firewall pool: nothing one-shots.
+        dmg = min(dmg, PowerGovernor.hitCap(config.difficulty) * (s.maxHp + s.firewallMax))
         sinceDamage = 0f
         if (firewall > 0f) {
             val absorbed = min(firewall, dmg)

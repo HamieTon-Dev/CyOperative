@@ -161,4 +161,21 @@ class BalanceCurveTest {
         assertEquals(1f, g.adaptiveHp, 0f)
         assertEquals(1f, g.adaptiveDamage, 0f)
     }
+
+    @Test fun nothingOneShotsAndThreatDamageIsHalved() {
+        for ((d, cap) in listOf(Difficulty.MEDIUM to 0.25f, Difficulty.HARD to 0.34f, Difficulty.EASY to 0.25f)) {
+            val s = RunStats().apply { maxHp = 1000f; firewallMax = 0f }
+            val g = GameEngine(RunConfig(baseStats = s, seed = 9L, freeRevives = 0, difficulty = d, powerGovernor = true))
+            g.debugStartPlan(LevelPlanner.plan(211, Random(1), null, true))
+            val before = g.hp
+            g.damagePlayer(1e9f, g.px + 10f, g.py, ignoreInvuln = true)
+            assertEquals("$d: one huge hit takes at most ${cap * 100}%", before - cap * 1000f, g.hp, 1f)
+            assertTrue(g.phase != Phase.DEAD)
+        }
+        val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1000f }, seed = 9L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.plan(11, Random(1), null, true))
+        val before = g.hp
+        g.damagePlayer(100f, g.px + 10f, g.py, ignoreInvuln = true)
+        assertEquals("Normal halves threat damage", before - 50f, g.hp, 0.5f)
+    }
 }

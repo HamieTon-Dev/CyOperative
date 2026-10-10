@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.2 (versionCode 54) — 2026-10-11 · No more one-shots
+### Changed (owner: "at level 210 boss 1 shots player with a substantial build… At most 4 hits")
+- **All threat damage halved on Normal.** Hard is cut to ×0.75 instead. Hard builds carry 4 fewer
+  weapons and stack more defense, so at ×0.5 Hard was easier to survive than Normal. Easy is
+  unchanged.
+- **Hit cap:** no single hit can take more than **25%** of max HP + Firewall (Normal, Easy), or
+  **34%** on Hard. Nothing can one-shot you: at least 4 hits from full on Normal, 3 on Hard.
+- **Late boss damage climb** cut from +2.5% to **+0.5% per level past 120**. The +2.5% was what
+  made L210 bosses one-shot.
+- Simulated runs, hits for a boss contact hit to kill you from full:
+  - Normal: about 7 at L50, 6–11 at L100, about 5 at L210 and 4–5 at L300. Before: about 1 at L210
+    and 0.6 at L300.
+  - Hard: about 4–6 at L50, 3–6 at L210, about 3.5 at L300.
+  - A basic enemy takes about 14–30 hits on Normal and 10–27 on Hard.
+
 ## 0.16.1 (versionCode 53) — 2026-10-11 · Build number on screen
 ### Added
 - **Build stamp** (owner): a small, soft label in the bottom-right corner of every screen, menus and

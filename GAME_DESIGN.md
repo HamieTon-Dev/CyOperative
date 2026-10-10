@@ -216,7 +216,9 @@ data but is 0 pending a monetization decision.
     elite damage bonus.
   - Threat damage × √(HP lift), also lifted by extreme staying power (> 6 × 100 HP × the damage
     curve).
-  - Boss damage × (1 + 0.025·(L − 120)) past L120.
+  - Boss damage × (1 + 0.005·(L − 120)) past L120 (0.025 in 0.16.0 one-shot strong builds).
+  - Every hit on the player × 0.5 on Normal, × 0.75 on Hard (0.16.2). One hit is capped at 25% of
+    max HP + Firewall on Normal and Easy, and 34% on Hard.
   - Never shown to the player.
 - **OP threat scaling** (the only difficulty extra since 0.10.3; from level 1, halved on Easy): +2% HP / +1.2% damage per OP level to OP 101 (×3 / ×2.2), then
   × (1 + 0.6·ln(1 + (OP−101)/100)) for HP and × (1 + 0.4·ln(…)) for damage. Threat HP also
