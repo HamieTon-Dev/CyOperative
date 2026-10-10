@@ -23,7 +23,7 @@ game to feel premium." Source sheets in `docs/boss-concepts/`: Boss Pack Alpha, 
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
 
-Status: **ALL 12 EXPANSION BOSSES BUILT (v0.11.14).** Five were approved boss-by-boss; the last seven were built autonomously at the owner's request. Wild-boss rolls and the World Kit are in. Next: Stage F (classic bodies, BOSS CODEX, victory sequence, balance). Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
+Status: **ALL 24 BOSSES HAVE UNIQUE BODIES (v0.12.0).** 12 expansion bosses built (5 approved one by one, Circuit Hydra owner-directed step by step, 6 autonomous) and all 12 classic bodies (autonomous). The World Kit is complete (12/12). Open: B1 cross beams, B2 boomerang shots, F2 BOSS CODEX, F3 music/victory sequence, F4 co-op tests, F5 balance pass.
 
 **Design approval rule (owner, 2026-10-10):** "I want to see and approve, or request changes to the
 physical look of each boss as you make them" + "show me its attacks as you work on it as well". Every boss body (new and classic) is rendered
@@ -129,9 +129,9 @@ Owner: "The world kit could help every level look even better, including possibl
 | 02 | Broken grid tile | — | ✅ new: cracked plate variant sprinkled to break repetition |
 | 03 | Vent grate tile | small vent marks | ✅ upgrade to a full recessed grate tile |
 | 04 | Power conduit tile | glowing trenches | ✅ new: red conduit lines with L/T bends between tiles |
-| 05 | Server rack wall | SERVER_RACK | ✅ already close; polish LED rows |
+| 05 | Server rack wall | SERVER_RACK | ✅ done 0.12.0: bevelled bays, vent grille, status light |
 | 06 | Relay pillar | DATA_PILLAR | ✅ restyle: tall block with a glowing square frame on top |
-| 07 | Data vault crate | CRATES | ✅ restyle: X-braced crate, stackable |
+| 07 | Data vault crate | CRATES | ✅ done 0.12.0: brackets, stacked seams, stencil, lock panel |
 | 08 | Firewall barricade | ENERGY_BARRIER | ✅ restyle: hex-energy pane between two posts |
 | 09 | Spark panel | — | ✅ new floor decor: animated electric sparks |
 | 10 | Cable run | CABLE decor | ✅ restyle: thick red/yellow cable bundles |
@@ -222,11 +222,11 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [ ] B1 S2 sweeping / rotating / cross beams (sweep done in 0.11.1: HazardKind.SWEEP, clipped by obstacles; cross beams still to do)
 - [ ] B2 S4 lobbed shots + curved boomerang shots (mortar done in 0.11.1: HazardKind.MORTAR; boomerangs still to do)
 - [x] B3 S3 hostile mines (HazardKind.MINE)
-- [ ] B4 S5 trails + tile corruption
+- [x] B4 S5 trails + tile corruption (Packet Reaper, Worm Queen, Glitch Forge)
 - [x] B5 S7 status effects: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL/FROZEN, all with on-body markers
-- [ ] B6 S1 lane/backline blink
-- [ ] B7 S10 shells, untargetable windows, armor
-- [ ] B8 Tests for each system (dodgeable, telegraphed, co-op safe)
+- [x] B6 S1 lane/backline blink (Packet Reaper Backline Dive)
+- [x] B7 S10 shells, untargetable windows, armor (Permafrost Shell, Nullshade, Hydra Head Shield)
+- [x] B8 Tests for each system (dodgeable, telegraphed, co-op safe)
 
 ### Stage C — Boss Pack Alpha (v0.11.2)
 - [x] C1 S6 dynamic cover + shots from blocks
@@ -236,7 +236,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] C5 Circuit Hydra (v0.11.12, autonomous)
 - [x] C6 S9 eggs + minion buffs (HazardKind.EGG, Enemy.hasteTimer)
 - [x] C7 Worm Queen (v0.11.9, autonomous)
-- [ ] C8 Renders + reference page update + bot-beatable tests
+- [x] C8 Renders + bot-beatable tests
 
 ### Stage D — Boss Pack Beta (v0.11.3)
 - [x] D1 Pulse Bishop (v0.11.7, autonomous)
@@ -245,7 +245,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] D4 Black Ice Overlord (v0.11.13, autonomous)
 - [x] D5 S9 orbiting + linked drones (Enemy.orbitSlot, bossSync)
 - [x] D6 Botnet Monarch (v0.11.11, autonomous)
-- [ ] D7 Renders + tests
+- [x] D7 Renders + tests
 
 ### Stage E — Nullshade Specter + the last three (v0.11.4)
 - [x] E1 S11 darkness, light bubble, eye glints, power-restore sequence
@@ -253,10 +253,10 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] E3 Rootkit Apostle (built early, v0.11.2)
 - [x] E4 Ransom King (v0.11.4)
 - [x] E5 Spectral Firewall (v0.11.5)
-- [ ] E6 Renders + tests
+- [x] E6 Renders + tests
 
 ### Stage F — Premium pass (v0.12.0)
-- [ ] F1 Unique bodies for the 12 classic bosses (CO-063)
+- [x] F1 Unique bodies for the 12 classic bosses (CO-063) — v0.12.0, autonomous
 - [ ] F2 BOSS CODEX screen (met / defeated, abilities, best time, tier, bounty)
 - [ ] F3 Boss music per tier, victory sequence
 - [ ] F4 S15 co-op wire format v3 for all new effects; co-op tests
@@ -278,7 +278,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
 | Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 | Botnet Monarch | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
-| Circuit Hydra | 2026-10-10 | ✅ body v2 approved (beams from mouths, floats 30–50%); attacks in review | card: circuit_hydra_card.png |
+| Circuit Hydra | 2026-10-10 | ✅ **FINAL**: owner-directed step by step; body, Head Shield, attacks and regrow-roar approved ("Approved, move on to the next boss") | card: circuit_hydra_card.png |
 | Black Ice Overlord | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 
 ---
@@ -474,3 +474,12 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - `BossState.regrow` drives grow, lean, roar and settle on the rig.
   - The head mask carries LEAN_BIT/ROAR_BIT (co-op byte 0x7F); heads are untargetable meanwhile.
   - Renders: circuit_hydra_atk8_regrow, atk9_lean_in, atk10_roar and circuit_hydra_regrow_sequence.png.
+- 2026-10-10 — Owner: "Approved, move on to the next boss. autonomously build the rest of the bosses
+  and the world tiles upgrade."
+- 2026-10-10 — v0.12.0 (42): F1 classic bodies and World Kit finish.
+  - 12 BossBody files for the classics (Breach … Good Game), registered in BossBodies.
+  - Rootkit has a hidden scanline silhouette.
+  - Renders: `docs/bosses/designs/<id>_sheet/_fight.png` and `classics_overview.png`; the render
+    harness now covers the classics.
+  - World Kit 05/07 done; `docs/screenshots/world_kit_crates.png`.
+  - Full suite green.

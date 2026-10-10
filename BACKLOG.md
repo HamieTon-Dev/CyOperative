@@ -13,7 +13,7 @@ device, tune balance, then fill out the store/meta phases.
 - CO-110 Store screenshots / feature graphic captured from the real game (no false advertising)
 - CO-091 Boss signature weapons (12 proposed, see Power-Up Board) once approved
 - CO-061 Hit-stop / screen shake + richer death & hit effects
-- CO-063 Per-boss signature visuals (unique silhouettes instead of hexagon)
+- ~~CO-063 Per-boss signature visuals (unique silhouettes instead of hexagon)~~ ✅ 0.12.0
 - CO-064 Run-upgrade icon art (vector icons replacing ASCII glyphs where helpful)
 - CO-065 Pause menu: show current build (owned upgrades) and settings shortcut
 - CO-066 Short interactive tutorial steps on level 1 (beyond the briefing card)

@@ -510,6 +510,20 @@ class ScreenshotPreviews {
     @Test fun worldKit1() { assumeTrue(enabled); envShot("world_kit_l7", 7) }
     @Test fun worldKit2() { assumeTrue(enabled); envShot("world_kit_l46", 46) }
     @Test fun worldKit3() { assumeTrue(enabled); envShot("world_kit_l83", 83) }
+    /** World Kit 05/07: a room with data-vault crates (first such level). */
+    @Test fun worldKitCrates() {
+        assumeTrue(enabled)
+        gameplay("world_kit_crates", 0f) { s ->
+            for (lvl in 2..90) {
+                s.engine.debugJumpToLevel(lvl)
+                if (s.engine.arena.obstacles.any { it.kind == com.cyberoperative.game.data.ObstacleKind.CRATES }) break
+            }
+            for (e in s.engine.enemies.items) e.active = false
+            repeat(200) { s.engine.update(1f / 60f) }
+            for (e in s.engine.enemies.items) e.active = false
+        }
+    }
+
     @Test fun worldKitBoss() {
         assumeTrue(enabled)
         gameplay("world_kit_boss", 0f) { s ->

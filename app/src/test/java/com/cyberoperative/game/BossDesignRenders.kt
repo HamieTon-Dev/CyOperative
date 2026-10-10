@@ -78,7 +78,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
 
     @Test fun render() {
         assumeTrue(enabled)
-        val def = BossExpansion.designed.first { it.id == bossId }
+        val def = (BossExpansion.designed + com.cyberoperative.game.data.Bosses.classics).first { it.id == bossId }
         when {
             shot == "sheet" -> sheet(def)
             shot == "fight" -> fight(def)
@@ -374,7 +374,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
 
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
-        fun params(): List<Array<Any>> = BossExpansion.designed.flatMap { b ->
+        fun params(): List<Array<Any>> = (BossExpansion.designed + com.cyberoperative.game.data.Bosses.classics).flatMap { b ->
             listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight"), arrayOf<Any>(b.id, "anim")) + ATTACKS[b.id].orEmpty().map { arrayOf<Any>(b.id, it.name) }
         }
     }

@@ -847,7 +847,21 @@ class ArenaRenderer {
                         if (on) drawCircle(col.copy(alpha = 0.22f), 5f, Offset(cx, ry))
                         drawCircle(col.copy(alpha = if (on) 1f else 0.12f), 1.9f, Offset(cx, ry))
                     }
+                    // 05 World Kit: bevelled bay edge and handle notches.
+                    drawLine(Color.White.copy(alpha = 0.06f), Offset(r.left + 4f, ry - 4f), Offset(r.right - 4f, ry - 4f), 1f)
+                    drawRect(Color(0xFF2A3C5E), Offset(r.left + 1f, ry - 2.5f), Size(2.5f, 5f))
+                    drawRect(Color(0xFF2A3C5E), Offset(r.right - 3.5f, ry - 2.5f), Size(2.5f, 5f))
                 }
+                // Vent grille on the top face.
+                val vents = max(2, ((r.width - 16f) / 7f).toInt())
+                for (v in 0 until vents) {
+                    val vx = r.left + 8f + v * 7f
+                    drawLine(Color(0xFF0A1222), Offset(vx, topY + r.height * 0.25f), Offset(vx, topY + r.height * 0.75f), 2.5f)
+                }
+                // Status light running down the side.
+                val run = (time * 0.8f + index * 0.37f) % 1f
+                drawLine(look.trim.copy(alpha = 0.25f), Offset(r.right - 1.5f, frontTop + 3f), Offset(r.right - 1.5f, r.bottom - 3f), 2f)
+                drawCircle(look.trim.copy(alpha = 0.9f), 2.4f, Offset(r.right - 1.5f, frontTop + 3f + run * (h - 6f)))
             }
             ObstacleKind.FIREWALL_NODE -> {
                 val p = 0.5f + 0.5f * sin(time * 3f + index)
@@ -1071,14 +1085,47 @@ class ArenaRenderer {
                 }
             }
             ObstacleKind.CRATES -> {
-                // Reinforced hardware crate: X braces on top and front.
+                // 07 World Kit data-vault crate: X-braced lid, steel corner brackets,
+                // a stacked-crate seam, hazard stencil and a blinking lock panel.
                 val xc = Color(0xFF4B6FA8)
+                val steel = Color(0xFF8AA0C0)
                 drawRect(Color(0xFF0E1830), Offset(r.left + 6f, topY + 6f), Size(r.width - 12f, r.height - 12f))
                 drawLine(xc, Offset(r.left + 6f, topY + 6f), Offset(r.right - 6f, topY + r.height - 6f), 4f)
                 drawLine(xc, Offset(r.right - 6f, topY + 6f), Offset(r.left + 6f, topY + r.height - 6f), 4f)
                 drawRect(Color(0xFF6E9BE0).copy(alpha = 0.6f), Offset(r.left + 6f, topY + 6f), Size(r.width - 12f, r.height - 12f), style = Stroke(1.5f))
-                drawLine(xc.copy(alpha = 0.7f), Offset(r.left + 5f, frontTop + 5f), Offset(r.right - 5f, r.bottom - 5f), 3f)
-                drawLine(xc.copy(alpha = 0.7f), Offset(r.right - 5f, frontTop + 5f), Offset(r.left + 5f, r.bottom - 5f), 3f)
+                // Front: two stacked crates when it's tall enough, each X-braced.
+                val stacks = if (h >= 44f) 2 else 1
+                val sh = h / stacks
+                for (k in 0 until stacks) {
+                    val t0 = frontTop + k * sh
+                    drawLine(xc.copy(alpha = 0.7f), Offset(r.left + 5f, t0 + 5f), Offset(r.right - 5f, t0 + sh - 5f), 3f)
+                    drawLine(xc.copy(alpha = 0.7f), Offset(r.right - 5f, t0 + 5f), Offset(r.left + 5f, t0 + sh - 5f), 3f)
+                    if (k > 0) drawLine(Color(0xFF05070D), Offset(r.left, t0), Offset(r.right, t0), 2.5f)
+                    // Hazard stencil band.
+                    var x = r.left + 4f
+                    while (x < r.right - 8f) {
+                        drawLine(Palette.ServerLedAmber.copy(alpha = 0.55f), Offset(x, t0 + sh - 4f), Offset(x + 4f, t0 + sh - 8f), 2f)
+                        x += 8f
+                    }
+                }
+                // Steel corner brackets (top face and front).
+                val b = 7f
+                for ((cx, cy, sx, sy) in listOf(
+                    floatArrayOf(r.left, topY, 1f, 1f), floatArrayOf(r.right, topY, -1f, 1f),
+                    floatArrayOf(r.left, topY + r.height, 1f, -1f), floatArrayOf(r.right, topY + r.height, -1f, -1f),
+                    floatArrayOf(r.left, r.bottom, 1f, -1f), floatArrayOf(r.right, r.bottom, -1f, -1f)
+                ).map { listOf(it[0], it[1], it[2], it[3]) }) {
+                    drawLine(steel, Offset(cx, cy), Offset(cx + sx * b, cy), 3f)
+                    drawLine(steel, Offset(cx, cy), Offset(cx, cy + sy * b), 3f)
+                }
+                // Lock panel, blinking.
+                val lw = min(16f, r.width * 0.3f)
+                val lx = r.centerX - lw / 2f; val ly = frontTop + min(sh, h) * 0.3f
+                val on = sin(time * 3f + index * 1.7f) > 0f
+                drawRect(Color(0xFF05070D), Offset(lx - 1f, ly - 1f), Size(lw + 2f, 10f))
+                drawRect(Palette.Cyan.copy(alpha = if (on) 0.85f else 0.3f), Offset(lx, ly), Size(lw, 8f))
+                if (on) drawRect(Palette.Cyan.copy(alpha = 0.18f), Offset(lx - 3f, ly - 3f), Size(lw + 6f, 14f))
+                drawCircle(Color(0xFF05070D), 1.6f, Offset(r.centerX, ly + 4f))
             }
         }
     }

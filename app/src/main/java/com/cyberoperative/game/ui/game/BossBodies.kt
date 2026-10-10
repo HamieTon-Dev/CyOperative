@@ -89,7 +89,20 @@ object BossBodies {
         "glitch_forge" to GlitchForgeBody,
         "botnet_monarch" to BotnetMonarchBody,
         "circuit_hydra" to CircuitHydraBody,
-        "black_ice_overlord" to BlackIceOverlordBody
+        "black_ice_overlord" to BlackIceOverlordBody,
+        // Classics (Stage F1).
+        "breach" to BreachBody,
+        "botmaster" to BotmasterBody,
+        "worm_prime" to WormPrimeBody,
+        "ransom" to RansomBody,
+        "rootkit_king" to RootkitBody,
+        "syn_storm" to SynStormBody,
+        "kernel_panic" to KernelPanicBody,
+        "exfil" to ExfilBody,
+        "white_eye" to WhiteEyeBody,
+        "zombie" to ZombieBody,
+        "spoofer" to SpooferBody,
+        "good_game" to GoodGameBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]

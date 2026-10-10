@@ -168,6 +168,7 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   - Head Bite (Pattern.HeadBite): nearest 1/2/2 heads mark a 74-wide lane (reach 820), lunge and snap.
 - Worm Queen lays egg clusters every 2.4/1.9/1.4 s by phase (3–5 swarmlings each); swarmlings
   cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.
+- Classic bosses (L10–120) each have a unique body (0.12.0), drawn ~1.3–1.45× their hit radius.
 - World Kit decor in every room (own seeded random; layouts unchanged).
 - Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.

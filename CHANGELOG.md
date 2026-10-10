@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.12.0 (versionCode 42) — 2026-10-10 · Classic boss bodies + World Kit finish
+### Added
+- **Every classic boss has its own body** (Stage F1, built autonomously at the owner's request). The
+  rotating hexagon is retired. Each body reacts to its phase (3 stages) and to charging an attack:
+  - **BREACH:** a hovering breaching pod with thrusters, a red visor and a rotating drill ram that
+    turns to face you. Its armour cracks open as it weakens.
+  - **BOTMASTER:** a command spire with an ∞ screen and an antenna crown. Its botnet nodes orbit on
+    a holo ring (6/8/10) linked by data lines.
+  - **WORM PRIME:** an armoured worm with a maw of counter-rotating teeth and a curling, dripping
+    tail.
+  - **RANSOM:** a giant gold padlock with a spinning combination dial, a burning keyhole, chains and
+    encrypted glyphs. The shackle lifts open each phase.
+  - **ROOTKIT:** a hooded phantom with a terminal ">_" face and trailing code ribbons. While hidden
+    it shows only as a flickering scanline silhouette.
+  - **SYN-STORM:** a turbine in the eye of a storm, with spiral arms of SYN packets (3/4/5).
+  - **KERNEL PANIC:** a cracking CPU with gold pins and a warning triangle. The die splits apart and
+    sparks jump between the pins.
+  - **EXFIL:** a stealth dart that always points at you, with afterburners, stolen-data pods and a
+    trail of leaked bits.
+  - **WHITE EYE:** a huge eyeball in a shuttered housing. The pupil follows you, and circuit veins
+    spread across it each phase.
+  - **ZOMBIE:** a hulking robot corpse with exposed cable ribs, a hanging jaw, one burning eye and
+    dragging claws.
+  - **SPOOFER:** a cracked porcelain mask in a hood of static, with chromatic ghost forgeries
+    drifting off it.
+  - **GOOD GAME:** a tracked siege tank with "GG" stencilled on it, smokestacks and twin cannons
+    that track you. Its armour plates fall away each phase.
+- **World Kit, last two pieces:**
+  - **05 Server rack:** bevelled bays with handle notches, a vent grille on top and a status light
+    running down the side.
+  - **07 Data-vault crate:** X-braced lid, steel corner brackets, stacked-crate seams, hazard stencil
+    and a blinking lock panel.
+
 ## 0.11.19 (versionCode 41) — 2026-10-10 · Circuit Hydra: regrow and roar
 ### Changed
 - **Regrow and roar** (owner design): after the exposed window, the heads regrow in a sequence that
