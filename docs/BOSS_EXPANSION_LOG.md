@@ -311,3 +311,9 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - RansomPulse: HazardKind.RANSOM_RING → `encrypt()`; moving fills the burst meter over 1.1 s.
   - HUD shield line and status markers over the operatives. Co-op wire v5.
   - The bot captures key zones. Tests: RansomKingTest.
+- 2026-10-10 — Owner asked whether Ransom King works with a moving player, and whether "the
+  lockdown" box is safe at the top of the screen or next to a block. RansomKingEdgeCaseTest covers it:
+  - Moving out of the slam avoids SEIZED and no cage rises.
+  - Lock Grid never leaves a moving operative inside a cube.
+  - The cage leaves a way out at the top edge, all corners, the side walls, the middle and beside a
+    block (flood-fill reach > 260²). Corners need only 4 cubes, edges 8, open floor 15.

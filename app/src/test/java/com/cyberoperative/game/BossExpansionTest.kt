@@ -463,3 +463,107 @@ class RansomKingTest {
         assertEquals(0.5f, back.ops[0].encryptCharge, 0.01f)
     }
 }
+
+/**
+ * Owner, 2026-10-10: "do they work if the player is moving while fighting ransom king? If he does
+ * the lock down to put you in a square, what if you're at the top of the screen or near a barrier?"
+ */
+class RansomKingEdgeCaseTest {
+
+    private fun fight(seed: Long = 21L): GameEngine {
+        val s = RunStats().apply { maxHp = 1e7f; damage = 1f; fireRate = 0.01f; range = 10f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = seed, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(210, Random(seed)).copy(boss = com.cyberoperative.game.data.BossExpansion.RANSOM_KING, glitchedBoss = false))
+        var t = 0f
+        while (t < BossBrain.INTRO_SECONDS + 0.2f) { g.update(1f / 60f); t += 1f / 60f }
+        return g
+    }
+
+    private fun run(g: GameEngine, seconds: Float, input: Pair<Float, Float> = 0f to 0f) {
+        var t = 0f
+        while (t < seconds) {
+            g.boss?.boss?.let { if (it.active == null) it.rest = 99f }
+            g.setInput(input.first, input.second)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+    }
+
+    /** Floor reachable from the operative (flood fill on a 12-unit grid), in square units. */
+    private fun reachableArea(g: GameEngine): Float {
+        val step = 12f
+        val cols = (g.arena.width / step).toInt()
+        val rows = (g.arena.height / step).toInt()
+        val seen = BooleanArray(cols * rows)
+        val me = g.operatives[0]
+        val start = (me.py / step).toInt().coerceIn(0, rows - 1) * cols + (me.px / step).toInt().coerceIn(0, cols - 1)
+        val queue = ArrayDeque<Int>().apply { add(start) }
+        seen[start] = true
+        var count = 0
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            count++
+            val cx = c % cols; val cy = c / cols
+            for ((dx, dy) in listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)) {
+                val nx = cx + dx; val ny = cy + dy
+                if (nx !in 0 until cols || ny !in 0 until rows) continue
+                val n = ny * cols + nx
+                if (seen[n]) continue
+                if (!g.arena.isFree((nx + 0.5f) * step, (ny + 0.5f) * step, g.playerRadius * 0.9f)) continue
+                seen[n] = true
+                queue.add(n)
+            }
+        }
+        return count * step * step
+    }
+
+    @Test fun movingOutOfTheSlamAvoidsTheSeizure() {
+        val g = fight()
+        val me = g.operatives[0]
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.RoyalSeizure(110f, 1.0f, 28f, 1.1f, 3.5f))
+        // Keep running sideways through the warning.
+        run(g, 1.2f, 1f to 0f)
+        assertEquals("not seized after moving out", 0f, me.rooted, 0f)
+        assertTrue("no cage without a catch", g.barriers.none { it.style == com.cyberoperative.game.engine.Barrier.STYLE_LOCK })
+    }
+
+    @Test fun lockGridNeverTrapsAMovingOperativeInsideACube() {
+        for (seed in 1L..12L) {
+            val g = fight(seed)
+            val me = g.operatives[0]
+            g.debugBossPattern(com.cyberoperative.game.data.Pattern.LockGrid(3, 6f))
+            // Walk around while the walls rise.
+            run(g, 0.5f, 0f to -1f)
+            run(g, 0.6f, 1f to 0f)
+            run(g, 0.4f)
+            assertTrue("seed $seed: not stuck inside a cube", g.arena.isFree(me.px, me.py, g.playerRadius * 0.9f))
+            assertTrue("seed $seed: plenty of room to move", reachableArea(g) > 120f * 120f)
+        }
+    }
+
+    @Test fun seizureCageAlwaysHasAWayOutAtEdgesAndBlocks() {
+        val g0 = fight()
+        val w = g0.arena.width; val h = g0.arena.height
+        // Top edge, top corners, under the boss's start, side walls, bottom corner, and right next to a block.
+        val spots = mutableListOf(w / 2f to 70f, 60f to 60f, w - 60f to 60f, 50f to h / 2f, w - 50f to h / 2f, 60f to h - 60f, w / 2f to h / 2f)
+        val block = g0.arena.obstacles.firstOrNull()?.rect
+        if (block != null) spots += (block.right + 30f) to block.centerY
+        var caged = 0
+        for ((i, spot) in spots.withIndex()) {
+            val g = fight(30L + i)
+            val me = g.operatives[0]
+            g.arena.pushOut(spot.first, spot.second, g.playerRadius)
+            me.px = g.arena.out[0]; me.py = g.arena.out[1]
+            g.debugBossPattern(com.cyberoperative.game.data.Pattern.RoyalSeizure(110f, 0.5f, 10f, 1.0f, 5f))
+            run(g, 0.95f)
+            assertTrue("spot $i: seized", me.rooted > 0f)
+            run(g, 0.4f)
+            val cubes = g.barriers.count { it.solid && it.style == com.cyberoperative.game.engine.Barrier.STYLE_LOCK }
+            // In a corner the room walls are two sides of the cage, so fewer cubes are needed.
+            caged += if (cubes >= 3) 1 else 0
+            val room = reachableArea(g)
+            // The cage's inside is ~190 × 190; being able to reach well beyond that means an open side.
+            assertTrue("spot $i (${spot.first.toInt()},${spot.second.toInt()}): sealed in (reach $room)", room > 260f * 260f)
+        }
+        assertTrue("cages really rose at most spots ($caged)", caged >= spots.size - 2)
+    }
+}
