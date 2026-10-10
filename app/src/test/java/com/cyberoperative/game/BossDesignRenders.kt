@@ -79,6 +79,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         when {
             shot == "sheet" -> sheet(def)
             shot == "fight" -> fight(def)
+            shot == "anim" -> anim(def)
             else -> attack(def, ATTACKS.getValue(def.id).first { it.name == shot })
         }
     }
@@ -153,6 +154,40 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         capture("${def.id}_sheet")
     }
 
+    /**
+     * Idle loop then a charge, as numbered frames in build/boss_anim/<id>/
+     * (stitched into docs/bosses/designs/<id>_anim.gif by the caller).
+     */
+    private fun anim(def: BossDef) {
+        compose.mainClock.autoAdvance = false
+        val time = androidx.compose.runtime.mutableFloatStateOf(0f)
+        val winding = androidx.compose.runtime.mutableStateOf(false)
+        compose.setContent {
+            CyberOperativeTheme {
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF05070D))) {
+                    BossBodyPreview(def, 0, time.floatValue, Modifier.fillMaxWidth().aspectRatio(1f), winding = winding.value)
+                    Text(
+                        if (winding.value) "CHARGING ATTACK" else "IDLE", color = Color(def.color),
+                        style = TextStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        }
+        val dir = File("build/boss_anim/${def.id}").apply { deleteRecursively(); mkdirs() }
+        val frames = 48
+        for (i in 0 until frames) {
+            time.floatValue = i * 0.1f
+            winding.value = i >= 36
+            compose.mainClock.advanceTimeBy(50)
+            val view = compose.activity.window.decorView
+            val w = view.width.coerceAtLeast(1)
+            val bmp = Bitmap.createBitmap(w, w, Bitmap.Config.ARGB_8888)
+            compose.runOnUiThread { view.draw(Canvas(bmp)) }
+            File(dir, "f%03d.png".format(i)).outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
+    }
+
     private fun fight(def: BossDef) {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
@@ -194,7 +229,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}_{1}")
         fun params(): List<Array<Any>> = BossExpansion.designed.flatMap { b ->
-            listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight")) + ATTACKS[b.id].orEmpty().map { arrayOf<Any>(b.id, it.name) }
+            listOf(arrayOf<Any>(b.id, "sheet"), arrayOf<Any>(b.id, "fight"), arrayOf<Any>(b.id, "anim")) + ATTACKS[b.id].orEmpty().map { arrayOf<Any>(b.id, it.name) }
         }
     }
 }

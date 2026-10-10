@@ -17,8 +17,9 @@ import kotlin.math.sin
  * grows and the floor bloom spreads with each phase.
  */
 internal object RootkitApostleBody : BossBody {
-    private val SHELL = Color(0xFF16081A)
-    private val SHELL_LIT = Color(0xFF3A1640)
+    // Owner, 2026-10-10: "Darker body".
+    private val SHELL = Color(0xFF07030A)
+    private val SHELL_LIT = Color(0xFF1C0A20)
     private val EYE = Color(0xFFFF2D3C)
 
     /** Two-tone crystal spike from [base] toward angle [a], [len] long, [w] wide at the base. */
@@ -43,9 +44,12 @@ internal object RootkitApostleBody : BossBody {
         val pulse = 0.5f + 0.5f * sin(t * (2.5f + p.phase * 1.5f))
         val ground = p.cy + r * 0.62f
         // Charging: the crystals go white-hot instead of a glow that hides the body.
-        val lit = if (p.hitFlash) Color.White else lighter(pink, if (hot) 0.7f else 0.25f)
-        val dark = if (p.hitFlash) Color(0xFFDDDDDD) else darker(pink, 0.45f)
-        val edge = lighter(pink, 0.6f).copy(alpha = 0.9f)
+        // Dark crystals with bright magenta edges; white-hot while charging.
+        val lit = if (p.hitFlash) Color.White else if (hot) lighter(pink, 0.55f) else darker(pink, 0.52f)
+        val dark = if (p.hitFlash) Color(0xFFDDDDDD) else darker(pink, 0.18f)
+        val edge = pink.copy(alpha = 0.95f)
+        // The eye breathes slowly from dim to bright (~3 s) and blazes when it attacks (owner, 2026-10-10).
+        val breath = if (hot) 1f else 0.5f + 0.5f * sin(t * 2.1f)
 
         // Corrupted floor pool with veins, wider each phase.
         val pool = r * (1.35f + 0.25f * p.phase)
@@ -88,9 +92,9 @@ internal object RootkitApostleBody : BossBody {
         // Plate seams.
         for (i in 0 until 6) {
             val a = i * 1.047f + 0.5f
-            drawLine(pink.copy(alpha = 0.35f + 0.3f * pulse), Offset(p.cx + cos(a) * r * 0.32f, p.cy + sin(a) * r * 0.3f), Offset(p.cx + cos(a) * r * 0.76f, p.cy + sin(a) * r * 0.72f), 1.8f)
+            drawLine(pink.copy(alpha = 0.18f + 0.22f * breath), Offset(p.cx + cos(a) * r * 0.32f, p.cy + sin(a) * r * 0.3f), Offset(p.cx + cos(a) * r * 0.76f, p.cy + sin(a) * r * 0.72f), 1.8f)
         }
-        drawCircle(pink.copy(alpha = 0.8f), r * 0.78f, Offset(p.cx, p.cy), style = Stroke(2.2f))
+        drawCircle(pink.copy(alpha = 0.55f), r * 0.78f, Offset(p.cx, p.cy), style = Stroke(2f))
         // Side spikes off the orb.
         for (s in listOf(-1f, 1f)) {
             crystal(p.cx + s * r * 0.7f, p.cy + r * 0.05f, if (s < 0f) 3.3f else -0.16f, r * 0.55f * grow, r * 0.22f, lit, dark, edge)
@@ -111,12 +115,12 @@ internal object RootkitApostleBody : BossBody {
         drawPath(mask, pink.copy(alpha = 0.9f), style = Stroke(2f))
         val eyeC = Offset(p.cx + cos(p.aim) * r * 0.06f, p.cy + r * 0.02f + sin(p.aim) * r * 0.05f)
         val eyeR = r * (0.17f + 0.03f * p.phase)
-        glow(eyeC, eyeR * 1.3f, EYE, 1.2f + 0.6f * pulse + (if (hot) 0.8f else 0f))
-        drawCircle(EYE, eyeR, eyeC)
-        drawCircle(lighter(EYE, 0.6f), eyeR * 0.55f, eyeC)
-        drawCircle(Color.White.copy(alpha = if (hot) 1f else 0.85f), eyeR * 0.25f, eyeC)
+        glow(eyeC, eyeR * (1.15f + 0.35f * breath), EYE, 0.25f + 1.4f * breath + (if (hot) 1.6f else 0f))
+        drawCircle(darker(EYE, 0.3f + 0.7f * breath), eyeR, eyeC)
+        drawCircle(lighter(darker(EYE, 0.25f + 0.75f * breath), 0.6f * breath), eyeR * 0.55f, eyeC)
+        drawCircle(Color.White.copy(alpha = if (hot) 1f else 0.15f + 0.7f * breath), eyeR * 0.25f, eyeC)
         // Red code-slit running down the mask from the eye.
-        drawLine(EYE.copy(alpha = 0.6f + 0.4f * pulse), Offset(p.cx, eyeC.y + eyeR), Offset(p.cx, p.cy + r * 0.6f), 2.5f)
+        drawLine(EYE.copy(alpha = 0.2f + 0.7f * breath), Offset(p.cx, eyeC.y + eyeR), Offset(p.cx, p.cy + r * 0.6f), 2.5f)
 
         // Front shards over the orb's base.
         for (i in 0 until shards) if (sin(i * (6.283f / shards) + 0.3f) >= 0f) shard(i)
