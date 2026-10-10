@@ -25,11 +25,28 @@ enum class Difficulty(
     val luck: Float,
     val color: Long,
     /** How much of the deep-run extras (OP level, build size) this difficulty gets. */
-    val extraScaling: Float = 1f
+    val extraScaling: Float = 1f,
+    /**
+     * Owner, 2026-10-11 ("Normal mode is too easy… after level 10 nothing is hard"):
+     * how much of the post-level-10 pressure (extra HP, more threats, extra damage,
+     * Scaling.hpPressure/countPressure/damagePressure) this difficulty gets.
+     */
+    val pressure: Float = 0f,
+    /** Share of the post-level-10 HP pressure (Hard takes a fraction on top of its own ×1.45). */
+    val hpPressureShare: Float = pressure,
+    /** Boss HP multiplier on top of everything else (owner: "at least double"). */
+    val bossHpMul: Float = 1f,
+    /** Elites: HP multiplier and tougher armour (owner: "double HP and more armor"). */
+    val eliteHpMul: Float = 1f,
+    val eliteArmor: Boolean = false
 ) {
+    // Easy stays as it was (owner: "Easy mode is fine. Leave it for younger users").
     EASY("EASY", "Softer threats · ×0.8 rewards", 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C, extraScaling = 0.5f),
-    MEDIUM("MEDIUM", "The intended challenge", 1f, 1f, 1f, 0.1f, 0xFF00E5FF),
-    HARD("HARD", "Tougher threats · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55);
+    MEDIUM("MEDIUM", "The intended challenge", 1f, 1f, 1f, 0.1f, 0xFF00E5FF,
+        pressure = 1f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true),
+    // Hard: its own ×1.45 plus 70% of Normal's HP bump, so it stays harder than Normal at every level.
+    HARD("HARD", "Tougher threats · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55,
+        pressure = 1f, hpPressureShare = 0.7f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true);
 
     companion object {
         fun byName(name: String?): Difficulty = entries.firstOrNull { it.name == name } ?: MEDIUM

@@ -220,6 +220,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * level 1, halved on EASY.
      */
     val opHpNow: Float get() = 1f + (config.opHpMul - 1f) * config.difficulty.extraScaling
+
+    /** Post-level-10 pressure for this difficulty (owner, 2026-10-11): extra HP, damage and threat count. */
+    internal fun pressureHp(lvl: Int = level): Float = 1f + (Scaling.hpPressure(lvl) - 1f) * config.difficulty.hpPressureShare
+    internal fun pressureDamage(lvl: Int = level): Float = 1f + (Scaling.damagePressure(lvl) - 1f) * config.difficulty.pressure
+    internal fun pressureCount(lvl: Int = level): Float = 1f + (Scaling.countPressure(lvl) - 1f) * config.difficulty.pressure
     val opDamageNow: Float get() = 1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling
 
     /** Boss rewards roll with extra luck until they are all picked. */
@@ -988,7 +993,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
-        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode, config.seed)
+        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode, config.seed, pressureCount(level))
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -1634,7 +1639,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = r.previousArenaId
         previousEvent = r.previousEvent
         // The same seed rebuilds the same room, waves and event rules.
-        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed)
+        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed, pressureCount(level))
         vaultCracked = r.vaultCracked
         val extra = if (plan.rules.vault && !vaultCracked) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
@@ -2440,7 +2445,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         var d = raw
         if (e.isElite || e.boss != null) d *= stats.eliteDamageMul
-        val armor = e.def.armor * sqrt(Scaling.enemyHp(level))
+        val armor = (e.def.armor + (if (e.isElite && config.difficulty.eliteArmor) ELITE_ARMOR else 0f)) * sqrt(Scaling.enemyHp(level))
         d = max(d * 0.2f, d - armor)
         d *= e.damageTakenMul
         e.hp -= d
@@ -2572,15 +2577,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         e.x = arena.out[0]
         e.y = arena.out[1]
         e.vx = 0f; e.vy = 0f
-        val hpMul = Scaling.enemyHp(level) * rules.enemyHpMul * config.difficulty.enemyHp * opHpNow * adaptiveHp * config.coopHpMul *
-            (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul else 1f)
+        val hpMul = Scaling.enemyHp(level) * pressureHp() * rules.enemyHpMul * config.difficulty.enemyHp * opHpNow * adaptiveHp * config.coopHpMul *
+            (if (elite != null) EliteModifier.BASE_HP_MUL * elite.hpMul * config.difficulty.eliteHpMul else 1f)
         e.maxHp = def.baseHp * hpMul
         e.hp = e.maxHp
         e.radius = def.radius * (if (elite != null) EliteModifier.SIZE_MUL else 1f)
         e.speed = def.baseSpeed * Scaling.enemySpeed(level) * rules.enemySpeedMul * (elite?.speedMul ?: 1f)
-        e.damageMul = Scaling.enemyDamage(level) * rules.enemyDamageMul * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
+        e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * rules.enemyDamageMul * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
         e.attackRateMul = Scaling.attackRate(level) * (elite?.attackRateMul ?: 1f)
-        e.damageTakenMul = elite?.damageTakenMul ?: 1f
+        // Owner, 2026-10-11: elites are armoured (20% less damage taken, plus flat armour in damageEnemy).
+        e.damageTakenMul = (elite?.damageTakenMul ?: 1f) * (if (elite != null && config.difficulty.eliteArmor) ELITE_DAMAGE_TAKEN else 1f)
         e.hasteTimer = 0f; e.hasteMul = 1f; e.orbitSlot = -1
         e.rewardMul = if (elite != null) EliteModifier.REWARD_MUL else 1f
         e.state = if (telegraph) AiState.SPAWNING else AiState.MOVE
@@ -3518,7 +3524,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             levelSeed = w.levelSeed
             previousArenaId = w.previousArenaId
             previousEvent = w.previousEvent
-            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed)
+            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed, pressureCount(level))
             vaultCracked = false
             val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
             arena = Arena(plan.arena, extra)
@@ -3742,10 +3748,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             e.vx = 0f; e.vy = 0f
             if (e.boss == null) {
                 e.speed = d.baseSpeed * Scaling.enemySpeed(level)
-                e.damageMul = Scaling.enemyDamage(level) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
+                e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
             } else {
                 e.speed = (e.boss!!.def.speed) * (1f + 0.05f * e.boss!!.cycle)
-                e.damageMul = Scaling.enemyDamage(level) * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
+                e.damageMul = Scaling.enemyDamage(level) * pressureDamage() * (1f + 0.1f * e.boss!!.cycle) * config.difficulty.enemyDamage * opDamageNow * adaptiveDamage
                 e.boss!!.anchorX = e.x; e.boss!!.anchorY = e.y
             }
             e.attackRateMul = 1f; e.damageTakenMul = 1f; e.rewardMul = 1f
@@ -3807,6 +3813,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val WAVE_TIMEOUT = 14f
         const val WAVE_MIN_GAP = 1.2f
         const val CLEAR_BEAT = 0.9f
+        /** Elite armour (Normal/Hard): damage taken multiplier and flat armour added to the def's. */
+        const val ELITE_DAMAGE_TAKEN = 0.8f
+        const val ELITE_ARMOR = 3f
         /** Victory sequence length (game seconds): shatter, then the THREAT NEUTRALIZED card. */
         const val VICTORY_SECONDS = 4.2f
         const val TRANSITION_TIME = 0.45f

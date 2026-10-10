@@ -23,6 +23,22 @@ object Scaling {
         return 1f + 0.11f * n + 0.0009f * n * n
     }
 
+    /**
+     * Owner, 2026-10-11 difficulty pass (applied by difficulty, not on EASY): extra
+     * enemy HP that phases in over levels 5–15 (+60%) and keeps climbing 2% a level
+     * past 10. L10 ≈ 1.36, L20 ≈ 1.8, L52 ≈ 2.44, L100 ≈ 3.4.
+     */
+    fun hpPressure(level: Int): Float {
+        val phaseIn = ((level - 4) / 10f).coerceIn(0f, 1f)
+        return 1f + 0.6f * phaseIn + 0.02f * (level - 10).coerceAtLeast(0)
+    }
+
+    /** More threats per room past level 10: ×2 by level 52 (owner: "double the amount of enemies on say level 52"). */
+    fun countPressure(level: Int): Float = 1f + ((level - 10) / 42f).coerceIn(0f, 1f)
+
+    /** A little more bite past level 10: +1% a level, up to +60%. */
+    fun damagePressure(level: Int): Float = 1f + 0.01f * (level - 10).coerceIn(0, 60)
+
     /** Enemy damage multiplier. Grows slower than HP so deaths stay understandable. */
     fun enemyDamage(level: Int): Float {
         val n = (level - 1).coerceAtLeast(0).toFloat()

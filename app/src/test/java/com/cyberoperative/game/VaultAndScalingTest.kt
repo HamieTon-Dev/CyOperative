@@ -99,8 +99,50 @@ class VaultAndScalingTest {
             assertTrue("level $l", hp(com.cyberoperative.game.engine.Difficulty.HARD, l) > hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, l))
             assertTrue("level $l", hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, l) > hp(com.cyberoperative.game.engine.Difficulty.EASY, l))
         }
-        // HARD vs NORMAL at the same OP level: ×1.45 at every level.
-        assertEquals(1.45f, hp(com.cyberoperative.game.engine.Difficulty.HARD, 30) / (hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 30)), 0.01f)
-        assertEquals(1.45f, hp(com.cyberoperative.game.engine.Difficulty.HARD, 90) / (hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 90)), 0.01f)
+        // HARD vs NORMAL: ×1.45 before the pressure kicks in, and still ahead deep into a run
+        // (Hard takes 70% of Normal's post-10 HP bump on top of its own ×1.45; owner, 2026-10-11).
+        assertEquals(1.45f, hp(com.cyberoperative.game.engine.Difficulty.HARD, 4) / hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 4), 0.01f)
+        for (l in listOf(200, 400, 999)) assertTrue("level $l", hp(com.cyberoperative.game.engine.Difficulty.HARD, l) > hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, l))
+    }
+
+    @Test fun normalGetsTougherPastLevelTenAndEasyIsUntouched() {
+        fun hp(d: com.cyberoperative.game.engine.Difficulty, level: Int, elite: com.cyberoperative.game.data.EliteModifier? = null): Float {
+            val g = GameEngine(RunConfig(seed = 2L, opLevel = 1, difficulty = d))
+            if (level > 1) g.debugJumpToLevel(level)
+            return g.spawnEnemyAt(Enemies.MALWARE, elite, 200f, 300f, telegraph = false)!!.maxHp
+        }
+        val base52 = com.cyberoperative.game.core.Scaling.enemyHp(52) * Enemies.MALWARE.baseHp
+        // Normal at L52: the old curve × hpPressure (~2.44).
+        assertEquals(com.cyberoperative.game.core.Scaling.hpPressure(52), hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 52) / base52, 0.05f)
+        assertTrue(com.cyberoperative.game.core.Scaling.hpPressure(52) > 2.3f)
+        // Easy is exactly the old curve ×0.7.
+        assertEquals(0.7f, hp(com.cyberoperative.game.engine.Difficulty.EASY, 52) / base52, 0.01f)
+        // Double the threats around level 52.
+        assertEquals(2f, com.cyberoperative.game.core.Scaling.countPressure(52), 0.001f)
+        // Elites: double HP on Normal (vs Easy's elite multiplier), and armoured.
+        val e = com.cyberoperative.game.data.EliteModifier.CORRUPTED
+        val ratioNormal = hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 30, e) / hp(com.cyberoperative.game.engine.Difficulty.MEDIUM, 30)
+        val ratioEasy = hp(com.cyberoperative.game.engine.Difficulty.EASY, 30, e) / hp(com.cyberoperative.game.engine.Difficulty.EASY, 30)
+        assertEquals(2f, ratioNormal / ratioEasy, 0.01f)
+    }
+
+    @Test fun bossesHaveDoubleHpOnNormalAndHard() {
+        fun bossHp(d: com.cyberoperative.game.engine.Difficulty): Float {
+            val g = GameEngine(RunConfig(seed = 2L, opLevel = 1, difficulty = d))
+            g.debugStartPlan(LevelPlanner.bossPlan(10, Random(1)).copy(boss = com.cyberoperative.game.data.Bosses.byId("breach"), glitchedBoss = false))
+            g.update(1f / 60f)
+            return g.boss!!.maxHp
+        }
+        val easy = bossHp(com.cyberoperative.game.engine.Difficulty.EASY) / 0.7f
+        assertTrue("normal boss ≥ 2× the old HP", bossHp(com.cyberoperative.game.engine.Difficulty.MEDIUM) >= easy * 2f)
+        assertTrue(bossHp(com.cyberoperative.game.engine.Difficulty.HARD) > bossHp(com.cyberoperative.game.engine.Difficulty.MEDIUM))
+    }
+
+    @Test fun level52RoomsHaveTwiceTheThreats() {
+        val g = GameEngine(RunConfig(seed = 4L, difficulty = com.cyberoperative.game.engine.Difficulty.MEDIUM))
+        val easy = GameEngine(RunConfig(seed = 4L, difficulty = com.cyberoperative.game.engine.Difficulty.EASY))
+        val p = LevelPlanner.plan(52, Random(9), null, true, countMul = g.pressureCount(52))
+        val pe = LevelPlanner.plan(52, Random(9), null, true, countMul = easy.pressureCount(52))
+        assertEquals(p.waves.sumOf { it.size }.toFloat(), 2f * pe.waves.sumOf { it.size }, 2f)
     }
 }

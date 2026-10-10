@@ -29,7 +29,11 @@ class Bot(private val g: GameEngine, private val dodge: Boolean = true) {
                 g.chooseUpgrade(if (pickWeapon) 2 else 0)
                 g.setInput(0f, 0f)
             }
-            Phase.PORTAL -> goTo(g.arena.portalX, g.arena.portalY, dt)
+            Phase.PORTAL -> {
+                // Walking past an offered shop asks "skip the shop?": the bot skips it.
+                if (g.skipShopPrompt) g.answerSkipShop(true)
+                goTo(g.arena.portalX, g.arena.portalY, dt)
+            }
             Phase.COMBAT -> combat(dt)
             else -> g.setInput(0f, 0f)
         }

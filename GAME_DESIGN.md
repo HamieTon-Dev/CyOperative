@@ -253,3 +253,13 @@ Synthesized SFX for every cue (rate-limited, soft). Music: the whole CyOps TD so
 (24 tracks) shuffled — menu tracks on menus, all tracks in a run, the level-10 pieces for
 bosses, Liminal tracks on game over. Pause-screen player lets the player pick tracks,
 skip, pause, toggle shuffle or return to AUTO. Audio never plays in the background.
+
+## Difficulty pass (0.15.0, owner 2026-10-11)
+- Scaling.hpPressure(level): +60% phased in over L5–15, +2%/level past 10. countPressure: ×2 threats by
+  L52. damagePressure: +1%/level past 10 (cap +60%).
+- Difficulty fields: pressure (count/damage share), hpPressureShare (HP share), bossHpMul, eliteHpMul,
+  eliteArmor.
+  - EASY: none of it.
+  - MEDIUM: all of it; bosses ×2 plus half the HP pressure; elites ×2 HP, 0.8× damage taken, +3 armour.
+  - HARD: ×1.45 base plus 70% of the HP pressure, and everything else in full.
+- Applied in GameEngine.spawnEnemyAt / BossBrain.spawn / LevelPlanner.plan(countMul).

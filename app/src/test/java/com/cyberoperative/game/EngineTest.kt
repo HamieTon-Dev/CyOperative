@@ -23,7 +23,8 @@ class EngineTest {
     private fun strongConfig(seed: Long = 7L, hp: Float = 1e7f, level: Int = 1): RunConfig {
         val power = com.cyberoperative.game.core.Scaling.enemyHp(level)
         val s = RunStats().apply {
-            maxHp = hp; damage = 120f * power; fireRate = 4f; range = 900f; orbDamage = 60f * power
+            // ×2 since bosses have double HP on Normal (owner, 2026-10-11): these tests check mechanics, not DPS.
+            maxHp = hp; damage = 240f * power; fireRate = 4f; range = 900f; orbDamage = 120f * power
         }
         return RunConfig(baseStats = s, seed = seed, freeRevives = 0)
     }
@@ -96,7 +97,8 @@ class EngineTest {
             val bot = Bot(g, dodge = false)
             var t = 0f
             var sawPhase3 = false
-            while (t < 240f && g.bossesDefeated == 0) {
+            // Bosses have double HP on Normal (owner, 2026-10-11): give the fixed-DPS bot longer.
+            while (t < 360f && g.bossesDefeated == 0) {
                 bot.step(1f / 30f); t += 1f / 30f
                 val b = g.boss
                 if (b != null && b.hp / b.maxHp < 0.25f) sawPhase3 = true

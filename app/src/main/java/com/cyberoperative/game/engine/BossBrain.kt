@@ -120,11 +120,13 @@ class BossBrain(private val g: GameEngine) {
         val ref = Bosses.forLevel(g.level)
         val baseHp = if (b == ref) b.baseHp else ref.baseHp * Math.pow((b.baseHp / ref.baseHp).toDouble(), 0.25).toFloat()
         val dmgScale = if (b == ref) 1f else (ref.contactDamage / b.contactDamage).coerceIn(0.6f, 1.6f)
-        e.maxHp = baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
+        // Owner, 2026-10-11: bosses ×2 on Normal/Hard, plus half of the post-level-10 HP pressure.
+        val pressure = 1f + (g.pressureHp() - 1f) * 0.5f
+        e.maxHp = baseHp * g.config.difficulty.bossHpMul * pressure * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
-        e.damageMul = dmgScale * Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
+        e.damageMul = dmgScale * g.pressureDamage() * Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
         if (glitched) {
             st.glitched = true
             e.maxHp *= 1.35f

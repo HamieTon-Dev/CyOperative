@@ -44,15 +44,20 @@ object LevelPlanner {
 
     const val GENERATED_SHARE = 0.85f
 
-    fun plan(level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean, mode: GameMode = GameMode.CAMPAIGN, runSeed: Long = 0L): LevelPlan {
+    fun plan(
+        level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean, mode: GameMode = GameMode.CAMPAIGN,
+        runSeed: Long = 0L,
+        /** Threat-count multiplier for the difficulty (GameEngine.pressureCount). */
+        countMul: Float = 1f
+    ): LevelPlan {
         if (mode == GameMode.ENDLESS) return endlessPlan(rng)
         if (Scaling.isBossLevel(level)) return bossPlan(level, rng, runSeed)
 
         val event = pickEvent(level, rng, previousWasEvent)
-        if (event != null) return eventPlan(level, rng, event, previousArenaId)
+        if (event != null) return eventPlan(level, rng, event, previousArenaId, countMul)
 
         val arena = pickArena(level, rng, previousArenaId)
-        val threats = Scaling.campaignThreats(level)
+        val threats = (Scaling.campaignThreats(level) * countMul).roundToInt()
         val waves = buildWaves(level, rng, threats, Scaling.campaignWaves(threats), EventRules())
         return LevelPlan(level, LevelKind.NORMAL, arena, waves)
     }
@@ -79,7 +84,7 @@ object LevelPlanner {
         return eligible.last()
     }
 
-    fun eventPlan(level: Int, rng: Random, event: EventDef, previousArenaId: String?): LevelPlan {
+    fun eventPlan(level: Int, rng: Random, event: EventDef, previousArenaId: String?, countMul: Float = 1f): LevelPlan {
         var rules = event.rules
         val names = ArrayList<String>()
         if (event.randomModifiers.isNotEmpty()) {
@@ -91,7 +96,7 @@ object LevelPlanner {
         }
         val arena = if (rules.vault) Arenas.templates.first { it.id == "open_grid" }
         else pickArena(level, rng, previousArenaId)
-        val budget = max(4, (Scaling.campaignThreats(level) * rules.enemyCountMul).roundToInt())
+        val budget = max(4, (Scaling.campaignThreats(level) * countMul * rules.enemyCountMul).roundToInt())
         val waves = if (rules.timedSeconds > 0f) emptyList()
         else buildWaves(level, rng, budget, Scaling.campaignWaves(budget) + rules.extraWaves, rules)
         return LevelPlan(level, LevelKind.EVENT, arena, waves, event = event, rules = rules, modifierNames = names)

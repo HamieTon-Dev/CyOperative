@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.0 (versionCode 49) — 2026-10-11 · Normal and Hard get much tougher
+### Changed (owner: "Normal mode is too easy. After level 10 nothing is hard anymore")
+- **Enemy HP on Normal:** +60% phased in over levels 5–15, then +2% more every level past 10.
+  Roughly ×1.36 at L10, ×2 at L30, ×2.44 at L52 and ×3.4 at L100 compared with before.
+- **More threats per room on Normal and Hard:** the count ramps up after level 10 to **double by
+  level 52**, for example 46 → 92 threats.
+- **Enemy damage:** +1% per level past 10, up to +60%.
+- **Bosses:** **double HP** on Normal and Hard, plus half of the new HP curve. That's ×2.4 at L10 and
+  ×3.4 at L52 compared with before.
+- **Elites:** **double HP** on Normal and Hard. They also take 20% less damage and have extra flat
+  armour.
+- **Hard:** keeps its ×1.45 HP and gets 70% of Normal's HP increase, plus the full extra threat
+  count, damage, boss and elite changes. It stays harder than Normal at every level.
+- **Easy is unchanged.**
+
 ## 0.14.1 (versionCode 48) — 2026-10-10 · Save keeps the shop
 ### Fixed
 - **An offered upgrade shop survives SAVE & EXIT** (owner: "saving progress and then loading back in
