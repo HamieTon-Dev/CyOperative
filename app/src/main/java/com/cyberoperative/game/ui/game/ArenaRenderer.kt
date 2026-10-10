@@ -81,7 +81,9 @@ class ArenaRenderer {
         scope: DrawScope, g: GameEngine, time: Float, skin: OperativeSkin, body: BodyStyle,
         background: LivingBackground, showNumbers: Boolean, topInset: Float, bottomInset: Float,
         /** Co-op partner's look (their own skin and body). */
-        partnerSkin: OperativeSkin = skin, partnerBody: BodyStyle = body
+        partnerSkin: OperativeSkin = skin, partnerBody: BodyStyle = body,
+        /** Settings → SCREEN SHAKE. */
+        shake: Boolean = true
     ) = with(scope) {
         this@ArenaRenderer.partnerSkin = partnerSkin
         this@ArenaRenderer.partnerBody = partnerBody
@@ -104,7 +106,10 @@ class ArenaRenderer {
         drawRect(Color(0xFF04070D))
         withTransform({
             scale(scale, scale, Offset.Zero)
-            translate(shakeX(g, time), -camY + slide)
+            val fxShake = if (shake) g.fx.shakeNow else 0f
+            val sx = (if (shake) shakeX(g, time) else 0f) + sin(time * 83f) * fxShake
+            val sy = cos(time * 71f) * fxShake * 0.7f
+            translate(sx, -camY + slide + sy)
         }) {
             drawFloor(g, time)
             drawLivingBackground(background, arena.width, arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)
@@ -125,6 +130,8 @@ class ArenaRenderer {
         }
         if (g.plan.kind == LevelKind.EVENT) drawSpectrumBorder(time)
         if (g.hurtFlash > 0f) drawRect(Palette.Red.copy(alpha = 0.18f * (g.hurtFlash / 0.25f)))
+        val flash = g.fx.flashNow
+        if (flash > 0f) drawRect(Color(g.fx.flashColor).copy(alpha = flash.coerceIn(0f, 1f)))
     }
 
     private var partnerSkin: OperativeSkin? = null
@@ -953,6 +960,23 @@ class ArenaRenderer {
             drawCircle(Color(elite.color).copy(alpha = 0.85f), e.radius * 1.3f, Offset(cx, cy), style = Stroke(2.5f))
         }
         if (boss != null) drawCircle(base.copy(alpha = 0.14f + 0.08f * sin(time * 3f)), e.radius * 1.7f, Offset(cx, cy))
+        val customBody = boss?.let { BossBodies.forId(it.def.id) }
+        if (boss != null && customBody != null) {
+            val pose = BossPose(
+                cx, cy, e.radius, base, time, boss.phaseIndex, e.state == AiState.WINDUP, e.hitFlash > 0f,
+                kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch
+            )
+            if (glitch) {
+                val j = ((time * 14f).toInt() + e.uid) % 5 - 2
+                drawCircle(Color(0xFF00FFFF).copy(alpha = 0.25f), e.radius, Offset(cx - 4f + j, cy))
+                drawCircle(Color(0xFFFF00FF).copy(alpha = 0.25f), e.radius, Offset(cx + 4f - j, cy))
+            }
+            with(customBody) { draw(pose) }
+            if (e.uid == g.targetUid) {
+                drawOval(Palette.Cyan.copy(alpha = 0.85f), Offset(e.x - e.radius - 6f, e.y + e.radius * 0.1f), Size(e.radius * 2f + 12f, e.radius + 6f), style = Stroke(2.5f))
+            }
+            return
+        }
         if (glitch) {
             // RGB-split ghosts that jump a few pixels every few frames.
             val j = ((time * 14f).toInt() + e.uid) % 5 - 2

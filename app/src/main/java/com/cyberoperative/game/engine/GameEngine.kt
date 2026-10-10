@@ -454,6 +454,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val path: Pathfinder get() = cur.path
     private val ai = EnemyAi(this)
     private val bossBrain = BossBrain(this)
+    /** Shake, flash, hit-stop and slow motion (Boss Expansion S12). */
+    val fx = ScreenFx()
+
 
     init {
         for (o in ops) {
@@ -573,7 +576,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     fun update(delta: Float) {
-        var remaining = delta.coerceIn(0f, MAX_FRAME)
+        var remaining = fx.tick(delta.coerceIn(0f, MAX_FRAME))
         while (remaining > 0f) {
             val dt = min(STEP, remaining)
             step(dt)
@@ -667,6 +670,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
+        fx.clear()
         updateAdaptive()
         skipShopPrompt = false
         topGateLocked = false
@@ -2076,6 +2080,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             levelDamageTaken += dmg
             addText(px, py - 30f, "-${dmg.toInt().coerceAtLeast(1)}", TextKind.PLAYER_HURT)
             hurtFlash = 0.25f
+            if (cur === ops[primary] && dmg >= s.maxHp * 0.12f) fx.shake(5f, 0.25f)
             sound(GameSound.PLAYER_HURT)
         }
         invuln = if (ignoreInvuln) max(invuln, 0.1f) else HIT_INVULN
@@ -2611,6 +2616,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     internal fun setBossRef(e: Enemy?) { boss = e }
     internal fun setBossPhaseLabel(label: String) { bossPhaseLabel = label }
+    /** What the current boss pays out when it falls (shown on the dossier card). */
+    fun bossBounty(): Int {
+        val st = boss?.boss ?: return 0
+        return (bossBrain.baseBounty(st) * stats.euroMul * difficultyReward).toInt()
+    }
+
     internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0) {
         bossesDefeated++
         eurosEarned += (eurosReward * stats.euroMul * difficultyReward).toInt()

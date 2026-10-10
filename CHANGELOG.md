@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.0 (versionCode 22) — 2026-10-10 · Boss Expansion Vol. 1, Stage A
+### Added
+- **Threat dossier card** during every boss entrance: role badge (TANK, ASSASSIN, …),
+  threat-tier skulls (LOW / MEDIUM / HIGH / EXTREME), up to four signature abilities and the
+  **bounty** in € the kill pays. It sits mid-screen so the boss arriving at the top stays in view.
+- **Screen effects:**
+  - Boss kill: a short freeze, white flash, heavy shake, then 1.4 s of slow motion.
+  - Boss phase change: a quick freeze with a flash in the boss's colour and a shake.
+  - Heavy hits on you (12%+ of max HP) shake the screen a little.
+- **SCREEN SHAKE** toggle in Settings (the setting existed but was never wired up).
+- Every boss now has a role and a threat tier. The 12 current bosses are tagged.
+- Groundwork for the 12 new bosses at levels 130–240:
+  - a per-boss body renderer, so each boss gets its own look instead of the hexagon;
+  - Nullshade Specter can turn up as a rare boss (5%) from level 150 once it is built.
+- First new boss body drawn, **Vault Sentinel**, waiting for owner approval. It doesn't
+  appear in runs until its mechanics are built.
+
+
 ## 0.10.3 (versionCode 21) — 2026-10-09
 ### Added
 - **WEAPON SLOTS** permanent upgrade on the UPGRADES (OP level-up) screen, for € earned in runs.

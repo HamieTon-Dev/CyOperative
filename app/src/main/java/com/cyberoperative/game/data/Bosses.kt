@@ -74,6 +74,27 @@ data class BossPhase(
     val label: String
 )
 
+/** What kind of fight a boss is (owner's Boss Expansion sheets, 2026-10-10). */
+enum class BossRole(val label: String, val color: Long) {
+    BRUISER("BRUISER", 0xFFFF2D55),
+    TANK("TANK", 0xFF2E9BFF),
+    ASSASSIN("ASSASSIN", 0xFFFF2E6C),
+    AREA_CONTROL("AREA CONTROL", 0xFFA259FF),
+    SUMMONER("SUMMONER", 0xFFFF2EC4),
+    CONTROLLER("CONTROLLER", 0xFFFF2D55),
+    STATUS("STATUS", 0xFF7DF9FF),
+    COMMANDER("COMMANDER", 0xFFFF4A6A),
+    HUNTER("HUNTER", 0xFFFF2EC4)
+}
+
+/** Threat tier skulls: 1 LOW · 2 MEDIUM · 3 HIGH · 4 EXTREME. */
+object ThreatTier {
+    fun label(tier: Int) = when (tier) { 1 -> "LOW"; 2 -> "MEDIUM"; 3 -> "HIGH"; else -> "EXTREME" }
+    fun blurb(tier: Int) = when (tier) {
+        1 -> "Learn the pattern"; 2 -> "Increased complexity"; 3 -> "Multiple mechanics"; else -> "Relentless pressure"
+    }
+}
+
 data class BossDef(
     val id: String,
     val name: String,
@@ -89,8 +110,37 @@ data class BossDef(
     /** Ordered from full HP downward: phase 1 first. */
     val phases: List<BossPhase>,
     val euros: Int,
-    val score: Int
-)
+    val score: Int,
+    val role: BossRole = BossRole.BRUISER,
+    /** 1 LOW … 4 EXTREME. */
+    val tier: Int = 2,
+    /** Flat damage removed from each hit (scaled with level like enemy armor). */
+    val armor: Float = 0f,
+    /** Hidden between eye windows; only targetable while visible (Nullshade). */
+    val stealth: Boolean = false,
+    /** Named signature abilities for the dossier card and codex; derived from the patterns when empty. */
+    val abilities: List<String> = emptyList()
+) {
+    /** Up to [max] ability names: the named ones, or one per distinct pattern kind. */
+    fun abilityNames(max: Int = 4): List<String> =
+        abilities.ifEmpty { phases.flatMap { it.patterns }.map { it.displayName }.distinct() }.take(max)
+}
+
+/** Player-facing name of a pattern (dossier card, codex). */
+val Pattern.displayName: String
+    get() = when (this) {
+        is Pattern.Radial -> "Burst Ring"
+        is Pattern.Aimed -> "Aimed Volley"
+        is Pattern.Spiral -> "Spiral Stream"
+        is Pattern.Charge -> "Dash Strike"
+        is Pattern.Summon -> "Reinforcements"
+        is Pattern.ShockRing -> "Shockwave"
+        is Pattern.Blasts -> "Strike Markers"
+        is Pattern.Zones -> "Corruption Pools"
+        Pattern.Teleport -> "Blink"
+        is Pattern.Beam -> "Data Beam"
+        is Pattern.Homing -> "Homing Packets"
+    }
 
 object Bosses {
 
@@ -117,7 +167,7 @@ object Bosses {
                 Pattern.Charge(0.7f, 700f, 560f, 22f, repeats = 2),
                 Pattern.Aimed(5, 60f, 290f, 12f, bursts = 3)
             ), "BREACH CRITICAL")
-        ), euros = 120, score = 2000
+        ), euros = 120, score = 2000, role = BossRole.BRUISER, tier = 1
     )
 
     val BOTMASTER = BossDef(
@@ -139,7 +189,7 @@ object Bosses {
                 Pattern.Spiral(4, 3f, 12f, -110f, 200f, 10f),
                 Pattern.Radial(18, 210f, 10f)
             ), "BOTNET OVERDRIVE")
-        ), euros = 150, score = 2400
+        ), euros = 150, score = 2400, role = BossRole.SUMMONER, tier = 1
     )
 
     val WORM = BossDef(
@@ -161,7 +211,7 @@ object Bosses {
                 Pattern.Summon("wormlet", 5),
                 Pattern.Zones(5, 80f, 7f, 20f)
             ), "REPLICATION STORM")
-        ), euros = 170, score = 2800
+        ), euros = 170, score = 2800, role = BossRole.AREA_CONTROL, tier = 2
     )
 
     val RANSOM = BossDef(
@@ -183,7 +233,7 @@ object Bosses {
                 Pattern.Zones(3, 85f, 6f, 20f),
                 Pattern.Aimed(6, 70f, 270f, 12f, bursts = 3)
             ), "PAY OR PERISH")
-        ), euros = 190, score = 3200
+        ), euros = 190, score = 3200, role = BossRole.CONTROLLER, tier = 2
     )
 
     val ROOTKIT = BossDef(
@@ -206,7 +256,7 @@ object Bosses {
                 Pattern.Aimed(7, 80f, 280f, 12f, bursts = 3),
                 Pattern.Summon("rootkit", 2)
             ), "PRIVILEGE ESCALATION")
-        ), euros = 210, score = 3600
+        ), euros = 210, score = 3600, role = BossRole.ASSASSIN, tier = 2
     )
 
     val SYN_STORM = BossDef(
@@ -227,7 +277,7 @@ object Bosses {
                 Pattern.Radial(20, 220f, 11f, waves = 2, rotateDeg = 9f),
                 Pattern.ShockRing(360f, 250f, 18f)
             ), "FULL FLOOD")
-        ), euros = 230, score = 4000
+        ), euros = 230, score = 4000, role = BossRole.AREA_CONTROL, tier = 2
     )
 
     val KERNEL_PANIC = BossDef(
@@ -249,7 +299,7 @@ object Bosses {
                 Pattern.Spiral(3, 2.6f, 12f, 130f, 200f, 11f),
                 Pattern.Blasts(6, 85f, 1.0f, 24f)
             ), "BLUE SCREEN")
-        ), euros = 250, score = 4400
+        ), euros = 250, score = 4400, role = BossRole.CONTROLLER, tier = 3
     )
 
     val EXFIL = BossDef(
@@ -269,7 +319,7 @@ object Bosses {
                 Pattern.Charge(0.6f, 760f, 600f, 24f, repeats = 3),
                 Pattern.Homing(4, 170f, 1.8f, 14f)
             ), "SMASH AND GRAB")
-        ), euros = 270, score = 4800
+        ), euros = 270, score = 4800, role = BossRole.ASSASSIN, tier = 3
     )
 
     val WHITE_EYE = BossDef(
@@ -292,7 +342,7 @@ object Bosses {
                 Pattern.Teleport,
                 Pattern.Homing(4, 170f, 1.7f, 14f)
             ), "TOTAL SURVEILLANCE")
-        ), euros = 290, score = 5200
+        ), euros = 290, score = 5200, role = BossRole.CONTROLLER, tier = 3
     )
 
     val ZOMBIE = BossDef(
@@ -313,7 +363,7 @@ object Bosses {
                 Pattern.Radial(22, 220f, 11f, waves = 3, rotateDeg = 8f),
                 Pattern.Summon("worm", 2)
             ), "UNDEAD FRENZY")
-        ), euros = 310, score = 5600
+        ), euros = 310, score = 5600, role = BossRole.BRUISER, tier = 3
     )
 
     val SPOOFER = BossDef(
@@ -336,7 +386,7 @@ object Bosses {
                 Pattern.Teleport,
                 Pattern.Spiral(3, 2.5f, 12f, 150f, 210f, 11f)
             ), "MASS FORGERY")
-        ), euros = 330, score = 6000
+        ), euros = 330, score = 6000, role = BossRole.SUMMONER, tier = 3
     )
 
     val GOOD_GAME = BossDef(
@@ -358,14 +408,22 @@ object Bosses {
                 Pattern.Spiral(4, 3.5f, 12f, 90f, 190f, 12f),
                 Pattern.Blasts(8, 100f, 1.1f, 26f)
             ), "GAME OVER?")
-        ), euros = 360, score = 6600
+        ), euros = 360, score = 6600, role = BossRole.TANK, tier = 3
     )
 
-    /** Order of appearance: index = (level / 10 - 1) % size. */
-    val roster: List<BossDef> = listOf(
+    /** The original twelve, levels 10–120. */
+    val classics: List<BossDef> = listOf(
         BREACH, BOTMASTER, WORM, RANSOM, ROOTKIT, SYN_STORM,
         KERNEL_PANIC, EXFIL, WHITE_EYE, ZOMBIE, SPOOFER, GOOD_GAME
     )
+
+    /** Boss Expansion Vol. 1 (owner, 2026-10-10), levels 130–240 in threat order. See BossExpansion.kt. */
+    val expansion: List<BossDef> get() = BossExpansion.all
+
+    /** Order of appearance: index = (level / 10 - 1) % size. */
+    val roster: List<BossDef> by lazy { classics + expansion }
+
+    fun byId(id: String): BossDef? = roster.firstOrNull { it.id == id }
 
     fun forLevel(level: Int): BossDef {
         val index = ((level / 10) - 1).coerceAtLeast(0)

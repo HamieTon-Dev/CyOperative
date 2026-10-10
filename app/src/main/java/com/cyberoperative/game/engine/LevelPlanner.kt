@@ -98,9 +98,21 @@ object LevelPlanner {
     }
 
     fun bossPlan(level: Int, rng: Random): LevelPlan {
-        val boss = Bosses.forLevel(level)
+        val boss = rollRareBoss(level, rng) ?: Bosses.forLevel(level)
         val arena = if (rng.nextBoolean()) Arenas.bossArena else Arenas.mirrored(Arenas.bossArena)
         return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss, glitchedBoss = rollGlitchedBoss(level, rng))
+    }
+
+    /** Boss Expansion D1: Nullshade Specter can stalk any boss room from level 150. */
+    const val RARE_BOSS_ID = "nullshade"
+    const val RARE_BOSS_FROM = 150
+    const val RARE_BOSS_CHANCE = 0.05f
+
+    fun rollRareBoss(level: Int, rng: Random): BossDef? {
+        if (level < RARE_BOSS_FROM) return null
+        val rare = Bosses.byId(RARE_BOSS_ID) ?: return null
+        if (Bosses.forLevel(level) == rare) return null
+        return if (rng.nextFloat() < RARE_BOSS_CHANCE) rare else null
     }
 
     /** Small chance (from level 20) that a boss arrives *GLITCHED*. */

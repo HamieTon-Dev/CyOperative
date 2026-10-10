@@ -7,11 +7,16 @@ Nullshade Specter dossier, Expansion Vol. 1 overview — 12 bosses)._
 **Every session working on this stage: read this file first, continue from the first unchecked
 box, tick boxes as they land, and add a dated line to the session log at the bottom.**
 
-Status: **PLAN — waiting for owner go-ahead and the decisions in §1.**
+Status: **BUILDING — Stage A done (v0.11.0); next: Stage B.** Owner accepted every recommendation (D1–D6): "Build all of them as you see fit."
+
+**Design approval rule (owner, 2026-10-10):** "I want to see and approve, or request changes to the
+physical look of each boss as you make them." Every boss body (new and classic) is rendered
+(close-up + in-fight) and sent to the owner. A body is only **final** once the owner approves it;
+mechanics can keep moving while a design waits. Track it in §6.
 
 ---
 
-## 1. Decisions needed from the owner before building
+## 1. Decisions (all accepted 2026-10-10 as recommended)
 
 | # | Question | Recommendation |
 |---|---|---|
@@ -134,12 +139,12 @@ Status: **PLAN — waiting for owner go-ahead and the decisions in §1.**
 ## 5. Build stages (each ends with tests + renders + a version bump + push)
 
 ### Stage A — Foundations (v0.11.0)
-- [ ] A1 S13 boss metadata (role, tier, bounty, armor) on BossDef; existing 12 bosses get values
-- [ ] A2 S12 screen effects (flash, shake, hit-stop) + boss kill slow-motion
-- [ ] A3 Boss intro dossier card (name, role badge, threat tier, bounty) replacing the plain banner
-- [ ] A4 S14 boss body renderer framework (per-boss draw hook, phase-reactive)
-- [ ] A5 Roster/placement per D1 (levels 130+), reward scaling per D2
-- [ ] A6 Tests: every boss still beatable by the bot; all patterns telegraphed
+- [x] A1 S13 boss metadata (role, tier, bounty, armor) on BossDef; existing 12 bosses get values
+- [x] A2 S12 screen effects (flash, shake, hit-stop) + boss kill slow-motion
+- [x] A3 Boss intro dossier card (name, role badge, threat tier, bounty) replacing the plain banner
+- [x] A4 S14 boss body renderer framework (per-boss draw hook, phase-reactive)
+- [x] A5 Roster/placement per D1 (levels 130+), reward scaling per D2
+- [x] A6 Tests: every boss still beatable by the bot; all patterns telegraphed
 
 ### Stage B — Shared mechanics (v0.11.1)
 - [ ] B1 S2 sweeping / rotating / cross beams
@@ -187,5 +192,21 @@ Status: **PLAN — waiting for owner go-ahead and the decisions in §1.**
 
 ---
 
-## 6. Session log
+## 6. Design approvals (owner sign-off per boss body)
+
+| Boss | Sent | Status | Owner notes |
+|---|---|---|---|
+| Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ⏳ waiting | |
+
+---
+
+## 7. Session log
 - 2026-10-10 — Plan written from the four concept sheets; waiting for owner decisions D1–D6.
+- 2026-10-10 — Owner: "Build all of them as you see fit" (D1–D6 accepted) + per-boss design approval rule. Started Stage A.
+- 2026-10-10 — Stage A done, v0.11.0 (22):
+  - ScreenFx (S12) and the SCREEN SHAKE setting; BossRole/ThreatTier/armor/abilities (S13);
+    threat dossier card (A3, mid-screen overlay).
+  - BossBodies registry + BossBodyPreview (S14); rare Nullshade roll from L150; BossExpansionTest.
+  - Vault Sentinel def (provisional patterns, not in the roster yet) and its body, sent for approval.
+  - Approval renders: `./gradlew testDebugUnitTest -PrenderPreviews --tests '*BossDesignRenders*'`
+    → `docs/bosses/designs/`.

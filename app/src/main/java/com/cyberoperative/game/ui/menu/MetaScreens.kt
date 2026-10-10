@@ -347,6 +347,7 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                 Column {
                     Toggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
                     Toggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
+                    Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
                 }
             }
             Spacer(Modifier.height(10.dp))

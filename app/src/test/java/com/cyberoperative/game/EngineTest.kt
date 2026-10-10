@@ -91,7 +91,7 @@ class EngineTest {
         for ((i, boss) in Bosses.roster.withIndex()) {
             val level = 10 * (i + 1)
             val g = GameEngine(strongConfig(seed = 100L + i, level = level))
-            g.debugStartPlan(LevelPlanner.bossPlan(level, Random(i)))
+            g.debugStartPlan(LevelPlanner.bossPlan(level, Random(i)).copy(boss = boss))
             assertEquals(boss.id, g.plan.boss!!.id)
             val bot = Bot(g, dodge = false)
             var t = 0f

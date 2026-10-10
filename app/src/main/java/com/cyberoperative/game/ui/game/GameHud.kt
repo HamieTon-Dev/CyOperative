@@ -87,7 +87,7 @@ private val HudNavy = Color(0xFF05080F)
 private val HudHairline = Palette.Cyan.copy(alpha = 0.28f)
 private val ThreatPink = Color(0xFFFF2D6F)
 
-private fun mono(size: TextUnit, weight: FontWeight = FontWeight.Normal) =
+internal fun mono(size: TextUnit, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontFamily = TerminalFont, fontSize = size, fontWeight = weight, letterSpacing = 0.4.sp)
 
 /**

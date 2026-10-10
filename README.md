@@ -16,7 +16,7 @@ Play **co-op** with a friend (friend codes, invites, live two-player runs; see `
 
 ## Project status
 
-`0.2.0` — playable vertical slice + first boss/event systems (see `DEVELOPMENT_STATE.md`).
+`0.11.0` — Boss Expansion Vol. 1 under way (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
 
 | | |
 |---|---|

@@ -64,7 +64,8 @@ fun GameScreen(
     session: GameSession,
     showDamageNumbers: Boolean,
     onExitToMenu: () -> Unit,
-    onNewOperation: () -> Unit
+    onNewOperation: () -> Unit,
+    screenShake: Boolean = true
 ) {
     val view = LocalView.current
     ImmersiveGameplay()
@@ -175,7 +176,7 @@ fun GameScreen(
             @Suppress("UNUSED_VARIABLE") val tick = session.frameTick
             renderer.draw(
                 this, session.engine, time, session.skin, session.body, session.background, showDamageNumbers, topInsetPx, bottomInsetPx,
-                partnerSkin = session.partnerSkin, partnerBody = session.partnerBody
+                partnerSkin = session.partnerSkin, partnerBody = session.partnerBody, shake = screenShake
             )
             // Joystick
             val bx = if (stickActive) originX else restX
@@ -276,6 +277,7 @@ fun GameScreen(
                 modifier = Modifier.align(Alignment.Center).padding(horizontal = 28.dp)
             )
         }
+        BossDossierCard(hud, Modifier.align(Alignment.Center).padding(horizontal = 12.dp))
         ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt)
         if (hud.phase == Phase.UPGRADE) {
             UpgradeOverlay(session)

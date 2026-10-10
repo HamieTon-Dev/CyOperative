@@ -137,6 +137,7 @@ class ScreenshotPreviews {
     @Test fun bossIntro1() { assumeTrue(enabled); bossIntro("boss_intro_1_bar", 0.8f) }
     @Test fun bossIntro2() { assumeTrue(enabled); bossIntro("boss_intro_2_name", 1.75f) }
     @Test fun bossIntro3() { assumeTrue(enabled); bossIntro("boss_intro_3_growl", 2.1f) }
+    @Test fun bossIntro4() { assumeTrue(enabled); bossIntro("boss_intro_4_dossier", 2.2f) }
 
     @Test fun neonSkin() {
         assumeTrue(enabled)

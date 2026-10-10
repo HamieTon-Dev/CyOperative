@@ -48,7 +48,7 @@ class BossCatalogRenders(private val bossIndex: Int, private val phase: Int) {
         repo.update { it.copy(tutorialDone = true) }
         val session = GameSession(repo, AudioManager(ctx))
         val g = session.engine
-        g.debugStartPlan(LevelPlanner.bossPlan(level, Random(bossIndex)).copy(glitchedBoss = false))
+        g.debugStartPlan(LevelPlanner.bossPlan(level, Random(bossIndex)).copy(boss = boss, glitchedBoss = false))
         val me = g.operatives[0]
         fun step(seconds: Float) {
             var t = 0f

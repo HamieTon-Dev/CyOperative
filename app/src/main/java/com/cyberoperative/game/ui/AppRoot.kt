@@ -134,6 +134,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 GameScreen(
                     session = sess,
                     showDamageNumbers = profile.settings.damageNumbers,
+                    screenShake = profile.settings.screenShake,
                     onExitToMenu = {
                         val wasCoop = sess.isCoop
                         session = null

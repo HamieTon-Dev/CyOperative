@@ -116,6 +116,9 @@ class BossBrain(private val g: GameEngine) {
             g.showBanner(st.phase.label, st.displayName, 1.4f)
             g.addPulse(e.x, e.y, 200f, 0.6f, st.def.color)
             g.sound(GameSound.BOSS_PHASE)
+            g.fx.hitStop(0.08f)
+            g.fx.flash(st.def.color, 0.28f, 0.35f)
+            g.fx.shake(6f, 0.4f)
             if (e.state == AiState.HIDDEN) e.state = AiState.MOVE
         }
 
@@ -360,14 +363,23 @@ class BossBrain(private val g: GameEngine) {
         }
     }
 
+    /** Euros for the kill before the operative's own multipliers. */
+    fun baseBounty(st: BossState): Int =
+        (st.def.euros * (1f + 0.04f * g.level) * (if (st.glitched) 1.5f else 1f)).toInt()
+
     fun onBossKilled(e: Enemy, st: BossState) {
         g.addPulse(e.x, e.y, 480f, 1.1f, st.def.color)
         g.addPulse(e.x, e.y, 260f, 0.7f, 0xFFFFFFFF)
         repeat(60) { g.addParticle(e.x, e.y, st.def.color, 360f, 1.2f, 4f) }
         g.sound(GameSound.BOSS_DEATH)
+        // The kill beat: freeze, white flash, heavy shake, then slow motion.
+        g.fx.hitStop(0.14f)
+        g.fx.flash(0xFFFFFFFF, 0.55f, 0.5f)
+        g.fx.shake(14f, 0.9f)
+        g.fx.slowMotion(1.4f, 0.3f)
         g.showBanner("BOSS ELIMINATED", st.displayName, 2f)
         val glitchMul = if (st.glitched) 1.5f else 1f
-        val euros = (st.def.euros * (1f + 0.04f * g.level) * glitchMul).toInt()
+        val euros = baseBounty(st)
         g.onBossDefeated(euros, (Scoring.boss(st.def.score, g.level, st.cycle) * glitchMul).toInt(), bonusPicks = if (st.glitched) 1 else 0)
         g.setBossRef(null)
     }

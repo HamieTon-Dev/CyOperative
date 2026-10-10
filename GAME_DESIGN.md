@@ -117,6 +117,14 @@ PANIC, EXFIL, WHITE EYE, ZOMBIE, SPOOFER, GOOD GAME (identities from CyOps TD,
 mechanics redesigned). 3 phases (100–60, 60–25, <25%). Movement: chase/hover/teleport/
 drift. Patterns: radial, aimed, spiral, charge, summon, shock ring, blasts, zones,
 teleport, beam, homing. Roster loops forever with more HP and faster patterns.
+Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
+- 12 new bosses take levels 130–240, then all 24 rotate. Nullshade Specter is also a 5% rare
+  encounter from level 150.
+- Every boss has a role, a threat tier (1–4), optional armor and named abilities, shown on the
+  threat dossier card during the entrance. The card shows the bounty: the boss € × (1 + 0.04·level)
+  × glitch × € multipliers.
+- Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
+- Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 
 ## 11. Events (data/Events.kt)
 ~14% of eligible non-boss levels (never right before a boss, never twice in a row).

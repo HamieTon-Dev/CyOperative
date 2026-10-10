@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.10.3 (versionCode 21) |
+| Version | 0.11.0 (versionCode 22) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -18,7 +18,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
   Rendering was verified with Robolectric native graphics (docs/screenshots/).
 - Release .aab is ~60 MB: the full 28-track soundtrack as Ogg Vorbis (~92 kbps, re-encoded from the MP3 masters in 0.9.6).
 - The minified (R8) release build compiles but has not been run on a device yet.
-- Bosses all draw as a rotating hexagon with their tag; unique silhouettes pending (CO-063).
+- Classic bosses still draw as a rotating hexagon; unique bodies come in Boss Expansion Stage F (CO-063). New boss bodies go through owner approval (log §6).
 - ◇ packs: debug builds grant test ◇; release shows "billing not connected" until CO-070.
 - Owner picks for power-up names/icons live in the Power-Up Board artifact db (`picks/main`).
 - Balance: a simple dodging bot with no permanent upgrades averages ~level 6 in campaign.
