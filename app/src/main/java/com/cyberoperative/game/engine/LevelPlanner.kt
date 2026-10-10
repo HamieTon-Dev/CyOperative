@@ -98,7 +98,7 @@ object LevelPlanner {
     }
 
     fun bossPlan(level: Int, rng: Random): LevelPlan {
-        val boss = rollRareBoss(level, rng) ?: Bosses.forLevel(level)
+        val boss = rollRareBoss(level, rng) ?: rollWildBoss(level, rng) ?: Bosses.forLevel(level)
         val arena = if (rng.nextBoolean()) Arenas.bossArena else Arenas.mirrored(Arenas.bossArena)
         return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss, glitchedBoss = rollGlitchedBoss(level, rng))
     }
@@ -113,6 +113,23 @@ object LevelPlanner {
         val rare = Bosses.byId(RARE_BOSS_ID) ?: return null
         if (Bosses.forLevel(level) == rare) return null
         return if (rng.nextFloat() < RARE_BOSS_CHANCE) rare else null
+    }
+
+    /**
+     * Owner, 2026-10-10: the seven Pack Alpha/Beta bosses "could spawn at any boss
+     * level". From [WILD_BOSS_FROM], each boss room has a [WILD_BOSS_CHANCE] chance
+     * to bring one of them instead of the scheduled boss (never the same one).
+     */
+    const val WILD_BOSS_FROM = 20
+    const val WILD_BOSS_CHANCE = 0.25f
+    val WILD_BOSS_IDS = listOf("pulse_bishop", "packet_reaper", "worm_queen", "glitch_forge", "botnet_monarch", "circuit_hydra", "black_ice_overlord")
+
+    fun rollWildBoss(level: Int, rng: Random): BossDef? {
+        if (level < WILD_BOSS_FROM) return null
+        if (rng.nextFloat() >= WILD_BOSS_CHANCE) return null
+        val scheduled = Bosses.forLevel(level)
+        val pool = WILD_BOSS_IDS.mapNotNull { Bosses.byId(it) }.filter { it != scheduled }
+        return if (pool.isEmpty()) null else pool[rng.nextInt(pool.size)]
     }
 
     /** Small chance (from level 20) that a boss arrives *GLITCHED*. */

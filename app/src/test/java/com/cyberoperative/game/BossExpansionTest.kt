@@ -1069,3 +1069,33 @@ class BlackIceOverlordTest : ExpansionBossHarness({ com.cyberoperative.game.data
         assertTrue(me.chill > 0f)
     }
 }
+
+class WildBossTest {
+    @Test fun sevenBossesTurnUpAtAnyBossLevel() {
+        val seen = HashSet<String>()
+        var wild = 0
+        for (seed in 0 until 400) {
+            val lvl = 20 + 10 * (seed % 10)
+            val plan = LevelPlanner.bossPlan(lvl, Random(seed.toLong()))
+            if (plan.boss != Bosses.forLevel(lvl)) { wild++; seen += plan.boss!!.id }
+        }
+        assertTrue("about a quarter are wild ($wild/400)", wild in 70..130)
+        assertTrue("all seven appear ($seen)", seen.containsAll(LevelPlanner.WILD_BOSS_IDS))
+    }
+
+    @Test fun neverAtTheFirstBoss() {
+        for (seed in 0 until 200) assertEquals(Bosses.forLevel(10), LevelPlanner.bossPlan(10, Random(seed.toLong())).boss)
+    }
+
+    @Test fun earlyWildBossIsTonedDown() {
+        val s = RunStats().apply { maxHp = 1e7f }
+        val g = GameEngine(RunConfig(baseStats = s, seed = 1L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.bossPlan(30, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.WORM_QUEEN, glitchedBoss = false))
+        g.update(1f / 60f)
+        val wildHp = g.boss!!.maxHp
+        val g2 = GameEngine(RunConfig(baseStats = s, seed = 1L, freeRevives = 0))
+        g2.debugStartPlan(LevelPlanner.bossPlan(30, Random(1)).copy(boss = Bosses.forLevel(30), glitchedBoss = false))
+        g2.update(1f / 60f)
+        assertTrue("wild ${wildHp} vs scheduled ${g2.boss!!.maxHp}", wildHp <= g2.boss!!.maxHp * 1.15f)
+    }
+}

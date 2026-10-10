@@ -92,7 +92,11 @@ class BossBrain(private val g: GameEngine) {
         e.stateTimer = INTRO_SECONDS
         val st = BossState(b, cycle)
         e.boss = st
-        e.maxHp = b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
+        // A wild expansion boss early in a run is toned down to the scheduled boss's toughness.
+        val scheduled = Bosses.forLevel(g.level)
+        val home = Bosses.firstLevelOf(b)
+        val wildScale = if (b != scheduled && home != null && g.level < home) kotlin.math.min(1f, scheduled.baseHp * 1.1f / b.baseHp) else 1f
+        e.maxHp = wildScale * b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)

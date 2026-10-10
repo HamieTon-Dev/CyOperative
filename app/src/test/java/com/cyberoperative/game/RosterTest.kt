@@ -77,7 +77,7 @@ class RosterTest {
 
         fun bossHp(glitched: Boolean): Pair<Float, String> {
             val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = 4L, freeRevives = 0))
-            val base = LevelPlanner.bossPlan(30, Random(1))
+            val base = LevelPlanner.bossPlan(30, Random(1)).copy(boss = Bosses.forLevel(30))
             g.debugStartPlan(base.copy(glitchedBoss = glitched))
             return g.boss!!.maxHp to g.boss!!.boss!!.displayName
         }
