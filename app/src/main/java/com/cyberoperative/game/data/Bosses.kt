@@ -102,7 +102,12 @@ enum class BossRole(val label: String, val color: Long) {
     CONTROLLER("CONTROLLER", 0xFFFF2D55),
     STATUS("STATUS", 0xFF7DF9FF),
     COMMANDER("COMMANDER", 0xFFFF4A6A),
-    HUNTER("HUNTER", 0xFFFF2EC4)
+    HUNTER("HUNTER", 0xFFFF2EC4),
+    // Boss Pack Gamma roles (owner sheet, 2026-10-10).
+    AMBUSHER("AMBUSHER", 0xFFFF2E9A),
+    LOCKDOWN("LOCKDOWN", 0xFFFF3B3B),
+    AREA_DENIAL("AREA DENIAL", 0xFFFF6A1A),
+    BLACKOUT_HUNTER("BLACKOUT HUNTER", 0xFFD040FF)
 }
 
 /** Threat tier skulls: 1 LOW · 2 MEDIUM · 3 HIGH · 4 EXTREME. */

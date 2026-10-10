@@ -49,8 +49,40 @@ object BossExpansion {
         abilities = listOf("Cover Deploy", "Laser Sweep", "Lockdown Cube", "Pulse Mortar")
     )
 
+    /**
+     * Rootkit Apostle (Boss Pack Gamma 01, AMBUSHER). A corrupted entity that
+     * burrows beneath the arena, erupts without warning and infects safe areas
+     * with rootkit code, forcing you to keep moving. Patterns are provisional
+     * until Burrow Drift / Spike Eruption / Infected Zone are built.
+     */
+    val ROOTKIT_APOSTLE = BossDef(
+        "rootkit_apostle", "ROOTKIT APOSTLE", "[\\/]", "Corrupted Ambusher",
+        "A corrupted entity that burrows beneath the arena, erupts without warning, and infects safe " +
+            "areas with rootkit code, forcing you to constantly relocate.",
+        0xFFFF2E9A, 76f, 2400f, 72f, 28f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.Teleport,
+                Pattern.Blasts(5, 80f, 1.1f, 24f),
+                Pattern.Zones(2, 110f, 6f, 16f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.2f, listOf(
+                Pattern.Teleport,
+                Pattern.Blasts(7, 80f, 1.0f, 24f),
+                Pattern.Radial(20, 190f, 12f, waves = 2, rotateDeg = 9f),
+                Pattern.Zones(3, 110f, 6f, 16f)
+            ), "INFECTION"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.Teleport,
+                Pattern.Blasts(9, 85f, 0.9f, 26f),
+                Pattern.Radial(24, 200f, 12f, waves = 3, rotateDeg = 8f),
+                Pattern.Zones(4, 120f, 6f, 18f)
+            ), "ROOTKIT BLOOM")
+        ), euros = 326, score = 7000, role = BossRole.AMBUSHER, tier = 3, armor = 4.2f,
+        abilities = listOf("Burrow Drift", "Spike Eruption", "Infected Zone", "Rootkit Bloom")
+    )
+
     val all: List<BossDef> = listOf(VAULT_SENTINEL)
 
     /** Every expansion boss defined so far, built or not (design renders). */
-    val designed: List<BossDef> = listOf(VAULT_SENTINEL)
+    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)
 }

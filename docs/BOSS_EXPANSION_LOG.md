@@ -230,6 +230,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Boss | Sent | Status | Owner notes |
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
+| Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*.png`) | ⏳ body waiting | |
 
 ---
 
@@ -256,3 +257,4 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - 2026-10-10 — Owner sent **Boss Pack Gamma** (Rootkit Apostle, Ransom King, Spectral Firewall,
   Nullshade Specter). §2 now has the sheet's stats and abilities, and the quality bar is at the top.
   Vault Sentinel is final.
+- 2026-10-10 — Rootkit Apostle body drawn (radius 76, black orb, magenta crystal crown, mask eye, infected floor bloom) and sent for approval. Its def is in `designed` only; mechanics come next.

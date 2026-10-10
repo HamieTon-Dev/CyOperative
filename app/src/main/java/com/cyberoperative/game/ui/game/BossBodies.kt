@@ -53,7 +53,8 @@ fun interface BossBody {
  */
 object BossBodies {
     private val bodies: Map<String, BossBody> = mapOf(
-        "vault_sentinel" to VaultSentinelBody
+        "vault_sentinel" to VaultSentinelBody,
+        "rootkit_apostle" to RootkitApostleBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]
