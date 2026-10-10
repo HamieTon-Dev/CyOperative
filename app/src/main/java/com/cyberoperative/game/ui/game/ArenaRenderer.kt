@@ -977,7 +977,8 @@ class ArenaRenderer {
             drawCircle(Color(elite.color).copy(alpha = 0.15f + 0.15f * p), e.radius * 1.55f, Offset(cx, cy))
             drawCircle(Color(elite.color).copy(alpha = 0.85f), e.radius * 1.3f, Offset(cx, cy), style = Stroke(2.5f))
         }
-        if (boss != null) drawCircle(base.copy(alpha = 0.14f + 0.08f * sin(time * 3f)), e.radius * 1.7f, Offset(cx, cy))
+        // Stealth bosses (Nullshade) bring their own light; no hard aura disc behind them.
+        if (boss != null && !boss.def.stealth) drawCircle(base.copy(alpha = 0.14f + 0.08f * sin(time * 3f)), e.radius * 1.7f, Offset(cx, cy))
         val customBody = boss?.let { BossBodies.forId(it.def.id) }
         if (boss != null && customBody != null) {
             val pose = BossPose(

@@ -231,7 +231,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
-| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ⏳ body waiting | |
+| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ⏳ revision 2 sent (traced from owner reference `boss-concepts/nullshade_reference_owner.webp`) | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 
 ---
 
@@ -278,3 +278,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - New `BossPose.veiled` for its shadow state (only glints show). The design sheet and GIF show the
     shadow state for stealth bosses.
   - Def: L240, EXTREME, base €435, `stealth = true`, provisional patterns; in `designed` only.
+- 2026-10-10 — Nullshade revision 2, traced from the owner's reference image.
+  - Faceted hood with no outlines; a pitch-black face.
+  - Big, sharp blade eyes with a faint glow; they blink every 3.6 s and cast faint red light.
+  - The body is a voxel-block cloud with magenta light between the blocks, plus a clawed hand,
+    a floor energy ring and no aura disc.
