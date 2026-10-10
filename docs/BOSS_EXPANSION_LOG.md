@@ -116,7 +116,7 @@ Sheet notes: 4 unique bosses · distinct mechanics · new arena hazards · highe
 | | | Lock Grid | ✅ padlocked cubes rise and seal sections of the arena (reuses the Vault Sentinel barrier cubes, with a padlock look) | S6 ✅ |
 | | | Royal Seizure | ⚠️ "seizing attacks — poor positioning leads to confinement": a telegraphed crown slam; anyone caught is SEIZED (rooted ~1 s) inside a cube cage with one side open | S7 + S6 |
 | | | Ransom Pulse | ✅ pulsing lock-rings expand from him (the ENCRYPTED movement penalty folds in here: rings tag you, then moving while tagged charges a burst) | S7 |
-| **Spectral Firewall** (AREA DENIAL) | 1,700 / 5 / 31 / 18 / €15,225 | Firewall Ring | ✅ rotating ring of flame-wall segments with gaps | new: ring hazard |
+| **Spectral Firewall** (AREA DENIAL) | 1,700 / 5 / 31 / 18 / €15,225 | Firewall Ring | ✅ **Owner spec (2026-10-10):** "painful barriers that emerge from the boss and push outward all the way to the walls. Can set the player on fire if they touch them and punish inefficient or poorly planned movement." A ring of flame-wall segments with gaps expands from the boss to the arena walls; touching it sets you ON FIRE (burn over time) | new: expanding wall ring + BURNING status |
 | | | Burn Sector | ✅ a pie slice of the arena ignites after a warning-triangle telegraph | new: sector hazard |
 | | | Heat Collapse | ✅ the ring shrinks toward him and the safe space closes in, then resets | ring hazard |
 | | | Purge Spin | ✅ spinning flame spiral / rotating flame arms | S2 |
@@ -233,6 +233,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
 | Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
+| Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ⏳ body waiting | Owner card: `boss-concepts/spectral_firewall_card.webp` |
 
 ---
 
@@ -317,3 +318,9 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Lock Grid never leaves a moving operative inside a cube.
   - The cage leaves a way out at the top edge, all corners, the side walls, the middle and beside a
     block (flood-fill reach > 260²). Corners need only 4 cubes, edges 8, open floor 15.
+- 2026-10-10 — Owner: "start on Spectral Firewall" (sent a clearer card).
+  - Body drawn and sent: dark armoured spiked sphere, red-white core eye, a rotating ring of curved
+    burning firewall slabs with gaps (6/7/8 of 9 by phase), heat glow and embers.
+  - Def: slot 10 (L230), AREA DENIAL, HIGH, base €380, DRIFT; provisional patterns; `designed` only.
+  - Owner spec for the attacks: the Firewall Ring emerges from the boss and pushes out to the walls,
+    and touching it sets you on fire (log §2).

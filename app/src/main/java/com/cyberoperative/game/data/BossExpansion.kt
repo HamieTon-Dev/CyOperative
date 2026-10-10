@@ -156,6 +156,36 @@ object BossExpansion {
     )
 
     /**
+     * Spectral Firewall (Boss Pack Gamma 03, AREA DENIAL). A rotating firewall
+     * boss that constricts the arena with searing flame walls and heat zones,
+     * steadily shrinking safe space until only a small area remains. Patterns
+     * are provisional until Firewall Ring / Burn Sector / Heat Collapse /
+     * Purge Spin are built.
+     */
+    val SPECTRAL_FIREWALL = BossDef(
+        "spectral_firewall", "SPECTRAL FIREWALL", "[(#)]", "Rotating Firewall",
+        "A rotating firewall boss that constricts the arena with searing flame walls and heat zones, " +
+            "steadily shrinking safe space until only a small area remains.",
+        0xFFFF5A1F, 74f, 2720f, 60f, 31f, BossMove.DRIFT, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.ShockRing(380f, 220f, 26f),
+                Pattern.Spiral(3, 2.6f, 10f, 100f, 190f, 12f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.2f, listOf(
+                Pattern.Zones(3, 110f, 6f, 18f),
+                Pattern.ShockRing(400f, 230f, 26f),
+                Pattern.Spiral(4, 3f, 12f, -110f, 200f, 12f)
+            ), "HEAT RISING"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.Zones(4, 115f, 6f, 20f),
+                Pattern.ShockRing(420f, 250f, 28f),
+                Pattern.Spiral(5, 3.4f, 14f, 120f, 210f, 13f)
+            ), "MELTDOWN")
+        ), euros = 380, score = 8500, role = BossRole.AREA_DENIAL, tier = 3, armor = 5.4f,
+        abilities = listOf("Firewall Ring", "Burn Sector", "Heat Collapse", "Purge Spin")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -171,5 +201,5 @@ object BossExpansion {
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }
 
     /** Every expansion boss defined so far, built or not (design renders). */
-    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER, RANSOM_KING)
+    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER, RANSOM_KING, SPECTRAL_FIREWALL)
 }
