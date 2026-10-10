@@ -270,8 +270,17 @@ object Enemies {
         xp = 1f, euros = 1, score = 8, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
     )
 
+    /** Circuit Hydra's extra beam head; hits on it drain the hydra's shared HP bar. */
+    val HYDRA_HEAD = EnemyDef(
+        id = "hydra_head", name = "HYDRA HEAD", tag = "Θ",
+        codex = "A beam head split off the Circuit Hydra. Damage dealt to it hurts the hydra itself.",
+        shape = ShapeKind.CIRCLE, color = 0xFFFF4A2A, radius = 30f,
+        baseHp = 60f, baseSpeed = 0f, contactDamage = 14f, ai = AiKind.CHASER,
+        xp = 0f, euros = 0, score = 0, minLevel = 999, weight = 0f
+    )
+
     /** Expansion adds, appended last so existing indices (co-op wire, saves) never shift. */
-    val expansion: List<EnemyDef> = listOf(SWARMLING, HOLO_CLONE, ORBIT_DRONE)
+    val expansion: List<EnemyDef> = listOf(SWARMLING, HOLO_CLONE, ORBIT_DRONE, HYDRA_HEAD)
 
     val all: List<EnemyDef> = originals + glitched + EnemyVariants.all + expansion
 

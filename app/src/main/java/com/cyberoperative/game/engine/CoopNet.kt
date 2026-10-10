@@ -70,6 +70,8 @@ class CoopWorld {
     var bossRingOut = false
     /** Sync Burst charge (v8). */
     var bossSync = 0f
+    /** Serpent body points (v9). */
+    var bossTrail = FloatArray(0)
 }
 
 class NetOp {
@@ -264,6 +266,8 @@ object CoopCodec {
             o.writeByte((w.bossShield + 1f).toInt().coerceIn(0, 2))
             o.ang(w.bossRingAngle); o.writeByte((w.bossRingFilled + 1).coerceIn(0, 255)); o.writeByte(if (w.bossRingOut) 1 else 0)
             o.writeByte((w.bossSync * 255f).toInt().coerceIn(0, 255))
+            o.writeByte(w.bossTrail.size / 2)
+            for (v in w.bossTrail) o.pos(v)
         }
         return bytes.toByteArray()
     }
@@ -366,6 +370,7 @@ object CoopCodec {
             w.bossShield = i.readUnsignedByte() - 1f
             w.bossRingAngle = i.ang(); w.bossRingFilled = i.readUnsignedByte() - 1; w.bossRingOut = i.readUnsignedByte() == 1
             w.bossSync = i.readUnsignedByte() / 255f
+            w.bossTrail = FloatArray(i.readUnsignedByte() * 2) { i.pos() }
             w
         }
     } catch (_: Exception) {
@@ -395,5 +400,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 8
+    const val VERSION = 9
 }

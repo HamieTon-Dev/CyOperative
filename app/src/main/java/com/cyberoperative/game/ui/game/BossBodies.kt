@@ -42,7 +42,9 @@ class BossPose(
     /** Spectral Firewall's orbiting ring: angle, plates filled (-1 = preview, use time), launched. */
     val ring: Float = 0f,
     val ringFilled: Int = -1,
-    val ringOut: Boolean = false
+    val ringOut: Boolean = false,
+    /** Serpent body points already lifted to body height (Circuit Hydra), head first. */
+    val trail: FloatArray = FloatArray(0)
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color
@@ -76,7 +78,8 @@ object BossBodies {
         "packet_reaper" to PacketReaperBody,
         "worm_queen" to WormQueenBody,
         "glitch_forge" to GlitchForgeBody,
-        "botnet_monarch" to BotnetMonarchBody
+        "botnet_monarch" to BotnetMonarchBody,
+        "circuit_hydra" to CircuitHydraBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]

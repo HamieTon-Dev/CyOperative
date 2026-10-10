@@ -220,7 +220,9 @@ enum class HazardKind {
      */
     TILE,
     /** Orbital strike: a BLAST with a sky beam coming down onto the marker. */
-    ORBITAL
+    ORBITAL,
+    /** Hydra coil: like FIRE_WALL (ring around the operative closing in, with gaps) but no burn. */
+    COIL
 }
 
 class Hazard {

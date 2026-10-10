@@ -352,6 +352,36 @@ object BossExpansion {
     )
 
     /**
+     * Circuit Hydra (Boss Pack Alpha 03, AREA CONTROL, "splits, beams, dominates
+     * space"). A multi-core serpent that splits into beam heads, filling the
+     * arena with overlapping fire lanes.
+     */
+    val CIRCUIT_HYDRA = BossDef(
+        "circuit_hydra", "CIRCUIT HYDRA", "[Θ~]", "Multi-Core Serpent",
+        "A multi-core serpent that splits into beam heads, filling the arena with overlapping fire lanes.",
+        0xFFFF4A2A, 66f, 2720f, 72f, 30f, BossMove.DRIFT, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.BeamArc(3, 1.0f, 1.8f, 50f, 40f, 24f),
+                Pattern.SegmentBurst(6, 190f, 13f),
+                Pattern.CoilCrush(280f, 70f, 110f, 28f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.2f, listOf(
+                Pattern.SplitHeads(1),
+                Pattern.BeamArc(3, 0.9f, 2.0f, 60f, 45f, 25f),
+                Pattern.SegmentBurst(7, 200f, 14f),
+                Pattern.CoilCrush(290f, 70f, 120f, 29f)
+            ), "SPLIT"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.SplitHeads(2),
+                Pattern.BeamArc(4, 0.85f, 2.2f, 70f, 50f, 26f),
+                Pattern.SegmentBurst(8, 210f, 15f),
+                Pattern.CoilCrush(300f, 70f, 130f, 30f)
+            ), "HYDRA STORM")
+        ), euros = 362, score = 8000, role = BossRole.AREA_CONTROL, tier = 3, armor = 4.2f,
+        abilities = listOf("Split Heads", "Beam Arc", "Segment Burst", "Coil Crush"), segments = 10
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -361,7 +391,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, BOTNET_MONARCH, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, BOTNET_MONARCH, CIRCUIT_HYDRA, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }

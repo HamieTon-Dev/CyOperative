@@ -232,8 +232,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] C1 S6 dynamic cover + shots from blocks
 - [x] C2 Vault Sentinel (body, 3 phases, 4 abilities)
 - [x] C3 Packet Reaper (v0.11.8, autonomous)
-- [ ] C4 S8 multi-part bodies
-- [ ] C5 Circuit Hydra
+- [x] C4 S8 multi-part bodies (bossTrail chain, hydra_head shares HP)
+- [x] C5 Circuit Hydra (v0.11.12, autonomous)
 - [x] C6 S9 eggs + minion buffs (HazardKind.EGG, Enemy.hasteTimer)
 - [x] C7 Worm Queen (v0.11.9, autonomous)
 - [ ] C8 Renders + reference page update + bot-beatable tests
@@ -278,6 +278,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
 | Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 | Botnet Monarch | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
+| Circuit Hydra | 2026-10-10 | 🤖 built autonomously | card: circuit_hydra_card.png |
 
 ---
 
@@ -412,3 +413,9 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Patterns DroneRing, OrbitalBarrage (HazardKind.ORBITAL) and SyncBurst (`GameEngine.bossSync`,
     wire v8).
   - Tests: BotnetMonarchTest.
+- 2026-10-10 — v0.11.12 (34): Circuit Hydra (autonomous).
+  - `BossDef.segments`; `GameEngine.bossTrail` is a chain at SEGMENT_GAP 52 (wire v9).
+  - Enemy HYDRA_HEAD: damage redirects to the boss.
+  - Patterns SplitHeads, BeamArc, SegmentBurst and CoilCrush (HazardKind.COIL, FIRE_WALL logic
+    without burn).
+  - Tests: CircuitHydraTest.

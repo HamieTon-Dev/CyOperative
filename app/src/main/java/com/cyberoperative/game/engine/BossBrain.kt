@@ -143,6 +143,7 @@ class BossBrain(private val g: GameEngine) {
         if (st.def.keyShield) ransomShield(e, st, dt)
         if (st.def.firewallRing) firewallRing(e, st, dt)
         updateOrbiters(e, st, dt)
+        if (st.def.segments > 0) updateSerpent(e, st, dt)
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash || st.active is Pattern.DashSlash || st.active is Pattern.BacklineDive) && st.chargeStage >= 1
         val teleporting = st.active is Pattern.Teleport
@@ -211,6 +212,39 @@ class BossBrain(private val g: GameEngine) {
         }
         e.damageTakenMul = if (st.shieldUp) SHIELD_DAMAGE_MUL else DECRYPTED_DAMAGE_MUL
         g.bossShield = if (st.shieldUp) 1f else 0f
+    }
+
+    /**
+     * Circuit Hydra: the body is a chain of points following the head at fixed
+     * spacing; split heads sit on necks off the body, swaying, facing you.
+     */
+    private fun updateSerpent(e: Enemy, st: BossState, dt: Float) {
+        val n = st.def.segments
+        if (g.bossTrail.size != n * 2) {
+            g.bossTrail = FloatArray(n * 2) { k -> if (k % 2 == 0) e.x else e.y + (k / 2) * SEGMENT_GAP }
+        }
+        val tr = g.bossTrail
+        tr[0] = e.x; tr[1] = e.y
+        for (k in 1 until n) {
+            val dx = tr[k * 2] - tr[k * 2 - 2]; val dy = tr[k * 2 + 1] - tr[k * 2 - 1]
+            val d = kotlin.math.sqrt(dx * dx + dy * dy)
+            if (d > SEGMENT_GAP) {
+                tr[k * 2] = tr[k * 2 - 2] + dx / d * SEGMENT_GAP
+                tr[k * 2 + 1] = tr[k * 2 - 1] + dy / d * SEGMENT_GAP
+            }
+        }
+        // Split heads hang off segments 3 and 6, swaying out to the sides.
+        var k = 0
+        for (m in g.enemies.items) {
+            if (!m.active || m.def.id != "hydra_head") continue
+            val seg = (3 + k * 3).coerceAtMost(n - 1)
+            val sx = tr[seg * 2]; val sy = tr[seg * 2 + 1]
+            val side = if (k % 2 == 0) 1f else -1f
+            val a = atan2(g.py - sy, g.px - sx) + side * (1.0f + 0.25f * sin(st.patternTime + k))
+            m.x = MathUtil.clamp(sx + cos(a) * 120f, m.radius, g.arena.width - m.radius)
+            m.y = MathUtil.clamp(sy + sin(a) * 120f, m.radius, g.arena.height - m.radius)
+            k++
+        }
     }
 
     /** Ring drones ride evenly spaced slots around the boss (they still aim and shoot on their own). */
@@ -536,6 +570,44 @@ class BossBrain(private val g: GameEngine) {
                 g.addPulse(e.x, e.y, e.radius * 2.4f, 0.5f, st.def.color)
             }
             is Pattern.OrbitalBarrage, is Pattern.SyncBurst -> {}
+            is Pattern.SplitHeads -> {
+                val have = g.enemies.items.count { it.active && it.def.id == "hydra_head" }
+                val def = Enemies.byId("hydra_head")
+                for (k in have until p.heads) {
+                    val h = g.spawnEnemyAt(def, null, e.x, e.y + 60f, telegraph = true) ?: continue
+                    h.isChild = true
+                }
+                g.addPulse(e.x, e.y, e.radius * 2.5f, 0.5f, st.def.color)
+                g.fx.shake(6f, 0.3f)
+                g.showBanner("SPLIT HEADS", "Every head drains the same HP bar", 1.0f)
+            }
+            is Pattern.BeamArc -> {
+                val heads = listOf(e) + g.enemies.items.filter { it.active && it.def.id == "hydra_head" }
+                val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat()
+                val fan = Math.toRadians(p.fanDeg.toDouble()).toFloat()
+                for ((hi, h) in heads.withIndex()) {
+                    val aim = atan2(g.py - h.y, g.px - h.x)
+                    val dir = if (hi % 2 == 0) 1f else -1f
+                    for (k in 0 until p.count) {
+                        val t = if (p.count == 1) 0f else k / (p.count - 1f) - 0.5f
+                        g.addSweep(h.x, h.y, aim + t * fan - dir * sweep / 2f, dir * sweep, 22f, p.windup, p.duration, p.damage * e.damageMul, st.def.color, h.uid)
+                    }
+                }
+            }
+            is Pattern.SegmentBurst -> {
+                val tr = g.bossTrail
+                var k = 1
+                while (k * 2 < tr.size) {
+                    val off = g.rng.nextFloat()
+                    for (j in 0 until p.perSegment) g.fireEnemyProjectile(tr[k * 2], tr[k * 2 + 1], MathUtil.TWO_PI * (j + off) / p.perSegment, p.speed, p.damage * e.damageMul, 7f, ProjKind.BOSS)
+                    g.addPulse(tr[k * 2], tr[k * 2 + 1], 40f, 0.3f, st.def.color)
+                    k += 2
+                }
+            }
+            is Pattern.CoilCrush -> {
+                g.addFireWall(g.px, g.py, p.from, p.to, p.speed, p.gaps, atan2(e.y - g.py, e.x - g.px) + MathUtil.PI, 0.42f, p.damage * e.damageMul, st.def.color, e.uid, kind = HazardKind.COIL)
+                g.showBanner("COIL CRUSH", "Find the gap", 0.9f)
+            }
             is Pattern.CorruptFloor -> {
                 // Snap to the floor grid around the operative; alternate cells corrupt (parity flips each cast).
                 val c = p.cell
@@ -1138,6 +1210,10 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.DashSlash -> return runDashSlash(e, st, p, dt)
             is Pattern.SwarmHatch -> return st.patternTime >= 0.6f
             is Pattern.DroneRing -> return st.patternTime >= 0.6f
+            is Pattern.SplitHeads -> return st.patternTime >= 0.6f
+            is Pattern.BeamArc -> return st.patternTime >= p.windup + p.duration
+            is Pattern.SegmentBurst -> return st.patternTime >= 0.4f
+            is Pattern.CoilCrush -> return st.patternTime >= (p.from - p.to) / p.speed
             is Pattern.OrbitalBarrage -> {
                 st.subTimer -= dt
                 if (st.subTimer <= 0f && st.counter < p.volleys) {
@@ -1360,6 +1436,8 @@ class BossBrain(private val g: GameEngine) {
         const val DECRYPT_SECONDS = 6f
         /** Share of each ring slot a plate covers (the rest is a sliver gap). Matches the body drawing. */
         const val PLATE_SPAN = 0.78f
+        /** Distance between Circuit Hydra's body segments. */
+        const val SEGMENT_GAP = 52f
         /** Vertical squash of the ring's perspective ellipse (matches BossBodySpectralFirewall). */
         const val RING_SQUASH = 0.36f
         private val SIDE_X = floatArrayOf(1f, 0f, -1f, 0f)

@@ -326,6 +326,13 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk4_sync_linking", listOf(Pattern.DroneRing(8) to 1.2f, Pattern.SyncBurst(1.2f, 3, 300f, 18f) to 0.9f)),
                 AttackShot("atk5_sync_burst", listOf(Pattern.DroneRing(8) to 1.2f, Pattern.SyncBurst(0.8f, 3, 300f, 18f) to 1.0f))
             ),
+            "circuit_hydra" to listOf(
+                AttackShot("atk1_beam_arc", listOf(Pattern.BeamArc(3, 1.0f, 1.8f, 50f, 40f, 24f) to 1.6f)),
+                AttackShot("atk2_split_heads", listOf(Pattern.SplitHeads(2) to 1.6f)),
+                AttackShot("atk3_beam_arc_heads", listOf(Pattern.SplitHeads(2) to 1.5f, Pattern.BeamArc(4, 0.85f, 2.2f, 70f, 50f, 26f) to 1.5f)),
+                AttackShot("atk4_segment_burst", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.5f)),
+                AttackShot("atk5_coil_crush", listOf(Pattern.CoilCrush(300f, 70f, 130f, 30f) to 0.9f))
+            ),
             "spectral_firewall" to listOf(
                 AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
                 AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),

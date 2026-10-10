@@ -993,6 +993,7 @@ class ArenaRenderer {
         }
         val boss = e.boss
         if (e.def.id == "holo_clone") { drawHoloClone(e, time); return }
+        if (e.def.id == "hydra_head") { drawHydraHead(g, e, time); return }
         val lift = (if (boss != null) 18f else 12f) + sin(time * 4f + e.uid) * 2.5f
         val cx = e.x
         val cy = e.y - lift
@@ -1012,7 +1013,8 @@ class ArenaRenderer {
                 kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch,
                 veiled = if (boss.def.stealth) g.bossVeil else 0f,
                 shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else 0f,
-                ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut
+                ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut,
+                trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0)
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1126,6 +1128,28 @@ class ArenaRenderer {
                 val x = c.x + (i - 1.5f) * r * 0.5f
                 drawRect(base.copy(alpha = 1f - t), Offset(x, c.y - r - t * r * 1.2f), Size(r * 0.18f, r * 0.18f))
             }
+        }
+    }
+
+    /** Circuit Hydra's split head: a neck of segments back to the body and a beam head. */
+    private fun DrawScope.drawHydraHead(g: GameEngine, e: Enemy, time: Float) {
+        val red = Color(0xFFFF4A2A)
+        val tr = g.bossTrail
+        val lift = 18f
+        // Nearest body segment is where the neck attaches.
+        var bi = -1; var bd = Float.MAX_VALUE
+        var k = 0
+        while (k * 2 < tr.size) {
+            val d = (tr[k * 2] - e.x) * (tr[k * 2] - e.x) + (tr[k * 2 + 1] - e.y) * (tr[k * 2 + 1] - e.y)
+            if (d < bd) { bd = d; bi = k }
+            k++
+        }
+        with(CircuitHydraBody) {
+            if (bi >= 0) for (j in 1..3) {
+                val q = j / 4f
+                segment(tr[bi * 2] + (e.x - tr[bi * 2]) * q, tr[bi * 2 + 1] + (e.y - tr[bi * 2 + 1]) * q - lift, e.radius * 0.45f, red, 0.6f, false)
+            }
+            head(e.x, e.y - lift, e.radius, red, kotlin.math.atan2(g.py - e.y, g.px - e.x), false, e.hitFlash > 0f, time)
         }
     }
 
@@ -1943,6 +1967,17 @@ class ArenaRenderer {
             val col = Color(h.color)
             when (h.kind) {
                 HazardKind.FIRE_WALL -> drawFireWall(g, h, time)
+                HazardKind.COIL -> {
+                    // The hydra's body wrapped around you: armoured spheres on the ring, the gap left open.
+                    val n = ((6.2832f * h.radius) / 40f).toInt().coerceAtLeast(8)
+                    with(CircuitHydraBody) {
+                        for (k in 0 until n) {
+                            val a = 6.2832f * k / n
+                            if (g.inFireGap(h, a)) continue
+                            segment(h.x + cos(a) * h.radius, h.y + sin(a) * h.radius - 14f, 20f, col, 0.5f + 0.5f * sin(time * 6f + k), false)
+                        }
+                    }
+                }
                 HazardKind.SLASH -> {
                     // A bright crescent swipe that fades out.
                     val f = 1f - (h.timer / h.duration).coerceIn(0f, 1f)

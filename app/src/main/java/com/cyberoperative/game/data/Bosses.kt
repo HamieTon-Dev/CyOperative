@@ -193,6 +193,18 @@ sealed class Pattern {
     /** Sync Burst: the ring drones link up for [windup] s, then all fire [shots] at once. */
     data class SyncBurst(val windup: Float, val shots: Int, val speed: Float, val damage: Float) : Pattern()
 
+    /** Split Heads: grows [heads] extra beam heads on necks off its body (they share its HP). */
+    data class SplitHeads(val heads: Int) : Pattern()
+
+    /** Beam Arc: every head sweeps a fan of [count] beams across [sweepDeg]. */
+    data class BeamArc(val count: Int, val windup: Float, val duration: Float, val sweepDeg: Float, val fanDeg: Float, val damage: Float) : Pattern()
+
+    /** Segment Burst: each body segment fires a ring of [perSegment] shots. */
+    data class SegmentBurst(val perSegment: Int, val speed: Float, val damage: Float) : Pattern()
+
+    /** Coil Crush: its body coils around you at [from] and tightens to [to]; slip out through the gap. */
+    data class CoilCrush(val from: Float, val to: Float, val speed: Float, val damage: Float, val gaps: Int = 1) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -254,6 +266,8 @@ data class BossDef(
     val tier: Int = 2,
     /** Flat damage removed from each hit (scaled with level like enemy armor). */
     val armor: Float = 0f,
+    /** Serpent body: [segments] trail behind the head (Circuit Hydra). */
+    val segments: Int = 0,
     /** Hidden between eye windows; only targetable while visible (Nullshade). */
     val stealth: Boolean = false,
     /** Named signature abilities for the dossier card and codex; derived from the patterns when empty. */
@@ -318,6 +332,10 @@ val Pattern.displayName: String
         is Pattern.DroneRing -> "Drone Ring"
         is Pattern.OrbitalBarrage -> "Orbital Barrage"
         is Pattern.SyncBurst -> "Sync Burst"
+        is Pattern.SplitHeads -> "Split Heads"
+        is Pattern.BeamArc -> "Beam Arc"
+        is Pattern.SegmentBurst -> "Segment Burst"
+        is Pattern.CoilCrush -> "Coil Crush"
     }
 
 object Bosses {

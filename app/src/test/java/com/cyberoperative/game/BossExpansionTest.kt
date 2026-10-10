@@ -947,3 +947,64 @@ class BotnetMonarchTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bo
         assertTrue(me.hp < hp)
     }
 }
+
+class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.CIRCUIT_HYDRA }, 200) {
+    @Test fun bodyFollowsTheHead() {
+        val g = fight()
+        run(g, 2f)
+        assertEquals(20, g.bossTrail.size)
+        for (k in 1 until 10) {
+            val d = kotlin.math.hypot(g.bossTrail[k * 2] - g.bossTrail[k * 2 - 2], g.bossTrail[k * 2 + 1] - g.bossTrail[k * 2 - 1])
+            assertTrue("segment $k spacing $d", d <= BossBrain.SEGMENT_GAP + 0.5f)
+        }
+    }
+
+    @Test fun splitHeadsShareTheHpBar() {
+        val g = fight()
+        val b = g.boss!!
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SplitHeads(2))
+        run(g, 1.2f)
+        val heads = g.enemies.items.filter { it.active && it.def.id == "hydra_head" }
+        assertEquals(2, heads.size)
+        val hp = b.hp
+        g.damageEnemy(heads[0], 100f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("hit on a head drains the hydra", b.hp < hp)
+        assertTrue("head itself is untouched", heads[0].active)
+    }
+
+    @Test fun beamArcFromEveryHead() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SplitHeads(2))
+        run(g, 1.2f)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BeamArc(3, 0.8f, 1.5f, 50f, 40f, 20f))
+        assertEquals(9, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
+    }
+
+    @Test fun coilClosesInWithAGap() {
+        val g = fight()
+        val me = g.operatives[0]
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CoilCrush(280f, 70f, 110f, 20f))
+        val coil = hazards(g, com.cyberoperative.game.engine.HazardKind.COIL).single()
+        val r0 = coil.radius
+        run(g, 1f)
+        assertTrue(coil.radius < r0 && coil.y2.toInt() == 1)
+        // Walking out through the gap gets you clear.
+        val gap = coil.x2 / 1000f
+        me.invuln = 0f
+        val hp = me.hp
+        var t = 0f
+        while (t < 1.4f) {
+            val a = coil.x2 / 1000f
+            run(g, 0.05f, kotlin.math.cos(a) to kotlin.math.sin(a)); t += 0.05f
+        }
+        assertEquals("slipped out through the gap", hp, me.hp, 0.01f)
+    }
+
+    @Test fun segmentBurstFiresFromTheBody() {
+        val g = fight()
+        run(g, 1.5f)
+        for (p in g.projectiles.items) p.active = false
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.SegmentBurst(6, 190f, 10f))
+        assertTrue(g.projectiles.items.count { it.active && !it.friendly } >= 24)
+    }
+}

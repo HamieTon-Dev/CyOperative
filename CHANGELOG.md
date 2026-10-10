@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.12 (versionCode 34) — 2026-10-10 · Circuit Hydra
+### Added
+- **Circuit Hydra** (Boss Pack Alpha) is the **level 200** boss: AREA CONTROL, threat HIGH, base
+  bounty €362. Its body is a real serpent: a chain of dark crimson armoured spheres with glowing core
+  rings that snakes after its beam head as it sweeps the arena.
+  - **Split Heads:** extra beam heads sprout on necks off its body, one in phase 2 and two in phase 3.
+    Every head drains the same HP bar, so shoot whichever head you can reach.
+  - **Beam Arc:** every head sweeps a fan of beams, filling the arena with crossing fire lanes.
+  - **Segment Burst:** its body segments fire rings of shots.
+  - **Coil Crush:** its body coils around you and tightens. Slip out through the gap.
+  - **Phases:** PHASE 1 → SPLIT → HYDRA STORM.
+- Co-op wire v9 (the serpent body is synced).
+
 ## 0.11.11 (versionCode 33) — 2026-10-10 · Botnet Monarch
 ### Added
 - **Botnet Monarch** (Boss Pack Beta) is the **level 190** boss: COMMANDER, threat HIGH, base bounty
