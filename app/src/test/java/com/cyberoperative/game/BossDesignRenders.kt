@@ -297,6 +297,14 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk5_convergence_pull", listOf(Pattern.ConvergenceFlash(1.4f, 170f, 210f, 36f) to 0.8f)),
                 AttackShot("atk6_convergence_flash", listOf(Pattern.ConvergenceFlash(0.6f, 170f, 210f, 36f) to 0.68f))
             ),
+            "packet_reaper" to listOf(
+                AttackShot("atk1_dash_slash_telegraph", listOf(Pattern.DashSlash(0.6f, 820f, 520f, 32f) to 0.4f)),
+                AttackShot("atk2_dash_slash", listOf(Pattern.DashSlash(0.5f, 820f, 520f, 32f) to 1.15f)),
+                AttackShot("atk3_trail_burst", listOf(Pattern.DashSlash(0.4f, 860f, 560f, 33f, trail = true) to 1.1f)),
+                AttackShot("atk4_packet_scythes", listOf(Pattern.Scythes(4, 420f, 1.5f, 23f, spreadDeg = 90f) to 0.6f)),
+                AttackShot("atk5_backline_dive_marked", listOf(Pattern.BacklineDive(0.75f, 900f, 32f) to 0.45f)),
+                AttackShot("atk6_backline_dive", listOf(Pattern.BacklineDive(0.55f, 900f, 32f) to 0.75f))
+            ),
             "spectral_firewall" to listOf(
                 AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
                 AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),

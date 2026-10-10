@@ -1849,6 +1849,29 @@ class ArenaRenderer {
             val col = Color(h.color)
             when (h.kind) {
                 HazardKind.FIRE_WALL -> drawFireWall(g, h, time)
+                HazardKind.SLASH -> {
+                    // A bright crescent swipe that fades out.
+                    val f = 1f - (h.timer / h.duration).coerceIn(0f, 1f)
+                    val start = Math.toDegrees((h.angle - com.cyberoperative.game.engine.GameEngine.SLASH_HALF_ARC).toDouble()).toFloat()
+                    val sweep = Math.toDegrees((com.cyberoperative.game.engine.GameEngine.SLASH_HALF_ARC * 2f).toDouble()).toFloat()
+                    val rr = h.radius
+                    drawArc(col.copy(alpha = 0.35f * f), start, sweep, false, Offset(h.x - rr, h.y - rr), Size(rr * 2f, rr * 2f), style = Stroke(34f))
+                    drawArc(col.copy(alpha = 0.9f * f), start, sweep, false, Offset(h.x - rr * 0.9f, h.y - rr * 0.9f), Size(rr * 1.8f, rr * 1.8f), style = Stroke(12f))
+                    drawArc(Color.White.copy(alpha = f), start, sweep, false, Offset(h.x - rr * 0.9f, h.y - rr * 0.9f), Size(rr * 1.8f, rr * 1.8f), style = Stroke(3f))
+                }
+                HazardKind.SCYTHE -> {
+                    // Spinning packet scythe with a fading trail.
+                    val c = Offset(h.x2, h.y2 - 18f)
+                    val spin = h.timer * 14f
+                    drawCircle(col.copy(alpha = 0.22f), 44f, c)
+                    for (k in 0 until 2) {
+                        val a = spin + k * MathUtil.PI
+                        drawArc(col.copy(alpha = 0.4f), Math.toDegrees(a.toDouble()).toFloat(), 130f, false, Offset(c.x - 34f, c.y - 34f), Size(68f, 68f), style = Stroke(16f))
+                        drawArc(col, Math.toDegrees(a.toDouble()).toFloat(), 130f, false, Offset(c.x - 34f, c.y - 34f), Size(68f, 68f), style = Stroke(9f))
+                        drawArc(Color.White.copy(alpha = 0.9f), Math.toDegrees(a.toDouble()).toFloat(), 130f, false, Offset(c.x - 34f, c.y - 34f), Size(68f, 68f), style = Stroke(2.5f))
+                    }
+                    drawCircle(Color.White, 5f, c)
+                }
                 HazardKind.RANSOM_RING -> {
                     // A ring of red lock-light with padlocks riding it.
                     drawCircle(col.copy(alpha = 0.75f), h.radius, Offset(h.x, h.y), style = Stroke(GameEngine.RING_THICKNESS * 1.2f))

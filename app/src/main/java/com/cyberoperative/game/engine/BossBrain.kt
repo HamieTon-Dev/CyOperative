@@ -141,10 +141,11 @@ class BossBrain(private val g: GameEngine) {
         if (st.def.keyShield) ransomShield(e, st, dt)
         if (st.def.firewallRing) firewallRing(e, st, dt)
 
-        val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash) && st.chargeStage == 1
+        val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash || st.active is Pattern.DashSlash || st.active is Pattern.BacklineDive) && st.chargeStage >= 1
         val teleporting = st.active is Pattern.Teleport
         if (!dashing && !teleporting && st.active !is Pattern.Charge && st.active !is Pattern.Burrow &&
-            st.active !is Pattern.GhostDash && st.active !is Pattern.SparkAmbush) move(e, st, dt)
+            st.active !is Pattern.GhostDash && st.active !is Pattern.SparkAmbush && st.active !is Pattern.DashSlash &&
+            st.active !is Pattern.BacklineDive) move(e, st, dt)
 
         val p = st.active
         if (p == null) {
@@ -490,6 +491,17 @@ class BossBrain(private val g: GameEngine) {
                 g.showBanner("HEAT COLLAPSE", "Slip through a gap", 1.0f)
             }
             is Pattern.LineWarp -> lineWarp(e, st, p)
+            is Pattern.DashSlash, is Pattern.BacklineDive -> {}
+            is Pattern.Scythes -> {
+                val aim = atan2(g.py - e.y, g.px - e.x)
+                val spread = Math.toRadians(p.spreadDeg.toDouble()).toFloat()
+                for (k in 0 until p.count) {
+                    val t = if (p.count == 1) 0f else k / (p.count - 1f) - 0.5f
+                    // Alternate the side each scythe curls to, so they cross.
+                    val bulge = (if (k % 2 == 0) 1f else -1f) * p.range * 0.45f
+                    g.addScythe(e.x, e.y, aim + t * spread, p.range, bulge, p.flight, p.damage * e.damageMul, st.def.color)
+                }
+            }
             is Pattern.CrossBeam -> {
                 val rot = Math.toRadians(p.rotateDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
                 val n = if (p.diagonal) 8 else 4
@@ -694,6 +706,94 @@ class BossBrain(private val g: GameEngine) {
                     st.chargeStage = 0; st.subTimer = 0f
                 }
             }
+        }
+        return false
+    }
+
+    /** Dash Slash: 0 telegraph, 1 dash (hits once; with trail, drops delayed bursts), 2 crescent slash + recover. */
+    private fun runDashSlash(e: Enemy, st: BossState, p: Pattern.DashSlash, dt: Float): Boolean {
+        when (st.chargeStage) {
+            0 -> {
+                if (st.subTimer == 0f) {
+                    val ang = atan2(g.py - e.y, g.px - e.x)
+                    st.dirX = cos(ang); st.dirY = sin(ang)
+                    g.addLine(e.x, e.y, e.x + st.dirX * p.distance, e.y + st.dirY * p.distance, p.windup, st.def.color, e.uid)
+                    st.dashHits = 0; st.spiralAcc = 0f
+                }
+                st.subTimer += dt
+                if (st.subTimer >= p.windup) { st.chargeStage = 1; st.subTimer = 0f }
+            }
+            1 -> {
+                st.subTimer += dt
+                val step = p.speed * dt
+                val blocked = g.arena.pushOut(e.x + st.dirX * step, e.y + st.dirY * step, e.radius)
+                e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                st.spiralAcc += step
+                if (st.spiralAcc >= 70f) {
+                    st.spiralAcc = 0f
+                    repeat(3) { g.addParticle(e.x, e.y, st.def.color, 60f, 0.6f, 4f) }
+                    if (p.trail) g.addBlast(e.x, e.y, 58f, 0.75f, p.damage * 0.8f * e.damageMul, st.def.color)
+                }
+                g.forEachOperativeHit(e.x, e.y, e.radius + g.playerRadius * 0.6f, st.dashHits) { bit ->
+                    st.dashHits = st.dashHits or bit
+                    g.damagePlayer(p.damage * e.damageMul, e.x, e.y)
+                }
+                if (blocked || st.subTimer * p.speed >= p.distance) {
+                    st.chargeStage = 2; st.subTimer = 0f
+                    g.addSlash(e.x, e.y, atan2(st.dirY, st.dirX), e.radius + 95f, p.damage * e.damageMul, st.def.color)
+                }
+            }
+            else -> {
+                st.subTimer += dt
+                if (st.subTimer >= 0.35f) {
+                    st.counter++
+                    if (st.counter >= p.repeats) return true
+                    st.chargeStage = 0; st.subTimer = 0f
+                }
+            }
+        }
+        return false
+    }
+
+    /** Backline Dive: 0 vanish + mark behind the operative, 1 appear and dive through them, 2 recover. */
+    private fun runBacklineDive(e: Enemy, st: BossState, p: Pattern.BacklineDive, dt: Float): Boolean {
+        st.subTimer += dt
+        when (st.chargeStage) {
+            0 -> if (st.counter == 0) {
+                st.counter = 1
+                // Behind = the side of the operative away from where it is facing.
+                val f = g.operatives[0].facing
+                var bx = g.px - cos(f) * 200f
+                var by = g.py - sin(f) * 200f
+                g.arena.pushOut(MathUtil.clamp(bx, e.radius, g.arena.width - e.radius), MathUtil.clamp(by, e.radius, g.arena.height - e.radius), e.radius)
+                bx = g.arena.out[0]; by = g.arena.out[1]
+                st.anchorX = bx; st.anchorY = by
+                g.addPulse(e.x, e.y, 90f, 0.3f, st.def.color)
+                e.state = AiState.HIDDEN
+                g.addBlast(bx, by, e.radius * 0.9f, p.warn, 0f, st.def.color)
+            } else if (st.subTimer >= p.warn) {
+                e.x = st.anchorX; e.y = st.anchorY
+                e.state = AiState.MOVE
+                val ang = atan2(g.py - e.y, g.px - e.x)
+                st.dirX = cos(ang); st.dirY = sin(ang)
+                st.dashHits = 0
+                g.addPulse(e.x, e.y, 110f, 0.3f, 0xFFFFFFFF)
+                st.chargeStage = 1; st.subTimer = 0f
+            }
+            1 -> {
+                val step = p.speed * dt
+                val blocked = g.arena.pushOut(e.x + st.dirX * step, e.y + st.dirY * step, e.radius)
+                e.x = g.arena.out[0]; e.y = g.arena.out[1]
+                g.forEachOperativeHit(e.x, e.y, e.radius + g.playerRadius * 0.6f, st.dashHits) { bit ->
+                    st.dashHits = st.dashHits or bit
+                    g.damagePlayer(p.damage * e.damageMul, e.x, e.y)
+                }
+                if (blocked || st.subTimer * p.speed >= 420f) {
+                    g.addSlash(e.x, e.y, atan2(st.dirY, st.dirX), e.radius + 90f, p.damage * 0.8f * e.damageMul, st.def.color)
+                    st.chargeStage = 2; st.subTimer = 0f
+                }
+            }
+            else -> return st.subTimer >= 0.35f
         }
         return false
     }
@@ -951,6 +1051,9 @@ class BossBrain(private val g: GameEngine) {
                 return st.patternTime >= p.delay + 0.4f
             }
             is Pattern.LineWarp -> return st.patternTime >= 0.4f + p.beamWindup + 0.3f
+            is Pattern.DashSlash -> return runDashSlash(e, st, p, dt)
+            is Pattern.Scythes -> return st.patternTime >= p.flight * 0.6f
+            is Pattern.BacklineDive -> return runBacklineDive(e, st, p, dt)
             is Pattern.CrossBeam -> return st.patternTime >= p.windup + p.duration
             is Pattern.BishopMines -> return st.patternTime >= 0.5f
             is Pattern.ConvergenceFlash -> {

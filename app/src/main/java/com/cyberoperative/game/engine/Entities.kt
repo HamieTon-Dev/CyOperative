@@ -199,7 +199,14 @@ enum class HazardKind {
      * within [Hazard.maxRadius] trips it ([Hazard.tick] counts the 0.45 s fuse), or it
      * pops at [Hazard.duration]. Blast radius [Hazard.radius].
      */
-    MINE
+    MINE,
+    /** Crescent slash at ([Hazard.x], [Hazard.y]) facing [Hazard.angle], reach [Hazard.radius]; hits once, fades over [Hazard.duration]. */
+    SLASH,
+    /**
+     * Packet scythe on a boomerang loop from ([Hazard.x], [Hazard.y]) along [Hazard.angle]:
+     * out [Hazard.maxRadius] and back, bulging [Hazard.windup] sideways. Current spot in x2/y2.
+     */
+    SCYTHE
 }
 
 class Hazard {

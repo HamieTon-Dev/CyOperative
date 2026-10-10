@@ -786,3 +786,48 @@ class PulseBishopTest : ExpansionBossHarness({ com.cyberoperative.game.data.Boss
         assertTrue("flash went off", g.fx.flashNow > 0f || me.hp <= hp)
     }
 }
+
+class PacketReaperTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.PACKET_REAPER }, 160) {
+    @Test fun dashSlashHitsAndEndsInACrescent() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val hp = me.hp
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.DashSlash(0.4f, 900f, 1200f, 30f, trail = true))
+        var sawSlash = false; var sawTrail = false
+        var t = 0f
+        while (t < 2.5f) {
+            run(g, 0.05f); t += 0.05f
+            if (hazards(g, com.cyberoperative.game.engine.HazardKind.SLASH).isNotEmpty()) sawSlash = true
+            if (hazards(g, com.cyberoperative.game.engine.HazardKind.BLAST).isNotEmpty()) sawTrail = true
+        }
+        assertTrue("dash hit", me.hp < hp)
+        assertTrue("crescent slash at the end", sawSlash)
+        assertTrue("trail burst along the path", sawTrail)
+    }
+
+    @Test fun scythesComeBack() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Scythes(2, 380f, 1.6f, 22f))
+        val sc = hazards(g, com.cyberoperative.game.engine.HazardKind.SCYTHE)
+        assertEquals(2, sc.size)
+        val s = sc[0]
+        run(g, 0.8f)
+        val far = kotlin.math.hypot(s.x2 - s.x, s.y2 - s.y)
+        run(g, 0.7f)
+        val back = kotlin.math.hypot(s.x2 - s.x, s.y2 - s.y)
+        assertTrue("went out ($far) and came back ($back)", far > 250f && back < far * 0.5f)
+    }
+
+    @Test fun backlineDiveComesFromBehind() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.facing = -Math.PI.toFloat() / 2f // facing up (toward the top of the arena)
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.BacklineDive(0.6f, 900f, 30f))
+        run(g, 0.1f)
+        assertEquals(com.cyberoperative.game.engine.AiState.HIDDEN, b.state)
+        run(g, 0.55f)
+        assertTrue("appeared behind (below) the operative", b.y > me.py)
+    }
+}

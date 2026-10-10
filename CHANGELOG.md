@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.8 (versionCode 30) — 2026-10-10 · Packet Reaper
+### Added
+- **Packet Reaper** (Boss Pack Alpha) is the **level 160** boss: ASSASSIN, threat HIGH, base bounty
+  €308. Its body is a hunched crimson assassin mech with a red visor, magenta thrusters and two huge
+  glowing packet scythes for arms. A third scythe blade appears on its back in phase 3.
+  - **Dash Slash:** a telegraphed lane dash that ends in a crescent slash. In later phases it chains
+    2–3 dashes.
+  - **Trail Burst:** in phases 2–3 its dash path erupts behind it after a short delay.
+  - **Packet Scythes:** spinning scythes loop out and swing back to where it threw them, crossing
+    each other.
+  - **Backline Dive:** it vanishes, marks a spot behind you (the side you're not facing), then dives
+    through you.
+  - **Phases:** PHASE 1 → LANE HUNT → NO ESCAPE.
+
 ## 0.11.7 (versionCode 29) — 2026-10-10 · Pulse Bishop
 ### Added
 - **Pulse Bishop** (Boss Pack Beta) is the **level 150** boss: CONTROLLER, threat HIGH, base bounty

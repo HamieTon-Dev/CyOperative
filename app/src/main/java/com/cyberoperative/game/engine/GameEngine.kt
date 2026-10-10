@@ -515,6 +515,26 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.angVel = (if (rng.nextBoolean()) 1f else -1f) * 0.35f
     }
 
+    /** Crescent slash; see [HazardKind.SLASH]. Damages anyone in the arc right away. */
+    fun addSlash(x: Float, y: Float, angle: Float, reach: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.SLASH
+        h.x = x; h.y = y; h.angle = angle; h.radius = reach
+        h.timer = 0f; h.duration = 0.3f; h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = -1
+        forEachAlive {
+            val d = MathUtil.dist(px, py, x, y)
+            if (d < reach + playerRadius * 0.6f && kotlin.math.abs(MathUtil.wrapAngle(atan2(py - y, px - x) - angle)) < SLASH_HALF_ARC) damagePlayer(damage, x, y)
+        }
+    }
+
+    /** Packet scythe; see [HazardKind.SCYTHE]. */
+    fun addScythe(x: Float, y: Float, angle: Float, range: Float, bulge: Float, flight: Float, damage: Float, color: Long) {
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.SCYTHE
+        h.x = x; h.y = y; h.x2 = x; h.y2 = y; h.angle = angle; h.maxRadius = range; h.windup = bulge
+        h.radius = 30f; h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = -1
+    }
+
     /** Hostile mine; see [HazardKind.MINE]. */
     fun addMine(x: Float, y: Float, arm: Float, life: Float, radius: Float, damage: Float, color: Long) {
         if (!arena.isFree(x, y, 14f)) return
@@ -2892,6 +2912,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                 }
+                HazardKind.SLASH -> if (h.timer >= h.duration) h.active = false
+                HazardKind.SCYTHE -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    val u = h.timer / h.duration
+                    val out = sin(u * MathUtil.PI) * h.maxRadius
+                    val side = (1f - cos(u * MathUtil.TWO_PI)) / 2f * h.windup
+                    val dx = cos(h.angle); val dy = sin(h.angle)
+                    h.x2 = h.x + dx * out - dy * side
+                    h.y2 = h.y + dy * out + dx * side
+                    forEachAlive { o ->
+                        val bit = 1 shl o.index
+                        if (h.hitMask and bit == 0 && MathUtil.dist2(px, py, h.x2, h.y2) < (h.radius + playerRadius * 0.6f).let { it * it }) {
+                            h.hitMask = h.hitMask or bit
+                            damagePlayer(h.damage, h.x2, h.y2)
+                        }
+                    }
+                }
                 HazardKind.MINE -> {
                     if (h.tick < 0f) {
                         if (h.timer >= h.duration) h.tick = 0f
@@ -3559,6 +3596,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         /** Hostile mines: how close trips one, and its fuse once tripped. */
         const val MINE_TRIGGER = 70f
         const val MINE_FUSE = 0.45f
+        /** Half the arc a Dash Slash crescent covers (radians). */
+        const val SLASH_HALF_ARC = 1.15f
         const val BURN_TICK = 0.5f
         /** Half-thickness of a fire wall ring. */
         const val FIRE_WALL_THICKNESS = 16f

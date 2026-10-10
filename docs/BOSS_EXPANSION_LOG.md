@@ -231,7 +231,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 ### Stage C — Boss Pack Alpha (v0.11.2)
 - [x] C1 S6 dynamic cover + shots from blocks
 - [x] C2 Vault Sentinel (body, 3 phases, 4 abilities)
-- [ ] C3 Packet Reaper
+- [x] C3 Packet Reaper (v0.11.8, autonomous)
 - [ ] C4 S8 multi-part bodies
 - [ ] C5 Circuit Hydra
 - [ ] C6 S9 eggs + minion buffs
@@ -274,6 +274,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ✅ body approved (rev 3, evil cursed crown) — "Approved, build its attacks". Attacks built and sent (atk1–atk7) | "can the crown be bigger, sharper… crooked?" → "Not the orientation of the crown… looks like a cursed crown. realign and then try a different design that looks like an evil crown" |
 | Spectral Firewall | 2026-10-10 (`docs/bosses/designs/spectral_firewall_*`) | ✅ body approved (rev 3) — "that looks great, now build attacks". Attacks ✅ approved; Firewall Ring waves raised to 1/3/4 by phase ("phase three… push more than two rings… 3 on phase 2 and 4 rings on phase 3") | Owner card: `boss-concepts/spectral_firewall_card.webp`; "the barriers should have darker accents and be slightly taller"; "less of a grid pattern… solid blocks but more of a charred metal red hot metal look" |
 | Pulse Bishop | 2026-10-10 | 🤖 built autonomously (owner delegated) | card: boss_pack_beta_cards.webp |
+| Packet Reaper | 2026-10-10 | 🤖 built autonomously | card: packet_reaper_card.png |
 
 ---
 
@@ -392,3 +393,4 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Patterns LineWarp, CrossBeam (4 or 8 sweeps), BishopMines (HazardKind.MINE: arm → trip within 70
     → 0.45 s fuse) and ConvergenceFlash (`Operative.pulled`, wire v7).
   - The body is drawn at radius 80. Tests: PulseBishopTest.
+- 2026-10-10 — v0.11.8 (30): Packet Reaper (autonomous). Patterns DashSlash (+trail), Scythes (HazardKind.SCYTHE boomerang loop), BacklineDive; HazardKind.SLASH crescent. Tests: PacketReaperTest.

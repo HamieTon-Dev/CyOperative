@@ -157,6 +157,15 @@ sealed class Pattern {
     /** Convergence Flash: pulls you toward the bishop for [pull] s, then a blinding blast of [radius]. */
     data class ConvergenceFlash(val pull: Float, val strength: Float, val radius: Float, val damage: Float) : Pattern()
 
+    /** Dash Slash: telegraphed dash ending in a crescent slash; with [trail] its path bursts behind it (Trail Burst). */
+    data class DashSlash(val windup: Float, val speed: Float, val distance: Float, val damage: Float, val repeats: Int = 1, val trail: Boolean = false) : Pattern()
+
+    /** Packet Scythes: [count] scythes loop out [range] and swing back to where they were thrown. */
+    data class Scythes(val count: Int, val range: Float, val flight: Float, val damage: Float, val spreadDeg: Float = 50f) : Pattern()
+
+    /** Backline Dive: vanishes, marks a spot behind you for [warn] s, then dives through you. */
+    data class BacklineDive(val warn: Float, val speed: Float, val damage: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -270,6 +279,9 @@ val Pattern.displayName: String
         is Pattern.CrossBeam -> "Cross Beam"
         is Pattern.BishopMines -> "Bishop Mines"
         is Pattern.ConvergenceFlash -> "Convergence Flash"
+        is Pattern.DashSlash -> if (trail) "Trail Burst" else "Dash Slash"
+        is Pattern.Scythes -> "Packet Scythes"
+        is Pattern.BacklineDive -> "Backline Dive"
     }
 
 object Bosses {

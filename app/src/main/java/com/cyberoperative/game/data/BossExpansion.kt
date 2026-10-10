@@ -227,6 +227,36 @@ object BossExpansion {
     )
 
     /**
+     * Packet Reaper (Boss Pack Alpha 02, ASSASSIN, "fast, relentless, hunts
+     * backlines"). A rapid assassin mech that dashes through lanes and throws
+     * packet scythes, punishing isolated targets.
+     */
+    val PACKET_REAPER = BossDef(
+        "packet_reaper", "PACKET REAPER", "[)>", "Backline Assassin",
+        "A rapid assassin that dashes through lanes and throws packet scythes, punishing isolated targets.",
+        0xFFFF2E9A, 66f, 1920f, 120f, 32f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.1f, listOf(
+                Pattern.DashSlash(0.6f, 820f, 520f, 32f),
+                Pattern.Scythes(2, 380f, 1.6f, 22f),
+                Pattern.BacklineDive(0.75f, 900f, 32f),
+                Pattern.Scythes(3, 400f, 1.6f, 22f, spreadDeg = 70f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.15f, 0.95f, listOf(
+                Pattern.DashSlash(0.55f, 860f, 560f, 33f, repeats = 2, trail = true),
+                Pattern.Scythes(4, 420f, 1.5f, 23f, spreadDeg = 90f),
+                Pattern.BacklineDive(0.65f, 950f, 33f)
+            ), "LANE HUNT"),
+            BossPhase(P3, 1.3f, 0.8f, listOf(
+                Pattern.DashSlash(0.5f, 900f, 600f, 34f, repeats = 3, trail = true),
+                Pattern.BacklineDive(0.55f, 1000f, 34f),
+                Pattern.Scythes(5, 440f, 1.4f, 24f, spreadDeg = 120f),
+                Pattern.BacklineDive(0.55f, 1000f, 34f)
+            ), "NO ESCAPE")
+        ), euros = 308, score = 7000, role = BossRole.ASSASSIN, tier = 3, armor = 2.4f,
+        abilities = listOf("Dash Slash", "Packet Scythes", "Backline Dive", "Trail Burst")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -236,7 +266,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }
