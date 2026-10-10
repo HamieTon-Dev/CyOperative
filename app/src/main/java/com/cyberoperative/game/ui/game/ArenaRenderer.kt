@@ -1131,7 +1131,8 @@ class ArenaRenderer {
                 veiled = if (boss.def.stealth) g.bossVeil else 0f,
                 shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else if (g.bossIceShell > 0f) g.bossIceShell else 0f,
                 ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut,
-                trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0)
+                trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0),
+                aimX = g.px, aimY = g.py - lift
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1248,26 +1249,10 @@ class ArenaRenderer {
         }
     }
 
-    /** Circuit Hydra's split head: a neck of segments back to the body and a beam head. */
+    /** Circuit Hydra's split heads sit on the body's own heads, which the body draws; only a hit flash here. */
+    @Suppress("UNUSED_PARAMETER")
     private fun DrawScope.drawHydraHead(g: GameEngine, e: Enemy, time: Float) {
-        val red = Color(0xFFFF4A2A)
-        val tr = g.bossTrail
-        val lift = 18f
-        // Nearest body segment is where the neck attaches.
-        var bi = -1; var bd = Float.MAX_VALUE
-        var k = 0
-        while (k * 2 < tr.size) {
-            val d = (tr[k * 2] - e.x) * (tr[k * 2] - e.x) + (tr[k * 2 + 1] - e.y) * (tr[k * 2 + 1] - e.y)
-            if (d < bd) { bd = d; bi = k }
-            k++
-        }
-        with(CircuitHydraBody) {
-            if (bi >= 0) for (j in 1..3) {
-                val q = j / 4f
-                segment(tr[bi * 2] + (e.x - tr[bi * 2]) * q, tr[bi * 2 + 1] + (e.y - tr[bi * 2 + 1]) * q - lift, e.radius * 0.45f, red, 0.6f, false)
-            }
-            head(e.x, e.y - lift, e.radius, red, kotlin.math.atan2(g.py - e.y, g.px - e.x), false, e.hitFlash > 0f, time)
-        }
+        if (e.hitFlash > 0f) drawCircle(Color.White.copy(alpha = 0.35f), e.radius, Offset(e.x, e.y - 18f))
     }
 
     /** Glitch Forge's decoy: a translucent flickering mini forge cube with scanlines. */

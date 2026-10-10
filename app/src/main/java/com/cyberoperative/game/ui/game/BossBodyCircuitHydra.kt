@@ -1,67 +1,195 @@
 package com.cyberoperative.game.ui.game
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import com.cyberoperative.game.engine.HydraRig
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Circuit Hydra (Boss Pack Alpha 03, AREA CONTROL): a serpent of dark crimson
- * armoured spheres, each with a glowing orange core ring, trailing behind a big
- * beam head with a blazing core and armoured jaw plates. The body is the
- * engine's trail (so it really snakes across the arena); previews draw an S-curve.
+ * Circuit Hydra (Boss Pack Alpha 03, AREA CONTROL) — owner redesign, step 1:
+ * an armoured gunmetal core with toxic-green circuit traces, and long necks of
+ * chained metal vertebrae ending in sleek robot serpent heads. Necks fan out
+ * toward the operative and sway; more heads appear as the fight goes on
+ * (3 / 4 / 5 by phase in previews).
  */
 internal object CircuitHydraBody : BossBody {
-    private val SHELL_LIT = Color(0xFF5A1A24)
-    private val SHELL = Color(0xFF14050A)
-    private val CORE = Color(0xFFFF7A2A)
+    private val METAL_LIT = Color(0xFF6A747C)
+    private val METAL = Color(0xFF242A2F)
+    private val METAL_DARK = Color(0xFF0C0F11)
+    private val TOXIC = Color(0xFF5CFF6A)
+    private val TOXIC_HOT = Color(0xFFD8FFB0)
 
-    /** One armoured sphere with a glowing core ring; [glow] 0..1. */
-    fun DrawScope.segment(x: Float, y: Float, s: Float, red: Color, glow: Float, flash: Boolean) {
-        drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - s * 0.9f, y + s * 0.65f), Size(s * 1.8f, s * 0.5f))
-        drawCircle(Brush.radialGradient(listOf(if (flash) Color.White else SHELL_LIT, SHELL), center = Offset(x - s * 0.3f, y - s * 0.35f), radius = s * 1.2f), s, Offset(x, y))
-        drawCircle(red.copy(alpha = 0.6f), s, Offset(x, y), style = Stroke(2f))
-        // Plate bands.
-        drawArc(red.copy(alpha = 0.4f), 200f, 140f, false, Offset(x - s * 0.8f, y - s * 0.8f), Size(s * 1.6f, s * 1.6f), style = Stroke(1.6f))
-        // Core ring on top.
-        val c = Offset(x, y - s * 0.15f)
-        drawCircle(CORE.copy(alpha = 0.25f * glow), s * 0.55f, c)
-        drawCircle(CORE.copy(alpha = 0.6f + 0.4f * glow), s * 0.36f, c, style = Stroke(s * 0.12f))
-        drawCircle(Color(0xFFFFE0B0).copy(alpha = 0.5f + 0.5f * glow), s * 0.14f, c)
-    }
-
-    /** The big head: segment sphere plus jaw plates and a blazing core aimed at you. */
-    fun DrawScope.head(x: Float, y: Float, r: Float, red: Color, aim: Float, hot: Boolean, flash: Boolean, t: Float) {
-        for (s in listOf(-1f, 1f)) {
-            val a = aim + s * 0.55f
-            crystal(x + cos(a) * r * 0.7f, y + sin(a) * r * 0.6f, a, r * 0.55f, r * 0.35f, Color(0xFF7A1A24), Color(0xFF2A0A10), red)
+    /** One vertebra plate centred at (x, y), long axis along [a]. */
+    private fun DrawScope.vertebra(x: Float, y: Float, a: Float, s: Float, glow: Float, flash: Boolean) {
+        drawOval(Color.Black.copy(alpha = 0.3f), Offset(x - s, y + s * 0.5f), Size(s * 2f, s * 0.7f))
+        rotate(a * 180f / PI.toFloat(), Offset(x, y)) {
+            val w = s * 1.25f
+            val h = s * 1.9f
+            // Dorsal ridge plate.
+            val ridge = Path().apply {
+                moveTo(x - w * 0.45f, y - h * 0.3f)
+                lineTo(x - w * 0.95f, y)
+                lineTo(x - w * 0.45f, y + h * 0.3f)
+                close()
+            }
+            drawPath(ridge, METAL_DARK)
+            drawPath(ridge, TOXIC.copy(alpha = 0.25f + 0.3f * glow), style = Stroke(1.2f))
+            drawRoundRect(
+                Brush.linearGradient(listOf(if (flash) Color.White else METAL_LIT, METAL, METAL_DARK), Offset(x, y - h / 2), Offset(x, y + h / 2)),
+                Offset(x - w / 2, y - h / 2), Size(w, h), CornerRadius(s * 0.35f)
+            )
+            drawRoundRect(METAL_DARK, Offset(x - w / 2, y - h / 2), Size(w, h), CornerRadius(s * 0.35f), style = Stroke(1.6f))
+            // Green seam light across the plate.
+            drawLine(TOXIC.copy(alpha = 0.35f + 0.65f * glow), Offset(x, y - h * 0.38f), Offset(x, y + h * 0.38f), s * 0.16f)
+            drawCircle(TOXIC_HOT.copy(alpha = 0.3f + 0.7f * glow), s * 0.12f, Offset(x, y))
         }
-        segment(x, y, r, red, if (hot) 1f else 0.6f + 0.4f * sin(t * 4f), flash)
-        val cc = Offset(x + cos(aim) * r * 0.3f, y + sin(aim) * r * 0.25f)
-        val cr = r * 0.32f * (if (hot) 1.2f else 1f)
-        drawCircle(Brush.radialGradient(listOf(Color.White, Color(0xFFFFB070), CORE, CORE.copy(alpha = 0f)), center = cc, radius = cr * 1.6f), cr * 1.6f, cc)
-        if (hot) drawLine(CORE.copy(alpha = 0.6f), cc, Offset(cc.x + cos(aim) * r * 1.6f, cc.y + sin(aim) * r * 1.6f), r * 0.12f)
     }
+
+    /** A mechanical dragon head seen from above at (x, y), facing [a]; [hot] splits the jaws open. */
+    private fun DrawScope.head(x: Float, y: Float, a: Float, s: Float, hot: Boolean, flash: Boolean, t: Float) {
+        drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - s * 1.3f, y + s * 0.55f), Size(s * 2.6f, s * 1.0f))
+        rotate(a * 180f / PI.toFloat(), Offset(x, y)) {
+            fun P(px: Float, py: Float) = Offset(x + px * s, y + py * s)
+            fun poly(vararg v: Float) = Path().apply {
+                moveTo(x + v[0] * s, y + v[1] * s)
+                var k = 2
+                while (k < v.size) { lineTo(x + v[k] * s, y + v[k + 1] * s); k += 2 }
+                close()
+            }
+            val lit = if (flash) Color.White else METAL_LIT
+            val open = if (hot) 0.32f else 0.04f + 0.03f * sin(t * 3f)
+            // Horns: a big swept pair off the brow, a smaller pair behind, cheek spikes.
+            for (sd in listOf(-1f, 1f)) {
+                val big = poly(-0.2f, 0.3f * sd, -1.15f, 0.95f * sd, -1.75f, 1.05f * sd, -0.95f, 0.62f * sd, -0.55f, 0.2f * sd)
+                drawPath(big, Brush.linearGradient(listOf(METAL, METAL_DARK), P(-0.2f, 0.3f * sd), P(-1.7f, 1.0f * sd)))
+                drawPath(big, TOXIC.copy(alpha = 0.55f), style = Stroke(1.5f))
+                val small = poly(-0.75f, 0.18f * sd, -1.6f, 0.5f * sd, -1.05f, 0.12f * sd)
+                drawPath(small, METAL_DARK)
+                drawPath(small, METAL_LIT.copy(alpha = 0.6f), style = Stroke(1.2f))
+                val cheek = poly(0.05f, 0.62f * sd + open * 0.4f, -0.35f, 0.98f * sd + open * 0.4f, -0.3f, 0.58f * sd + open * 0.4f)
+                drawPath(cheek, METAL_DARK)
+                drawPath(cheek, TOXIC.copy(alpha = 0.4f), style = Stroke(1.2f))
+            }
+            if (hot) {
+                val mouth = P(1.05f, 0f)
+                drawCircle(Brush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = mouth, radius = s * 1.15f), s * 1.15f, mouth)
+            }
+            // Two heavy jaw halves; they splay apart when firing.
+            for (sd in listOf(-1f, 1f)) {
+                val o = open * sd
+                val jaw = poly(
+                    -0.9f, 0f, -0.7f, 0.68f * sd, 0.1f, 0.74f * sd + o * 0.4f,
+                    0.95f, 0.5f * sd + o, 1.55f, 0.14f * sd + o, 1.6f, o * 0.5f, -0.2f, 0f
+                )
+                drawPath(jaw, Brush.linearGradient(listOf(lit, METAL, METAL_DARK), P(0f, 0f), P(0f, 0.75f * sd)))
+                drawPath(jaw, METAL_DARK, style = Stroke(2.2f))
+                // Row of fangs along the jaw line.
+                for (k in 0..3) {
+                    val fx = 0.55f + k * 0.26f
+                    val fy = (0.52f - k * 0.11f) * sd + o * (0.6f + k * 0.12f)
+                    drawPath(poly(fx - 0.08f, fy, fx + 0.06f, fy - 0.17f * sd, fx + 0.1f, fy), TOXIC_HOT.copy(alpha = 0.85f))
+                }
+                // Armour seam plates on the jaw.
+                drawLine(METAL_DARK, P(-0.35f, 0.35f * sd + o * 0.2f), P(0.35f, 0.62f * sd + o * 0.4f), s * 0.05f)
+                drawLine(TOXIC.copy(alpha = 0.6f), P(-0.6f, 0.5f * sd), P(1.0f, 0.38f * sd + o), s * 0.06f)
+                // Deep-set eye under the brow.
+                val e = P(0.3f, 0.36f * sd + o * 0.4f)
+                drawCircle(TOXIC.copy(alpha = if (hot) 0.65f else 0.35f), s * 0.28f, e)
+                drawPath(poly(0.08f, 0.27f * sd + o * 0.4f, 0.6f, 0.4f * sd + o * 0.4f, 0.22f, 0.43f * sd + o * 0.4f), if (hot) TOXIC_HOT else TOXIC)
+                // Nostril vent.
+                drawLine(TOXIC.copy(alpha = 0.7f), P(1.15f, 0.12f * sd + o * 0.7f), P(1.35f, 0.1f * sd + o * 0.8f), s * 0.07f)
+            }
+            // Heavy brow ridge: wide armoured plate overhanging the eyes, with a central spine.
+            val brow = poly(-1.0f, 0f, -0.75f, -0.34f, 0.1f, -0.42f, 0.62f, -0.18f, 0.8f, 0f, 0.62f, 0.18f, 0.1f, 0.42f, -0.75f, 0.34f)
+            drawPath(brow, Brush.linearGradient(listOf(lit, METAL, METAL_DARK), P(-0.6f, -0.35f), P(0.6f, 0.35f)))
+            drawPath(brow, METAL_DARK, style = Stroke(2f))
+            for (k in 0..2) {
+                val bx = -0.75f + k * 0.42f
+                drawPath(poly(bx + 0.18f, -0.06f, bx - 0.12f, 0f, bx + 0.18f, 0.06f, bx + 0.28f, 0f), METAL_DARK)
+            }
+            drawLine(TOXIC.copy(alpha = 0.9f), P(-0.9f, 0f), P(0.7f, 0f), s * 0.07f)
+            drawCircle(TOXIC_HOT, s * 0.08f, P(-0.15f, 0f))
+        }
+    }
+
+    /** A loose vertebra (coil hazard, split-head necks). */
+    @Suppress("UNUSED_PARAMETER")
+    fun DrawScope.segment(x: Float, y: Float, s: Float, col: Color, glow: Float, flash: Boolean) =
+        vertebra(x, y, 0f, s * 0.8f, glow, flash)
+
+    /** A free-standing head (split heads) aimed at [aim]. */
+    @Suppress("UNUSED_PARAMETER")
+    fun DrawScope.head(x: Float, y: Float, r: Float, col: Color, aim: Float, hot: Boolean, flash: Boolean, t: Float) =
+        head(x, y, aim, r * 0.8f, hot, flash, t)
+
+    override val previewSpan: Float get() = 8f
+    override val previewDrop: Float get() = 1.3f
 
     override fun DrawScope.draw(p: BossPose) {
-        val r = p.radius
+        val r = p.radius * HydraRig.SCALE
         val t = p.time
-        val red = p.color
-        // Body: engine trail (lifted) or a preview S-curve.
-        val pts = if (p.trail.size >= 4) p.trail else FloatArray(20) { k ->
-            val i = k / 2
-            if (k % 2 == 0) p.cx + sin(i * 0.7f + t) * r * 0.9f - i * r * 0.08f else p.cy + i * r * 0.42f - r * 0.1f
+        val heads = HydraRig.heads(p.phase)
+        val ccy = HydraRig.coreY(p.cy, p.radius)
+        // In a fight the engine's rig (lifted) is passed in, so beams leave the mouths you see.
+        val rig = if (p.trail.size == heads * 4) p.trail else HydraRig.layout(p.cx, p.cy, p.radius, p.phase, t)
+        // Aim point: the operative in a fight, else far along the aim angle.
+        val ax = if (p.aimX.isNaN()) p.cx + cos(p.aim) * 2000f else p.aimX
+        val ay = if (p.aimY.isNaN()) p.cy + sin(p.aim) * 2000f else p.aimY
+        val by = HydraRig.baseY(p.cy, p.radius)
+        // Necks rise from behind the core in a wide fan; heads are drawn last.
+        for (h in 0 until heads) {
+            val bx = HydraRig.baseX(p.cx, p.radius, h, heads, p.phase)
+            val cxp = rig[h * 4]; val cyp = rig[h * 4 + 1]; val hx = rig[h * 4 + 2]; val hy = rig[h * 4 + 3]
+            val n = 12
+            for (i in 0 until n) {
+                val u = i / (n - 1f) * 0.9f
+                val x = (1 - u) * (1 - u) * bx + 2 * (1 - u) * u * cxp + u * u * hx
+                val y = (1 - u) * (1 - u) * by + 2 * (1 - u) * u * cyp + u * u * hy
+                val dx = 2 * (1 - u) * (cxp - bx) + 2 * u * (hx - cxp)
+                val dy = 2 * (1 - u) * (cyp - by) + 2 * u * (hy - cyp)
+                val glow = 0.5f + 0.5f * sin(t * 6f - i * 0.8f - h)
+                vertebra(x, y, atan2(dy, dx), r * (0.27f - 0.08f * u), glow, p.hitFlash)
+            }
         }
-        val n = pts.size / 2
-        for (i in n - 1 downTo 1) {
-            val s = r * (0.74f - 0.3f * i / n) * (1f + 0.08f * p.phase)
-            val glow = 0.5f + 0.5f * sin(t * 5f - i * 0.6f)
-            segment(pts[i * 2], pts[i * 2 + 1], s, red, glow, p.hitFlash)
+        // Core: armoured octagon hull with PCB traces and a toxic reactor.
+        drawOval(Color.Black.copy(alpha = 0.4f), Offset(p.cx - r * 0.95f, ccy + r * 0.55f), Size(r * 1.9f, r * 0.6f))
+        val hull = Path().apply {
+            for (k in 0 until 8) {
+                val a = k * PI.toFloat() / 4f + PI.toFloat() / 8f
+                val x = p.cx + cos(a) * r * 0.85f
+                val y = ccy + sin(a) * r * 0.72f
+                if (k == 0) moveTo(x, y) else lineTo(x, y)
+            }
+            close()
         }
-        head(p.cx, p.cy, r * 0.95f, red, p.aim, p.winding, p.hitFlash, t)
+        drawPath(hull, Brush.radialGradient(listOf(if (p.hitFlash) Color.White else METAL_LIT, METAL, METAL_DARK), center = Offset(p.cx - r * 0.25f, ccy - r * 0.3f), radius = r * 1.1f))
+        drawPath(hull, METAL_DARK, style = Stroke(3f))
+        // Circuit traces running out from the reactor.
+        for (k in 0 until 8) {
+            val a = k * PI.toFloat() / 4f
+            val pulse = 0.4f + 0.6f * ((sin(t * 3f - k) + 1f) / 2f)
+            val m = Offset(p.cx + cos(a) * r * 0.42f, ccy + sin(a) * r * 0.36f)
+            val e = Offset(p.cx + cos(a + 0.25f) * r * 0.72f, ccy + sin(a + 0.25f) * r * 0.6f)
+            drawLine(TOXIC.copy(alpha = 0.6f * pulse), Offset(p.cx + cos(a) * r * 0.28f, ccy + sin(a) * r * 0.24f), m, 2.2f)
+            drawLine(TOXIC.copy(alpha = 0.6f * pulse), m, e, 2.2f)
+            drawCircle(TOXIC_HOT.copy(alpha = pulse), 2.6f, e)
+        }
+        val rc = Offset(p.cx, ccy - r * 0.05f)
+        val beat = if (p.winding) 1f else 0.6f + 0.4f * sin(t * 2.5f)
+        drawCircle(TOXIC.copy(alpha = 0.25f * beat), r * 0.42f, rc)
+        drawCircle(METAL_DARK, r * 0.27f, rc)
+        drawCircle(Brush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.24f * (0.85f + 0.3f * beat)), r * 0.24f, rc)
+        drawCircle(TOXIC.copy(alpha = 0.8f), r * 0.27f, rc, style = Stroke(2.5f))
+        for (h in 0 until heads) head(rig[h * 4 + 2], rig[h * 4 + 3], HydraRig.facing(rig, h, ax, ay), r * HydraRig.HEAD, p.winding, p.hitFlash, t)
     }
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.16 (versionCode 38) — 2026-10-10 · Circuit Hydra redesign: body
+### Changed
+- **Circuit Hydra has a new body** (owner-directed, step by step):
+  - **Look:** an armored reactor core in toxic green and gunmetal, with long necks of chained metal
+    vertebrae and heavy mechanical dragon heads: split jaws with fang rows, a big brow ridge and
+    swept horns.
+  - **Size and heads:** 1.6× bigger than before, with 3, 4 or 5 heads by phase. The hitbox is still
+    the core.
+  - **Movement:** it floats slowly up and down the middle of the arena, between 50% and 30% down.
+  - **Beams and bursts:** Beam Arc fires from each head's mouth, and the beams follow the head as it
+    sways. Segment Burst fires from the necks.
+  - **Split heads:** they sit on the body's extra heads; shooting them still drains the hydra's HP.
+- Attacks are next, each one reviewed by the owner.
+
 ## 0.11.15 (versionCode 37) — 2026-10-10 · Worm Queen swarm
 ### Changed
 - **Worm Queen is a real swarm now** (owner request):

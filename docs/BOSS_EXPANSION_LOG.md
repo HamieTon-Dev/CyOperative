@@ -278,7 +278,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
 | Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 | Botnet Monarch | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
-| Circuit Hydra | 2026-10-10 | 🤖 built autonomously | card: circuit_hydra_card.png |
+| Circuit Hydra | 2026-10-10 | ✅ body v2 approved (beams from mouths, floats 30–50%); attacks in review | card: circuit_hydra_card.png |
 | Black Ice Overlord | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 
 ---
@@ -438,3 +438,14 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - SwarmHatch 6/8/10 eggs; `Scaling.MAX_ALIVE_SWARM = 70` for hatching; SWARMLING 14 HP, 6 dmg, 150 speed.
   - Tests: WormQueenTest.aRealSwarm (>32 swarmlings alive).
   - Next: Circuit Hydra redesign, step by step with the owner.
+- 2026-10-10 — Circuit Hydra redesign, step by step with the owner.
+  - Step 1 answers: segmented metal, toxic green; silhouette and head rule left to me (core with necks
+    recommended). Step 1b: much bigger, anchored, more dragon-like heads, keep the core.
+  - Body v2 **approved** with two notes: "beam attacks to come from their mouths not the core", and
+    the hydra "slowly floats back and forth from middle to 30% down and then back again".
+- 2026-10-10 — v0.11.16 (38): Circuit Hydra body.
+  - `engine/HydraRig.kt` shared by the engine and the renderer (bossTrail = 4 floats per head).
+  - New `BossMove.SWAY`; `Hazard.head` lets beams follow a mouth; SegmentBurst fires from neck points.
+  - `BossBody.previewSpan`/`previewDrop` frame big bodies on the sheets.
+  - Tests: CircuitHydraTest updated (rig per phase, float band, beams start at heads).
+  - Next: ask the owner about each attack (Beam Arc, Segment Burst, Coil Crush, Split Heads/regrowth).

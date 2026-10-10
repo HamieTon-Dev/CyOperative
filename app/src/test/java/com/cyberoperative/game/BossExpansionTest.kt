@@ -957,13 +957,15 @@ class BotnetMonarchTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bo
 }
 
 class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.CIRCUIT_HYDRA }, 200) {
-    @Test fun bodyFollowsTheHead() {
+    @Test fun rigHasAHeadPerPhaseAndFloatsInItsBand() {
         val g = fight()
         run(g, 2f)
-        assertEquals(20, g.bossTrail.size)
-        for (k in 1 until 10) {
-            val d = kotlin.math.hypot(g.bossTrail[k * 2] - g.bossTrail[k * 2 - 2], g.bossTrail[k * 2 + 1] - g.bossTrail[k * 2 - 1])
-            assertTrue("segment $k spacing $d", d <= BossBrain.SEGMENT_GAP + 0.5f)
+        assertEquals("three heads in phase 1", 3 * 4, g.bossTrail.size)
+        val b = g.boss!!
+        var t = 0f
+        while (t < 30f) {
+            run(g, 0.25f); t += 0.25f
+            assertTrue("floats between 30% and 50% down (y=${b.y})", b.y in g.arena.height * 0.28f..g.arena.height * 0.52f)
         }
     }
 
@@ -985,7 +987,16 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         g.debugBossPattern(com.cyberoperative.game.data.Pattern.SplitHeads(2))
         run(g, 1.2f)
         g.debugBossPattern(com.cyberoperative.game.data.Pattern.BeamArc(3, 0.8f, 1.5f, 50f, 40f, 20f))
-        assertEquals(9, hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP).size)
+        val beams = hazards(g, com.cyberoperative.game.engine.HazardKind.SWEEP)
+        assertEquals(9, beams.size)
+        // Beams leave the mouths, out on the necks, not the core.
+        val b = g.boss!!
+        val rig = g.bossTrail
+        for (h in beams) {
+            assertTrue("beam starts away from the core", kotlin.math.hypot(h.x - b.x, h.y - b.y) > b.radius * 2f)
+            val near = (0 until rig.size / 4).minOf { k -> kotlin.math.hypot(h.x - rig[k * 4 + 2], h.y - rig[k * 4 + 3]) }
+            assertTrue("beam starts at a head ($near)", near < b.radius * 1.2f)
+        }
     }
 
     @Test fun coilClosesInWithAGap() {

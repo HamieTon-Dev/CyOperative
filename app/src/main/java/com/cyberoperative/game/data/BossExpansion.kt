@@ -359,7 +359,7 @@ object BossExpansion {
     val CIRCUIT_HYDRA = BossDef(
         "circuit_hydra", "CIRCUIT HYDRA", "[Θ~]", "Multi-Core Serpent",
         "A multi-core serpent that splits into beam heads, filling the arena with overlapping fire lanes.",
-        0xFFFF4A2A, 66f, 2720f, 72f, 30f, BossMove.DRIFT, listOf(
+        0xFF4CFF6A, 66f, 2720f, 72f, 30f, BossMove.SWAY, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.BeamArc(3, 1.0f, 1.8f, 50f, 40f, 24f),
                 Pattern.SegmentBurst(6, 190f, 13f),

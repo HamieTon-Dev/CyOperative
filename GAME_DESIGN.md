@@ -156,6 +156,9 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
     its home level.
   - Statuses: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL (9% slow per stack) → FROZEN 1.1 s at 5
     stacks.
+- Circuit Hydra (redesign): anchored core floating between 30–50% height (BossMove.SWAY), 3/4/5
+  dragon heads by phase on vertebra necks (engine/HydraRig.kt, shared with the renderer); beams leave
+  the mouths and follow them (Hazard.head); body drawn 1.6× the hit radius.
 - Worm Queen lays egg clusters every 2.4/1.9/1.4 s by phase (3–5 swarmlings each); swarmlings
   cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.
 - World Kit decor in every room (own seeded random; layouts unchanged).

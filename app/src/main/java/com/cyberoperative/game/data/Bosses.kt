@@ -17,7 +17,9 @@ enum class BossMove {
     /** Stands still and blinks to a new anchor between patterns. */
     TELEPORT,
     /** Circles the arena centre. */
-    DRIFT
+    DRIFT,
+    /** Floats slowly up and down the middle between 30% and 50% of the arena height (Circuit Hydra). */
+    SWAY
 }
 
 sealed class Pattern {

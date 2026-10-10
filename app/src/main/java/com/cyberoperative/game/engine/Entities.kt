@@ -241,6 +241,8 @@ class Hazard {
     var damage = 0f
     var color = 0L
     var ownerUid = -1
+    /** Circuit Hydra beams: the head (rig index) whose mouth the beam follows; -1 = none. */
+    var head = -1
     /** Which operatives this hazard has already hit (bit per operative index). */
     var hitMask = 0
     var windup = 0f

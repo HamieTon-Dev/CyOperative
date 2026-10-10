@@ -2788,7 +2788,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.x = x; h.y = y; h.angle = startAngle; h.angVel = sweep / active; h.maxRadius = sweep
         h.radius = width; h.windup = windup
         h.timer = 0f; h.duration = windup + active; h.damage = damage; h.color = color
-        h.hitMask = 0; h.ownerUid = ownerUid; h.tick = 0f
+        h.hitMask = 0; h.ownerUid = ownerUid; h.tick = 0f; h.head = -1
         clipRay(h)
         return h
     }
@@ -3119,7 +3119,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     if (h.timer >= h.duration) { h.active = false; continue }
                     // The laser stays on its emitter while the boss shifts.
                     val owner = boss
-                    if (owner != null && owner.uid == h.ownerUid) { h.x = owner.x; h.y = owner.y }
+                    if (owner != null && owner.uid == h.ownerUid) {
+                        val rig = bossTrail
+                        if (h.head >= 0 && rig.size >= (h.head + 1) * 4) {
+                            // Hydra beams stay in the mouth of the head that breathed them.
+                            val (mx, my) = HydraRig.mouth(rig, h.head, owner.radius, HydraRig.facing(rig, h.head, px, py))
+                            h.x = mx; h.y = my
+                        } else { h.x = owner.x; h.y = owner.y }
+                    }
                     if (h.timer >= h.windup) h.angle += h.angVel * dt
                     clipRay(h)
                     if (h.timer >= h.windup) forEachAlive { o ->

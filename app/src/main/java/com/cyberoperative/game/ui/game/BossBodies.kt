@@ -43,8 +43,11 @@ class BossPose(
     val ring: Float = 0f,
     val ringFilled: Int = -1,
     val ringOut: Boolean = false,
-    /** Serpent body points already lifted to body height (Circuit Hydra), head first. */
-    val trail: FloatArray = FloatArray(0)
+    /** Circuit Hydra's neck rig (HydraRig layout), already lifted to body height. */
+    val trail: FloatArray = FloatArray(0),
+    /** The operative's position (lifted), when known; heads track it. */
+    val aimX: Float = Float.NaN,
+    val aimY: Float = Float.NaN
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color
@@ -59,6 +62,10 @@ fun interface BossBody {
 
     /** Drawn above the blackout overlay (what still cuts through the dark, e.g. eyes). */
     fun DrawScope.drawOverDark(p: BossPose) {}
+
+    /** Preview framing: canvas span in boss radii, and how far (in radii) to drop the centre. */
+    val previewSpan: Float get() = 4.2f
+    val previewDrop: Float get() = 0f
 }
 
 /**
@@ -145,14 +152,14 @@ internal fun DrawScope.glow(c: Offset, r: Float, color: Color, strength: Float =
 @Composable
 fun BossBodyPreview(def: BossDef, phase: Int, time: Float, modifier: Modifier = Modifier, winding: Boolean = false, veiled: Float = 0f, shield: Float = 0f) {
     Canvas(modifier) {
-        val scale = size.minDimension / (def.radius * 4.2f)
+        val body = BossBodies.forId(def.id)
+        val scale = size.minDimension / (def.radius * (body?.previewSpan ?: 4.2f))
         val cxs = size.width / 2f / scale
-        val cys = size.height / 2f / scale
+        val cys = size.height / 2f / scale + def.radius * (body?.previewDrop ?: 0f)
         drawContext.transform.scale(scale, scale, Offset.Zero)
         val pose = BossPose(cxs, cys - 6f, def.radius, Color(def.color), time, phase, winding, false, Math.PI.toFloat() / 2f, 1f - phase * 0.35f, false, veiled, shield)
         // Floor shadow.
         drawOval(Color.Black.copy(alpha = 0.45f), Offset(cxs - def.radius * 1.1f, cys + def.radius * 0.55f), androidx.compose.ui.geometry.Size(def.radius * 2.2f, def.radius * 0.7f))
-        val body = BossBodies.forId(def.id)
         if (body != null) with(body) { draw(pose) }
         else slab(pose.cx, pose.cy, ngon(6, def.radius, time * 0.4f, 0.85f), def.radius * 0.35f, pose.fill)
     }
