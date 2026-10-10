@@ -2,6 +2,8 @@
 
 _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGELOG, git log._
 
+**Active stage: Boss Expansion Vol. 1 — progress and next step live in `docs/BOSS_EXPANSION_LOG.md`.**
+
 | | |
 |---|---|
 | Version | 0.10.3 (versionCode 21) |
