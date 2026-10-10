@@ -963,7 +963,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
-        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode)
+        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode, config.seed)
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -1607,7 +1607,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = r.previousArenaId
         previousEvent = r.previousEvent
         // The same seed rebuilds the same room, waves and event rules.
-        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode)
+        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed)
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -3276,7 +3276,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             level++
             updateAdaptive()
             if (Scaling.isBossLevel(level) && boss == null) {
-                val b = com.cyberoperative.game.data.Bosses.forLevel(level)
+                val b = com.cyberoperative.game.data.Bosses.randomForLevel(level, config.seed)
                 sound(GameSound.BOSS_SPAWN)
                 bossBrain.spawn(b, arena.width / 2f, 260f, LevelPlanner.rollGlitchedBoss(level, rng))
             } else {
@@ -3474,7 +3474,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             levelSeed = w.levelSeed
             previousArenaId = w.previousArenaId
             previousEvent = w.previousEvent
-            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode)
+            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed)
             vaultCracked = false
             val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
             arena = Arena(plan.arena, extra)

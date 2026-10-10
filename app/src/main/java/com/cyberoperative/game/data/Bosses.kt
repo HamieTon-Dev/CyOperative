@@ -666,6 +666,37 @@ object Bosses {
         }
     }
 
+    /** Pack Gamma: the four hardest bosses, only drawn from level [GAMMA_FROM]. */
+    val GAMMA_IDS = setOf("rootkit_apostle", "ransom_king", "spectral_firewall", "nullshade")
+    const val GAMMA_FROM = 120
+
+    /** Bosses that can turn up on [level]'s boss room. */
+    fun eligible(level: Int): List<BossDef> = roster.filter { level >= GAMMA_FROM || it.id !in GAMMA_IDS }
+
+    /**
+     * Owner, 2026-10-10: "dont assign bosses to set levels… randomize boss spawn on
+     * boss levels". Each run deals bosses from its own shuffled deck (seeded by the
+     * run, so co-op agrees): no boss repeats until every eligible one has come up.
+     * [forLevel] stays as the difficulty curve a boss is scaled to.
+     */
+    fun randomForLevel(level: Int, runSeed: Long): BossDef {
+        val rng = kotlin.random.Random(runSeed xor 0x5EEDB055L)
+        val used = HashSet<String>()
+        var last: BossDef? = null
+        for (k in 1..maxOf(1, level / 10)) {
+            val pool = eligible(k * 10)
+            var cands = pool.filter { it.id !in used }
+            if (cands.isEmpty()) {
+                used.clear()
+                cands = pool.filter { it != last }
+            }
+            val pick = cands[rng.nextInt(cands.size)]
+            used += pick.id
+            last = pick
+        }
+        return last!!
+    }
+
     /** How tough this pass is: 0 for a boss's first appearance, rising each loop. */
     fun cycleForLevel(level: Int): Int {
         val index = ((level / 10) - 1).coerceAtLeast(0)

@@ -50,10 +50,6 @@ class BossExpansionTest {
         assertEquals(0, Bosses.cycleForLevel(240))
     }
 
-        @Test fun rareBossNeverBeforeItsLevel() {
-        for (seed in 0 until 200) assertNull(LevelPlanner.rollRareBoss(LevelPlanner.RARE_BOSS_FROM - 10, Random(seed)))
-    }
-
     @Test fun screenFxTiming() {
         val fx = ScreenFx()
         fx.hitStop(0.1f)
@@ -1144,32 +1140,47 @@ class BlackIceOverlordTest : ExpansionBossHarness({ com.cyberoperative.game.data
     }
 }
 
-class WildBossTest {
-    @Test fun sevenBossesTurnUpAtAnyBossLevel() {
+class RandomBossTest {
+    private fun run(seed: Long, upTo: Int) = (10..upTo step 10).map { Bosses.randomForLevel(it, seed) }
+
+    @Test fun gammaBossesOnlyFromLevel120() {
+        for (seed in 0L until 300L) for ((i, b) in run(seed, 110).withIndex())
+            assertTrue("seed $seed L${(i + 1) * 10}: ${b.id}", b.id !in Bosses.GAMMA_IDS)
+        // …but they do come up from 120 on.
         val seen = HashSet<String>()
-        var wild = 0
-        for (seed in 0 until 400) {
-            val lvl = 20 + 10 * (seed % 10)
-            val plan = LevelPlanner.bossPlan(lvl, Random(seed.toLong()))
-            if (plan.boss != Bosses.forLevel(lvl)) { wild++; seen += plan.boss!!.id }
+        for (seed in 0L until 100L) run(seed, 240).drop(11).forEach { seen += it.id }
+        assertTrue(seen.containsAll(Bosses.GAMMA_IDS))
+    }
+
+    @Test fun noRepeatsUntilTheDeckRunsOut() {
+        for (seed in 0L until 100L) {
+            val early = run(seed, 200).map { it.id }
+            // 20 non-Gamma by 110, then all 24: the first 20 boss rooms never repeat.
+            assertEquals(early.size, early.toSet().size)
         }
-        assertTrue("about a quarter are wild ($wild/400)", wild in 70..130)
-        assertTrue("all seven appear ($seen)", seen.containsAll(LevelPlanner.WILD_BOSS_IDS))
     }
 
-    @Test fun neverAtTheFirstBoss() {
-        for (seed in 0 until 200) assertEquals(Bosses.forLevel(10), LevelPlanner.bossPlan(10, Random(seed.toLong())).boss)
+    @Test fun runsDiffer() {
+        val orders = (0L until 50L).map { run(it, 60).map { b -> b.id } }.toSet()
+        assertTrue("runs should differ (${orders.size} distinct)", orders.size > 40)
+        val firsts = (0L until 400L).map { Bosses.randomForLevel(10, it).id }.toSet()
+        assertTrue("any boss can open a run (${firsts.size})", firsts.size >= 15)
     }
 
-    @Test fun earlyWildBossIsTonedDown() {
+    @Test fun sameRunSameBosses() {
+        assertEquals(run(42L, 240), run(42L, 240))
+    }
+
+    @Test fun aHeavyBossEarlyIsScaledToTheLevel() {
         val s = RunStats().apply { maxHp = 1e7f }
         val g = GameEngine(RunConfig(baseStats = s, seed = 1L, freeRevives = 0))
-        g.debugStartPlan(LevelPlanner.bossPlan(30, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.WORM_QUEEN, glitchedBoss = false))
+        g.debugStartPlan(LevelPlanner.bossPlan(10, Random(1)).copy(boss = com.cyberoperative.game.data.BossExpansion.CIRCUIT_HYDRA, glitchedBoss = false))
         g.update(1f / 60f)
-        val wildHp = g.boss!!.maxHp
+        val heavy = g.boss!!.maxHp
         val g2 = GameEngine(RunConfig(baseStats = s, seed = 1L, freeRevives = 0))
-        g2.debugStartPlan(LevelPlanner.bossPlan(30, Random(1)).copy(boss = Bosses.forLevel(30), glitchedBoss = false))
+        g2.debugStartPlan(LevelPlanner.bossPlan(10, Random(1)).copy(boss = Bosses.forLevel(10), glitchedBoss = false))
         g2.update(1f / 60f)
-        assertTrue("wild ${wildHp} vs scheduled ${g2.boss!!.maxHp}", wildHp <= g2.boss!!.maxHp * 1.15f)
+        val ref = g2.boss!!.maxHp
+        assertTrue("hydra at L10 $heavy vs reference $ref", heavy <= ref * 1.4f && heavy >= ref)
     }
 }

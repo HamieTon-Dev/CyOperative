@@ -152,8 +152,6 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
 - Pulse Bishop (L150), Packet Reaper (L160), Worm Queen (L170), Glitch Forge (L180),
   Botnet Monarch (L190), Circuit Hydra (L200), Black Ice Overlord (L220): see CHANGELOG
   0.11.7–0.11.13.
-  - From L20 any boss room has a 25% chance of one of these seven ("wild"); HP is toned down below
-    its home level.
   - Statuses: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL (9% slow per stack) → FROZEN 1.1 s at 5
     stacks.
 - Circuit Hydra (redesign): anchored core floating between 30–50% height (BossMove.SWAY), 3/4/5
@@ -170,7 +168,12 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   cap at 70 (MAX_ALIVE_SWARM), 14 HP, 6 contact damage.
 - Classic bosses (L10–120) each have a unique body (0.12.0), drawn ~1.3–1.45× their hit radius.
 - World Kit decor in every room (own seeded random; layouts unchanged).
-- Expansion bosses use fixed slots (BossExpansion.SLOTS), L130–240.
+- **Random bosses (0.12.2, owner):** every boss level draws a random boss from the run's own shuffled
+  deck (Bosses.randomForLevel, seeded by the run, so co-op agrees); no repeats until the deck runs out.
+  L10–110: the 20 non-Gamma bosses. From L120 the four Pack Gamma bosses (Rootkit Apostle, Ransom King,
+  Spectral Firewall, Nullshade) join. The old schedule (Bosses.forLevel, BossExpansion.SLOTS) is now
+  only the toughness curve: a boss's HP becomes ref·(own/ref)^0.25 and its damage ×(ref/own contact)
+  clamped 0.6–1.6, where ref is that level's old scheduled boss. Endless uses the same deck.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 

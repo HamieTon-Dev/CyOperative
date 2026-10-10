@@ -485,3 +485,15 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Full suite green.
 - 2026-10-10 — v0.12.1 (43): owner flagged the conduit and cable lines as "too bright to be part of
   the floor". Dulled the CONDUIT (dark red, glow 0.12, core 0.45) and CABLE cores (0.45/0.4).
+- 2026-10-10 — Owner: "dont assign bosses to set levels… boss change of everything you listed level
+  10-120 should be random. the most difficult bosses from the gamma pack would make sense to be locked
+  to 120 and higher. lets randomize boss spawn on boss levels."
+- 2026-10-10 — v0.12.2 (44): random bosses.
+  - `Bosses.randomForLevel(level, runSeed)` runs a per-run shuffle deck; `eligible(level)` excludes
+    GAMMA_IDS below GAMMA_FROM = 120.
+  - The wild and rare rolls are removed. BossBrain scales HP and damage to the old schedule's boss for
+    that level.
+  - Tests: RandomBossTest (no Gamma before 120, no repeats, runs differ, deterministic per run,
+    scaling).
+  - This supersedes the "any boss level" wild rule of v0.11.14 and D1's fixed slots, which are now
+    only the toughness curve.

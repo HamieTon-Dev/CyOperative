@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.2 (versionCode 44) — 2026-10-10 · Random bosses
+### Changed
+- **Bosses are random** (owner: "dont assign bosses to set levels… randomize boss spawn on boss
+  levels"):
+  - Every boss level brings a random boss, so every run meets them in a different order. The same
+    boss won't come back until you've met all the others.
+  - Levels 10–110 can bring any of the 20 non-Gamma bosses (all 12 classics and 8 expansion
+    bosses). Level 10 can be anything.
+  - From level 120 the four hardest, Pack Gamma (Rootkit Apostle, Ransom King, Spectral Firewall
+    and Nullshade Specter), join the mix.
+  - Every boss is scaled to the level it shows up on, so a heavy hitter early is still fair. It
+    keeps a little of its own toughness.
+  - The old 25% "wild boss" roll and the rare Nullshade roll are gone; the random deck covers both.
+  - Endless mode uses the same random deck.
+
 ## 0.12.1 (versionCode 43) — 2026-10-10 · Dimmer floor lines
 ### Changed
 - **Floor power conduits and cable bundles are toned down** (owner: "too bright to be part of the

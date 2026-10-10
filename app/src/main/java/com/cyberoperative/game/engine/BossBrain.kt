@@ -113,15 +113,16 @@ class BossBrain(private val g: GameEngine) {
         e.stateTimer = INTRO_SECONDS
         val st = BossState(b, cycle)
         e.boss = st
-        // A wild expansion boss early in a run is toned down to the scheduled boss's toughness.
-        val scheduled = Bosses.forLevel(g.level)
-        val home = Bosses.firstLevelOf(b)
-        val wildScale = if (b != scheduled && home != null && g.level < home) kotlin.math.min(1f, scheduled.baseHp * 1.1f / b.baseHp) else 1f
-        e.maxHp = wildScale * b.baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
+        // Bosses are random per level: each is scaled to the toughness of this level's slot on
+        // the old schedule ([Bosses.forLevel]), keeping a little of its own heft.
+        val ref = Bosses.forLevel(g.level)
+        val baseHp = if (b == ref) b.baseHp else ref.baseHp * Math.pow((b.baseHp / ref.baseHp).toDouble(), 0.25).toFloat()
+        val dmgScale = if (b == ref) 1f else (ref.contactDamage / b.contactDamage).coerceIn(0.6f, 1.6f)
+        e.maxHp = baseHp * Scaling.bossHp(g.level) * (1f + 0.25f * cycle) * g.config.difficulty.enemyHp * g.opHpNow * g.adaptiveHp * g.config.coopBossHpMul
         e.hp = e.maxHp
         e.radius = b.radius
         e.speed = b.speed * (1f + 0.05f * cycle)
-        e.damageMul = Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
+        e.damageMul = dmgScale * Scaling.enemyDamage(g.level) * (1f + 0.1f * cycle) * g.config.difficulty.enemyDamage * g.opDamageNow * g.adaptiveDamage
         if (glitched) {
             st.glitched = true
             e.maxHp *= 1.35f

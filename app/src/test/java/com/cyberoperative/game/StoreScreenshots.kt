@@ -95,7 +95,7 @@ class StoreScreenshots {
         assumeTrue(enabled)
         shoot("02_boss_breach", 60f, profile = { strong(it).copy(operativeBody = "agent", selectedSkin = "ids") }, setup = { s ->
             s.engine.build.take(Upgrades.ENCRYPTION_BLADES)
-            s.engine.debugStartPlan(LevelPlanner.bossPlan(10, Random(2)))
+            s.engine.debugStartPlan(LevelPlanner.bossPlan(10, Random(2)).copy(boss = com.cyberoperative.game.data.Bosses.forLevel(10)))
         }, stopWhen = { s, _ ->
             val b = s.engine.boss
             b != null && b.targetable && kotlin.math.abs(b.y - s.engine.py) < 360f &&
