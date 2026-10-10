@@ -1622,7 +1622,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             levelEnemyTotal = levelEnemyTotal, levelKills = levelKills, levelSpawned = levelSpawned,
             stageTimer = stageTimer, timedRemaining = timedRemaining, portalOpen = portalOpen,
             waveIndex = waveIndex, waveTimer = waveTimer, spawnTimer = spawnTimer, hazardTimer = hazardTimer,
-            enemies = saved
+            enemies = saved,
+            shopGateOpen = shopGateOpen, shopGateRight = shopGateRight, shopGateY = shopGateY,
+            vaultCracked = vaultCracked
         )
     }
 
@@ -1633,7 +1635,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousEvent = r.previousEvent
         // The same seed rebuilds the same room, waves and event rules.
         plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed)
-        val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
+        vaultCracked = r.vaultCracked
+        val extra = if (plan.rules.vault && !vaultCracked) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
         build.restore(r.upgrades)
@@ -1674,6 +1677,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         phase = Phase.entries.firstOrNull { it.name == r.phase } ?: Phase.COMBAT
         phaseTimer = r.phaseTimer
+        // The shop offered before the save is still waiting (owner: don't punish busy players).
+        if (r.shopGateOpen && mode == GameMode.CAMPAIGN) {
+            shopGateRight = r.shopGateRight
+            shopGateY = r.shopGateY
+            if (shopGateY <= 0f && !placeShopGate()) shopGateY = arena.height * 0.5f
+            shopGateOpen = true
+            // Remind them it's there.
+            shopMessageSerial++
+        }
         if (phase == Phase.UPGRADE) {
             val restored = r.offer.mapNotNull { id ->
                 Upgrades.all.firstOrNull { it.id == id }?.let { UpgradeOffer(it, if (it.instant) 1 else build.level(it.id) + 1) }

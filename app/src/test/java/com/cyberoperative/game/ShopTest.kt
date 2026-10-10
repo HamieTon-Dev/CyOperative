@@ -121,6 +121,36 @@ class ShopTest {
         assertTrue("only $offered rooms offered a shop", offered >= 120)
     }
 
+    @Test fun offeredShopSurvivesSaveAndContinue() {
+        val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = 7L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.plan(14, kotlin.random.Random(3), null, true))
+        clearToPortal(g)
+        g.offerShop()
+        assertTrue(g.shopGateOpen)
+        val right = g.shopGateRight
+        val y = g.shopGateY
+        val snap = g.snapshot()
+        assertNotNull("saving is allowed with the shop on offer", snap)
+        val g2 = GameEngine(g.config, com.cyberoperative.game.engine.RunSnapshot.decodeOrNull(snap!!.encode()))
+        assertTrue("shop gate is still open after continuing", g2.shopGateOpen)
+        assertEquals(right, g2.shopGateRight)
+        assertEquals(y, g2.shopGateY, 0.01f)
+        // And it still works: walking through it enters the shop.
+        g2.update(1f / 60f)
+        assertTrue(g2.shopGateOpen)
+    }
+
+    @Test fun oldSavesWithoutShopFieldsStillLoad() {
+        val g = GameEngine(RunConfig(baseStats = RunStats().apply { maxHp = 1e9f }, seed = 7L, freeRevives = 0))
+        g.debugStartPlan(LevelPlanner.plan(14, kotlin.random.Random(3), null, true))
+        clearToPortal(g)
+        val raw = g.snapshot()!!.encode().replace(Regex(",\\s*\"(shopGateOpen|shopGateRight|shopGateY|vaultCracked)\":[^,}]*"), "")
+        assertFalse("fields stripped like an old save", raw.contains("shopGateOpen") || raw.contains("vaultCracked"))
+        val r = com.cyberoperative.game.engine.RunSnapshot.decodeOrNull(raw)
+        assertNotNull(r)
+        assertFalse(GameEngine(g.config, r).shopGateOpen)
+    }
+
     private fun clearToPortal(g: GameEngine) {
         var guard = 0
         while (g.phase != Phase.PORTAL && guard++ < 8000) {

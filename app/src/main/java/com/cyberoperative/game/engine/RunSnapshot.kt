@@ -62,7 +62,13 @@ data class RunSnapshot(
     val waveTimer: Float,
     val spawnTimer: Float,
     val hazardTimer: Float,
-    val enemies: List<SavedEnemy>
+    val enemies: List<SavedEnemy>,
+    /** Owner, 2026-10-10: an offered upgrade shop survives save & exit (side gate and where it is). */
+    val shopGateOpen: Boolean = false,
+    val shopGateRight: Boolean = false,
+    val shopGateY: Float = 0f,
+    /** A Data Vault cache already cracked stays cracked (no second payout). */
+    val vaultCracked: Boolean = false
 ) {
     /** One line for the CONTINUE button. */
     val label: String

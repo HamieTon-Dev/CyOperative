@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.1 (versionCode 48) — 2026-10-10 · Save keeps the shop
+### Fixed
+- **An offered upgrade shop survives SAVE & EXIT** (owner: "saving progress and then loading back in
+  makes the shop disappear. this punishes busy players"). When you continue, the side gate is open
+  in the same spot and the "UPGRADE SHOP AVAILABLE" message plays again.
+- **A cracked Data Vault cache stays cracked after continuing.** Before, it came back and could be
+  cracked for a second payout.
+- Saves from older builds still load (the shop just isn't on offer).
+
 ## 0.14.0 (versionCode 47) — 2026-10-10 · Boss music per tier
 ### Added
 - **Every boss sounds different** (owner: "We need some of the boss music to sound different"):

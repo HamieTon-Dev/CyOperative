@@ -49,6 +49,11 @@ class VaultAndScalingTest {
         assertFalse(g.vaultPresent)
         assertEquals(before + 7000, g.eurosEarned)
         assertEquals(obstaclesWithVault - 1, g.arena.obstacles.size)
+        // Save & exit, then continue: the cache stays cracked (no second payout).
+        val snap = g.snapshot()!!
+        val g2 = GameEngine(g.config, com.cyberoperative.game.engine.RunSnapshot.decodeOrNull(snap.encode()))
+        assertFalse("cracked cache stays cracked after loading", g2.vaultPresent)
+        assertEquals(obstaclesWithVault - 1, g2.arena.obstacles.size)
     }
 
     @Test fun opLevelIsTheOnlyDifficultyExtra() {
