@@ -85,6 +85,16 @@ data class HudSnapshot(
     val rewardBatchTaken: Int = 0,
     /** Null when the run can be saved; otherwise why not (e.g. "[BOSS] SAVE BLOCKED"). */
     val saveBlockReason: String? = null,
+    /** Victory sequence: clock (-1 = none) and the THREAT NEUTRALIZED card's data. */
+    val victoryT: Float = -1f,
+    val victoryName: String = "",
+    val victoryTitle: String = "",
+    val victoryTag: String = "",
+    val victoryColor: Long = 0,
+    val victorySeconds: Float = 0f,
+    val victoryBounty: Int = 0,
+    val victoryFirst: Boolean = false,
+    val victoryBest: Boolean = false,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Owned upgrade ids and levels, in the order they were taken (bottom icon bar). */
     val owned: List<Pair<String, Int>> = emptyList(),
@@ -247,6 +257,45 @@ class GameSession(
         updateMusic()
     }
 
+    // --- BOSS CODEX records ---------------------------------------------------------
+    private var lastMetUid = -1
+    private var lastVictorySerial = -1
+    private var victoryFirst = false
+    private var victoryBest = false
+    private val pendingMet = ArrayList<String>()
+    private val pendingDefeats = ArrayList<Pair<String, Float>>()
+
+    /** Notes bosses met and defeated (host and co-op guest alike) for the codex. */
+    private fun trackBosses() {
+        val b = engine.boss
+        val id = b?.boss?.def?.id
+        if (b != null && id != null && b.uid != lastMetUid) {
+            lastMetUid = b.uid
+            pendingMet += id
+        }
+        val v = engine.victory ?: return
+        if (v.serial == lastVictorySerial) return
+        lastVictorySerial = v.serial
+        val rec = save.current.bossRecords[v.def.id]
+        val earlier = pendingDefeats.filter { it.first == v.def.id }
+        victoryFirst = (rec?.defeated ?: 0) == 0 && earlier.isEmpty()
+        val best = (listOfNotNull(rec?.bestSeconds?.takeIf { it > 0f }) + earlier.map { it.second }).minOrNull()
+        victoryBest = !victoryFirst && best != null && v.seconds < best
+        pendingDefeats += v.def.id to v.seconds
+    }
+
+    /** Pause menu → SETTINGS (CO-065). */
+    val settings: com.cyberoperative.game.save.GameSettings get() = save.current.settings
+
+    fun updateSettings(next: com.cyberoperative.game.save.GameSettings) {
+        save.update { it.copy(settings = next) }
+        audio.setVolumes(next.musicVolume, next.sfxVolume)
+        audio.hapticsEnabled = next.haptics
+    }
+
+    /** Skips the THREAT NEUTRALIZED card. */
+    fun skipVictory() = engine.skipVictory()
+
     fun onFrame(delta: Float) {
         if (coop != null) coopFrame(delta)
         else if (!paused && !showTutorial) engine.update(delta)
@@ -259,6 +308,7 @@ class GameSession(
             if (engine.phase == Phase.DEAD) onDeath()
             lastPhase = engine.phase
         }
+        trackBosses()
         updateMusic()
         val next = buildHud()
         if (next != hud) hud = next
@@ -397,6 +447,15 @@ class GameSession(
             rewardBatchTotal = g.rewardBatchTotal,
             rewardBatchTaken = g.rewardBatchTaken,
             saveBlockReason = g.saveBlockReason,
+            victoryT = g.victory?.let { if (it.t >= GameEngine.VICTORY_SECONDS) -1f else (it.t * 30f).toInt() / 30f } ?: -1f,
+            victoryName = g.victory?.def?.name ?: "",
+            victoryTitle = g.victory?.def?.title ?: "",
+            victoryTag = g.victory?.def?.tag ?: "",
+            victoryColor = g.victory?.def?.color ?: 0,
+            victorySeconds = g.victory?.seconds ?: 0f,
+            victoryBounty = g.victory?.bounty ?: 0,
+            victoryFirst = g.victory != null && victoryFirst,
+            victoryBest = g.victory != null && victoryBest,
             difficulty = difficulty,
             owned = ownedList(),
             beamHeat = (g.beamHeat / GameEngine.BEAM_MAX_FIRE * 20f).toInt() / 20f,
@@ -563,6 +622,22 @@ class GameSession(
      * score) are maxima so they can be written any number of times.
      * Returns names of achievements unlocked by this commit.
      */
+    private fun mergeBossRecords(old: Map<String, com.cyberoperative.game.save.BossRecord>): Map<String, com.cyberoperative.game.save.BossRecord> {
+        if (pendingMet.isEmpty() && pendingDefeats.isEmpty()) return old
+        val out = old.toMutableMap()
+        for (id in pendingMet) {
+            val r = out[id] ?: com.cyberoperative.game.save.BossRecord()
+            out[id] = r.copy(met = r.met + 1)
+        }
+        for ((id, secs) in pendingDefeats) {
+            val r = out[id] ?: com.cyberoperative.game.save.BossRecord(met = 1)
+            out[id] = r.copy(defeated = r.defeated + 1, bestSeconds = if (r.bestSeconds <= 0f) secs else minOf(r.bestSeconds, secs))
+        }
+        pendingMet.clear()
+        pendingDefeats.clear()
+        return out
+    }
+
     private fun commitProgress(final: Boolean): List<String> {
         val s = engine.summary()
         val dEuros = s.euros - committedEuros
@@ -596,7 +671,8 @@ class GameSession(
                 totalEvents = p.totalEvents + dEvents,
                 totalRuns = p.totalRuns + if (countRun) 1 else 0,
                 longestRunSeconds = maxOf(p.longestRunSeconds, s.seconds),
-                eventTypesCompleted = p.eventTypesCompleted + eventIds
+                eventTypesCompleted = p.eventTypesCompleted + eventIds,
+                bossRecords = mergeBossRecords(p.bossRecords)
             )
             val newly = Achievements.evaluate(updated, s)
             unlocked = newly.map { it.name }

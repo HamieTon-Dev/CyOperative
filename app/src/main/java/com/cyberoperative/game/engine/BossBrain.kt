@@ -31,6 +31,8 @@ class BossState(val def: BossDef, val cycle: Int) {
     var exposed = 0f
     var shieldSparkCd = 0f
     var headPhase = 0
+    /** Seconds of actual fighting (after the entrance), for the victory card and codex best times. */
+    var fightTime = 0f
     /** Regrow-and-roar sequence clock after the heads regrow; -1 = not running. */
     var regrow = -1f
     /** Head Bite: per bite the head slot, target point, lunge extension 0..1, whether it struck. */
@@ -150,6 +152,8 @@ class BossBrain(private val g: GameEngine) {
             }
             return
         }
+
+        st.fightTime += dt
 
         // Phase by HP.
         val frac = e.hp / e.maxHp
@@ -1767,10 +1771,11 @@ class BossBrain(private val g: GameEngine) {
         g.fx.flash(0xFFFFFFFF, 0.55f, 0.5f)
         g.fx.shake(14f, 0.9f)
         g.fx.slowMotion(1.4f, 0.3f)
-        g.showBanner("BOSS ELIMINATED", st.displayName, 2f)
         val glitchMul = if (st.glitched) 1.5f else 1f
         val euros = baseBounty(st)
-        g.onBossDefeated(euros, (Scoring.boss(st.def.score, g.level, st.cycle) * glitchMul).toInt(), bonusPicks = if (st.glitched) 1 else 0)
+        val paid = g.onBossDefeated(euros, (Scoring.boss(st.def.score, g.level, st.cycle) * glitchMul).toInt(), bonusPicks = if (st.glitched) 1 else 0)
+        // The victory sequence replaces the old "BOSS ELIMINATED" banner.
+        g.startVictory(st.def, e.x, e.y, st.phaseIndex, st.fightTime, paid)
         g.setBossRef(null)
     }
 

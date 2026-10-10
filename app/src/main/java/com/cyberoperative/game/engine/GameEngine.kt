@@ -617,6 +617,29 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Circuit Hydra: bit k set = head k alive (core shielded while non-zero); -1 = no hydra. */
     var bossHeadMask = -1
 
+    /**
+     * Victory sequence (owner, 2026-10-10): set when a boss falls. The body shatters in
+     * the arena, then a THREAT NEUTRALIZED card shows the fight time and bounty. The
+     * boss room only clears once it has played ([VICTORY_SECONDS], skippable).
+     */
+    class BossVictory(
+        val def: com.cyberoperative.game.data.BossDef, val x: Float, val y: Float, val phase: Int,
+        val seconds: Float, val bounty: Int, val serial: Int
+    ) { var t = 0f }
+
+    var victory: BossVictory? = null
+        internal set
+    private var victorySerial = 0
+
+    internal fun startVictory(def: com.cyberoperative.game.data.BossDef, x: Float, y: Float, phase: Int, seconds: Float, bounty: Int) {
+        victory = BossVictory(def, x, y, phase, seconds, bounty, ++victorySerial)
+    }
+
+    /** Tap to skip the victory card. */
+    fun skipVictory() {
+        victory?.let { if (it.t < VICTORY_SECONDS) it.t = VICTORY_SECONDS }
+    }
+
     /** SEIZED: the current operative can't move for [seconds]. */
     fun root(seconds: Float) {
         cur.rooted = max(cur.rooted, seconds)
@@ -858,6 +881,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun step(dt: Float) {
         if (bannerTimer > 0f) bannerTimer -= dt
+        victory?.let { it.t += dt }
         updateEffects(dt)
         // Runs on menus too, so the power-restore fade plays over the reward screen.
         updateDarkness(dt)
@@ -957,6 +981,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         shopArrowFlash = 0f
         vaultCracked = false
         vaultOpening = 0f
+        victory = null
         shopGateOpen = false
         goingToShop = false
         shopItems = emptyList()
@@ -1084,7 +1109,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val timed = plan.rules.timedSeconds > 0f
         val done = if (timed) timedRemaining <= 0f
         else plan.kind != LevelKind.BOSS && waveIndex >= plan.waves.size && aliveCount() == 0
-        if (plan.kind == LevelKind.BOSS && boss == null && phaseTimer > 1f && aliveCount() == 0) {
+        if (plan.kind == LevelKind.BOSS && boss == null && phaseTimer > 1f && aliveCount() == 0 && (victory?.let { it.t >= VICTORY_SECONDS } ?: true)) {
             levelCleared()
             return
         }
@@ -3241,14 +3266,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         return (bossBrain.baseBounty(st) * stats.euroMul * difficultyReward).toInt()
     }
 
-    internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0) {
+    /** Credits a boss kill; returns the € actually paid. */
+    internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0): Int {
         bossesDefeated++
-        eurosEarned += (eurosReward * stats.euroMul * difficultyReward).toInt()
+        val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
+        eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
         grantPick(2 + level / 20 + bonusPicks)
         bossLuckPending = true
         purgeHostiles()
+        return paid
     }
 
     /** Removes every hostile (boss death, timed event end). */
@@ -3447,6 +3475,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
         w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
         w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut; w.bossSync = bossSync; w.bossTrail = bossTrail.copyOf(); w.bossIceShell = bossIceShell; w.bossHeadMask = bossHeadMask
+        victory.let { v ->
+            w.victoryIndex = if (v == null) -1 else com.cyberoperative.game.data.Bosses.roster.indexOf(v.def)
+            if (v != null) { w.victorySerial = v.serial; w.victoryT = v.t; w.victorySeconds = v.seconds; w.victoryBounty = v.bounty; w.victoryX = v.x; w.victoryY = v.y; w.victoryPhase = v.phase }
+        }
         return w
     }
 
@@ -3489,6 +3521,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
         darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
         bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut; bossSync = w.bossSync; bossTrail = w.bossTrail; bossIceShell = w.bossIceShell; bossHeadMask = w.bossHeadMask
+        val vd = com.cyberoperative.game.data.Bosses.roster.getOrNull(w.victoryIndex)
+        victory = if (vd == null) null else {
+            val cur = victory
+            (if (cur != null && cur.serial == w.victorySerial) cur else BossVictory(vd, w.victoryX, w.victoryY, w.victoryPhase, w.victorySeconds, w.victoryBounty, w.victorySerial)).also { it.t = w.victoryT }
+        }
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
@@ -3758,6 +3795,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val WAVE_TIMEOUT = 14f
         const val WAVE_MIN_GAP = 1.2f
         const val CLEAR_BEAT = 0.9f
+        /** Victory sequence length (game seconds): shatter, then the THREAT NEUTRALIZED card. */
+        const val VICTORY_SECONDS = 4.2f
         const val TRANSITION_TIME = 0.45f
         const val PORTAL_RADIUS = 46f
         const val GATE_HALF_WIDTH = 80f

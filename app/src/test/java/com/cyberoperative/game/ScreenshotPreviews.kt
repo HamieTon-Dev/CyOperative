@@ -206,6 +206,51 @@ class ScreenshotPreviews {
         }
     }
 
+    /** Victory sequence: the boss shattering, then the THREAT NEUTRALIZED card. */
+    private fun victorySetup(s: GameSession, after: Float) {
+        s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(30, kotlin.random.Random(1)).copy(boss = com.cyberoperative.game.data.Bosses.byId("white_eye"), glitchedBoss = false))
+        repeat(((com.cyberoperative.game.engine.BossBrain.INTRO_SECONDS + 1.5f) * 60).toInt()) { s.engine.update(1f / 60f) }
+        s.engine.killEnemy(s.engine.boss!!)
+        var t = 0f
+        while (t < after) { s.onFrame(1f / 60f); t += 1f / 60f }
+    }
+
+    @Test fun victoryShatter() { assumeTrue(enabled); gameplay("victory_shatter", 0f) { victorySetup(it, 0f) } }
+    @Test fun victoryCard() { assumeTrue(enabled); gameplay("victory_card", 0f) { victorySetup(it, 2.2f) } }
+
+    @Test fun pauseBuildTab() {
+        assumeTrue(enabled)
+        gameplay("pause_build", 0f, interact = { compose.onAllNodesWithText("BUILD")[0].performClick() }) { s ->
+            for (id in listOf("encryption_blades", "multishot", "firewall", "packet_node")) com.cyberoperative.game.data.Upgrades.all.firstOrNull { it.id == id }?.let { s.engine.build.take(it) }
+            s.engine.build.take(com.cyberoperative.game.data.Upgrades.all.first { !it.instant })
+            s.onFrame(1f / 60f)
+            s.paused = true
+        }
+    }
+
+    @Test fun pauseSettingsTab() {
+        assumeTrue(enabled)
+        gameplay("pause_settings", 0f, interact = { compose.onAllNodesWithText("SETTINGS")[0].performClick() }) { s -> s.paused = true }
+    }
+
+    @Test fun bossCodex() {
+        assumeTrue(enabled)
+        val profile = com.cyberoperative.game.save.PlayerProfile(bossRecords = mapOf(
+            "breach" to com.cyberoperative.game.save.BossRecord(3, 3, 74.2f),
+            "botmaster" to com.cyberoperative.game.save.BossRecord(2, 1, 102.5f),
+            "worm_prime" to com.cyberoperative.game.save.BossRecord(1, 0, 0f),
+            "ransom" to com.cyberoperative.game.save.BossRecord(1, 1, 88f),
+            "circuit_hydra" to com.cyberoperative.game.save.BossRecord(1, 1, 160f)
+        ))
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.BossCodexScreen(profile) {} } }
+        compose.mainClock.advanceTimeBy(1200)
+        save("boss_codex")
+        compose.onAllNodesWithText("BREACH")[0].performClick()
+        compose.mainClock.advanceTimeBy(1200)
+        save("boss_codex_dossier")
+    }
+
     @Test fun pauseBossBlocked() {
         assumeTrue(enabled)
         gameplay("pause_boss_save_blocked", 0f) { s ->

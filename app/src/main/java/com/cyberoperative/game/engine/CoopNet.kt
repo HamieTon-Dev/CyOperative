@@ -75,6 +75,9 @@ class CoopWorld {
     /** Black Ice shell (v10): fraction left, -1 none. */
     var bossIceShell = -1f
     var bossHeadMask = -1
+    /** Victory sequence (v12): the fallen boss (roster index, -1 none), its clock and card data. */
+    var victoryIndex = -1; var victorySerial = 0; var victoryT = 0f; var victorySeconds = 0f
+    var victoryBounty = 0; var victoryX = 0f; var victoryY = 0f; var victoryPhase = 0
 }
 
 class NetOp {
@@ -276,6 +279,12 @@ object CoopCodec {
             for (v in w.bossTrail) o.pos(v)
             o.writeByte(if (w.bossIceShell < 0f) 255 else (w.bossIceShell * 200f).toInt().coerceIn(0, 200))
             o.writeByte(if (w.bossHeadMask < 0) 255 else w.bossHeadMask and 0x7F)
+            o.writeByte(w.victoryIndex + 1)
+            if (w.victoryIndex >= 0) {
+                o.var32(w.victorySerial); o.writeShort((w.victoryT * 100f).toInt().coerceIn(0, 32767))
+                o.var32((w.victorySeconds * 10f).toInt().coerceAtLeast(0)); o.var32(w.victoryBounty.coerceAtLeast(0))
+                o.pos(w.victoryX); o.pos(w.victoryY); o.writeByte(w.victoryPhase.coerceIn(0, 255))
+            }
         }
         return bytes.toByteArray()
     }
@@ -382,6 +391,12 @@ object CoopCodec {
             w.bossTrail = FloatArray(i.readUnsignedByte() * 2) { i.pos() }
             w.bossIceShell = i.readUnsignedByte().let { if (it == 255) -1f else it / 200f }
             w.bossHeadMask = i.readUnsignedByte().let { if (it == 255) -1 else it }
+            w.victoryIndex = i.readUnsignedByte() - 1
+            if (w.victoryIndex >= 0) {
+                w.victorySerial = i.var32(); w.victoryT = i.readShort() / 100f
+                w.victorySeconds = i.var32() / 10f; w.victoryBounty = i.var32()
+                w.victoryX = i.pos(); w.victoryY = i.pos(); w.victoryPhase = i.readUnsignedByte()
+            }
             w
         }
     } catch (_: Exception) {
@@ -411,5 +426,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 11
+    const val VERSION = 12
 }

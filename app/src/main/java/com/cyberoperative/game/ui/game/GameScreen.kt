@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -278,6 +279,7 @@ fun GameScreen(
             )
         }
         BossDossierCard(hud, Modifier.align(Alignment.Center).padding(horizontal = 12.dp))
+        VictoryCard(hud, onSkip = { session.skipVictory() })
         ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt)
         if (hud.phase == Phase.UPGRADE) {
             UpgradeOverlay(session)
@@ -294,6 +296,8 @@ fun GameScreen(
         }
         if (session.paused && hud.phase != Phase.DEAD) {
             PauseOverlay(
+                session = session,
+                owned = hud.owned,
                 coop = session.isCoop,
                 topPadding = hudHeightDp,
                 audio = session.audio,
@@ -394,8 +398,13 @@ val TUTORIAL_LINES = listOf(
     "A boss appears every 10 levels."
 )
 
+/** Pause menu tabs (CO-065: current build and a settings shortcut). */
+private enum class PauseTab(val label: String) { MENU("MENU"), BUILD("BUILD"), SETTINGS("SETTINGS") }
+
 @Composable
 private fun PauseOverlay(
+    session: GameSession,
+    owned: List<Pair<String, Int>>,
     coop: Boolean,
     topPadding: androidx.compose.ui.unit.Dp,
     audio: com.cyberoperative.game.audio.AudioManager,
@@ -404,6 +413,7 @@ private fun PauseOverlay(
     onSave: () -> Unit,
     onQuit: () -> Unit
 ) {
+    var tab by rememberSaveable { mutableStateOf(PauseTab.MENU) }
     Box(
         Modifier
             .fillMaxSize()
@@ -423,42 +433,172 @@ private fun PauseOverlay(
         ) {
             Text(if (coop) "CO-OP MENU" else "OPERATION PAUSED", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             if (coop) Text("Co-op can't be paused · the fight continues", color = Palette.Orange, style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.height(12.dp))
-            com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
-            Spacer(Modifier.height(12.dp))
-            MusicPlayerPanel(audio, Modifier.weight(1f, fill = false))
-            Spacer(Modifier.height(12.dp))
-            if (saveBlocked == null) {
-                com.cyberoperative.game.ui.common.CyberButton(
-                    "SAVE & EXIT TO MENU", Modifier.fillMaxWidth(), accent = Palette.Cyan,
-                    subtitle = "CONTINUE FROM HERE LATER"
-                ) { onSave() }
-            } else {
-                // Boss fights can't be saved; the button is shown locked so the rule is clear.
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(Palette.Background, RoundedCornerShape(8.dp))
-                        .border(1.dp, Palette.Red.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                        .padding(vertical = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(saveBlocked, color = Palette.Red, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        when {
-                            saveBlocked.contains("BOSS") -> "Defeat the boss to unlock saving"
-                            saveBlocked.contains("CO-OP") -> "Rewards are banked when the run ends"
-                            else -> "Try again in a moment"
-                        },
-                        color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
-                    )
+            Spacer(Modifier.height(10.dp))
+            // Tabs.
+            Row(Modifier.fillMaxWidth()) {
+                for (t in PauseTab.entries) {
+                    val on = t == tab
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clickable { tab = t; session.audio.play(com.cyberoperative.game.engine.GameSound.UI_CLICK) }
+                            .padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(t.label, color = if (on) Palette.Cyan else Palette.TextMuted, style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(4.dp))
+                        Box(Modifier.fillMaxWidth().height(2.dp).background(if (on) Palette.Cyan else Palette.Divider))
+                    }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
-            Spacer(Modifier.height(4.dp))
-            Text("Abort ends the run. Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Spacer(Modifier.height(12.dp))
+            when (tab) {
+                PauseTab.MENU -> PauseMenuTab(audio, saveBlocked, onResume, onSave, onQuit)
+                PauseTab.BUILD -> PauseBuildTab(session.engine.stats, owned, onResume)
+                PauseTab.SETTINGS -> PauseSettingsTab(session, onResume)
+            }
         }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.PauseMenuTab(
+    audio: com.cyberoperative.game.audio.AudioManager,
+    saveBlocked: String?,
+    onResume: () -> Unit,
+    onSave: () -> Unit,
+    onQuit: () -> Unit
+) {
+    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+    Spacer(Modifier.height(12.dp))
+    MusicPlayerPanel(audio, Modifier.weight(1f, fill = false))
+    Spacer(Modifier.height(12.dp))
+    if (saveBlocked == null) {
+        com.cyberoperative.game.ui.common.CyberButton(
+            "SAVE & EXIT TO MENU", Modifier.fillMaxWidth(), accent = Palette.Cyan,
+            subtitle = "CONTINUE FROM HERE LATER"
+        ) { onSave() }
+    } else {
+        // Boss fights can't be saved; the button is shown locked so the rule is clear.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .background(Palette.Background, RoundedCornerShape(8.dp))
+                .border(1.dp, Palette.Red.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(saveBlocked, color = Palette.Red, style = MaterialTheme.typography.titleSmall)
+            Text(
+                when {
+                    saveBlocked.contains("BOSS") -> "Defeat the boss to unlock saving"
+                    saveBlocked.contains("CO-OP") -> "Rewards are banked when the run ends"
+                    else -> "Try again in a moment"
+                },
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
+    Spacer(Modifier.height(4.dp))
+    Text("Abort ends the run. Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+}
+
+/** BUILD: the operative's key stats and every module owned this run. */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.PauseBuildTab(
+    s: com.cyberoperative.game.engine.RunStats,
+    owned: List<Pair<String, Int>>,
+    onResume: () -> Unit
+) {
+    val stats = listOf(
+        "DAMAGE" to "%.0f".format(s.damage),
+        "FIRE RATE" to "%.1f/s".format(s.fireRate),
+        "CRIT" to "${(s.critChance * 100).toInt()}%",
+        "RANGE" to "%.0f".format(s.range),
+        "MAX HP" to "%.0f".format(s.maxHp),
+        "ARMOR" to "${(s.armor * 100).toInt()}%",
+        "FIREWALL" to "%.0f".format(s.firewallMax),
+        "DODGE" to "${(s.dodge * 100).toInt()}%",
+        "MOVE" to "%.0f".format(s.moveSpeed)
+    )
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .weight(1f, fill = false)
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+    ) {
+        for (row in stats.chunked(3)) {
+            Row(Modifier.fillMaxWidth()) {
+                for ((k, v) in row) {
+                    Column(Modifier.weight(1f).padding(vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(v, color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
+                        Text(k, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("MODULES (${owned.size})", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.height(6.dp))
+        if (owned.isEmpty()) Text("No modules yet — clear a room to pick one.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+        for ((id, lvl) in owned) {
+            val u = com.cyberoperative.game.data.Upgrades.byId(id)
+            val c = Color(u.rarity.color)
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 3.dp)
+                    .background(Palette.Background.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                    .border(1.dp, c.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(u.glyph, color = c, style = MaterialTheme.typography.titleMedium, modifier = Modifier.width(44.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(u.name, color = c, style = MaterialTheme.typography.labelLarge)
+                    Text(u.description, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                }
+                if (lvl > 0) Text("LV $lvl", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+}
+
+/** SETTINGS shortcut: volumes and the in-game toggles, without leaving the run. */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.PauseSettingsTab(session: GameSession, onResume: () -> Unit) {
+    var s by remember { mutableStateOf(session.settings) }
+    fun set(next: com.cyberoperative.game.save.GameSettings) { s = next; session.updateSettings(next) }
+    val sliderColors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Palette.Cyan, activeTrackColor = Palette.Cyan, inactiveTrackColor = Palette.Divider)
+    Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+        Text("MUSIC VOLUME ${(s.musicVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+        androidx.compose.material3.Slider(s.musicVolume, { set(s.copy(musicVolume = it)) }, colors = sliderColors)
+        Text("EFFECTS VOLUME ${(s.sfxVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+        androidx.compose.material3.Slider(
+            s.sfxVolume, { set(s.copy(sfxVolume = it)) },
+            onValueChangeFinished = { session.audio.play(com.cyberoperative.game.engine.GameSound.UI_CLICK) }, colors = sliderColors
+        )
+        Spacer(Modifier.height(6.dp))
+        PauseToggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
+        PauseToggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
+        PauseToggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+    }
+    Spacer(Modifier.height(12.dp))
+    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+}
+
+@Composable
+private fun PauseToggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable { onChange(!value) }.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            value, onChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedThumbColor = Palette.Background, checkedTrackColor = Palette.Green)
+        )
     }
 }
 

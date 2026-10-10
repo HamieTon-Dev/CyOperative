@@ -126,6 +126,7 @@ class ArenaRenderer {
             drawShadows(g)
             drawEnemyMarkers(g, time)
             drawSorted(g, time, skin, body)
+            drawVictoryShatter(g, time)
             drawXray(g, time)
             drawOrbitFront(g, time)
             drawStatuses(g, time)
@@ -147,6 +148,53 @@ class ArenaRenderer {
         if (g.hurtFlash > 0f) drawRect(Palette.Red.copy(alpha = 0.18f * (g.hurtFlash / 0.25f)))
         val flash = g.fx.flashNow
         if (flash > 0f) drawRect(Color(g.fx.flashColor).copy(alpha = flash.coerceIn(0f, 1f)))
+    }
+
+    /**
+     * Victory sequence (owner, 2026-10-10): the fallen boss flashes white, swells and
+     * fades while its armour breaks into shards that fly off and drop, with a shock
+     * ring and a core flare. The THREAT NEUTRALIZED card follows ([VictoryCard]).
+     */
+    private fun DrawScope.drawVictoryShatter(g: GameEngine, time: Float) {
+        val v = g.victory ?: return
+        val t = v.t
+        if (t > 1.6f) return
+        val col = Color(v.def.color)
+        val lift = 18f
+        val cy = v.y - lift
+        val body = BossBodies.forId(v.def.id)
+        val fade = (1f - t / 0.7f).coerceIn(0f, 1f)
+        if (fade > 0f && body != null) {
+            val flash = t < 0.12f || (t < 0.4f && ((t * 20f).toInt() % 2 == 0))
+            val pose = BossPose(v.x, cy, v.def.radius * (1f + 0.25f * t), col, time, v.phase, true, flash, MathUtil.PI / 2f, 0f, false)
+            drawContext.canvas.saveLayer(
+                androidx.compose.ui.geometry.Rect(-400f, -400f, g.arena.width + 400f, g.arena.height + 400f),
+                androidx.compose.ui.graphics.Paint().apply { alpha = fade }
+            )
+            with(body) { draw(pose) }
+            drawContext.canvas.restore()
+        }
+        // Armour shards flying off, tumbling and dropping.
+        val a0 = (1f - t / 1.6f).coerceIn(0f, 1f)
+        val lit = lighter(col, 0.3f).copy(alpha = a0)
+        val dark = darker(col, 0.4f).copy(alpha = a0)
+        val edge = Color.White.copy(alpha = a0 * 0.8f)
+        for (k in 0 until 22) {
+            val a = k * 2.399f
+            val sp = 220f + (k * 37 % 160)
+            val d = sp * t * (1f - 0.25f * t)
+            val x = v.x + cos(a) * d
+            val y = cy + sin(a) * d * 0.75f + 140f * t * t
+            val sz = 10f + (k % 4) * 5f
+            crystal(x, y, a + t * (4f + k % 3), sz * 1.6f, sz, lit, dark, edge)
+        }
+        // Shock rings and a white core flare.
+        val ring = t / 0.9f
+        if (ring < 1f) {
+            drawCircle(col.copy(alpha = 0.8f * (1f - ring)), 40f + 380f * ring, Offset(v.x, cy), style = Stroke(10f * (1f - ring) + 1f))
+            drawCircle(Color.White.copy(alpha = 0.5f * (1f - ring)), 30f + 220f * ring, Offset(v.x, cy), style = Stroke(4f))
+        }
+        if (t < 0.35f) glow(Offset(v.x, cy), v.def.radius * (1.2f + 2f * t), Color.White, (1f - t / 0.35f) * 3f)
     }
 
     private var partnerSkin: OperativeSkin? = null

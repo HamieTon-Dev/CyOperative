@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.13.0 (versionCode 46) — 2026-10-10 · BOSS CODEX, victory sequence, pause menu build
+### Added
+- **BOSS CODEX** (main menu): every one of the 24 bosses in three sections (Classic Threats,
+  Expansion Bosses, Pack Gamma at level 120+).
+  - Bosses you've met show their animated body; the rest are dark silhouettes marked "???".
+  - Tap a known boss for its dossier: a live preview with a PHASE 1/2/3 switch, role, threat tier,
+    when it can appear, description, abilities and base bounty.
+  - The dossier also shows **your record**: times encountered, times defeated and fastest kill.
+  - The header shows how many you've defeated (x/24).
+  - Records are kept from now on, in co-op too.
+- **Victory sequence** after every boss kill:
+  - The boss flashes white, swells and breaks into armour shards that tumble away, with shock rings
+    and a core flare.
+  - Then a **THREAT NEUTRALIZED** card: the boss's name in its colour, fight time, and the bounty
+    counting up.
+  - A gold **NEW RECORD** tag appears when you beat your fastest kill, and **FIRST DEFEAT · DOSSIER
+    UNLOCKED** the first time you beat a boss.
+  - Tap to skip. The upgrade picks follow once it has played. In Endless the fight goes on, and only
+    the card itself is tappable.
+- **Pause menu tabs** (CO-065): MENU, BUILD and SETTINGS.
+  - **MENU** is unchanged.
+  - **BUILD** shows your operative's key stats (damage, fire rate, crit, range, max HP, armour,
+    firewall, dodge, move speed) and every module you own this run, with its level and what it does.
+  - **SETTINGS** has music and effects volume, haptics, damage numbers and screen shake, without
+    leaving the run.
+### Changed
+- The old "BOSS ELIMINATED" banner is replaced by the victory card.
+- Saving unlocks once the victory sequence has played.
+- Co-op wire format v12 (victory sequence synced to the guest).
+
 ## 0.12.3 (versionCode 45) — 2026-10-10 · First boss is a classic
 ### Changed
 - **First boss is always a classic** (owner): level 10 brings one of the 12 classic bosses at random.

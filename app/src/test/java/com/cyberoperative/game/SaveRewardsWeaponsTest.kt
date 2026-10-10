@@ -55,9 +55,9 @@ class SaveRewardsWeaponsTest {
         assertNotNull(g.boss)
         assertEquals("[BOSS] SAVE BLOCKED", g.saveBlockReason)
         assertNull(g.snapshot())
-        // Defeating the boss unlocks saving.
+        // Defeating the boss unlocks saving (once the victory sequence has played).
         g.killEnemy(g.boss!!)
-        repeat(180) { g.update(1f / 60f) }
+        repeat(((GameEngine.VICTORY_SECONDS + 3f) * 60f).toInt()) { g.update(1f / 60f) }
         assertNull(g.saveBlockReason)
         assertNotNull(g.snapshot())
     }

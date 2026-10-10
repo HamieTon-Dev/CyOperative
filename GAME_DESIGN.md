@@ -175,6 +175,12 @@ Boss Expansion Vol. 1 (0.11.x, plan and progress in docs/BOSS_EXPANSION_LOG.md):
   only the toughness curve: a boss's HP becomes ref·(own/ref)^0.25 and its damage ×(ref/own contact)
   clamped 0.6–1.6, where ref is that level's old scheduled boss. Endless uses the same deck.
 - Kill beat: 0.14 s hit-stop, a white flash, a shake, then 1.4 s of slow motion at 0.3×.
+- Victory sequence (0.13.0): GameEngine.victory (BossVictory) for VICTORY_SECONDS = 4.2 game-s.
+  - Shatter for the first 1.6 s (ArenaRenderer.drawVictoryShatter), then the THREAT NEUTRALIZED
+    card from 0.55 s (VictoryCard: time, bounty, NEW RECORD, FIRST DEFEAT).
+  - A boss room clears only after it; skippable. Synced to the co-op guest (wire v12).
+- BOSS CODEX: PlayerProfile.bossRecords (BossRecord met/defeated/bestSeconds), filled by
+  GameSession.trackBosses and banked in commitProgress.
 - Phase change: 0.08 s hit-stop, a flash in the boss colour, a shake.
 
 ## 11. Events (data/Events.kt)

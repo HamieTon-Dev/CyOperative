@@ -15,7 +15,7 @@ device, tune balance, then fill out the store/meta phases.
 - ~~CO-061 Hit-stop / screen shake + richer death & hit effects~~ ✅ 0.11.0 (ScreenFx)
 - ~~CO-063 Per-boss signature visuals (unique silhouettes instead of hexagon)~~ ✅ 0.12.0
 - CO-064 Run-upgrade icon art (vector icons replacing ASCII glyphs where helpful)
-- CO-065 Pause menu: show current build (owned upgrades) and settings shortcut
+- ~~CO-065 Pause menu: show current build (owned upgrades) and settings shortcut~~ ✅ 0.13.0
 - CO-066 Short interactive tutorial steps on level 1 (beyond the briefing card)
 
 ## PLANNED
@@ -34,7 +34,7 @@ device, tune balance, then fill out the store/meta phases.
 - CO-081 More enemy types (Ransomware Elite, Data Thief, Firewall Breaker, Exploit Drone)
 - ~~CO-082 Bosses 13–20~~ ✅ 0.11.x (12 expansion bosses, 24 total)
 - CO-083 Daily operations / missions / seasonal events (data-driven events exist)
-- CO-084 Codex screen with unlock tracking
+- ~~CO-084 Codex screen with unlock tracking~~ ✅ 0.13.0 (BOSS CODEX; threats/modules stay in ARMORY)
 - CO-085 Accessibility: colour-blind palette option, reduced effects, text size
 - CO-086 Performance profiling on low-end devices (pool sizes, particle caps)
 - CO-087 Localisation framework

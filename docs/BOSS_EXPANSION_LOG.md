@@ -257,8 +257,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 
 ### Stage F — Premium pass (v0.12.0)
 - [x] F1 Unique bodies for the 12 classic bosses (CO-063) — v0.12.0, autonomous
-- [ ] F2 BOSS CODEX screen (met / defeated, abilities, best time, tier, bounty)
-- [ ] F3 Boss music per tier, victory sequence
+- [x] F2 BOSS CODEX screen (met / defeated, abilities, best time, tier, bounty) — v0.13.0
+- [ ] F3 Boss music per tier (victory sequence ✅ v0.13.0)
 - [ ] F4 S15 co-op wire format v3 for all new effects; co-op tests
 - [ ] F5 Balance pass across difficulties and OP levels; full renders; docs; reference page
 
@@ -498,3 +498,12 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - This supersedes the "any boss level" wild rule of v0.11.14 and D1's fixed slots, which are now
     only the toughness curve.
 - 2026-10-10 — v0.12.3 (45): owner "keep level 10 to the classics". `Bosses.eligible(<20)` = classics.
+- 2026-10-10 — Owner: "go ahead with the codex, victory sequence and pause menu".
+- 2026-10-10 — v0.13.0 (46): codex, victory sequence and pause menu.
+  - BOSS CODEX screen (MenuTarget.CODEX): sections, silhouettes, dossier with phase switch and
+    record.
+  - Victory sequence (shatter + card); the room clear waits for it; co-op v12.
+  - Pause menu MENU/BUILD/SETTINGS tabs.
+  - Tests: BossVictoryCodexTest; SaveRewardsWeaponsTest now waits for the victory.
+  - Renders: `docs/screenshots/{boss_codex, boss_codex_dossier, victory_shatter, victory_card,
+    pause_build, pause_settings}.png`.

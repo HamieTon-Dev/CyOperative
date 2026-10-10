@@ -41,6 +41,8 @@ data class PlayerProfile(
     val savedRun: String? = null,
     /** Difficulty picked last time, preselected on the next new run. */
     val lastDifficulty: String = "MEDIUM",
+    /** BOSS CODEX: per boss id, what you've done against it. */
+    val bossRecords: Map<String, BossRecord> = emptyMap(),
     val settings: GameSettings = GameSettings()
 )
 
@@ -52,4 +54,12 @@ data class GameSettings(
     val damageNumbers: Boolean = true,
     val screenShake: Boolean = true,
     val showFps: Boolean = false
+)
+
+/** BOSS CODEX entry: times met and defeated, and the fastest kill (seconds, 0 = none yet). */
+@Serializable
+data class BossRecord(
+    val met: Int = 0,
+    val defeated: Int = 0,
+    val bestSeconds: Float = 0f
 )
