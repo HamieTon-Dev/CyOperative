@@ -63,7 +63,8 @@ object BossBodies {
     private val bodies: Map<String, BossBody> = mapOf(
         "vault_sentinel" to VaultSentinelBody,
         "rootkit_apostle" to RootkitApostleBody,
-        "nullshade" to NullshadeSpecterBody
+        "nullshade" to NullshadeSpecterBody,
+        "ransom_king" to RansomKingBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]

@@ -231,7 +231,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
 | Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
-| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") and sent (atk1–atk7) | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
+| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ✅ body approved (rev 2, traced from owner reference) — "those look good". Attacks built ("The level should be extremely dark") — ✅ **FINAL**: "Approved; start on Ransom King" | Rev 1 rejected: "Not a fan of that design… trace as best as possible. There shouldn't be an outline really. Think DARKNESS GHOST"; eyes blink + faint light; "Fainter glow around the eyes… sharper"; "bigger eyes please" |
+| Ransom King | 2026-10-10 (`docs/bosses/designs/ransom_king_*`) | ⏳ body waiting | |
 
 ---
 
@@ -294,3 +295,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - **Fixed level slots:** `BossExpansion.SLOTS` plus `Bosses.forLevel/cycleForLevel/firstLevelOf`.
     Unbuilt slots keep their classic at cycle 1. Nullshade sits at L240.
   - Tests: NullshadeSpecterTest, expansionBossesTakeTheirPlannedLevels.
+- 2026-10-10 — Owner approved Nullshade's attacks: "Approved; start on Ransom King".
+  - Ransom King body drawn and sent: block golem, big cube head with angry eyes and a jagged grin,
+    spiked gold crown with flames, padlocked red cubes orbiting (2/3/4 by phase), cracks in P3.
+  - Def: slot 9 (L210), LOCKDOWN, HIGH, base €362; provisional patterns; `designed` only.
