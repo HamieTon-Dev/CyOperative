@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.10 (versionCode 32) — 2026-10-10 · Glitch Forge
+### Added
+- **Glitch Forge** (Boss Pack Beta) is the **level 180** boss: SUMMONER, threat HIGH, base bounty
+  €344. Its body is a big dark server-core cube with neon magenta edges, glitch glyphs, a glowing
+  target ring on top, RGB glitch tears and hologram cubes orbiting it.
+  - **Decoy Clone:** translucent hologram copies that move and shoot spreads. One hit pops them, at
+    any level.
+  - **Corrupt Floor:** a checkerboard of floor tiles around you blinks, then glitches into a
+    hazard. The other half of the tiles stays safe.
+  - **Cube Barrage:** waves of spinning homing data cubes.
+  - **Core Pulse:** a big pulse ring, and the floor it passes over corrupts behind it.
+  - **Phases:** PHASE 1 → REALITY FRACTURE → TOTAL CORRUPTION.
+
 ## 0.11.9 (versionCode 31) — 2026-10-10 · Worm Queen
 ### Added
 - **Worm Queen** (Boss Pack Alpha) is the **level 170** boss: SUMMONER, threat HIGH, base bounty

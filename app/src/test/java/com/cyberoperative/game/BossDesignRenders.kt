@@ -312,6 +312,13 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk4_spike_burst", listOf(Pattern.Bloom(3, 26f, lanes = 2) to 0.9f)),
                 AttackShot("atk5_queen_roar", listOf(Pattern.SwarmHatch(4, 0.5f, 3) to 1.0f, Pattern.QueenRoar(420f, 250f, 26f, 1.8f, 5f) to 0.6f))
             ),
+            "glitch_forge" to listOf(
+                AttackShot("atk1_decoy_clones", listOf(Pattern.Summon("holo_clone", 4) to 1.4f)),
+                AttackShot("atk2_corrupt_floor_warning", listOf(Pattern.CorruptFloor(7, 1.1f, 3.2f, 19f) to 0.6f)),
+                AttackShot("atk3_corrupt_floor", listOf(Pattern.CorruptFloor(7, 1.1f, 3.2f, 19f) to 1.5f)),
+                AttackShot("atk4_cube_barrage", listOf(Pattern.CubeBarrage(4, 5, 240f, 2.4f, 18f, gap = 0.4f) to 1.3f)),
+                AttackShot("atk5_core_pulse", listOf(Pattern.CorePulse(460f, 250f, 26f, 3f, 20f) to 1.3f))
+            ),
             "spectral_firewall" to listOf(
                 AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
                 AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),

@@ -246,8 +246,20 @@ object Enemies {
         xp = 1f, euros = 1, score = 6, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
     )
 
+    /** Glitch Forge's decoy: a hologram copy of the forge that shoots; one hit pops it. */
+    val HOLO_CLONE = EnemyDef(
+        id = "holo_clone", name = "HOLO DECOY", tag = "[]",
+        codex = "A hologram the Glitch Forge projects to confuse you. It shoots like the real thing, " +
+            "but a single hit pops it.",
+        shape = ShapeKind.SQUARE, color = 0xFFFF3BD0, radius = 22f,
+        baseHp = 1f, baseSpeed = 70f, contactDamage = 8f, ai = AiKind.SHOOTER,
+        attack = AttackKind.SPREAD, projectileDamage = 10f, projectileSpeed = 260f, projectileCount = 3, spreadDegrees = 30f,
+        attackCooldown = 2.2f, windup = 0.5f, preferredRange = 300f,
+        xp = 0f, euros = 0, score = 4, minLevel = 999, weight = 0f, accent = AccentKind.CORE
+    )
+
     /** Expansion adds, appended last so existing indices (co-op wire, saves) never shift. */
-    val expansion: List<EnemyDef> = listOf(SWARMLING)
+    val expansion: List<EnemyDef> = listOf(SWARMLING, HOLO_CLONE)
 
     val all: List<EnemyDef> = originals + glitched + EnemyVariants.all + expansion
 

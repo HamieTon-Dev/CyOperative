@@ -67,7 +67,7 @@ class Enemy {
     val isElite: Boolean get() = elite != null
 }
 
-enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS, MISSILE, MINE, RAIL, BOOMERANG, NEEDLE }
+enum class ProjKind { BOLT, CONE, LANCE, NODE_BOLT, COUNTER, ENEMY, BOSS, MISSILE, MINE, RAIL, BOOMERANG, NEEDLE, CUBE }
 
 class Projectile {
     var active = false
@@ -211,7 +211,12 @@ enum class HazardKind {
      */
     SCYTHE,
     /** Worm Queen egg: pulses for [Hazard.duration] s, then hatches [Hazard.tick] swarmlings. */
-    EGG
+    EGG,
+    /**
+     * Corrupted floor tile (Glitch Forge): a square of half-size [Hazard.radius] that warns
+     * for [Hazard.windup] s, then hurts anyone standing on it until [Hazard.duration].
+     */
+    TILE
 }
 
 class Hazard {

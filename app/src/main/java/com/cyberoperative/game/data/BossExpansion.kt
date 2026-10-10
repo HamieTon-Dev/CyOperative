@@ -288,6 +288,38 @@ object BossExpansion {
     )
 
     /**
+     * Glitch Forge (Boss Pack Beta 02, SUMMONER). A corrupted server core that
+     * warps reality with holograms and unstable terrain: decoy clones, corrupted
+     * floor tiles, homing data-cube barrages and a pulse that corrupts the floor.
+     */
+    val GLITCH_FORGE = BossDef(
+        "glitch_forge", "GLITCH FORGE", "[#!]", "Reality Forge",
+        "A corrupted server core that warps reality with holograms and unstable terrain. Floods the " +
+            "arena with decoys and data hazards.",
+        0xFFFF2E8A, 80f, 2480f, 48f, 24f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.Summon("holo_clone", 2),
+                Pattern.CorruptFloor(5, 1.2f, 3f, 18f),
+                Pattern.CubeBarrage(2, 3, 220f, 2.0f, 16f),
+                Pattern.CorePulse(380f, 230f, 22f, 2.5f, 16f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.1f, 1.2f, listOf(
+                Pattern.Summon("holo_clone", 3),
+                Pattern.CorruptFloor(7, 1.1f, 3.2f, 19f),
+                Pattern.CubeBarrage(3, 4, 230f, 2.2f, 17f),
+                Pattern.CorePulse(420f, 240f, 24f, 2.8f, 18f)
+            ), "REALITY FRACTURE"),
+            BossPhase(P3, 1.2f, 1.0f, listOf(
+                Pattern.Summon("holo_clone", 4),
+                Pattern.CorruptFloor(9, 1.0f, 3.4f, 20f),
+                Pattern.CubeBarrage(4, 5, 240f, 2.4f, 18f, gap = 0.4f),
+                Pattern.CorePulse(460f, 250f, 26f, 3f, 20f)
+            ), "TOTAL CORRUPTION")
+        ), euros = 344, score = 7500, role = BossRole.SUMMONER, tier = 3, armor = 5.4f,
+        abilities = listOf("Decoy Clone", "Corrupt Floor", "Cube Barrage", "Core Pulse")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -297,7 +329,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }

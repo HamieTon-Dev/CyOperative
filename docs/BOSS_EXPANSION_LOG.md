@@ -240,8 +240,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 
 ### Stage D — Boss Pack Beta (v0.11.3)
 - [x] D1 Pulse Bishop (v0.11.7, autonomous)
-- [ ] D2 S9 decoys
-- [ ] D3 Glitch Forge
+- [x] D2 S9 decoys (holo_clone enemy, 1 HP)
+- [x] D3 Glitch Forge (v0.11.10, autonomous)
 - [ ] D4 Black Ice Overlord
 - [ ] D5 S9 orbiting + linked drones
 - [ ] D6 Botnet Monarch
@@ -276,6 +276,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Pulse Bishop | 2026-10-10 | 🤖 built autonomously (owner delegated) | card: boss_pack_beta_cards.webp |
 | Packet Reaper | 2026-10-10 | 🤖 built autonomously | card: packet_reaper_card.png |
 | Worm Queen | 2026-10-10 | 🤖 built autonomously | card: worm_queen_card.png |
+| Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 
 ---
 
@@ -400,3 +401,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Patterns SwarmHatch (HazardKind.EGG), CorruptionTrail and QueenRoar (`Enemy.hasteTimer/hasteMul`);
     Spike Burst reuses Bloom.
   - Tests: WormQueenTest.
+- 2026-10-10 — v0.11.10 (32): Glitch Forge (autonomous).
+  - Enemy HOLO_CLONE (pinned to 1 HP on summon).
+  - HazardKind.TILE; patterns CorruptFloor (checkerboard), CubeBarrage (ProjKind.CUBE homing),
+    CorePulse (ring plus delayed tiles).
+  - Tests: GlitchForgeTest.

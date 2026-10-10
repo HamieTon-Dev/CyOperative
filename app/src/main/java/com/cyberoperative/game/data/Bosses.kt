@@ -175,6 +175,15 @@ sealed class Pattern {
     /** Queen Roar: a shockwave, and her swarm surges ([haste]× speed for [seconds] s). */
     data class QueenRoar(val maxRadius: Float, val speed: Float, val damage: Float, val haste: Float, val seconds: Float) : Pattern()
 
+    /** Corrupt Floor: a checkerboard of floor tiles around you glitches into hazards (the other half stays safe). */
+    data class CorruptFloor(val size: Int, val warn: Float, val burn: Float, val dps: Float, val cell: Float = 64f) : Pattern()
+
+    /** Cube Barrage: [waves] waves of [count] homing data cubes. */
+    data class CubeBarrage(val waves: Int, val count: Int, val speed: Float, val turn: Float, val damage: Float, val gap: Float = 0.5f) : Pattern()
+
+    /** Core Pulse: a big pulse ring; the floor it passes over corrupts behind it. */
+    data class CorePulse(val maxRadius: Float, val speed: Float, val damage: Float, val burn: Float, val dps: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -294,6 +303,9 @@ val Pattern.displayName: String
         is Pattern.SwarmHatch -> "Swarm Hatch"
         is Pattern.CorruptionTrail -> "Corruption Trail"
         is Pattern.QueenRoar -> "Queen Roar"
+        is Pattern.CorruptFloor -> "Corrupt Floor"
+        is Pattern.CubeBarrage -> "Cube Barrage"
+        is Pattern.CorePulse -> "Core Pulse"
     }
 
 object Bosses {

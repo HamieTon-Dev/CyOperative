@@ -991,6 +991,7 @@ class ArenaRenderer {
             return
         }
         val boss = e.boss
+        if (e.def.id == "holo_clone") { drawHoloClone(e, time); return }
         val lift = (if (boss != null) 18f else 12f) + sin(time * 4f + e.uid) * 2.5f
         val cx = e.x
         val cy = e.y - lift
@@ -1125,6 +1126,20 @@ class ArenaRenderer {
                 drawRect(base.copy(alpha = 1f - t), Offset(x, c.y - r - t * r * 1.2f), Size(r * 0.18f, r * 0.18f))
             }
         }
+    }
+
+    /** Glitch Forge's decoy: a translucent flickering mini forge cube with scanlines. */
+    private fun DrawScope.drawHoloClone(e: Enemy, time: Float) {
+        val col = Color(e.def.color)
+        val flick = if (((time * 12f).toInt() + e.uid) % 9 == 0) 0.4f else 1f
+        val s = e.radius * 1.6f
+        val gy = e.y + e.radius * 0.5f
+        drawOval(col.copy(alpha = 0.2f), Offset(e.x - s * 0.7f, gy - s * 0.18f), Size(s * 1.4f, s * 0.36f))
+        block(e.x, gy, s, s, s * 0.9f, col.copy(alpha = 0.32f * flick), col.copy(alpha = 0.18f * flick), lighter(col, 0.5f), 0.95f * flick)
+        val top = gy - s * 0.9f
+        for (k in 0 until 5) drawLine(lighter(col, 0.5f).copy(alpha = 0.3f * flick), Offset(e.x - s / 2f, top + k * s * 0.18f), Offset(e.x + s / 2f, top + k * s * 0.18f), 1f)
+        drawCircle(Color.White.copy(alpha = 0.8f * flick), s * 0.1f, Offset(e.x, top - s * 0.15f))
+        if (e.state == AiState.WINDUP) drawCircle(col.copy(alpha = 0.6f), s * 0.7f, Offset(e.x, top + s * 0.3f), style = Stroke(2f))
     }
 
     private val GLITCH_SHAPES = ShapeKind.entries.toTypedArray()
@@ -1272,6 +1287,18 @@ class ArenaRenderer {
                 drawLine(Color(0xFFB98CFF).copy(alpha = 0.25f), c, tail, p.radius * 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
                 drawLine(Color(0xFFE7D4FF).copy(alpha = 0.8f), c, tail, p.radius * 1.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
                 drawLine(Color.White, c, tail, p.radius * 0.45f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                continue
+            }
+            if (p.kind == ProjKind.CUBE) {
+                // Homing data cube: a spinning glowing cube with a trail.
+                val col = Color(0xFFFF2E8A)
+                val tail = Offset(c.x - p.vx * 0.08f, c.y - p.vy * 0.08f)
+                drawLine(col.copy(alpha = 0.3f), c, tail, 10f)
+                rotate((time * 240f + p.x) % 360f, c) {
+                    drawRect(col.copy(alpha = 0.35f), Offset(c.x - 14f, c.y - 14f), Size(28f, 28f))
+                    drawRect(col, Offset(c.x - 9f, c.y - 9f), Size(18f, 18f))
+                    drawRect(Color.White.copy(alpha = 0.85f), Offset(c.x - 9f, c.y - 9f), Size(18f, 18f), style = Stroke(1.6f))
+                }
                 continue
             }
             if (p.kind == ProjKind.NEEDLE) {
@@ -1465,6 +1492,28 @@ class ArenaRenderer {
                 HazardKind.KEY_ZONE -> drawKeyZone(h, time)
                 HazardKind.BURN_SECTOR -> drawBurnSector(h, time)
                 HazardKind.MINE -> drawHostileMine(h, time)
+                HazardKind.TILE -> {
+                    // Corrupted tile: blinking outline while it warns, then glitching magenta floor.
+                    val tl = Offset(h.x - h.radius, h.y - h.radius)
+                    val sz = Size(h.radius * 2f, h.radius * 2f)
+                    if (h.timer < h.windup) {
+                        val f = h.timer / h.windup
+                        val blink = if (((time * 10f).toInt() % 2) == 0) 1f else 0.5f
+                        drawRect(col.copy(alpha = 0.1f + 0.2f * f), tl, sz)
+                        drawRect(col.copy(alpha = 0.8f * blink), Offset(tl.x + 3f, tl.y + 3f), Size(sz.width - 6f, sz.height - 6f), style = Stroke(2f))
+                    } else {
+                        val fade = ((h.duration - h.timer) / 0.4f).coerceIn(0f, 1f)
+                        val flick = 0.75f + 0.25f * sin(time * 20f + h.x * 0.1f + h.y)
+                        drawRect(col.copy(alpha = 0.45f * fade * flick), tl, sz)
+                        drawRect(lighter(col, 0.4f).copy(alpha = 0.9f * fade), Offset(tl.x + 2f, tl.y + 2f), Size(sz.width - 4f, sz.height - 4f), style = Stroke(2.5f))
+                        // Glitch pixels.
+                        for (k in 0 until 4) {
+                            val q = (((time * 8f).toInt() * 13 + k * 29 + h.x.toInt()) % 97) / 97f
+                            val q2 = (((time * 8f).toInt() * 7 + k * 41 + h.y.toInt()) % 89) / 89f
+                            drawRect(Color.White.copy(alpha = 0.6f * fade), Offset(tl.x + q * (sz.width - 8f), tl.y + q2 * (sz.height - 5f)), Size(8f, 4f))
+                        }
+                    }
+                }
                 HazardKind.EGG -> {
                     // A pulsing egg sac that swells and cracks as it's about to hatch.
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)

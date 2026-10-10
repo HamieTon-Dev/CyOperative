@@ -860,3 +860,47 @@ class WormQueenTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossEx
         assertEquals("speed restored", base, s.speed, 0.5f)
     }
 }
+
+class GlitchForgeTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.GLITCH_FORGE }, 180) {
+    @Test fun decoysPopInOneHit() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.Summon("holo_clone", 3))
+        run(g, 1.5f)
+        val clone = g.enemies.items.first { it.active && it.def.id == "holo_clone" }
+        g.damageEnemy(clone, 5f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("popped", !clone.active)
+    }
+
+    @Test fun corruptFloorLeavesHalfTheTilesSafe() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CorruptFloor(5, 0.8f, 3f, 30f))
+        val tiles = hazards(g, com.cyberoperative.game.engine.HazardKind.TILE)
+        assertTrue("checkerboard: about half of 25", tiles.size in 9..13)
+        // A safe cell right next to you exists: step onto it and stay unharmed.
+        val c = 64f
+        val gx = (me.px / c).toInt(); val gy = (me.py / c).toInt()
+        val safe = listOf(0 to 0, 1 to 0, 0 to 1, -1 to 0, 0 to -1).map { (dx, dy) -> (gx + dx + 0.5f) * c to (gy + dy + 0.5f) * c }
+            .first { (x, y) -> tiles.none { kotlin.math.abs(it.x - x) < 1f && kotlin.math.abs(it.y - y) < 1f } }
+        me.px = safe.first; me.py = safe.second
+        val hp = me.hp
+        run(g, 1.5f)
+        assertEquals("safe tile is safe", hp, me.hp, 0.01f)
+    }
+
+    @Test fun cubesHome() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CubeBarrage(2, 3, 220f, 2f, 10f))
+        run(g, 0.7f)
+        val cubes = g.projectiles.items.filter { it.active && it.kind == com.cyberoperative.game.engine.ProjKind.CUBE }
+        assertTrue(cubes.size >= 4 && cubes.all { it.homing > 0f })
+    }
+
+    @Test fun corePulseCorruptsTilesBehindTheRing() {
+        val g = fight()
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CorePulse(380f, 230f, 20f, 2.5f, 16f))
+        assertTrue(hazards(g, com.cyberoperative.game.engine.HazardKind.SHOCK_RING).isNotEmpty())
+        assertTrue(hazards(g, com.cyberoperative.game.engine.HazardKind.TILE).size >= 8)
+    }
+}

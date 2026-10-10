@@ -375,6 +375,8 @@ class BossBrain(private val g: GameEngine) {
                     val a = MathUtil.TWO_PI * i / n
                     val c = g.spawnEnemyAt(def, null, e.x + cos(a) * (e.radius + 40f), e.y + sin(a) * (e.radius + 40f), telegraph = true)
                     c?.isChild = true
+                    // Hologram decoys always pop in a single hit, at any level.
+                    if (c != null && def.id == "holo_clone") { c.maxHp = 1f; c.hp = 1f }
                 }
             }
             is Pattern.ShockRing -> {
@@ -501,6 +503,35 @@ class BossBrain(private val g: GameEngine) {
                 g.addPulse(e.x, e.y, e.radius * 2f, 0.4f, st.def.color)
             }
             is Pattern.CorruptionTrail -> { st.spiralAcc = 0f }
+            is Pattern.CorruptFloor -> {
+                // Snap to the floor grid around the operative; alternate cells corrupt (parity flips each cast).
+                val c = p.cell
+                val gx = (g.px / c).toInt(); val gy = (g.py / c).toInt()
+                val parity = g.rng.nextInt(2)
+                val half = p.size / 2
+                for (dx in -half..half) for (dy in -half..half) {
+                    if (((gx + dx + gy + dy) and 1) != parity) continue
+                    g.addTile((gx + dx + 0.5f) * c, (gy + dy + 0.5f) * c, c / 2f, p.warn, p.burn, p.dps * e.damageMul, st.def.color)
+                }
+            }
+            is Pattern.CubeBarrage -> {}
+            is Pattern.CorePulse -> {
+                g.addShockRing(e.x, e.y, p.maxRadius, p.speed, p.damage * e.damageMul, st.def.color)
+                g.addPulse(e.x, e.y, e.radius * 2f, 0.4f, 0xFFFFFFFF)
+                // Tiles corrupt just after the ring sweeps over them.
+                val c = 64f
+                var ring = e.radius + 60f
+                while (ring < p.maxRadius) {
+                    val n = (MathUtil.TWO_PI * ring / (c * 1.6f)).toInt().coerceAtLeast(6)
+                    val off = g.rng.nextFloat()
+                    for (k in 0 until n) {
+                        if (k % 3 == 0) continue
+                        val a = MathUtil.TWO_PI * (k + off) / n
+                        g.addTile(e.x + cos(a) * ring, e.y + sin(a) * ring, c / 2f * 0.9f, ring / p.speed + 0.15f, p.burn, p.dps * e.damageMul, st.def.color)
+                    }
+                    ring += c * 1.6f
+                }
+            }
             is Pattern.QueenRoar -> {
                 g.addShockRing(e.x, e.y, p.maxRadius, p.speed, p.damage * e.damageMul, st.def.color)
                 g.addPulse(e.x, e.y, e.radius * 2.5f, 0.5f, 0xFFFFFFFF)
@@ -1073,6 +1104,22 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.LineWarp -> return st.patternTime >= 0.4f + p.beamWindup + 0.3f
             is Pattern.DashSlash -> return runDashSlash(e, st, p, dt)
             is Pattern.SwarmHatch -> return st.patternTime >= 0.6f
+            is Pattern.CorruptFloor -> return st.patternTime >= p.warn
+            is Pattern.CorePulse -> return st.patternTime >= 0.8f
+            is Pattern.CubeBarrage -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f) {
+                    val aim = atan2(g.py - e.y, g.px - e.x)
+                    for (k in 0 until p.count) {
+                        val a = aim + (k - (p.count - 1) / 2f) * 0.55f + (if (st.counter % 2 == 0) 0f else 0.27f)
+                        val pr = g.fireEnemyProjectile(e.x, e.y - e.radius * 0.6f, a, p.speed, p.damage * e.damageMul, 10f, ProjKind.CUBE)
+                        if (pr != null) { pr.homing = p.turn; pr.life = 4.2f }
+                    }
+                    st.counter++
+                    st.subTimer = p.gap
+                }
+                return st.counter >= p.waves
+            }
             is Pattern.QueenRoar -> return st.patternTime >= 0.6f
             is Pattern.CorruptionTrail -> {
                 // Surges after you (on top of her normal movement) and drops pools as she goes.

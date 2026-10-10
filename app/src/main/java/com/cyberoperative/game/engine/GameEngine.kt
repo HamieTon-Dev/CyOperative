@@ -535,6 +535,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         h.radius = 30f; h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color; h.hitMask = 0; h.ownerUid = -1
     }
 
+    /** Corrupted floor tile; see [HazardKind.TILE]. */
+    fun addTile(x: Float, y: Float, half: Float, warn: Float, burn: Float, dps: Float, color: Long) {
+        if (x < half || y < half || x > arena.width - half || y > arena.height - half) return
+        val h = hazards.obtain() ?: return
+        h.active = true; h.kind = HazardKind.TILE
+        h.x = x; h.y = y; h.radius = half; h.windup = warn; h.timer = 0f; h.duration = warn + burn
+        h.damage = dps; h.color = color; h.tick = 0f; h.hitMask = 0; h.ownerUid = -1
+    }
+
     /** Worm Queen egg; see [HazardKind.EGG]. */
     fun addEgg(x: Float, y: Float, hatch: Float, count: Int, color: Long) {
         if (!arena.isFree(x, y, 16f)) return
@@ -2923,6 +2932,22 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     }
                 }
                 HazardKind.SLASH -> if (h.timer >= h.duration) h.active = false
+                HazardKind.TILE -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (h.timer >= h.windup) {
+                        h.tick -= dt
+                        if (h.tick <= 0f) {
+                            var hit = false
+                            forEachAlive {
+                                if (kotlin.math.abs(px - h.x) < h.radius && kotlin.math.abs(py - h.y) < h.radius) {
+                                    hit = true
+                                    damagePlayer(h.damage * 0.5f, h.x, h.y, ignoreInvuln = true)
+                                }
+                            }
+                            if (hit) h.tick = 0.5f
+                        }
+                    }
+                }
                 HazardKind.EGG -> if (h.timer >= h.duration) {
                     h.active = false
                     val def = com.cyberoperative.game.data.Enemies.SWARMLING
