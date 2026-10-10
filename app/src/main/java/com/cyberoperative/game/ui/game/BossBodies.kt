@@ -34,7 +34,9 @@ class BossPose(
     val aim: Float,
     /** 0..1 HP left. */
     val hp: Float,
-    val glitched: Boolean
+    val glitched: Boolean,
+    /** 0 = fully visible … 1 = in the shadows, eyes closed (Nullshade's lock windows). */
+    val veiled: Float = 0f
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color
@@ -57,7 +59,8 @@ fun interface BossBody {
 object BossBodies {
     private val bodies: Map<String, BossBody> = mapOf(
         "vault_sentinel" to VaultSentinelBody,
-        "rootkit_apostle" to RootkitApostleBody
+        "rootkit_apostle" to RootkitApostleBody,
+        "nullshade" to NullshadeSpecterBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]
@@ -120,13 +123,13 @@ internal fun DrawScope.glow(c: Offset, r: Float, color: Color, strength: Float =
 
 /** Previews a boss body on its own (codex, approval renders). */
 @Composable
-fun BossBodyPreview(def: BossDef, phase: Int, time: Float, modifier: Modifier = Modifier, winding: Boolean = false) {
+fun BossBodyPreview(def: BossDef, phase: Int, time: Float, modifier: Modifier = Modifier, winding: Boolean = false, veiled: Float = 0f) {
     Canvas(modifier) {
         val scale = size.minDimension / (def.radius * 4.2f)
         val cxs = size.width / 2f / scale
         val cys = size.height / 2f / scale
         drawContext.transform.scale(scale, scale, Offset.Zero)
-        val pose = BossPose(cxs, cys - 6f, def.radius, Color(def.color), time, phase, winding, false, Math.PI.toFloat() / 2f, 1f - phase * 0.35f, false)
+        val pose = BossPose(cxs, cys - 6f, def.radius, Color(def.color), time, phase, winding, false, Math.PI.toFloat() / 2f, 1f - phase * 0.35f, false, veiled)
         // Floor shadow.
         drawOval(Color.Black.copy(alpha = 0.45f), Offset(cxs - def.radius * 1.1f, cys + def.radius * 0.55f), androidx.compose.ui.geometry.Size(def.radius * 2.2f, def.radius * 0.7f))
         val body = BossBodies.forId(def.id)

@@ -83,8 +83,37 @@ object BossExpansion {
         abilities = listOf("Burrow Drift", "Spike Eruption", "Infected Zone", "Rootkit Bloom")
     )
 
+    /**
+     * Nullshade Specter (dossier + Boss Pack Gamma 04, BLACKOUT HUNTER, EXTREME).
+     * Kills the room lights with EMP bursts; you track it by its eye-glints and
+     * can only lock on while its eyes are open. Level 240 and a 5% rare stalker
+     * from level 150. Patterns are provisional until the darkness system lands.
+     */
+    val NULLSHADE_SPECTER = BossDef(
+        "nullshade", "NULLSHADE SPECTER", "[◣◢]", "Elite Blackout Boss",
+        "An elite blackout boss that uses EMP bursts to kill the room lights, forcing players to track " +
+            "only its eye-glints and faint attack trails while it hunts from the shadows.",
+        0xFFD040FF, 70f, 2320f, 114f, 24f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.2f, listOf(
+                Pattern.Teleport,
+                Pattern.Aimed(5, 40f, 300f, 14f, bursts = 2)
+            ), "BLACKOUT INITIATION"),
+            BossPhase(P2, 1.15f, 1.0f, listOf(
+                Pattern.Teleport,
+                Pattern.Charge(0.6f, 760f, 560f, 30f, repeats = 2),
+                Pattern.Aimed(7, 60f, 320f, 14f, bursts = 2)
+            ), "PHANTOM HUNT"),
+            BossPhase(P3, 1.3f, 0.8f, listOf(
+                Pattern.ShockRing(380f, 260f, 26f),
+                Pattern.Charge(0.5f, 820f, 600f, 32f, repeats = 3),
+                Pattern.Aimed(9, 80f, 340f, 15f, bursts = 3)
+            ), "GRID REBOOT FRENZY")
+        ), euros = 435, score = 9000, role = BossRole.BLACKOUT_HUNTER, tier = 4, armor = 3.6f, stealth = true,
+        abilities = listOf("EMP Blackout", "Eye-Glint Lock", "Ghost Dash", "Static Needles")
+    )
+
     val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)
 
     /** Every expansion boss defined so far, built or not (design renders). */
-    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE)
+    val designed: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, NULLSHADE_SPECTER)
 }

@@ -230,7 +230,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Boss | Sent | Status | Owner notes |
 |---|---|---|---|
 | Vault Sentinel | 2026-10-10 (`docs/bosses/designs/vault_sentinel_*.png`) | ✅ **FINAL**: body (20% larger) and attacks approved — "Vault sentinel looks great thank you." | "Looks great… can it be slightly larger? … show me its attacks … spawn cubes (barrier blocks out of the floor restricting player movement)" |
-| Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ body approved (rev 2) — "Approved, build its attacks". Attacks built and sent (atk1–atk6) | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
+| Rootkit Apostle | 2026-10-10 (`docs/bosses/designs/rootkit_apostle_*`) | ✅ **FINAL**: body (rev 2) and attacks approved — "Approved; start on Nullshade Specter" | "Darker body, eye can glow dim to bright back and forth slowly and is bright when attack" |
+| Nullshade Specter | 2026-10-10 (`docs/bosses/designs/nullshade_*`) | ⏳ body waiting | |
 
 ---
 
@@ -271,3 +272,9 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - In the roster at L140. Tests: RootkitApostleTest.
   - The attack render harness now places the operative on camp spots and turns boss damage down,
     so fresh operatives survive level-140 hits in screenshots.
+- 2026-10-10 — Owner approved Rootkit Apostle's attacks: "Approved; start on Nullshade Specter".
+  - Nullshade body drawn and sent: hooded wraith drawn at 1.3× its hit radius, slit eyes, a cloak
+    dissolving into magenta pixels, phantom afterimages in P2, red static in P3.
+  - New `BossPose.veiled` for its shadow state (only glints show). The design sheet and GIF show the
+    shadow state for stealth bosses.
+  - Def: L240, EXTREME, base €435, `stealth = true`, provisional patterns; in `designed` only.

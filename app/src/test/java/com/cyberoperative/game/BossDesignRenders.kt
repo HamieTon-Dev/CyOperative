@@ -154,10 +154,12 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                     Text(def.name, color = Palette.TextPrimary, style = mono.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold))
                     Text("${def.title.uppercase()} · ${def.role.label} · ${ThreatTier.label(def.tier)}", color = accent, style = mono.copy(fontSize = 12.sp))
                     Spacer(Modifier.height(10.dp))
-                    val cells = listOf("PHASE 1" to (0 to false), "PHASE 2" to (1 to false), "PHASE 3" to (2 to false), "CHARGING ATTACK" to (0 to true))
+                    val cells = listOf("PHASE 1" to (0 to false), "PHASE 2" to (1 to false), "PHASE 3" to (2 to false), "CHARGING ATTACK" to (0 to true)) +
+                        (if (def.stealth) listOf("IN THE SHADOWS" to (0 to false), "SHADOWS · PHASE 3" to (2 to false)) else emptyList())
                     for (row in cells.chunked(2)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                             for ((label, cfg) in row) {
+                                val veiled = if (label.contains("SHADOWS")) 1f else 0f
                                 Column(
                                     Modifier.weight(1f)
                                         .background(Color(0xFF0C0610), RoundedCornerShape(8.dp))
@@ -165,7 +167,7 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                                         .padding(6.dp)
                                 ) {
                                     Text(label, color = accent, style = mono.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
-                                    BossBodyPreview(def, cfg.first, 1.3f, Modifier.fillMaxWidth().aspectRatio(0.95f), winding = cfg.second)
+                                    BossBodyPreview(def, cfg.first, 1.3f, Modifier.fillMaxWidth().aspectRatio(if (def.stealth) 1.25f else 0.95f), winding = cfg.second, veiled = veiled)
                                 }
                             }
                         }
@@ -186,12 +188,13 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         compose.mainClock.autoAdvance = false
         val time = androidx.compose.runtime.mutableFloatStateOf(0f)
         val winding = androidx.compose.runtime.mutableStateOf(false)
+        val veil = androidx.compose.runtime.mutableFloatStateOf(0f)
         compose.setContent {
             CyberOperativeTheme {
                 androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().background(Color(0xFF05070D))) {
-                    BossBodyPreview(def, 0, time.floatValue, Modifier.fillMaxWidth().aspectRatio(1f), winding = winding.value)
+                    BossBodyPreview(def, 0, time.floatValue, Modifier.fillMaxWidth().aspectRatio(1f), winding = winding.value, veiled = veil.floatValue)
                     Text(
-                        if (winding.value) "CHARGING ATTACK" else "IDLE", color = Color(def.color),
+                        when { winding.value -> "CHARGING ATTACK"; veil.floatValue > 0.5f -> "IN THE SHADOWS"; else -> "IDLE" }, color = Color(def.color),
                         style = TextStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, fontSize = 14.sp, fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(12.dp)
                     )
@@ -203,6 +206,8 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
         for (i in 0 until frames) {
             time.floatValue = i * 0.1f
             winding.value = i >= 36
+            // Stealth bosses fade into the shadows and back during the idle part.
+            if (def.stealth) veil.floatValue = when (i) { in 10..15 -> (i - 9) / 6f; in 16..23 -> 1f; in 24..29 -> 1f - (i - 23) / 6f; else -> 0f }
             compose.mainClock.advanceTimeBy(50)
             val view = compose.activity.window.decorView
             val w = view.width.coerceAtLeast(1)
