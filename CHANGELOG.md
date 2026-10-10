@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.13 (versionCode 35) — 2026-10-10 · Black Ice Overlord
+### Added
+- **Black Ice Overlord** (Boss Pack Beta) is the **level 220** boss: STATUS, threat HIGH, base bounty
+  €380. Its body is a dark navy armoured golem encased in cyan ice crystals (a crown of shards and
+  crystal pauldrons) with glowing ice eyes, two shoulder ice cannons and drifting snowflakes.
+  - **CHILL** (new status): each stack slows you 9%, shown as frost pips over your head. Five stacks
+    **FREEZE** you in an ice block for about 1 s. Stacks wear off over time.
+  - **Ice Laser:** sweeping freezing beams from its shoulder cannons. A hit chills you hard.
+  - **Freeze Patch:** frosty zones (one under you) that chill you every half second you stand in them.
+  - **Crystal Volley:** ice crystals arc onto marked spots, and a hit chills.
+  - **Permafrost Shell:** a faceted ice dome cuts the damage it takes to a quarter and chills anyone
+    near it. Keep firing (the boss bar shows the shell %) and it shatters into a stun window. It
+    also melts on its own after 7–8 s.
+  - **Phases:** PHASE 1 → DEEP FREEZE → ABSOLUTE ZERO.
+- Co-op wire v10 (CHILL, FROZEN and the shell are synced).
+
 ## 0.11.12 (versionCode 34) — 2026-10-10 · Circuit Hydra
 ### Added
 - **Circuit Hydra** (Boss Pack Alpha) is the **level 200** boss: AREA CONTROL, threat HIGH, base

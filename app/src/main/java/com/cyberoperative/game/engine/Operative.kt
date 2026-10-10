@@ -34,6 +34,9 @@ class Operative(val index: Int, baseStats: RunStats) {
     var pullX = 0f
     var pullY = 0f
     var pullStrength = 0f
+    /** CHILL stacks (0..[GameEngine.CHILL_MAX]), decaying; each slows you. At max you FREEZE for [frozen] s. */
+    var chill = 0f
+    var frozen = 0f
     var inputX = 0f
     var inputY = 0f
     var fireCooldown = 0f

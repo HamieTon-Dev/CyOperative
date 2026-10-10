@@ -596,6 +596,24 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         return false
     }
 
+    /** Adds [stacks] CHILL to the current operative; at [CHILL_MAX] it FREEZES. */
+    fun chill(stacks: Float) {
+        if (cur.frozen > 0f) return
+        cur.chill = min(CHILL_MAX, cur.chill + stacks)
+        if (cur.chill >= CHILL_MAX) {
+            cur.frozen = FREEZE_SECONDS
+            cur.chill = 0f
+            addText(px, py - 44f, "FROZEN", TextKind.PLAYER_HURT)
+            repeat(14) { addParticle(px, py - 20f, 0xFF9AE6FF, 160f, 0.5f, 3f) }
+        }
+    }
+
+    /** Movement multiplier from CHILL (each stack slows 9%). */
+    internal fun chillSlow(o: Operative): Float = if (o.frozen > 0f) 0f else 1f - 0.09f * o.chill
+
+    /** Black Ice Overlord's shell: fraction of its HP left (0..1), or -1 when there's no shell. */
+    var bossIceShell = -1f
+
     /** SEIZED: the current operative can't move for [seconds]. */
     fun root(seconds: Float) {
         cur.rooted = max(cur.rooted, seconds)
@@ -626,6 +644,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
             if (cur.encrypted <= 0f) cur.encryptCharge = 0f
         }
+        if (cur.frozen > 0f) cur.frozen = max(0f, cur.frozen - dt)
+        if (cur.chill > 0f) cur.chill = max(0f, cur.chill - dt * CHILL_DECAY)
         if (cur.pulled > 0f) {
             cur.pulled = max(0f, cur.pulled - dt)
             if (!cur.remote) {
@@ -909,7 +929,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level = newLevel
         fx.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0)
-        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f }
+        for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
+        bossIceShell = -1f
         bossRingFilled = -1; bossRingOut = false
         updateAdaptive()
         skipShopPrompt = false
@@ -1652,7 +1673,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val mag = sqrt(inputX * inputX + inputY * inputY)
         moving = if (cur.remote) cur.netMoving else mag > MOVE_DEADZONE
         updateStatuses(dt)
-        if (cur.remote && cur.rooted > 0f) {
+        if (cur.remote && (cur.rooted > 0f || cur.frozen > 0f)) {
             // SEIZED: the guest's reported position is ignored until it breaks free.
             stillTime += dt
         } else if (cur.remote) {
@@ -1664,9 +1685,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 stillTime = 0f
                 followUpLeft = 0
             } else stillTime += dt
-        } else if (moving && cur.rooted <= 0f) {
+        } else if (moving && cur.rooted <= 0f && cur.frozen <= 0f) {
             val m = min(1f, mag)
-            val speed = s.moveSpeed * m
+            val speed = s.moveSpeed * m * chillSlow(cur)
             val nx = px + inputX / mag * speed * dt
             val ny = py + inputY / mag * speed * dt
             arena.pushOut(nx, ny, playerRadius)
@@ -2356,6 +2377,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (b != null && b !== e && b.active) damageEnemy(b, raw, crit, kind, quiet, showText)
             return
         }
+        // Black Ice Overlord's Permafrost Shell: hits chip the shell; the boss takes a quarter.
+        if (e.boss != null && bossIceShell > 0f && bossBrain.shellAbsorb(e, raw)) return
         // Spectral Firewall: its ring plates soak up fire from outside unless you're lined up with a gap.
         if (e.boss != null && bossBrain.ringBlocks(e, px, py)) {
             bossBrain.ringSpark(e, px, py)
@@ -2771,12 +2794,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** Lobbed shell from ([fromX], [fromY]) landing on ([x], [y]) after [flight]. */
-    fun addMortar(fromX: Float, fromY: Float, x: Float, y: Float, radius: Float, flight: Float, damage: Float, color: Long) {
-        val h = hazards.obtain() ?: return
+    fun addMortar(fromX: Float, fromY: Float, x: Float, y: Float, radius: Float, flight: Float, damage: Float, color: Long): Hazard? {
+        val h = hazards.obtain() ?: return null
         h.active = true; h.kind = HazardKind.MORTAR
         h.x = x; h.y = y; h.x2 = fromX; h.y2 = fromY; h.radius = radius
         h.timer = 0f; h.duration = flight; h.damage = damage; h.color = color
-        h.hitMask = 0; h.ownerUid = -1
+        h.hitMask = 0; h.ownerUid = -1; h.tick = 0f
+        return h
     }
 
     /** Crystal spike cluster at ([x], [y]) bursting after [delay] (see [HazardKind.SPIKE]). */
@@ -2909,6 +2933,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                     addPulse(h.x, h.y, h.radius, 0.3f, h.color)
+                    if (h.kind == HazardKind.MORTAR && h.tick == 2f) {
+                        // Ice crystal: a hit also chills.
+                        forEachAlive { if (MathUtil.dist2(px, py, h.x, h.y) < (h.radius + playerRadius * 0.6f).let { it * it }) chill(1.5f) }
+                    }
                     if (h.kind == HazardKind.MORTAR) {
                         repeat(10) { addParticle(h.x, h.y, h.color, 220f, 0.45f, 3f) }
                         if (MathUtil.dist2(ops[primary].px, ops[primary].py, h.x, h.y) < 260f * 260f) fx.shake(3.5f, 0.2f)
@@ -3006,6 +3034,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         }
                     }
                 }
+                HazardKind.ICE -> {
+                    if (h.timer >= h.duration) { h.active = false; continue }
+                    if (h.timer >= h.windup) {
+                        h.tick -= dt
+                        if (h.tick <= 0f) {
+                            h.tick = 0.5f
+                            forEachAlive { if (MathUtil.dist2(px, py, h.x, h.y) < h.radius * h.radius) chill(1f) }
+                        }
+                    }
+                }
                 HazardKind.FIRE_WALL, HazardKind.COIL -> {
                     if (h.timer >= h.duration) { h.active = false; continue }
                     val r0 = h.angle
@@ -3089,8 +3127,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         if (h.hitMask and bit == 0 && distToSegment(px, py, h.x, h.y, h.x2, h.y2) < h.radius * 0.5f + playerRadius * 0.6f) {
                             h.hitMask = h.hitMask or bit
                             damagePlayer(h.damage, h.x, h.y)
-                            // Purge Spin flame jets set you on fire.
-                            if (h.tick > 0f) ignite(BURN_SECONDS, h.damage * 0.3f)
+                            // Purge Spin flame jets set you on fire; Ice Laser beams (tick 2) chill.
+                            if (h.tick == 1f) ignite(BURN_SECONDS, h.damage * 0.3f)
+                            if (h.tick == 2f) chill(2f)
                         }
                     }
                 }
@@ -3314,6 +3353,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
             n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge; n.burning = o.burning
             n.pulled = o.pulled; n.pullX = o.pullX; n.pullY = o.pullY; n.pullStrength = o.pullStrength
+            n.chill = o.chill; n.frozen = o.frozen
             n.orbAngle = o.orbAngle; n.bladeAngle = o.bladeAngle; n.targetUid = o.targetUid
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone
@@ -3378,7 +3418,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.sounds += sounds.take(16)
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
         w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
-        w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut; w.bossSync = bossSync; w.bossTrail = bossTrail.copyOf()
+        w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut; w.bossSync = bossSync; w.bossTrail = bossTrail.copyOf(); w.bossIceShell = bossIceShell
         return w
     }
 
@@ -3420,7 +3460,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         barriers.clear()
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
         darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
-        bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut; bossSync = w.bossSync; bossTrail = w.bossTrail
+        bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut; bossSync = w.bossSync; bossTrail = w.bossTrail; bossIceShell = w.bossIceShell
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
@@ -3444,6 +3484,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
             o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge; o.burning = n.burning
             o.pulled = n.pulled; o.pullX = n.pullX; o.pullY = n.pullY; o.pullStrength = n.pullStrength
+            o.chill = n.chill; o.frozen = n.frozen
             if (!local) { o.orbAngle = n.orbAngle; o.bladeAngle = n.bladeAngle }
             o.targetUid = n.targetUid
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
@@ -3552,9 +3593,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     me.px = arena.out[0]; me.py = arena.out[1]
                 }
             }
-            me.moving = mag > MOVE_DEADZONE && me.rooted <= 0f
+            if (me.frozen > 0f) me.frozen = max(0f, me.frozen - dt)
+            me.moving = mag > MOVE_DEADZONE && me.rooted <= 0f && me.frozen <= 0f
             if (me.moving) {
-                val speed = stats.moveSpeed * min(1f, mag)
+                val speed = stats.moveSpeed * min(1f, mag) * chillSlow(me)
                 arena.pushOut(me.px + me.inputX / mag * speed * dt, me.py + me.inputY / mag * speed * dt, playerRadius)
                 me.px = arena.out[0]
                 me.py = arena.out[1]
@@ -3652,6 +3694,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val SWEEP_LENGTH = 1500f
         /** ON FIRE: how long it lasts and how often it ticks. */
         const val BURN_SECONDS = 2.5f
+        /** CHILL: max stacks (= FROZEN), decay per second, freeze length. */
+        const val CHILL_MAX = 5f
+        const val CHILL_DECAY = 0.8f
+        const val FREEZE_SECONDS = 1.1f
         /** Hostile mines: how close trips one, and its fuse once tripped. */
         const val MINE_TRIGGER = 70f
         const val MINE_FUSE = 0.45f

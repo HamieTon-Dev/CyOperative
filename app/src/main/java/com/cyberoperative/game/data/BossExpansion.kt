@@ -382,6 +382,38 @@ object BossExpansion {
     )
 
     /**
+     * Black Ice Overlord (Boss Pack Beta 03, STATUS). An ancient AI sealed in ice,
+     * wielding absolute cold: slows movement, blankets the arena in frost and
+     * rains crystal artillery. CHILL stacks slow you; five stacks freeze you.
+     */
+    val BLACK_ICE_OVERLORD = BossDef(
+        "black_ice_overlord", "BLACK ICE OVERLORD", "[*]", "Frozen Ancient AI",
+        "An ancient AI sealed in ice, wielding absolute cold. Slows movement, blankets the arena in frost, " +
+            "and rains crystal artillery.",
+        0xFF3AB8FF, 80f, 2800f, 48f, 31f, BossMove.HOVER, listOf(
+            BossPhase(P1, 1f, 1.4f, listOf(
+                Pattern.IceLaser(2, 1.0f, 2.2f, 90f, 24f),
+                Pattern.FreezePatch(3, 105f, 6f),
+                Pattern.CrystalVolley(3, 80f, 1.2f, 24f),
+                Pattern.Radial(16, 170f, 12f, waves = 2, rotateDeg = 11f)
+            ), "PHASE 1"),
+            BossPhase(P2, 1.05f, 1.25f, listOf(
+                Pattern.PermafrostShell(0.08f, 8f, 230f),
+                Pattern.IceLaser(3, 0.95f, 2.4f, 110f, 25f),
+                Pattern.FreezePatch(4, 110f, 6.5f),
+                Pattern.CrystalVolley(4, 85f, 1.1f, 25f, volleys = 2)
+            ), "DEEP FREEZE"),
+            BossPhase(P3, 1.1f, 1.05f, listOf(
+                Pattern.PermafrostShell(0.07f, 7f, 260f),
+                Pattern.IceLaser(4, 0.9f, 2.6f, 130f, 26f),
+                Pattern.CrystalVolley(5, 85f, 1.0f, 26f, volleys = 3),
+                Pattern.FreezePatch(5, 115f, 7f)
+            ), "ABSOLUTE ZERO")
+        ), euros = 380, score = 8500, role = BossRole.STATUS, tier = 3, armor = 5.4f,
+        abilities = listOf("Ice Laser", "Freeze Patch", "Crystal Volley", "Permafrost Shell")
+    )
+
+    /**
      * Planned levels 130–240 (log §1 D1, threat order), one slot per 10 levels.
      * Nullshade Specter closes the run at 240 (and stalks from 150 as a rare boss).
      */
@@ -391,7 +423,7 @@ object BossExpansion {
     )
 
     /** Built bosses, in slot order. */
-    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, BOTNET_MONARCH, CIRCUIT_HYDRA, RANSOM_KING, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
+    val all: List<BossDef> = listOf(VAULT_SENTINEL, ROOTKIT_APOSTLE, PULSE_BISHOP, PACKET_REAPER, WORM_QUEEN, GLITCH_FORGE, BOTNET_MONARCH, CIRCUIT_HYDRA, RANSOM_KING, BLACK_ICE_OVERLORD, SPECTRAL_FIREWALL, NULLSHADE_SPECTER).sortedBy { SLOTS.indexOf(it.id) }
 
     /** The built boss for slot [i] (0 = level 130), or null if that boss isn't built yet. */
     fun inSlot(i: Int): BossDef? = SLOTS.getOrNull(i)?.let { id -> all.firstOrNull { it.id == id } }

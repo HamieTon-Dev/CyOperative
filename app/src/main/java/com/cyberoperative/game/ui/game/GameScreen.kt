@@ -567,6 +567,14 @@ internal fun BossHealthBar(h: HudSnapshot) {
             }
             drawRoundRect(color.copy(alpha = 0.9f * flicker), topLeft = o, size = androidx.compose.ui.geometry.Size(frameW, size.height), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
         }
+        if (h.bossIceShell >= 0) {
+            Text(
+                "❄ PERMAFROST SHELL ${h.bossIceShell}% — KEEP FIRING",
+                color = Color(0xFF9AE6FF),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         if (h.bossRing >= 0) {
             // Spectral Firewall: its plates soak up your fire unless you shoot through a gap.
             val up = h.bossRing == 1

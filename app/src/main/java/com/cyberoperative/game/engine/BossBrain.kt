@@ -54,6 +54,12 @@ class BossState(val def: BossDef, val cycle: Int) {
     var ringTouch = 0f
     /** Botnet Monarch: its drone ring's angle. */
     var orbitAngle = 0f
+    var subTimer2 = 0f
+    /** Black Ice: shell HP left, its starting HP, time left, chill aura radius. */
+    var shellHp = 0f
+    var shellMax = 0f
+    var shellTime = 0f
+    var shellAura = 0f
     val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
 
     val phase get() = def.phases[phaseIndex]
@@ -144,6 +150,7 @@ class BossBrain(private val g: GameEngine) {
         if (st.def.firewallRing) firewallRing(e, st, dt)
         updateOrbiters(e, st, dt)
         if (st.def.segments > 0) updateSerpent(e, st, dt)
+        if (st.shellHp > 0f) updateShell(e, st, dt)
 
         val dashing = (st.active is Pattern.Charge || st.active is Pattern.GhostDash || st.active is Pattern.DashSlash || st.active is Pattern.BacklineDive) && st.chargeStage >= 1
         val teleporting = st.active is Pattern.Teleport
@@ -245,6 +252,40 @@ class BossBrain(private val g: GameEngine) {
             m.y = MathUtil.clamp(sy + sin(a) * 120f, m.radius, g.arena.height - m.radius)
             k++
         }
+    }
+
+    /** Permafrost Shell: chills anyone close, melts after its time runs out. */
+    private fun updateShell(e: Enemy, st: BossState, dt: Float) {
+        st.shellTime -= dt
+        st.subTimer2 += dt
+        if (st.subTimer2 >= 0.5f) {
+            st.subTimer2 = 0f
+            g.forEachOperativeHit(e.x, e.y, st.shellAura, 0) { _ -> g.chill(1f) }
+        }
+        if (st.shellTime <= 0f) { st.shellHp = 0f; g.bossIceShell = -1f; g.addPulse(e.x, e.y, e.radius * 2f, 0.4f, 0xFF9AE6FF) }
+        else g.bossIceShell = st.shellHp / st.shellMax
+    }
+
+    /** A hit while the shell is up: the shell takes it in full, the boss a quarter. Returns true when handled. */
+    internal fun shellAbsorb(e: Enemy, raw: Float): Boolean {
+        val st = e.boss ?: return false
+        if (st.shellHp <= 0f) return false
+        st.shellHp -= raw
+        e.hp -= raw * 0.25f / (1f + e.def.armor)
+        e.hitFlash = 0.1f
+        if (st.shellHp <= 0f) {
+            st.shellHp = 0f
+            g.bossIceShell = -1f
+            g.addPulse(e.x, e.y, e.radius * 3f, 0.5f, 0xFF9AE6FF)
+            g.addPulse(e.x, e.y, e.radius * 1.6f, 0.35f, 0xFFFFFFFF)
+            repeat(40) { g.addParticle(e.x, e.y - e.radius, 0xFF9AE6FF, 380f, 0.8f, 4f) }
+            g.fx.hitStop(0.08f); g.fx.shake(9f, 0.4f); g.fx.flash(0xFF9AE6FF, 0.3f, 0.35f)
+            g.showBanner("SHELL SHATTERED", "Hit it now", 1.2f)
+            // Stunned for a moment after the shatter.
+            st.rest = 2.2f; st.active = null
+        }
+        if (e.hp <= 0f) g.killEnemy(e)
+        return true
     }
 
     /** Ring drones ride evenly spaced slots around the boss (they still aim and shoot on their own). */
@@ -603,6 +644,38 @@ class BossBrain(private val g: GameEngine) {
                     g.addPulse(tr[k * 2], tr[k * 2 + 1], 40f, 0.3f, st.def.color)
                     k += 2
                 }
+            }
+            is Pattern.IceLaser -> {
+                val aim = atan2(g.py - e.y, g.px - e.x)
+                val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
+                for (k in 0 until p.count) {
+                    // Fired from the two shoulder cannons, alternating.
+                    val sx = e.x + (if (k % 2 == 0) -1f else 1f) * e.radius * 0.7f
+                    val start = aim - sweep / 2f + MathUtil.TWO_PI * k / p.count
+                    g.addSweep(sx, e.y - e.radius * 0.4f, start, sweep, 24f, p.windup, p.duration, p.damage * e.damageMul, st.def.color, -1)?.tick = 2f
+                }
+            }
+            is Pattern.FreezePatch -> {
+                for (k in 0 until p.count) {
+                    val x: Float; val y: Float
+                    if (k == 0) { x = g.px; y = g.py } else {
+                        val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                        val d = 120f + g.rng.nextFloat() * 260f
+                        x = MathUtil.clamp(g.px + cos(a) * d, 60f, g.arena.width - 60f)
+                        y = MathUtil.clamp(g.py + sin(a) * d, 60f, g.arena.height - 60f)
+                    }
+                    g.addZone(x, y, p.radius, p.duration, 0f, 0xFF9AE6FF, telegraph = p.telegraph, kind = HazardKind.ICE)
+                }
+            }
+            is Pattern.CrystalVolley -> {}
+            is Pattern.PermafrostShell -> {
+                st.shellMax = e.maxHp * p.share
+                st.shellHp = st.shellMax
+                st.shellTime = p.maxTime
+                st.shellAura = p.auraRadius
+                g.bossIceShell = 1f
+                g.addPulse(e.x, e.y, e.radius * 2.4f, 0.6f, 0xFF9AE6FF)
+                g.showBanner("PERMAFROST SHELL", "Keep firing to shatter it", 1.2f)
             }
             is Pattern.CoilCrush -> {
                 g.addFireWall(g.px, g.py, p.from, p.to, p.speed, p.gaps, atan2(e.y - g.py, e.x - g.px) + MathUtil.PI, 0.42f, p.damage * e.damageMul, st.def.color, e.uid, kind = HazardKind.COIL)
@@ -1211,6 +1284,27 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.SwarmHatch -> return st.patternTime >= 0.6f
             is Pattern.DroneRing -> return st.patternTime >= 0.6f
             is Pattern.SplitHeads -> return st.patternTime >= 0.6f
+            is Pattern.IceLaser -> return st.patternTime >= p.windup + p.duration
+            is Pattern.FreezePatch -> return st.patternTime >= p.telegraph
+            is Pattern.PermafrostShell -> return st.patternTime >= 0.8f
+            is Pattern.CrystalVolley -> {
+                st.subTimer -= dt
+                if (st.subTimer <= 0f && st.counter < p.volleys) {
+                    for (k in 0 until p.count) {
+                        val x: Float; val y: Float
+                        if (k == 0) { x = g.px; y = g.py } else {
+                            val a = g.rng.nextFloat() * MathUtil.TWO_PI
+                            val d = 60f + g.rng.nextFloat() * 220f
+                            x = MathUtil.clamp(g.px + cos(a) * d, 40f, g.arena.width - 40f)
+                            y = MathUtil.clamp(g.py + sin(a) * d, 40f, g.arena.height - 40f)
+                        }
+                        g.addMortar(e.x, e.y - e.radius, x, y, p.radius, p.flight, p.damage * e.damageMul, 0xFF9AE6FF)?.tick = 2f
+                    }
+                    st.counter++
+                    st.subTimer = p.gap
+                }
+                return st.counter >= p.volleys && st.subTimer <= p.gap - 0.3f
+            }
             is Pattern.BeamArc -> return st.patternTime >= p.windup + p.duration
             is Pattern.SegmentBurst -> return st.patternTime >= 0.4f
             is Pattern.CoilCrush -> return st.patternTime >= (p.from - p.to) / p.speed
@@ -1402,6 +1496,7 @@ class BossBrain(private val g: GameEngine) {
 
     fun onBossKilled(e: Enemy, st: BossState) {
         g.bossSync = 0f
+        g.bossIceShell = -1f
         // Power restores after a blackout fight.
         if (g.darkness > 0f) { g.darknessTarget = 0f; g.bossVeil = 0f }
         g.addPulse(e.x, e.y, 480f, 1.1f, st.def.color)

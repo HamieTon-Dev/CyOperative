@@ -1008,3 +1008,64 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         assertTrue(g.projectiles.items.count { it.active && !it.friendly } >= 24)
     }
 }
+
+class BlackIceOverlordTest : ExpansionBossHarness({ com.cyberoperative.game.data.BossExpansion.BLACK_ICE_OVERLORD }, 220) {
+    @Test fun freezePatchStacksChillThenFreezes() {
+        val g = fight()
+        val me = g.operatives[0]
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.FreezePatch(1, 110f, 8f, 0.3f))
+        var froze = false
+        var t = 0f
+        while (t < 4f) { run(g, 0.1f); t += 0.1f; if (me.frozen > 0f) froze = true }
+        assertTrue("five stacks froze the operative", froze)
+    }
+
+    @Test fun chillSlowsMovement() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.px = 360f; me.py = g.arena.height * 0.7f
+        val x0 = me.px
+        run(g, 0.5f, 1f to 0f)
+        val free = me.px - x0
+        me.px = 360f; me.chill = 4f
+        run(g, 0.5f, 1f to 0f)
+        val slowed = me.px - 360f
+        assertTrue("chilled moves slower ($slowed vs $free)", slowed < free * 0.8f)
+    }
+
+    @Test fun iceLaserChills() {
+        val g = fight()
+        val b = g.boss!!
+        val me = g.operatives[0]
+        me.invuln = 0f
+        val a = kotlin.math.atan2(me.py - (b.y - b.radius * 0.4f), me.px - (b.x - b.radius * 0.7f))
+        g.addSweep(b.x - b.radius * 0.7f, b.y - b.radius * 0.4f, a - 0.3f, 0.6f, 24f, 0.05f, 0.6f, 10f, 0xFF3AB8FF, -1)?.tick = 2f
+        run(g, 0.8f)
+        assertTrue(me.chill > 0f || me.frozen > 0f)
+    }
+
+    @Test fun shellSoaksDamageUntilShattered() {
+        val g = fight()
+        val b = g.boss!!
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.PermafrostShell(0.1f, 20f, 230f))
+        assertEquals(1f, g.bossIceShell, 0.01f)
+        val hp = b.hp
+        g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertEquals("a quarter gets through", hp - 2.5f, b.hp, 0.5f)
+        // Sustained fire breaks it.
+        repeat(400) { if (g.bossIceShell > 0f) g.damageEnemy(b, b.maxHp * 0.01f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true) }
+        assertTrue("shattered", g.bossIceShell < 0f)
+        val hp2 = b.hp
+        g.damageEnemy(b, 10f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        assertTrue("full damage again", hp2 - b.hp > 5f)
+    }
+
+    @Test fun crystalsLandAndChill() {
+        val g = fight()
+        val me = g.operatives[0]
+        me.invuln = 0f
+        g.debugBossPattern(com.cyberoperative.game.data.Pattern.CrystalVolley(1, 80f, 0.8f, 10f))
+        run(g, 1.1f)
+        assertTrue(me.chill > 0f)
+    }
+}

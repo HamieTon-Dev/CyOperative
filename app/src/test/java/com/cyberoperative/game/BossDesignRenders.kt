@@ -333,6 +333,13 @@ class BossDesignRenders(private val bossId: String, private val shot: String) {
                 AttackShot("atk4_segment_burst", listOf(Pattern.SegmentBurst(8, 210f, 15f) to 0.5f)),
                 AttackShot("atk5_coil_crush", listOf(Pattern.CoilCrush(300f, 70f, 130f, 30f) to 0.9f))
             ),
+            "black_ice_overlord" to listOf(
+                AttackShot("atk1_ice_laser", listOf(Pattern.IceLaser(3, 0.95f, 2.4f, 110f, 25f) to 1.6f)),
+                AttackShot("atk2_freeze_patch", listOf(Pattern.FreezePatch(5, 115f, 7f) to 1.5f), after = { g -> g.operatives[0].chill = 3f }),
+                AttackShot("atk3_crystal_volley", listOf(Pattern.CrystalVolley(5, 85f, 1.0f, 26f, volleys = 2) to 0.75f)),
+                AttackShot("atk4_permafrost_shell", listOf(Pattern.PermafrostShell(0.08f, 8f, 230f) to 1.0f)),
+                AttackShot("atk5_frozen", listOf(Pattern.FreezePatch(3, 105f, 6f) to 1.2f), after = { g -> g.operatives[0].frozen = 1f })
+            ),
             "spectral_firewall" to listOf(
                 AttackShot("atk1_ring_shield", listOf(Pattern.Spiral(3, 0.1f, 1f, 0f, 1f, 0f) to 0.6f)),
                 AttackShot("atk2_firewall_ring_launch", listOf(Pattern.FirewallRing(1, 3, 170f, 26f) to 1.5f)),

@@ -79,7 +79,8 @@ object BossBodies {
         "worm_queen" to WormQueenBody,
         "glitch_forge" to GlitchForgeBody,
         "botnet_monarch" to BotnetMonarchBody,
-        "circuit_hydra" to CircuitHydraBody
+        "circuit_hydra" to CircuitHydraBody,
+        "black_ice_overlord" to BlackIceOverlordBody
     )
 
     fun forId(id: String): BossBody? = bodies[id]

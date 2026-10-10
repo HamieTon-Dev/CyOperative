@@ -205,6 +205,18 @@ sealed class Pattern {
     /** Coil Crush: its body coils around you at [from] and tightens to [to]; slip out through the gap. */
     data class CoilCrush(val from: Float, val to: Float, val speed: Float, val damage: Float, val gaps: Int = 1) : Pattern()
 
+    /** Ice Laser: [count] freezing sweep beams; a hit adds CHILL stacks. */
+    data class IceLaser(val count: Int, val windup: Float, val duration: Float, val sweepDeg: Float, val damage: Float) : Pattern()
+
+    /** Freeze Patch: icy zones (one under you) that slow and stack CHILL while you stand in them. */
+    data class FreezePatch(val count: Int, val radius: Float, val duration: Float, val telegraph: Float = 0.9f) : Pattern()
+
+    /** Crystal Volley: arcing ice crystals onto marked spots; a hit chills. */
+    data class CrystalVolley(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val gap: Float = 0.6f) : Pattern()
+
+    /** Permafrost Shell: an ice shell ([share] of its max HP) cuts damage 75% and chills anyone near; sustained fire breaks it. */
+    data class PermafrostShell(val share: Float, val maxTime: Float, val auraRadius: Float) : Pattern()
+
     /** Lobbed shells onto marked spots (the first on the player); they fly over cover. */
     data class Mortar(val count: Int, val radius: Float, val flight: Float, val damage: Float, val volleys: Int = 1, val volleyGap: Float = 0.6f) : Pattern()
 }
@@ -336,6 +348,10 @@ val Pattern.displayName: String
         is Pattern.BeamArc -> "Beam Arc"
         is Pattern.SegmentBurst -> "Segment Burst"
         is Pattern.CoilCrush -> "Coil Crush"
+        is Pattern.IceLaser -> "Ice Laser"
+        is Pattern.FreezePatch -> "Freeze Patch"
+        is Pattern.CrystalVolley -> "Crystal Volley"
+        is Pattern.PermafrostShell -> "Permafrost Shell"
     }
 
 object Bosses {

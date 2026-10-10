@@ -72,6 +72,8 @@ class CoopWorld {
     var bossSync = 0f
     /** Serpent body points (v9). */
     var bossTrail = FloatArray(0)
+    /** Black Ice shell (v10): fraction left, -1 none. */
+    var bossIceShell = -1f
 }
 
 class NetOp {
@@ -86,6 +88,8 @@ class NetOp {
     var burning = 0f
     /** PULLED (v7): time left, target and strength. */
     var pulled = 0f; var pullX = 0f; var pullY = 0f; var pullStrength = 0f
+    /** CHILL stacks and FROZEN time (v10). */
+    var chill = 0f; var frozen = 0f
     var pending = 0; var rerolls = 0; var batchTotal = 0; var batchTaken = 0
     /** Owned upgrades: index into Upgrades.all → level. */
     val owned = LinkedHashMap<Int, Int>()
@@ -200,6 +204,7 @@ object CoopCodec {
                 o.sec(p.beamHeat); o.sec(p.beamCooldown); o.sec(p.reviveProgress)
                 o.sec(p.rooted); o.sec(p.encrypted); o.writeByte((p.encryptCharge * 255f).toInt().coerceIn(0, 255)); o.sec(p.burning)
                 o.sec(p.pulled); o.pos(p.pullX); o.pos(p.pullY); o.pos(p.pullStrength)
+                o.writeByte((p.chill * 40f).toInt().coerceIn(0, 255)); o.sec(p.frozen)
                 o.var32(p.pending); o.var32(p.rerolls); o.var32(p.batchTotal); o.var32(p.batchTaken)
                 o.var32(p.owned.size)
                 for ((k, v) in p.owned) { o.var32(k); o.var32(v) }
@@ -268,6 +273,7 @@ object CoopCodec {
             o.writeByte((w.bossSync * 255f).toInt().coerceIn(0, 255))
             o.writeByte(w.bossTrail.size / 2)
             for (v in w.bossTrail) o.pos(v)
+            o.writeByte(if (w.bossIceShell < 0f) 255 else (w.bossIceShell * 200f).toInt().coerceIn(0, 200))
         }
         return bytes.toByteArray()
     }
@@ -299,6 +305,7 @@ object CoopCodec {
                 p.beamHeat = i.sec(); p.beamCooldown = i.sec(); p.reviveProgress = i.sec()
                 p.rooted = i.sec(); p.encrypted = i.sec(); p.encryptCharge = i.readUnsignedByte() / 255f; p.burning = i.sec()
                 p.pulled = i.sec(); p.pullX = i.pos(); p.pullY = i.pos(); p.pullStrength = i.pos()
+                p.chill = i.readUnsignedByte() / 40f; p.frozen = i.sec()
                 p.pending = i.var32(); p.rerolls = i.var32(); p.batchTotal = i.var32(); p.batchTaken = i.var32()
                 repeat(i.var32()) { val k = i.var32(); p.owned[k] = i.var32() }
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
@@ -371,6 +378,7 @@ object CoopCodec {
             w.bossRingAngle = i.ang(); w.bossRingFilled = i.readUnsignedByte() - 1; w.bossRingOut = i.readUnsignedByte() == 1
             w.bossSync = i.readUnsignedByte() / 255f
             w.bossTrail = FloatArray(i.readUnsignedByte() * 2) { i.pos() }
+            w.bossIceShell = i.readUnsignedByte().let { if (it == 255) -1f else it / 200f }
             w
         }
     } catch (_: Exception) {
@@ -400,5 +408,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 9
+    const val VERSION = 10
 }

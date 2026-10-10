@@ -223,7 +223,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [ ] B2 S4 lobbed shots + curved boomerang shots (mortar done in 0.11.1: HazardKind.MORTAR; boomerangs still to do)
 - [x] B3 S3 hostile mines (HazardKind.MINE)
 - [ ] B4 S5 trails + tile corruption
-- [ ] B5 S7 status effects (slow, chill/freeze, pull, encrypted) + HUD icons
+- [x] B5 S7 status effects: SEIZED, ENCRYPTED, ON FIRE, PULLED, CHILL/FROZEN, all with on-body markers
 - [ ] B6 S1 lane/backline blink
 - [ ] B7 S10 shells, untargetable windows, armor
 - [ ] B8 Tests for each system (dodgeable, telegraphed, co-op safe)
@@ -242,7 +242,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 - [x] D1 Pulse Bishop (v0.11.7, autonomous)
 - [x] D2 S9 decoys (holo_clone enemy, 1 HP)
 - [x] D3 Glitch Forge (v0.11.10, autonomous)
-- [ ] D4 Black Ice Overlord
+- [x] D4 Black Ice Overlord (v0.11.13, autonomous)
 - [x] D5 S9 orbiting + linked drones (Enemy.orbitSlot, bossSync)
 - [x] D6 Botnet Monarch (v0.11.11, autonomous)
 - [ ] D7 Renders + tests
@@ -279,6 +279,7 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
 | Glitch Forge | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 | Botnet Monarch | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 | Circuit Hydra | 2026-10-10 | 🤖 built autonomously | card: circuit_hydra_card.png |
+| Black Ice Overlord | 2026-10-10 | 🤖 built autonomously | card: boss_pack_beta_cards.webp |
 
 ---
 
@@ -419,3 +420,8 @@ CONTROLLER / AREA CONTROL / HUNTER on these four).
   - Patterns SplitHeads, BeamArc, SegmentBurst and CoilCrush (HazardKind.COIL, FIRE_WALL logic
     without burn).
   - Tests: CircuitHydraTest.
+- 2026-10-10 — v0.11.13 (35): Black Ice Overlord (autonomous). **All 12 expansion bosses are now built.**
+  - CHILL/FROZEN status (`Operative.chill/frozen`, chillSlow) and HazardKind.ICE.
+  - Patterns IceLaser (SWEEP with tick 2), CrystalVolley (MORTAR with tick 2), FreezePatch and
+    PermafrostShell (BossBrain.shellAbsorb, `GameEngine.bossIceShell`).
+  - Co-op wire v10. Tests: BlackIceOverlordTest.

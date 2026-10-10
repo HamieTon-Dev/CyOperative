@@ -1012,7 +1012,7 @@ class ArenaRenderer {
                 cx, cy, e.radius, base, time, boss.phaseIndex, e.state == AiState.WINDUP, e.hitFlash > 0f,
                 kotlin.math.atan2(g.py - e.y, g.px - e.x), (e.hp / e.maxHp).coerceIn(0f, 1f), glitch,
                 veiled = if (boss.def.stealth) g.bossVeil else 0f,
-                shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else 0f,
+                shield = if (boss.def.keyShield) g.bossShield.coerceAtLeast(0f) else if (g.bossIceShell > 0f) g.bossIceShell else 0f,
                 ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut,
                 trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0)
             )
@@ -1515,6 +1515,24 @@ class ArenaRenderer {
                 }
                 HazardKind.INFECTED -> drawInfected(h, col, time)
                 HazardKind.KEY_ZONE -> drawKeyZone(h, time)
+                HazardKind.ICE -> {
+                    // Freeze patch: a pale icy disc with crystal shards and frost rays.
+                    val c = Offset(h.x, h.y)
+                    val ice = Color(0xFF9AE6FF)
+                    if (h.timer < h.windup) {
+                        drawCircle(ice.copy(alpha = 0.7f), h.radius, c, style = Stroke(2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 8f), time * 30f)))
+                        drawCircle(ice.copy(alpha = 0.18f), h.radius * (h.timer / h.windup), c)
+                    } else {
+                        val fade = ((h.duration - h.timer) / 0.5f).coerceIn(0f, 1f)
+                        drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.35f * fade), ice.copy(alpha = 0.3f * fade), ice.copy(alpha = 0.1f * fade)), center = c, radius = h.radius), h.radius, c)
+                        drawCircle(ice.copy(alpha = 0.8f * fade), h.radius, c, style = Stroke(2.5f))
+                        for (k in 0 until 6) {
+                            val a = k * 1.047f + h.x * 0.01f
+                            drawLine(Color.White.copy(alpha = 0.4f * fade), c, Offset(c.x + cos(a) * h.radius * 0.9f, c.y + sin(a) * h.radius * 0.9f), 1.4f)
+                            crystal(c.x + cos(a + 0.5f) * h.radius * 0.7f, c.y + sin(a + 0.5f) * h.radius * 0.7f, -1.571f + 0.3f * cos(k.toFloat()), 18f * fade, 9f, Color(0xFFBFF3FF), Color(0xFF1A6EB0), Color.White)
+                        }
+                    }
+                }
                 HazardKind.BURN_SECTOR -> drawBurnSector(h, time)
                 HazardKind.MINE -> drawHostileMine(h, time)
                 HazardKind.TILE -> {
@@ -1883,6 +1901,22 @@ class ArenaRenderer {
                 }
                 drawPadlock(Offset(c.x + 22f, c.y - 4f), 16f, Color(0xFFFFC233))
             }
+            if (o.frozen > 0f) {
+                // FROZEN: encased in an ice block.
+                val c = Offset(o.px, o.py - 24f)
+                drawRect(Color(0xFF9AE6FF).copy(alpha = 0.45f), Offset(c.x - 26f, c.y - 34f), Size(52f, 62f))
+                drawRect(Color.White.copy(alpha = 0.9f), Offset(c.x - 26f, c.y - 34f), Size(52f, 62f), style = Stroke(2.5f))
+                drawLine(Color.White.copy(alpha = 0.7f), Offset(c.x - 18f, c.y - 26f), Offset(c.x + 4f, c.y + 6f), 1.6f)
+            } else if (o.chill >= 0.5f) {
+                // CHILL: frost pips over the head, one per stack.
+                val n = o.chill.toInt().coerceIn(1, 5)
+                for (k in 0 until 5) {
+                    val c = Offset(o.px - 24f + k * 12f, o.py - 74f)
+                    drawCircle(Color(0xFF14243A).copy(alpha = 0.7f), 5f, c)
+                    if (k < n) drawCircle(Color(0xFF9AE6FF), 4f, c)
+                }
+                drawCircle(Color(0xFF9AE6FF).copy(alpha = 0.15f * n), 26f, Offset(o.px, o.py - 20f))
+            }
             if (o.pulled > 0f) {
                 // PULLED: a tether of light dragging the operative toward the bishop.
                 val pc = Offset(o.pullX, o.pullY)
@@ -2044,6 +2078,11 @@ class ArenaRenderer {
                     val f = (h.timer / h.duration).coerceIn(0f, 1f)
                     val sx = h.x2 + (h.x - h.x2) * f
                     val sy = h.y2 + (h.y - h.y2) * f - sin(f * Math.PI.toFloat()) * 220f
+                    if (h.tick == 2f) {
+                        // Ice crystal tumbling through the air.
+                        crystal(sx, sy + 10f, -1.571f + time * 6f, 26f, 14f, Color(0xFFBFF3FF), Color(0xFF1A6EB0), Color.White)
+                        continue
+                    }
                     drawCircle(col.copy(alpha = 0.3f), 13f, Offset(sx, sy))
                     drawCircle(col, 7.5f, Offset(sx, sy))
                     drawCircle(Color.White.copy(alpha = 0.9f), 3f, Offset(sx, sy))
@@ -2053,6 +2092,16 @@ class ArenaRenderer {
                         val f = h.timer / h.windup
                         drawLine(col.copy(alpha = 0.2f + 0.35f * f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * f)
                         drawLine(col.copy(alpha = 0.75f), Offset(h.x, h.y), Offset(h.x2, h.y2), 2f)
+                    } else if (h.tick == 2f) {
+                        // Ice laser: a pale blue beam with a white core and frost sparkles.
+                        drawLine(Color(0xFF3AB8FF).copy(alpha = 0.4f), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 1.7f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(Color(0xFF9AE6FF), Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 0.8f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        drawLine(Color.White, Offset(h.x, h.y), Offset(h.x2, h.y2), h.radius * 0.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                        val len = kotlin.math.hypot(h.x2 - h.x, h.y2 - h.y)
+                        for (k in 1 until (len / 50f).toInt()) {
+                            val q = k * 50f / len
+                            drawCircle(Color.White.copy(alpha = 0.7f), 2.5f, Offset(h.x + (h.x2 - h.x) * q + sin(time * 20f + k) * 8f, h.y + (h.y2 - h.y) * q + cos(time * 17f + k) * 8f))
+                        }
                     } else if (h.tick > 0f) {
                         // Purge Spin flame jet: a roaring orange stream with a hot core and flickering edge.
                         val f = 0.85f + 0.15f * sin(time * 30f + h.x)

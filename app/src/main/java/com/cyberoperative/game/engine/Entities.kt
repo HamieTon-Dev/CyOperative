@@ -222,7 +222,9 @@ enum class HazardKind {
     /** Orbital strike: a BLAST with a sky beam coming down onto the marker. */
     ORBITAL,
     /** Hydra coil: like FIRE_WALL (ring around the operative closing in, with gaps) but no burn. */
-    COIL
+    COIL,
+    /** Freeze patch (Black Ice Overlord): an icy ZONE that slows and stacks CHILL instead of burning. */
+    ICE
 }
 
 class Hazard {
