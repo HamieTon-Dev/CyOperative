@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.25.4 (versionCode 80) — 2026-10-11 · Fix: crash when a run starts
+### Fixed
+- **The game crashed the moment a run started** (PLAY or ENDLESS, any difficulty, portrait or landscape).
+  - Floor loot pops in from size 0. On a chip's very first frame, its glow had radius 0, and Android refuses that ("ending radius must be > 0").
+  - Every run now begins with Starting Weapon Power chips dropped around you, so every run hit it.
+  - Found through the 0.25.3 crash reporter, on a Galaxy S24+ (Android 16).
+- Loot now pops in from a tiny size instead of 0.
+- All 51 glow effects in the game use a safe gradient that clamps the radius, so no glow can crash this way again.
+### Technical
+- New `ZeroRadiusGlowTest`:
+  - It reproduces Android's error.
+  - It checks that safe glows never throw.
+  - It fails the build if a raw radial gradient is added again.
+
 ## 0.25.3 (versionCode 79) — 2026-10-11 · Crash reporter for the landscape START crash
 ### Added
 - **Crash reporter (Android).** If the game crashes, the next launch shows what went wrong, with COPY and CONTINUE buttons.

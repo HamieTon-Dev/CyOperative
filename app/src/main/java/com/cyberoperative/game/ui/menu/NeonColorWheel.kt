@@ -47,7 +47,7 @@ fun NeonColorWheel(color: Long, onPick: (Long) -> Unit, modifier: Modifier = Mod
         val a = Math.toRadians(hueOf(color).toDouble())
         val m = Offset(center.x + cos(a).toFloat() * mid, center.y + sin(a).toFloat() * mid)
         drawCircle(Color.White, ring * 0.42f, m, style = Stroke(3f))
-        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.55f), Color.Transparent), center, mid * 0.75f), mid * 0.75f, center)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.55f), Color.Transparent), center, mid * 0.75f), mid * 0.75f, center)
         drawCircle(c, mid * 0.32f, center)
         drawCircle(Color.White.copy(alpha = 0.6f), mid * 0.32f, center, style = Stroke(2f))
     }

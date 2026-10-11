@@ -269,7 +269,7 @@ internal object ClassFigures {
                 limb(Offset(22f, 64f), Offset(20f, 80f), 13f, l.plateLight, l.trim)
                 drawLine(l.plateDark, Offset(16f, 72f), Offset(27f, 72f), 2f)
                 drawCircle(l.trim.copy(alpha = 0.7f), 14.6f, Offset(24f, 58f))
-                drawCircle(Brush.radialGradient(listOf(l.plateLight, l.plateMid, l.plateDark), Offset(20f, 52f), 18f), 14f, Offset(24f, 58f))
+                drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(l.plateLight, l.plateMid, l.plateDark), Offset(20f, 52f), 18f), 14f, Offset(24f, 58f))
                 drawArc(l.plateDark, 20f, 140f, false, Offset(12f, 46f), Size(24f, 24f), style = Stroke(2f))
                 drawCircle(l.plateDark, 5.5f, Offset(24f, 58f))
                 drawCircle(l.trim.copy(alpha = 0.35f * pulse), 6.5f, Offset(24f, 58f))

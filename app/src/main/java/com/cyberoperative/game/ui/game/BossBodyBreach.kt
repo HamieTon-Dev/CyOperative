@@ -33,7 +33,7 @@ internal object BreachBody : BossBody {
         val ground = p.cy + r * 0.9f
 
         // Warning chevrons on the floor under it.
-        drawOval(Brush.radialGradient(listOf(red.copy(alpha = 0.3f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f), Offset(p.cx - r * 1.3f, ground - r * 0.4f), Size(r * 2.6f, r * 0.8f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(red.copy(alpha = 0.3f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f), Offset(p.cx - r * 1.3f, ground - r * 0.4f), Size(r * 2.6f, r * 0.8f))
         for (k in -2..2) {
             val x = p.cx + k * r * 0.38f
             val ch = Path().apply { moveTo(x - r * 0.12f, ground - r * 0.08f); lineTo(x, ground + r * 0.04f); lineTo(x + r * 0.12f, ground - r * 0.08f) }

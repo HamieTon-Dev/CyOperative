@@ -97,7 +97,7 @@ internal object RansomBody : BossBody {
         val dc = Offset(p.cx, top + bh * 0.48f)
         val dr = r * 0.42f
         drawCircle(STEEL_DARK, dr, dc)
-        drawCircle(Brush.radialGradient(listOf(STEEL_LIT, STEEL), center = Offset(dc.x - dr * 0.3f, dc.y - dr * 0.3f), radius = dr * 1.2f), dr * 0.92f, dc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(STEEL_LIT, STEEL), center = Offset(dc.x - dr * 0.3f, dc.y - dr * 0.3f), radius = dr * 1.2f), dr * 0.92f, dc)
         val spin = t * (if (hot) 6f else 0.7f) + p.phase * 0.6f
         for (k in 0 until 24) {
             val a = spin + k * 0.2618f

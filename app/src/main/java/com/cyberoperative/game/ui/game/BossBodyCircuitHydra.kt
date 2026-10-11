@@ -82,7 +82,7 @@ internal object CircuitHydraBody : BossBody {
             }
             if (hot) {
                 val mouth = P(1.05f, 0f)
-                drawCircle(Brush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = mouth, radius = s * 1.15f), s * 1.15f, mouth)
+                drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = mouth, radius = s * 1.15f), s * 1.15f, mouth)
             }
             // Two heavy jaw halves; they splay apart when firing.
             for (sd in listOf(-1f, 1f)) {
@@ -198,7 +198,7 @@ internal object CircuitHydraBody : BossBody {
             }
             close()
         }
-        drawPath(hull, Brush.radialGradient(listOf(if (p.hitFlash) Color.White else METAL_LIT, METAL, METAL_DARK), center = Offset(p.cx - r * 0.25f, ccy - r * 0.3f), radius = r * 1.1f))
+        drawPath(hull, com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(if (p.hitFlash) Color.White else METAL_LIT, METAL, METAL_DARK), center = Offset(p.cx - r * 0.25f, ccy - r * 0.3f), radius = r * 1.1f))
         drawPath(hull, METAL_DARK, style = Stroke(3f))
         // Circuit traces running out from the reactor.
         for (k in 0 until 8) {
@@ -214,12 +214,12 @@ internal object CircuitHydraBody : BossBody {
         val beat = if (p.winding) 1f else 0.6f + 0.4f * sin(t * 2.5f)
         drawCircle(TOXIC.copy(alpha = 0.25f * beat), r * 0.42f, rc)
         drawCircle(METAL_DARK, r * 0.27f, rc)
-        drawCircle(Brush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.24f * (0.85f + 0.3f * beat)), r * 0.24f, rc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(TOXIC_HOT, TOXIC, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.24f * (0.85f + 0.3f * beat)), r * 0.24f, rc)
         drawCircle(TOXIC.copy(alpha = 0.8f), r * 0.27f, rc, style = Stroke(2.5f))
         if (p.heads == 0) {
             // Core exposed: the reactor blazes and the hull seams glow white-hot.
             val f = 0.5f + 0.5f * sin(t * 10f)
-            drawCircle(Brush.radialGradient(listOf(Color.White, TOXIC_HOT, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.7f), r * 0.7f * (0.85f + 0.15f * f), rc)
+            drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, TOXIC_HOT, TOXIC.copy(alpha = 0f)), center = rc, radius = r * 0.7f), r * 0.7f * (0.85f + 0.15f * f), rc)
             drawPath(hull, TOXIC_HOT.copy(alpha = 0.5f + 0.5f * f), style = Stroke(3f))
         } else {
             // Head shield: a translucent hex dome over the core, fed by power links from each living head.

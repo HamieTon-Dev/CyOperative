@@ -34,7 +34,7 @@ internal object BotnetMonarchBody : BossBody {
         val tr = r * 2.1f
         drawOval(red.copy(alpha = 0.15f), Offset(p.cx - tr, p.cy - tr * 0.75f), Size(tr * 2f, tr * 1.5f), style = Stroke(14f))
         drawOval(red.copy(alpha = 0.75f), Offset(p.cx - tr, p.cy - tr * 0.75f), Size(tr * 2f, tr * 1.5f), style = Stroke(3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(26f, 14f), -t * 60f)))
-        drawOval(Brush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f), Offset(p.cx - r * 1.4f, ground - r * 0.5f), Size(r * 2.8f, r * 1f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f), Offset(p.cx - r * 1.4f, ground - r * 0.5f), Size(r * 2.8f, r * 1f))
 
         val lit = if (p.hitFlash) Color.White else Color(0xFFD03040)
         val dark = if (p.hitFlash) Color(0xFFDDDDDD) else Color(0xFF4A0A12)
@@ -57,14 +57,14 @@ internal object BotnetMonarchBody : BossBody {
         }
         // Armoured sphere.
         val shell = if (p.hitFlash) lighter(SHELL_LIT, 0.5f) else SHELL_LIT
-        drawCircle(Brush.radialGradient(listOf(shell, SHELL), center = Offset(p.cx - r * 0.3f, cy - r * 0.35f), radius = r * 1.15f), r * 0.9f, Offset(p.cx, cy))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(shell, SHELL), center = Offset(p.cx - r * 0.3f, cy - r * 0.35f), radius = r * 1.15f), r * 0.9f, Offset(p.cx, cy))
         drawArc(red.copy(alpha = 0.55f + 0.3f * pulse), 200f, 140f, false, Offset(p.cx - r * 0.7f, cy - r * 0.7f), Size(r * 1.4f, r * 1.4f), style = Stroke(2.2f))
         drawArc(red.copy(alpha = 0.55f + 0.3f * pulse), 20f, 140f, false, Offset(p.cx - r * 0.7f, cy - r * 0.7f), Size(r * 1.4f, r * 1.4f), style = Stroke(2.2f))
         // Blazing core.
         val coreR = r * (0.36f + 0.03f * p.phase) * (if (hot) 1.15f else 1f)
         val cc = Offset(p.cx + cos(p.aim) * r * 0.04f, cy + sin(p.aim) * r * 0.03f)
         drawCircle(Color(0xFF14030A), coreR * 1.2f, cc)
-        drawCircle(Brush.radialGradient(listOf(Color.White, Color(0xFFFF9090), red, red.copy(alpha = 0f)), center = cc, radius = coreR * 1.3f), coreR * 1.3f, cc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, Color(0xFFFF9090), red, red.copy(alpha = 0f)), center = cc, radius = coreR * 1.3f), coreR * 1.3f, cc)
         drawCircle(Color.White.copy(alpha = 0.75f + 0.25f * pulse), coreR * 0.45f, cc)
         for (i in 0 until spikes) spike(i, false)
     }

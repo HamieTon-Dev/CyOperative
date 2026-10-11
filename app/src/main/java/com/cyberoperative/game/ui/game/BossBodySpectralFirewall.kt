@@ -42,7 +42,7 @@ internal object SpectralFirewallBody : BossBody {
 
         // Heat glow and a scorched ring on the floor.
         drawOval(
-            Brush.radialGradient(listOf(fire.copy(alpha = 0.4f), fire.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.9f),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(fire.copy(alpha = 0.4f), fire.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.9f),
             Offset(p.cx - r * 1.9f, ground - r * 0.7f), Size(r * 3.8f, r * 1.4f)
         )
         drawOval(Color(0xFFFF3B1A).copy(alpha = 0.55f), Offset(p.cx - r * 1.45f, ground - r * 0.52f), Size(r * 2.9f, r * 1.04f), style = Stroke(2.2f))
@@ -96,7 +96,7 @@ internal object SpectralFirewallBody : BossBody {
                 val hx = p.cx + cos(mid) * ringR
                 val hy = ground - r * 0.1f + sin(mid) * ringR * squash - h * 0.5f
                 drawOval(
-                    Brush.radialGradient(listOf(BRICK_HOT.copy(alpha = 0.55f * flick), BRICK_HOT.copy(alpha = 0f)), center = Offset(hx, hy), radius = h * 0.6f),
+                    com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(BRICK_HOT.copy(alpha = 0.55f * flick), BRICK_HOT.copy(alpha = 0f)), center = Offset(hx, hy), radius = h * 0.6f),
                     Offset(hx - h * 0.6f, hy - h * 0.3f), Size(h * 1.2f, h * 0.6f)
                 )
                 // Scorch patches and a glowing heat crack.
@@ -189,7 +189,7 @@ internal object SpectralFirewallBody : BossBody {
         // Armoured sphere with glowing panel seams.
         val shellLit = if (p.hitFlash) lighter(SHELL_LIT, 0.6f) else SHELL_LIT
         drawCircle(
-            Brush.radialGradient(listOf(shellLit, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(shellLit, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f),
             r * 0.8f, Offset(p.cx, p.cy)
         )
         val seam = fire.copy(alpha = 0.45f + 0.35f * pulse)
@@ -209,7 +209,7 @@ internal object SpectralFirewallBody : BossBody {
         val coreR = r * (0.3f + 0.04f * p.phase) * (if (hot) 1.12f else 1f)
         val cc = Offset(p.cx + cos(p.aim) * r * 0.04f, p.cy + sin(p.aim) * r * 0.03f)
         drawCircle(Color(0xFF120306), coreR * 1.25f, cc)
-        drawCircle(Brush.radialGradient(listOf(Color.White, Color(0xFFFF8A80), CORE, CORE.copy(alpha = 0f)), center = cc, radius = coreR * 1.25f), coreR * 1.25f, cc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, Color(0xFFFF8A80), CORE, CORE.copy(alpha = 0f)), center = cc, radius = coreR * 1.25f), coreR * 1.25f, cc)
         drawCircle(CORE.copy(alpha = 0.9f), coreR, cc, style = Stroke(2.5f))
         drawCircle(Color.White.copy(alpha = if (hot) 1f else 0.85f), coreR * 0.38f, cc)
 

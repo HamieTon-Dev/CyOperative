@@ -36,7 +36,7 @@ internal object WhiteEyeBody : BossBody {
         // Floor shadow and a searchlight pool toward the aim.
         drawOval(Color.Black.copy(alpha = 0.4f), Offset(p.cx - r * 0.8f, p.cy + r * 0.85f), Size(r * 1.6f, r * 0.4f))
         val lx = p.cx + cos(p.aim) * r * 1.6f; val ly = p.cy + r * 0.9f + sin(p.aim) * r * 0.5f
-        drawOval(Brush.radialGradient(listOf(white.copy(alpha = 0.16f), white.copy(alpha = 0f)), center = Offset(lx, ly), radius = r * 0.9f), Offset(lx - r * 0.9f, ly - r * 0.4f), Size(r * 1.8f, r * 0.8f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(white.copy(alpha = 0.16f), white.copy(alpha = 0f)), center = Offset(lx, ly), radius = r * 0.9f), Offset(lx - r * 0.9f, ly - r * 0.4f), Size(r * 1.8f, r * 0.8f))
 
         // Shutter blades around the housing, opening with each phase.
         val open = 0.15f + 0.1f * p.phase + (if (hot) 0.08f else 0f)
@@ -57,7 +57,7 @@ internal object WhiteEyeBody : BossBody {
 
         // The eyeball.
         val er = r * 0.86f
-        drawCircle(Brush.radialGradient(listOf(Color.White, if (p.hitFlash) Color.White else Color(0xFFD8DCE6), Color(0xFF8A90A0)), center = Offset(p.cx - er * 0.3f, cy - er * 0.35f), radius = er * 1.4f), er, c)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, if (p.hitFlash) Color.White else Color(0xFFD8DCE6), Color(0xFF8A90A0)), center = Offset(p.cx - er * 0.3f, cy - er * 0.35f), radius = er * 1.4f), er, c)
         // Circuit veins creeping in from the edge, more each phase.
         val veins = 4 + p.phase * 4
         for (k in 0 until veins) {
@@ -81,7 +81,7 @@ internal object WhiteEyeBody : BossBody {
         val ix = p.cx + cos(p.aim) * look
         val iy = cy + sin(p.aim) * look
         val ir = er * 0.42f
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF50202A), Color(0xFFB02040), Color(0xFF200810)), center = Offset(ix, iy), radius = ir), ir, Offset(ix, iy))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFF50202A), Color(0xFFB02040), Color(0xFF200810)), center = Offset(ix, iy), radius = ir), ir, Offset(ix, iy))
         for (k in 0 until 16) {
             val a = k * PI.toFloat() / 8f + t * 0.3f
             drawLine(Color(0xFFFF6070).copy(alpha = 0.5f), Offset(ix + cos(a) * ir * 0.45f, iy + sin(a) * ir * 0.45f), Offset(ix + cos(a) * ir * 0.92f, iy + sin(a) * ir * 0.92f), 1.4f)

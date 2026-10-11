@@ -133,7 +133,7 @@ internal object GoodGameBody : BossBody {
             drawCircle(Color(0xFFFF7A1A).copy(alpha = 0.6f * ch), tr * (1.1f + 0.15f * sin(t * 30f)), tc, style = Stroke(3f))
         }
         drawCircle(DARK, tr * 1.05f, Offset(tc.x, tc.y + r * 0.06f))
-        drawCircle(Brush.radialGradient(listOf(lit, MID, DARK), center = Offset(tc.x - tr * 0.3f, tc.y - tr * 0.35f), radius = tr * 1.4f), tr, tc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(lit, MID, DARK), center = Offset(tc.x - tr * 0.3f, tc.y - tr * 0.35f), radius = tr * 1.4f), tr, tc)
         drawCircle(red.copy(alpha = 0.8f), tr, tc, style = Stroke(2.5f))
         // Commander hatch with a sensor eye.
         val eye = if (hot) 1f else 0.6f + 0.4f * sin(t * 2f)

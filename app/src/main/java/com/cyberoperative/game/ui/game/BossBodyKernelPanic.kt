@@ -40,7 +40,7 @@ internal object KernelPanicBody : BossBody {
         val half = r * 0.85f
 
         // Heat shimmer on the floor.
-        drawOval(Brush.radialGradient(listOf(amb.copy(alpha = 0.3f), amb.copy(alpha = 0f)), center = Offset(cx, p.cy + r * 0.95f), radius = r * 1.3f), Offset(cx - r * 1.3f, p.cy + r * 0.6f), Size(r * 2.6f, r * 0.7f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(amb.copy(alpha = 0.3f), amb.copy(alpha = 0f)), center = Offset(cx, p.cy + r * 0.95f), radius = r * 1.3f), Offset(cx - r * 1.3f, p.cy + r * 0.6f), Size(r * 2.6f, r * 0.7f))
 
         // Package: square slab seen at a slight tilt, with pins on all sides.
         val pkg = floatArrayOf(-half, -half * 0.8f, half, -half * 0.8f, half, half * 0.8f, -half, half * 0.8f)

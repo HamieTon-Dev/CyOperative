@@ -35,7 +35,7 @@ internal object PulseBishopBody : BossBody {
         // + sigil burning on the floor.
         val arm = r * (1.3f + 0.35f * p.phase) * (if (hot) 1.25f else 1f)
         val sig = red.copy(alpha = 0.35f + 0.25f * pulse + (if (hot) 0.3f else 0f))
-        drawOval(Brush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f), Offset(p.cx - r * 1.3f, ground - r * 0.45f), Size(r * 2.6f, r * 0.9f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f), Offset(p.cx - r * 1.3f, ground - r * 0.45f), Size(r * 2.6f, r * 0.9f))
         drawLine(sig.copy(alpha = sig.alpha * 0.4f), Offset(p.cx - arm, ground), Offset(p.cx + arm, ground), r * 0.16f)
         drawLine(sig.copy(alpha = sig.alpha * 0.4f), Offset(p.cx, ground - arm * 0.36f), Offset(p.cx, ground + arm * 0.36f), r * 0.16f)
         drawLine(sig, Offset(p.cx - arm, ground), Offset(p.cx + arm, ground), 3f)

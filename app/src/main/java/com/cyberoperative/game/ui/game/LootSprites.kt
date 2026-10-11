@@ -53,7 +53,7 @@ object LootSprites {
         val a = 0.22f + 0.08f * sin(time * 3f + l.x * 0.05f)
         val r = 22f * pop
         if (r <= 0f) return
-        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), Offset(l.x, l.y), r), r, Offset(l.x, l.y))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), Offset(l.x, l.y), r), r, Offset(l.x, l.y))
         drawCircle(c.copy(alpha = a * 1.3f), 4f * pop, Offset(l.x, l.y))
     }
 
@@ -83,7 +83,8 @@ object LootSprites {
     }
 
     private fun DrawScope.drawOne(l: Loot, time: Float) {
-        val pop = (l.age * 5f).coerceAtMost(1f)
+        // Pops in over 0.2 s; never exactly 0 (a zero-size glow crashes Android, 0.25.2).
+        val pop = (l.age * 5f).coerceIn(0.05f, 1f)
         val bob = sin(time * 3.2f + l.x * 0.05f) * 2.5f
         val x = l.x
         val y = l.y + bob
@@ -107,7 +108,7 @@ object LootSprites {
 
     private fun DrawScope.potion(x: Float, y: Float, k: Float, time: Float) {
         val glow = 0.25f + 0.12f * sin(time * 4f)
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF00FF9C).copy(alpha = glow), Color.Transparent), Offset(x, y), 26f * k), 26f * k, Offset(x, y))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFF00FF9C).copy(alpha = glow), Color.Transparent), Offset(x, y), 26f * k), 26f * k, Offset(x, y))
         val r = 8f * k
         // Neck and cork.
         drawRect(Color(0xCCBFEFFF), Offset(x - 3f * k, y - r - 9f * k), Size(6f * k, 8f * k))
@@ -127,7 +128,7 @@ object LootSprites {
         // Pulsing pickup ring.
         val p = (time * 1.4f) % 1f
         drawCircle(Color(0xFF7DF9FF).copy(alpha = (1f - p) * 0.7f), (12f + p * 14f) * k, Offset(x, y), style = Stroke(2f))
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF7DF9FF).copy(alpha = 0.22f), Color.Transparent), Offset(x, y), 24f * k), 24f * k, Offset(x, y))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFF7DF9FF).copy(alpha = 0.22f), Color.Transparent), Offset(x, y), 24f * k), 24f * k, Offset(x, y))
         val r = 9f * k
         drawCircle(Color(0xFF14181F), r, Offset(x, y))
         drawCircle(Color(0xFF2E9BFF).copy(alpha = 0.55f), r, Offset(x, y), style = Stroke(1.6f * k))
@@ -153,7 +154,7 @@ object LootSprites {
         val w = 30f * k
         val h = 24f * k
         val top = y - h * 0.75f
-        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.4f), Color.Transparent), Offset(x, top - 6f * k), 30f * k), 30f * k, Offset(x, top - 6f * k))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.4f), Color.Transparent), Offset(x, top - 6f * k), 30f * k), 30f * k, Offset(x, top - 6f * k))
         drawRoundRect(Color(0xFF0A0D14), Offset(x - w / 2f, top), Size(w, h), CornerRadius(3.5f * k))
         drawRoundRect(c, Offset(x - w / 2f, top), Size(w, h), CornerRadius(3.5f * k), style = Stroke(2f * k))
         drawRect(c.copy(alpha = 0.35f), Offset(x - w / 2f + 2f * k, top + 2f * k), Size(w - 4f * k, 4f * k))
@@ -170,7 +171,7 @@ object LootSprites {
     /** An upgrade chip: a dark package with pins and a glowing die, all in its rarity colour. */
     private fun DrawScope.chip(x: Float, y: Float, k: Float, c: Color, sheen: Boolean, time: Float) {
         val s = 11f * k
-        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = 0.35f), Color.Transparent), Offset(x, y), s * 2.6f), s * 2.6f, Offset(x, y))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.35f), Color.Transparent), Offset(x, y), s * 2.6f), s * 2.6f, Offset(x, y))
         // Pins on all four sides.
         for (i in -1..1) {
             val o = i * s * 0.55f

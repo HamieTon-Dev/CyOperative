@@ -34,7 +34,7 @@ internal object SynStormBody : BossBody {
         val arms = 3 + p.phase
 
         // Storm disc on the floor.
-        drawOval(Brush.radialGradient(listOf(col.copy(alpha = 0.32f), col.copy(alpha = 0f)), center = Offset(p.cx, cy + r * 0.3f), radius = r * 1.7f), Offset(p.cx - r * 1.7f, cy + r * 0.3f - r * 0.65f), Size(r * 3.4f, r * 1.3f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(col.copy(alpha = 0.32f), col.copy(alpha = 0f)), center = Offset(p.cx, cy + r * 0.3f), radius = r * 1.7f), Offset(p.cx - r * 1.7f, cy + r * 0.3f - r * 0.65f), Size(r * 3.4f, r * 1.3f))
 
         // Spiral arms of packets.
         for (a in 0 until arms) {

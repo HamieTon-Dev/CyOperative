@@ -50,7 +50,7 @@ internal object RootkitBody : BossBody {
         val lit = if (p.hitFlash) Color.White else CLOAK_LIT
 
         // Floor: a faint glitch square under it.
-        drawOval(Brush.radialGradient(listOf(red.copy(alpha = 0.3f), red.copy(alpha = 0f)), center = Offset(p.cx, p.cy + r * 0.95f), radius = r), Offset(p.cx - r, p.cy + r * 0.65f), Size(r * 2, r * 0.6f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(red.copy(alpha = 0.3f), red.copy(alpha = 0f)), center = Offset(p.cx, p.cy + r * 0.95f), radius = r), Offset(p.cx - r, p.cy + r * 0.65f), Size(r * 2, r * 0.6f))
 
         // Code ribbons trailing from the sleeves.
         val ribbons = 2 + p.phase

@@ -45,7 +45,7 @@ internal object WormPrimeBody : BossBody {
             val s = r * (0.62f - k * 0.07f)
             val c = pts[k]
             drawOval(Color.Black.copy(alpha = 0.3f), Offset(c.x - s, c.y + s * 0.5f), Size(s * 2, s * 0.7f))
-            drawCircle(Brush.radialGradient(listOf(if (p.hitFlash) Color.White else LIT, MID, DARK), center = Offset(c.x - s * 0.3f, c.y - s * 0.4f), radius = s * 1.3f), s, c)
+            drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(if (p.hitFlash) Color.White else LIT, MID, DARK), center = Offset(c.x - s * 0.3f, c.y - s * 0.4f), radius = s * 1.3f), s, c)
             // Molten seam ring.
             drawCircle(col.copy(alpha = seam + 0.3f * sin(t * 5f - k)), s * 0.78f, c, style = Stroke(s * 0.12f))
             drawCircle(DARK, s, c, style = Stroke(2f))
@@ -62,7 +62,7 @@ internal object WormPrimeBody : BossBody {
         // Head.
         val hr = r * 0.85f
         drawOval(Color.Black.copy(alpha = 0.35f), Offset(p.cx - hr, p.cy + hr * 0.55f), Size(hr * 2, hr * 0.7f))
-        drawCircle(Brush.radialGradient(listOf(if (p.hitFlash) Color.White else LIT, MID, DARK), center = Offset(p.cx - hr * 0.3f, p.cy - hr * 0.4f), radius = hr * 1.3f), hr, Offset(p.cx, p.cy))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(if (p.hitFlash) Color.White else LIT, MID, DARK), center = Offset(p.cx - hr * 0.3f, p.cy - hr * 0.4f), radius = hr * 1.3f), hr, Offset(p.cx, p.cy))
         // Armour plates around the head.
         for (k in 0 until 6) {
             val a = k * 1.047f + 0.5f
@@ -75,7 +75,7 @@ internal object WormPrimeBody : BossBody {
         val open = if (hot) 0.62f else 0.5f + 0.04f * sin(t * 4f)
         val mr = hr * open
         drawCircle(DARK, mr, Offset(mx, my))
-        drawCircle(Brush.radialGradient(listOf(Color(0xFFFFE0A0), col, col.copy(alpha = 0f)), center = Offset(mx, my), radius = mr * 0.8f), mr * 0.8f, Offset(mx, my))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFFFFE0A0), col, col.copy(alpha = 0f)), center = Offset(mx, my), radius = mr * 0.8f), mr * 0.8f, Offset(mx, my))
         // Two rings of inward teeth, the inner one counter-rotating.
         for (ring in 0..1) {
             val rr = mr * (if (ring == 0) 1f else 0.65f)

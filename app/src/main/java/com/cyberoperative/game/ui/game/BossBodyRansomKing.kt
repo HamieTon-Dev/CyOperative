@@ -37,7 +37,7 @@ internal object RansomKingBody : BossBody {
 
         // Red light pooled under him.
         drawOval(
-            Brush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(red.copy(alpha = 0.35f), red.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f),
             Offset(p.cx - r * 1.4f, ground - r * 0.5f), Size(r * 2.8f, r * 1.0f)
         )
         drawOval(red.copy(alpha = 0.6f), Offset(p.cx - r * 1.05f, ground - r * 0.34f), Size(r * 2.1f, r * 0.68f), style = Stroke(2f))

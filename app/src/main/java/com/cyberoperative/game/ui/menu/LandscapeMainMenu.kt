@@ -53,7 +53,7 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
         LivingBackground(Modifier.fillMaxSize())
         Box(
             Modifier.fillMaxSize().background(
-                Brush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)), radius = 1600f)
+                com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)), radius = 1600f)
             )
         )
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 16.dp)) {
@@ -146,7 +146,7 @@ private fun HeroStage(profile: PlayerProfile, t: Float, modifier: Modifier) {
                 val r = (size.width * 0.36f).coerceAtMost(size.height * 0.3f)
                 val pulse = 0.5f + 0.5f * sin(t * 2f)
                 drawOval(
-                    Brush.radialGradient(listOf(Palette.Cyan.copy(alpha = 0.32f), Color.Transparent), Offset(cx, cy), r * 1.2f),
+                    com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Palette.Cyan.copy(alpha = 0.32f), Color.Transparent), Offset(cx, cy), r * 1.2f),
                     Offset(cx - r * 1.2f, cy - r * 0.35f), Size(r * 2.4f, r * 0.7f)
                 )
                 for (i in 0 until 3) {

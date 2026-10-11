@@ -88,7 +88,7 @@ internal object GlitchForgeBody : BossBody {
         drawOval(mag.copy(alpha = 0.35f + (if (hot) 0.4f else 0f)), Offset(tc.x - ringR * 1.3f, tc.y - ringR * 0.45f), Size(ringR * 2.6f, ringR * 0.9f))
         drawOval(lighter(mag, 0.3f), Offset(tc.x - ringR, tc.y - ringR * 0.36f), Size(ringR * 2f, ringR * 0.72f), style = Stroke(3f))
         drawOval(mag, Offset(tc.x - ringR * 0.6f, tc.y - ringR * 0.22f), Size(ringR * 1.2f, ringR * 0.44f), style = Stroke(2f))
-        drawCircle(Brush.radialGradient(listOf(Color.White, lighter(mag, 0.4f), mag.copy(alpha = 0f)), center = tc, radius = ringR * 0.5f), ringR * 0.5f, tc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, lighter(mag, 0.4f), mag.copy(alpha = 0f)), center = tc, radius = ringR * 0.5f), ringR * 0.5f, tc)
         if (hot) drawLine(lighter(mag, 0.5f).copy(alpha = 0.8f), tc, Offset(tc.x, tc.y - r * 1.4f), r * 0.1f)
 
         // Glitch slices tearing across the cube (RGB-split strips).

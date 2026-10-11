@@ -57,7 +57,7 @@ internal object NullshadeSpecterBody : BossBody {
 
         // Magenta light pooled on the floor, and the energy ring.
         drawOval(
-            Brush.radialGradient(listOf(mag.copy(alpha = 0.32f * vis), mag.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(mag.copy(alpha = 0.32f * vis), mag.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.3f),
             Offset(p.cx - r * 1.3f, ground - r * 0.5f), Size(r * 2.6f, r * 1.0f)
         )
         val ringA = (0.55f + 0.25f * sin(t * 2.2f) + (if (hot) 0.3f else 0f)) * vis
@@ -69,7 +69,7 @@ internal object NullshadeSpecterBody : BossBody {
         // Magenta glow behind the voxel cloud.
         val cloudC = Offset(p.cx + r * 0.1f, cy + r * 0.32f)
         drawOval(
-            Brush.radialGradient(listOf(lighter(mag, 0.15f).copy(alpha = 0.85f * vis), mag.copy(alpha = 0.4f * vis), mag.copy(alpha = 0f)), center = cloudC, radius = r * 1.3f * swell),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(lighter(mag, 0.15f).copy(alpha = 0.85f * vis), mag.copy(alpha = 0.4f * vis), mag.copy(alpha = 0f)), center = cloudC, radius = r * 1.3f * swell),
             Offset(cloudC.x - r * 1.45f * swell, cloudC.y - r * 0.95f * swell), Size(r * 2.9f * swell, r * 1.9f * swell)
         )
 
@@ -158,7 +158,7 @@ internal object NullshadeSpecterBody : BossBody {
             quadraticTo(p.cx - r * 0.38f, cy - r * 0.1f, p.cx - r * 0.36f, cy - r * 0.62f)
             close()
         }
-        drawPath(face, Brush.radialGradient(
+        drawPath(face, com.cyberoperative.game.ui.common.SafeBrush.radialGradient(
             listOf(EYE.copy(alpha = 0.14f * open * vis), VOID.copy(alpha = 0.98f), VOID),
             center = Offset(hc.x, hc.y - r * 0.02f), radius = r * 0.42f
         ))
@@ -191,7 +191,7 @@ internal object NullshadeSpecterBody : BossBody {
                 // Faint red light spilling around the eye.
                 // Owner, 2026-10-10: "Fainter glow around the eyes. They should be sharper", then "bigger eyes please".
                 drawOval(
-                    Brush.radialGradient(listOf(EYE.copy(alpha = (if (glint) 0.08f else 0.14f) * open * (if (hot) 1.5f else 1f)), EYE.copy(alpha = 0f)), center = ec, radius = eyeW * 0.6f),
+                    com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(EYE.copy(alpha = (if (glint) 0.08f else 0.14f) * open * (if (hot) 1.5f else 1f)), EYE.copy(alpha = 0f)), center = ec, radius = eyeW * 0.6f),
                     Offset(ec.x - eyeW * 0.6f, ec.y - eyeW * 0.32f), Size(eyeW * 1.2f, eyeW * 0.64f)
                 )
                 val h = eyeW * 0.3f * open

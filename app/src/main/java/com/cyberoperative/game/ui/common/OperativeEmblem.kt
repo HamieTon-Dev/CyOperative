@@ -347,7 +347,7 @@ private fun DrawScope.drawEmblem(skin: OperativeSkin, time: Float) {
     // Collar button.
     drawCircle(Mint.copy(alpha = 0.25f * pulse), 6f, Offset(42.7f, 73f))
     drawCircle(Color(0xFF0B2A2A), 4.4f, Offset(42.7f, 73f))
-    drawCircle(Brush.radialGradient(listOf(Color(0xFFB8FFE2), Mint), Offset(41.9f, 72.2f), 4f), 3.4f, Offset(42.7f, 73f))
+    drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFFB8FFE2), Mint), Offset(41.9f, 72.2f), 4f), 3.4f, Offset(42.7f, 73f))
 
     // Headset: ear cup, then the antenna with its glowing tip.
     drawHeroHeadset(HeroPalette.ICON, time, pulse)

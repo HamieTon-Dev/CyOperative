@@ -67,7 +67,7 @@ internal object PacketReaperBody : BossBody {
 
         // Speed shadow and thruster glow on the floor.
         drawOval(Color.Black.copy(alpha = 0.4f), Offset(p.cx - r * 0.8f, ground - r * 0.2f), Size(r * 1.6f, r * 0.4f))
-        drawOval(Brush.radialGradient(listOf(pink.copy(alpha = 0.35f), pink.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f), Offset(p.cx - r * 1.4f, ground - r * 0.5f), Size(r * 2.8f, r * 1f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(pink.copy(alpha = 0.35f), pink.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.4f), Offset(p.cx - r * 1.4f, ground - r * 0.5f), Size(r * 2.8f, r * 1f))
 
         // Thrusters venting magenta flame behind and below.
         for (s in listOf(-1f, 1f)) {

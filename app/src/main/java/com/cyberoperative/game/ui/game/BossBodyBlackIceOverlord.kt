@@ -42,7 +42,7 @@ internal object BlackIceOverlordBody : BossBody {
         val grow = 1f + 0.12f * p.phase
 
         // Frost on the floor with crystal clusters.
-        drawOval(Brush.radialGradient(listOf(ICE.copy(alpha = 0.4f), ICE.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.8f), Offset(p.cx - r * 1.8f, ground - r * 0.6f), Size(r * 3.6f, r * 1.2f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(ICE.copy(alpha = 0.4f), ICE.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = r * 1.8f), Offset(p.cx - r * 1.8f, ground - r * 0.6f), Size(r * 3.6f, r * 1.2f))
         for (k in 0 until 4 + p.phase * 2) {
             val a = k * 1.3f + 0.4f
             shard(p.cx + cos(a) * r * 1.2f, ground + sin(a) * r * 0.4f, -1.571f + 0.3f * cos(k * 2f), r * (0.3f + 0.1f * (k % 3)), r * 0.13f)

@@ -95,7 +95,7 @@ internal object RootkitApostleBody : BossBody {
 
         // Armoured orb.
         drawCircle(
-            Brush.radialGradient(listOf(SHELL_LIT, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f),
+            com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(SHELL_LIT, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f),
             r * 0.78f, Offset(p.cx, p.cy)
         )
         // Plate seams.

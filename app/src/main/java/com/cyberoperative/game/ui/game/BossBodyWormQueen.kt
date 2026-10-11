@@ -30,7 +30,7 @@ internal object WormQueenBody : BossBody {
 
         // Corruption pool: magenta pixel floor with veins.
         val pool = r * (1.5f + 0.3f * p.phase)
-        drawOval(Brush.radialGradient(listOf(pink.copy(alpha = 0.45f), pink.copy(alpha = 0.12f), pink.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = pool), Offset(p.cx - pool, ground - pool * 0.4f), Size(pool * 2f, pool * 0.8f))
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(pink.copy(alpha = 0.45f), pink.copy(alpha = 0.12f), pink.copy(alpha = 0f)), center = Offset(p.cx, ground), radius = pool), Offset(p.cx - pool, ground - pool * 0.4f), Size(pool * 2f, pool * 0.8f))
         for (i in 0 until 26 + p.phase * 10) {
             val a = i * 2.39f
             val d = pool * (0.3f + 0.65f * ((i * 0.618f) % 1f))
@@ -57,7 +57,7 @@ internal object WormQueenBody : BossBody {
 
         // Armoured sphere with plate seams.
         val shell = if (p.hitFlash) lighter(SHELL_LIT, 0.6f) else SHELL_LIT
-        drawCircle(Brush.radialGradient(listOf(shell, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f), r * 0.95f * breathe, Offset(p.cx, p.cy))
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(shell, SHELL), center = Offset(p.cx - r * 0.25f, p.cy - r * 0.3f), radius = r * 1.1f), r * 0.95f * breathe, Offset(p.cx, p.cy))
         for (k in 0 until 8) {
             val a = k * 0.785f
             drawLine(pink.copy(alpha = 0.3f), Offset(p.cx + cos(a) * r * 0.48f, p.cy + sin(a) * r * 0.48f), Offset(p.cx + cos(a) * r * 0.93f, p.cy + sin(a) * r * 0.93f), 1.8f)
@@ -67,7 +67,7 @@ internal object WormQueenBody : BossBody {
         val coreR = r * (0.32f + 0.03f * p.phase) * (if (hot) 1.15f else 1f)
         val cc = Offset(p.cx + cos(p.aim) * r * 0.04f, p.cy + sin(p.aim) * r * 0.03f)
         drawCircle(Color(0xFF14040C), coreR * 1.25f, cc)
-        drawCircle(Brush.radialGradient(listOf(Color.White, lighter(pink, 0.5f), pink, pink.copy(alpha = 0f)), center = cc, radius = coreR * 1.25f), coreR * 1.25f, cc)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White, lighter(pink, 0.5f), pink, pink.copy(alpha = 0f)), center = cc, radius = coreR * 1.25f), coreR * 1.25f, cc)
         drawCircle(pink, coreR, cc, style = Stroke(3f))
         drawCircle(Color.White.copy(alpha = 0.7f + 0.3f * pulse), coreR * 0.35f, cc)
 
