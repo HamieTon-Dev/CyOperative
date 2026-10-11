@@ -42,7 +42,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.foundation.systemGestureExclusion
+import com.cyberoperative.game.platform.GameKeys
+import com.cyberoperative.game.platform.platformGestureExclusion
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
@@ -83,6 +84,12 @@ fun GameScreen(
         onDispose { lifecycle.removeObserver(obs) }
     }
 
+    // PC: mouse position (screen px) and whether a button is held (fires at the cursor).
+    val mouse = remember { FloatArray(2) }
+    var mouseDown by remember { mutableStateOf(false) }
+    var keysMoving by remember { mutableStateOf(false) }
+    val renderer = remember { ArenaRenderer() }
+
     // Frame loop: lives with the screen; leaving the composition stops it.
     var time by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(session) {
@@ -93,6 +100,17 @@ fun GameScreen(
                 val dt = (now - last) / 1_000_000_000f
                 last = now
                 time = (now - start) / 1_000_000_000f
+                if (GameKeys.active) {
+                    val e = session.engine
+                    val live = !session.paused && e.phase != Phase.UPGRADE && e.phase != Phase.DEAD
+                    val kx = GameKeys.x
+                    val ky = GameKeys.y
+                    val keys = live && (kx != 0f || ky != 0f)
+                    if (keys) e.setInput(kx, ky) else if (keysMoving) e.setInput(0f, 0f)
+                    keysMoving = keys
+                    val sc = renderer.scale.coerceAtLeast(0.0001f)
+                    e.setAim(live && mouseDown, mouse[0] / sc, mouse[1] / sc + renderer.camY)
+                }
                 session.onFrame(dt)
             }
         }
@@ -102,7 +120,6 @@ fun GameScreen(
         if (session.hud.phase != Phase.DEAD) session.paused = !session.paused
     }
 
-    val renderer = remember { ArenaRenderer() }
     val density = LocalDensity.current
     val hud = session.hud
 
@@ -137,8 +154,20 @@ fun GameScreen(
                 .fillMaxSize()
                 // Steering thumbs near the side edges shouldn't trigger the system Back swipe.
                 // Android honours up to 200dp per edge, bottom-most first: where the stick lives.
-                .systemGestureExclusion()
+                .platformGestureExclusion()
+                .pointerInput(session, "mouse") {
+                    if (!GameKeys.active) return@pointerInput
+                    awaitPointerEventScope {
+                        while (true) {
+                            val c = awaitPointerEvent().changes.firstOrNull() ?: continue
+                            mouse[0] = c.position.x
+                            mouse[1] = c.position.y
+                            mouseDown = c.pressed
+                        }
+                    }
+                }
                 .pointerInput(session) {
+                    if (GameKeys.active) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         if (session.paused || session.engine.phase == Phase.UPGRADE || session.engine.phase == Phase.DEAD) return@awaitEachGesture
@@ -178,6 +207,17 @@ fun GameScreen(
                 this, session.engine, time, session.skin, session.body, session.background, showDamageNumbers, topInsetPx, bottomInsetPx,
                 partnerSkin = session.partnerSkin, partnerBody = session.partnerBody, shake = screenShake
             )
+            if (GameKeys.active) {
+                // PC: a crosshair at the cursor instead of the stick.
+                val c = Offset(mouse[0], mouse[1])
+                val col = Palette.Cyan.copy(alpha = if (mouseDown) 0.95f else 0.55f)
+                drawCircle(col, 11f, c, style = Stroke(2f))
+                drawLine(col, Offset(c.x - 17f, c.y), Offset(c.x - 6f, c.y), 2f)
+                drawLine(col, Offset(c.x + 6f, c.y), Offset(c.x + 17f, c.y), 2f)
+                drawLine(col, Offset(c.x, c.y - 17f), Offset(c.x, c.y - 6f), 2f)
+                drawLine(col, Offset(c.x, c.y + 6f), Offset(c.x, c.y + 17f), 2f)
+                return@Canvas
+            }
             // Joystick
             val bx = if (stickActive) originX else restX
             val by = if (stickActive) originY else restY
@@ -190,7 +230,7 @@ fun GameScreen(
 
         if (!stickActive && hud.phase == Phase.COMBAT && hud.level == 1 && time < 12f) {
             Text(
-                "DRAG TO MOVE · RELEASE TO FIRE",
+                if (GameKeys.active) "WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM" else "DRAG TO MOVE · RELEASE TO FIRE",
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

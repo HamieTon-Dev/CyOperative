@@ -39,6 +39,10 @@ class Operative(val index: Int, baseStats: RunStats) {
     var frozen = 0f
     var inputX = 0f
     var inputY = 0f
+    /** PC mouse aim (button held): fire at ([aimX], [aimY]) in world space, even while moving. */
+    var aiming = false
+    var aimX = 0f
+    var aimY = 0f
     var fireCooldown = 0f
     var stillTime = 0f
     var followUpLeft = 0

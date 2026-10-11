@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.platform.AppInfo
+import com.cyberoperative.game.platform.Checkout
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.data.LivingBackground
 import com.cyberoperative.game.data.OperativeSkins
@@ -65,14 +66,17 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             item { Header("◇ GOLD") }
             items(StoreCatalog.diamondPacks, key = { it.productId }) { pack ->
                 StoreRow(title = "◇ ${"%,d".format(pack.diamonds)}", subtitle = "Premium currency", price = pack.usdPrice, accent = Palette.Diamond) {
-                    if (AppInfo.debug) {
+                    if (Checkout.available) {
+                        // Real money only ever moves through the platform store; ◇ arrive when it confirms.
+                        notice = Checkout.start(pack)
+                    } else if (AppInfo.debug) {
                         // Google Play Billing is not wired yet; debug builds grant
                         // test ◇ so the store can be exercised. Release builds never do.
                         save.update { StoreManager.grantDiamonds(it, pack.diamonds) }
                         audio.play(GameSound.CURRENCY)
                         notice = "DEBUG BUILD: granted ◇${pack.diamonds} for testing (no charge)."
                     } else {
-                        notice = "Purchases open when Google Play Billing is connected."
+                        notice = Checkout.start(pack)
                     }
                 }
             }

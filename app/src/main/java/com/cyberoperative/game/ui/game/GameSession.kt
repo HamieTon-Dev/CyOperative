@@ -372,7 +372,8 @@ class GameSession(
             sendTimer = 0f
             link.room.sendInput(
                 CoopCodec.encodeInput(
-                    CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex)
+                    CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
+                        engine.localAiming, engine.localAimX, engine.localAimY)
                 )
             )
         }

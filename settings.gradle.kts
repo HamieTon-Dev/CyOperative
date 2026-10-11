@@ -30,3 +30,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "CyberOperative"
 include(":app")
+// Steam / PC build: Compose Desktop sharing the game code from app/src (see desktop/README.md).
+include(":desktop")

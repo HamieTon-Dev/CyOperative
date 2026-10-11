@@ -144,7 +144,11 @@ data class CoopInput(
     /** Level the guest's position belongs to: positions from a previous room are ignored. */
     val level: Int = 1,
     /** Weapon swapped out by this pick (index into Upgrades.all), or -1. */
-    val replaceIndex: Int = -1
+    val replaceIndex: Int = -1,
+    /** PC mouse aim: fire at ([aimX], [aimY]) while held. */
+    val aiming: Boolean = false,
+    val aimX: Float = 0f,
+    val aimY: Float = 0f
 )
 
 object CoopCodec {
@@ -415,6 +419,7 @@ object CoopCodec {
             o.writeByte(VERSION)
             o.var32(c.seq); o.pos(c.x); o.pos(c.y); o.ang(c.facing); o.writeBoolean(c.moving)
             o.var32(c.pickSerial); o.writeByte(c.pickIndex); o.var32(c.rerollSerial); o.var32(c.level); o.var32(c.replaceIndex + 1)
+            o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY)
         }
         return bytes.toByteArray()
     }
@@ -424,7 +429,8 @@ object CoopCodec {
             if (i.readUnsignedByte() != VERSION) return null
             CoopInput(
                 seq = i.var32(), x = i.pos(), y = i.pos(), facing = i.ang(), moving = i.readBoolean(),
-                pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1
+                pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1,
+                aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos()
             )
         }
     } catch (_: Exception) {
@@ -432,5 +438,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 13
+    const val VERSION = 14
 }

@@ -953,6 +953,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         ops[primary].inputY = y
     }
 
+    /** PC mouse aim: while [active], the primary gun fires at world point ([x], [y]), moving or not. */
+    fun setAim(active: Boolean, x: Float, y: Float) {
+        val o = ops[primary]
+        o.aiming = active
+        o.aimX = x
+        o.aimY = y
+    }
+
     fun update(delta: Float) {
         var remaining = fx.tick(delta.coerceIn(0f, MAX_FRAME))
         while (remaining > 0f) {
@@ -1889,18 +1897,26 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         updateAutoWeapons(dt)
         updateArsenal(dt)
 
-        // STOP = SHOOT.
-        if (moving || stillTime < STOP_TO_FIRE_DELAY) {
+        // STOP = SHOOT. On PC the mouse aims instead: holding the button fires at the
+        // cursor whether or not the operative is moving.
+        if (cur.aiming) {
             targetUid = -1
-            return
+            val dx = cur.aimX - px
+            val dy = cur.aimY - py
+            if (dx * dx + dy * dy > 1f) facing = atan2(dy, dx)
+        } else {
+            if (moving || stillTime < STOP_TO_FIRE_DELAY) {
+                targetUid = -1
+                return
+            }
+            val target = acquireTarget()
+            if (target == null) {
+                targetUid = -1
+                return
+            }
+            targetUid = target.uid
+            facing = atan2(target.y - py, target.x - px)
         }
-        val target = acquireTarget()
-        if (target == null) {
-            targetUid = -1
-            return
-        }
-        targetUid = target.uid
-        facing = atan2(target.y - py, target.x - px)
 
         if (fireCooldown <= 0f) {
             fireVolley(facing)
@@ -1921,7 +1937,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             fireLance(facing)
         }
         if (s.beamLevel > 0 && beamCooldown <= 0f) {
-            if (updateBeam(dt, target)) beamHeat += dt
+            if (updateBeam(dt, facing)) beamHeat += dt
             if (!wasBeaming) sound(GameSound.BEAM)
             if (beamHeat >= BEAM_MAX_FIRE) {
                 beamHeat = 0f
@@ -2269,9 +2285,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * obstacle it meets, damaging every threat along it ten times a second.
      */
     /** Returns true while the beam is actually touching a threat (that is what builds heat). */
-    private fun updateBeam(dt: Float, target: Enemy): Boolean {
+    private fun updateBeam(dt: Float, ang: Float): Boolean {
         val s = stats
-        val ang = atan2(target.y - py, target.x - px)
         val dx = cos(ang)
         val dy = sin(ang)
         val sx = px + dx * (playerRadius + 6f)
@@ -3528,7 +3543,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         o.remote = true
         if (o.alive && c.level == level && phase != Phase.TRANSITION && slideIn <= 0f) {
             o.netX = c.x; o.netY = c.y; o.netFacing = c.facing; o.netMoving = c.moving
+            o.aiming = c.aiming; o.aimX = c.aimX; o.aimY = c.aimY
         } else {
+            o.aiming = false
             // Still in the previous room on the guest's side: hold the spawn spot.
             o.netX = o.px; o.netY = o.py; o.netMoving = false
         }
@@ -3823,6 +3840,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 me.py = arena.out[1]
                 me.facing = atan2(me.inputY, me.inputX)
             }
+            if (me.aiming) me.facing = atan2(me.aimY - me.py, me.aimX - me.px)
         } else me.moving = false
         me.orbAngle = (me.orbAngle + stats.orbAngularSpeed * dt) % MathUtil.TWO_PI
         me.bladeAngle = (me.bladeAngle - 3.4f * dt) % MathUtil.TWO_PI
@@ -3865,6 +3883,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val localY: Float get() = ops[primary].py
     val localFacing: Float get() = ops[primary].facing
     val localMoving: Boolean get() = ops[primary].moving
+    val localAiming: Boolean get() = ops[primary].aiming
+    val localAimX: Float get() = ops[primary].aimX
+    val localAimY: Float get() = ops[primary].aimY
     val localLevel: Int get() = level
 
     /**

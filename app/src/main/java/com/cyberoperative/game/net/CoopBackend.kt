@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.flowOf
 interface CoopBackend {
     /** False when co-op isn't set up in this build. */
     val available: Boolean
+    /** True when identity and friends come from the platform (Steam): no callsign, codes or removal here. */
+    val platformFriends: Boolean get() = false
+    val platformName: String get() = ""
     /** The registered profile, or null before registration. */
     val profile: StateFlow<CoopProfile?>
     /** Signs in (anonymous account on this device) and loads the profile if there is one. */

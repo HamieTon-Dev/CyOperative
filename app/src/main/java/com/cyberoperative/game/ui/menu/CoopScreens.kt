@@ -101,7 +101,7 @@ fun CoopScreen(
 
             val profileNow = me
             if (profileNow == null) {
-                if (status.isEmpty()) RegisterCard { name ->
+                if (status.isEmpty() && !backend.platformFriends) RegisterCard { name ->
                     scope.launch {
                         backend.register(name).onFailure { message = it.message }.onSuccess { message = "Welcome, ${it.callsign}" }
                     }
@@ -109,8 +109,17 @@ fun CoopScreen(
                 return@Column
             }
 
-            // Who am I + the code to share.
-            TerminalCard(accent = Palette.Cyan) {
+            // Who am I + the code to share (Steam: your Steam name; friends come from Steam).
+            if (backend.platformFriends) TerminalCard(accent = Palette.Cyan) {
+                Column {
+                    Text("SIGNED IN WITH ${backend.platformName.uppercase()}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(profileNow.callsign, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        "Invite an online friend below, or use the ${backend.platformName} overlay (Shift+Tab). Invites from friends appear here.",
+                        color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            } else TerminalCard(accent = Palette.Cyan) {
                 Column {
                     Text("CALLSIGN", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                     Text(profileNow.callsign, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge)
@@ -148,7 +157,7 @@ fun CoopScreen(
                 onDecline = { scope.launch { backend.answerFriendRequest(r, false) } }
             )
 
-            AddFriendCard { code ->
+            if (!backend.platformFriends) AddFriendCard { code ->
                 scope.launch { backend.sendFriendRequest(code).onSuccess { message = it }.onFailure { message = it.message } }
             }
 
@@ -165,7 +174,7 @@ fun CoopScreen(
                             .onFailure { message = it.message }
                     }
                 },
-                onRemove = { scope.launch { backend.removeFriend(f.uid) } }
+                onRemove = if (backend.platformFriends) null else ({ scope.launch { backend.removeFriend(f.uid) } })
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -253,7 +262,7 @@ private fun RequestCard(r: FriendRequest, onAccept: () -> Unit, onDecline: () ->
 }
 
 @Composable
-private fun FriendRow(f: Friend, onInvite: () -> Unit, onRemove: () -> Unit) {
+private fun FriendRow(f: Friend, onInvite: () -> Unit, onRemove: (() -> Unit)?) {
     var confirm by remember { mutableStateOf(false) }
     TerminalCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,9 +277,10 @@ private fun FriendRow(f: Friend, onInvite: () -> Unit, onRemove: () -> Unit) {
                 Text(if (f.online) "ONLINE" else "OFFLINE", color = if (f.online) Palette.Green else Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             }
             if (confirm) {
-                CyberButton("REMOVE?", accent = Palette.Red) { confirm = false; onRemove() }
+                CyberButton("REMOVE?", accent = Palette.Red) { confirm = false; onRemove?.invoke() }
             } else {
                 CyberButton("INVITE", accent = Palette.Green, enabled = f.online, onClick = onInvite)
+                if (onRemove == null) return@Row
                 Spacer(Modifier.width(6.dp))
                 Text(
                     "✕", color = Palette.TextMuted, style = MaterialTheme.typography.titleMedium,

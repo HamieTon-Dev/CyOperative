@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -169,3 +170,21 @@ private val rawMusic: Map<String, Int> = mapOf(
 )
 
 fun musicResource(file: String): Int = rawMusic[file] ?: error("Unknown music file $file")
+
+/** Keyboard movement (PC only): phones steer with the on-screen stick. */
+object GameKeys {
+    val active: Boolean get() = false
+    val x: Float get() = 0f
+    val y: Float get() = 0f
+}
+
+/** Real-money ◇ checkout for this platform (Google Play Billing is not wired yet). */
+object Checkout {
+    const val storeName = "Google Play"
+    val available: Boolean get() = false
+    fun start(pack: com.cyberoperative.game.data.DiamondPack): String = "Purchases open when Google Play Billing is connected."
+}
+
+/** Keeps the system Back edge-swipe off the gameplay surface (Android 10+). */
+fun androidx.compose.ui.Modifier.platformGestureExclusion(): androidx.compose.ui.Modifier =
+    this.systemGestureExclusion()

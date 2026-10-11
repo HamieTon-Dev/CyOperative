@@ -11,6 +11,12 @@ robolectric = "4.14.1"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
 coroutinesPlayServices = "1.9.0"
+# Steam / PC build (desktop module)
+composeMultiplatform = "1.9.3"
+steamworks4j = "1.10.0"
+jna = "5.17.0"
+vorbisspi = "1.0.3.3"
+kotlinxCoroutines = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -33,6 +39,10 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 firebase-database = { group = "com.google.firebase", name = "firebase-database" }
+steamworks4j = { group = "com.code-disaster.steamworks4j", name = "steamworks4j", version.ref = "steamworks4j" }
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
+vorbisspi = { group = "com.googlecode.soundlibs", name = "vorbisspi", version.ref = "vorbisspi" }
+kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutinesPlayServices" }
 
 [plugins]
@@ -41,3 +51,5 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
