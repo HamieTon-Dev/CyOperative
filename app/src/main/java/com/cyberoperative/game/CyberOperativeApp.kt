@@ -15,6 +15,7 @@ class CyberOperativeApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this)
         save = SaveRepository(this)
         audio = AudioManager(this)
         val s = save.current.settings

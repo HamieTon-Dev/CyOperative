@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -18,9 +22,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         hideSystemBars()
+        val crash = CrashLog.read(this)
         setContent {
             CyberOperativeTheme {
-                AppRoot(save = app.save, audio = app.audio, coop = app.coop)
+                var report by remember { mutableStateOf(crash) }
+                val r = report
+                if (r != null) CrashReportScreen(r) { CrashLog.clear(this); report = null }
+                else AppRoot(save = app.save, audio = app.audio, coop = app.coop)
             }
         }
     }

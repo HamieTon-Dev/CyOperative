@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.25.2 (versionCode 78) |
+| Version | 0.25.3 (versionCode 79) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,14 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **OPEN, top priority (owner report, 0.25.2): Android crashes on START in LANDSCAPE (Campaign and Endless).**
+  - Not reproduced in Robolectric:
+    - `StartRunAndroidTest`: debug variant, API 26–35, phone landscape sizes, fresh and veteran profiles.
+    - `StartRunFlowTest`: the full PLAY/ENDLESS → START tap flow.
+    - `StartRunCrashTest`: every class, difficulty and room shape.
+  - So it is release (R8) or device specific.
+  - 0.25.3 adds `CrashLog` (an uncaught exception is shown on the next launch with COPY) and `-dontobfuscate`, so the report is readable.
+  - Next step: get that report, or the Play Console Android vitals trace.
 - **Skins 0.25.2**:
   - PURPLE and GLITCHED unlock for every class at `campaignsCompleted > 0` (`SkinUnlock.campaign`). PURPLE also stays unlocked for anyone who earned it at L100 on Hard.
   - GOLD and NEON are premium: `OperativeSkin.price` is ◇1000, and neither is in the ◇300 pack.

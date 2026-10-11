@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.25.3 (versionCode 79) — 2026-10-11 · Crash reporter for the landscape START crash
+### Added
+- **Crash reporter (Android).** If the game crashes, the next launch shows what went wrong, with COPY and CONTINUE buttons.
+- **Readable release crash reports.** Release builds keep class and method names and line numbers. Play Console's Android vitals traces become readable too.
+### Investigating (owner: "crashes on START in landscape, both modes")
+- No reproduction yet in the unit and UI tests: every class and difficulty, Android 8–15, phone landscape sizes, fresh and veteran profiles, and the full tap flow.
+- The fix needs the crash report from a real device.
+### Technical
+- New start-of-run regression tests: `StartRunCrashTest`, `StartRunAndroidTest`, `StartRunFlowTest`.
+
 ## Unreleased
 ### Added
 - **PC debug test build:** `.\gradlew :desktop:run -PdebugBuild`, or

@@ -9,3 +9,7 @@
 }
 -keep,includedescriptorclasses class com.cyberoperative.game.save.**$$serializer { *; }
 -keep class com.cyberoperative.game.save.** { *; }
+
+# Readable crash reports from release builds (class/method names and line numbers kept).
+-dontobfuscate
+-keepattributes SourceFile,LineNumberTable

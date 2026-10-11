@@ -67,6 +67,7 @@ kotlin {
         kotlin.exclude(
             "com/cyberoperative/game/MainActivity.kt",
             "com/cyberoperative/game/CyberOperativeApp.kt",
+            "com/cyberoperative/game/CrashLog.kt",
             "com/cyberoperative/game/platform/Platform.kt",
             "com/cyberoperative/game/audio/AudioManager.kt",
             "com/cyberoperative/game/save/SaveRepository.kt",
