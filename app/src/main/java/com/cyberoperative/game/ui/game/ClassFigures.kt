@@ -429,20 +429,26 @@ internal object ClassFigures {
                 fillStroke(poly(64f, 60f, 74f, 66f, 82f, 70f, 80f, 76f, 70f, 74f, 62f, 70f), l.plateMid, l.trim.copy(alpha = 0.8f), 0.8f)
                 drawCircle(l.plateLight, 2.8f, Offset(81f, 72f))
                 // The tall peaked hood with the visor.
-                // Smooth peaked hood whose whole top leans back (owner, 2026-10-11).
-                path.reset()
-                path.moveTo(34f, 62f)
-                path.cubicTo(32f, 46f, 33f, 32f, 38f, 22f)
-                path.cubicTo(37f, 14f, 30f, 7f, 20f, 3f)
-                path.cubicTo(38f, 5f, 52f, 12f, 58f, 24f)
-                path.cubicTo(64f, 34f, 68f, 48f, 70f, 62f)
-                path.lineTo(52f, 66f)
-                path.close()
-                fillStroke(path, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 3f, endY = 66f), l.trim, 1.1f)
-                path.reset(); path.moveTo(54f, 30f); path.cubicTo(50f, 18f, 40f, 10f, 26f, 5f)
-                neonPath(path, l.trim.copy(alpha = 0.6f), 0.6f, pulse)
-                drawOval(Color(0xFF020306), Offset(40f, 34f), Size(24f, 26f))
-                visorFace(52f, 47f, 18f, 13f, l, pulse)
+                // Smooth peaked hood whose whole top leans back (owner, 2026-10-11), shrunk to 80%
+                // around the collar; the opening is an octagon that hugs the face visor.
+                withTransform({ scale(0.8f, 0.8f, Offset(52f, 64f)) }) {
+                    path.reset()
+                    path.moveTo(34f, 62f)
+                    path.cubicTo(32f, 46f, 33f, 32f, 38f, 22f)
+                    path.cubicTo(37f, 14f, 30f, 7f, 20f, 3f)
+                    path.cubicTo(38f, 5f, 52f, 12f, 58f, 24f)
+                    path.cubicTo(64f, 34f, 68f, 48f, 70f, 62f)
+                    path.lineTo(52f, 66f)
+                    path.close()
+                    fillStroke(path, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 3f, endY = 66f), l.trim, 1.3f)
+                    path.reset(); path.moveTo(54f, 30f); path.cubicTo(50f, 18f, 40f, 10f, 26f, 5f)
+                    neonPath(path, l.trim.copy(alpha = 0.6f), 0.7f, pulse)
+                }
+                // Octagonal opening one step outside the visor.
+                val ow = 11.5f; val oh = 8.5f; val ok = 4f; val oy = 49f
+                drawPath(poly(52f - ow + ok, oy - oh, 52f + ow - ok, oy - oh, 52f + ow, oy - oh + ok, 52f + ow, oy + oh - ok,
+                    52f + ow - ok, oy + oh, 52f - ow + ok, oy + oh, 52f - ow, oy + oh - ok, 52f - ow, oy - oh + ok), Color(0xFF020306))
+                visorFace(52f, 49f, 18f, 13f, l, pulse)
             }
         }
     }
