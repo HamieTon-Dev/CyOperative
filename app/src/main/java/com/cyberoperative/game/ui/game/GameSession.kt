@@ -254,11 +254,12 @@ class GameSession(
             Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
                 .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         }
-        // Room shape and rules for this run: always the PC set on Steam; on Android the PC MODE
-        // setting at the start (or what a saved run started with). Phone co-op keeps phone rules
-        // so both devices match.
+        // Every run (solo and co-op, every platform) uses the drop rules: chips, weapon cards,
+        // cash bags, HP charges, Packet Bombs, dash, spells, exit doors. Room shape: wide on
+        // Steam; on Android the SCREEN setting at the start (or what a saved run started with).
+        // Phone co-op uses portrait-shaped rooms so both devices build the same rooms.
         val desktop = com.cyberoperative.game.platform.AppInfo.desktop
-        val pc = desktop || (link == null && (restore?.pcRules ?: com.cyberoperative.game.ui.common.PlayMode.pcRules))
+        val pc = true
         com.cyberoperative.game.data.ArenaShape.pcRules = pc
         com.cyberoperative.game.data.ArenaShape.wide = desktop || (link == null && (restore?.wide ?: com.cyberoperative.game.ui.common.PlayMode.landscape))
         engine = GameEngine(config.copy(consumables = pc), restore)

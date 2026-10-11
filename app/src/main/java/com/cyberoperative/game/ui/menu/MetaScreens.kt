@@ -381,7 +381,7 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
             }
             if (!com.cyberoperative.game.platform.GameKeys.active) {
                 Spacer(Modifier.height(10.dp))
-                PcModeCard(s, set = { set(it) }, onEditTouch = { editingTouch = true })
+                ScreenCard(s, set = { set(it) }, onEditTouch = { editingTouch = true })
             }
             if (com.cyberoperative.game.platform.GameKeys.active) {
                 Spacer(Modifier.height(10.dp))
@@ -540,28 +540,23 @@ private fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>)
 }
 
 /**
- * Android: PC MODE (owner, 2026-10-11). The PC gameplay set (upgrade chips, cash bags, HP
- * charges, Packet Bombs, dash, class spells, extra exit doors) with on-screen buttons, played in
- * LANDSCAPE (wide rooms, joystick locked bottom-left, buttons bottom-right) or PORTRAIT (the
- * phone HUD plus see-through buttons bottom-right). Applies from the next run.
+ * Android: SCREEN (PORTRAIT or LANDSCAPE), the joystick and the touch layout. LANDSCAPE turns
+ * the app sideways: wide rooms, the HUD strip above the arena, joystick bottom-left and the
+ * buttons bottom-right. A run in progress keeps the room shape it started with.
  */
 @Composable
-private fun PcModeCard(s: GameSettings, set: (GameSettings) -> Unit, onEditTouch: () -> Unit) {
+private fun ScreenCard(s: GameSettings, set: (GameSettings) -> Unit, onEditTouch: () -> Unit) {
     TerminalCard(accent = Palette.Purple) {
         Column {
-            Text("PC MODE", color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
+            Text("SCREEN", color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CyberButton("PORTRAIT", Modifier.weight(1f), accent = if (!s.landscape) Palette.Green else Palette.Cyan, primary = !s.landscape) { set(s.copy(landscape = false)) }
+                CyberButton("LANDSCAPE", Modifier.weight(1f), accent = if (s.landscape) Palette.Green else Palette.Cyan, primary = s.landscape) { set(s.copy(landscape = true)) }
+            }
             Text(
-                "The PC game: upgrades drop as chips, cash bags, HP charges, Packet Bombs, dash, class spells and route choices, " +
-                    "with on-screen buttons. Starts with your next run.",
+                "LANDSCAPE: wide rooms, HUD above the arena, joystick left and buttons right. Rooms change shape from your next run.",
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
-            Toggle("PC MODE", s.pcMode) { set(s.copy(pcMode = it)) }
-            if (s.pcMode) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CyberButton("PORTRAIT", Modifier.weight(1f), accent = if (!s.pcLandscape) Palette.Green else Palette.Cyan, primary = !s.pcLandscape) { set(s.copy(pcLandscape = false)) }
-                    CyberButton("LANDSCAPE", Modifier.weight(1f), accent = if (s.pcLandscape) Palette.Green else Palette.Cyan, primary = s.pcLandscape) { set(s.copy(pcLandscape = true)) }
-                }
-            }
             Spacer(Modifier.height(10.dp))
             Text("JOYSTICK", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

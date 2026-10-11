@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.24.0 (versionCode 74) — 2026-10-11 · One way to play: drops everywhere, no SYSTEM UPGRADE screen
+### Changed (owner: "Remove PC mode. Cash, card and chips drop on both modes always" · "SYSTEM UPGRADE screen is no longer a feature but a hassle")
+- **PC MODE is gone.** Every run on every platform (phone portrait, phone landscape, Steam, solo
+  and co-op) uses the drop rules:
+  - upgrade chips and weapon cards drop from threats;
+  - cash bags;
+  - HP charges and Packet Bombs;
+  - dash and class spells, with on-screen buttons on Android;
+  - exit-door choices.
+- **The SYSTEM UPGRADE card screen is removed from the game.**
+  - Starting Weapon Power's free picks now drop as chips in a ring around you.
+  - A saved run from an older version that was paused on the card screen gets those picks as
+    chips when you CONTINUE.
+- **Android Settings → SCREEN: PORTRAIT / LANDSCAPE** replaces PC MODE. JOYSTICK (AUTO / FREE
+  FLOAT / LOCKED) and TOUCH CONTROLS LAYOUT are unchanged.
+- **Phone co-op** now also uses the drop rules, with portrait-shaped rooms so both phones build
+  the same rooms.
+- **Permanent upgrade text:** Starting Weapon Power reads "free upgrade chips"; Upgrade Quality
+  reads "upgrade drops".
+- **The upgrade shop is unchanged**, and it's still the place where you choose an upgrade.
+- New test: Starting Weapon Power drops chips, no card screen.
+
 ## 0.23.1 (versionCode 73) — 2026-10-11 · The shop is back under PC rules
 ### Fixed
 - **PC rules (Steam, Android PC MODE): the upgrade shop's side door never opened.** Its 1-in-20

@@ -403,9 +403,6 @@ fun GameScreen(
         BossDossierCard(hud, Modifier.align(Alignment.Center).padding(horizontal = 12.dp))
         VictoryCard(hud, onSkip = { session.skipVictory() })
         ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt)
-        if (hud.phase == Phase.UPGRADE) {
-            UpgradeOverlay(session)
-        }
         val result = session.result
         if (hud.phase == Phase.DEAD && result != null) {
             GameOverOverlay(

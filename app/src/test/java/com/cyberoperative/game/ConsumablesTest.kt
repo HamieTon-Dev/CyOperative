@@ -161,4 +161,12 @@ class ConsumablesTest {
         }
         assertTrue("about 1 in 20 rooms offers the shop ($shops / 120)", shops in 1..20)
     }
+
+    @Test
+    fun startingPicksDropAsChipsNotACardScreen() {
+        val g = GameEngine(RunConfig(baseStats = RunStats(), seed = 9L, powerGovernor = false, consumables = true, startingUpgrades = 2))
+        assertTrue("no card screen at the start", g.phase != Phase.UPGRADE)
+        assertEquals(2, g.loot.count { it.kind == LootKind.UPGRADE })
+        assertEquals(0, g.operatives[0].pendingUpgrades)
+    }
 }

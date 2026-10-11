@@ -831,10 +831,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (restore != null) applySnapshot(restore)
         else startLevel(level, null, false)
         if (restore == null) {
-            // Starting Weapon Power: pick free upgrades before the first fight.
-            ops[0].pendingUpgrades = config.startingUpgrades
-            if (ops.size > 1) ops[1].pendingUpgrades = config.ally?.startingUpgrades ?: 0
-            if (ops.any { it.pendingUpgrades > 0 }) openUpgrades(resumeCombat = true)
+            // Starting Weapon Power: free upgrades before the first fight. With upgrade chips they
+            // drop in a ring around the operative instead of opening a card screen.
+            if (chipRules) {
+                val n = config.startingUpgrades + (config.ally?.startingUpgrades ?: 0)
+                for (i in 0 until n) {
+                    val a = -MathUtil.PI / 2f + (i - (n - 1) / 2f) * 0.6f
+                    dropChip(px + cos(a) * 110f, py + sin(a) * 110f)
+                }
+            } else {
+                ops[0].pendingUpgrades = config.startingUpgrades
+                if (ops.size > 1) ops[1].pendingUpgrades = config.ally?.startingUpgrades ?: 0
+                if (ops.any { it.pendingUpgrades > 0 }) openUpgrades(resumeCombat = true)
+            }
         }
     }
 
@@ -1937,6 +1946,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             shopGateOpen = true
             // Remind them it's there.
             shopMessageSerial++
+        }
+        if (chipRules && (phase == Phase.UPGRADE || ops.any { it.pendingUpgrades > 0 })) {
+            // A save from before upgrade chips, made mid-pick: its picks drop as chips instead.
+            val n = ops.sumOf { it.pendingUpgrades }
+            for (o in ops) { o.pendingUpgrades = 0; o.offer = emptyList() }
+            for (i in 0 until n) dropChip(px + (i % 3 - 1) * 60f, py - 90f - (i / 3) * 60f)
+            if (phase == Phase.UPGRADE) {
+                if (upgradeReturnsToCombat) { upgradeReturnsToCombat = false; phase = Phase.COMBAT; phaseTimer = 0f } else openPortal()
+            }
         }
         if (phase == Phase.UPGRADE) {
             val restored = r.offer.mapNotNull { id ->

@@ -301,7 +301,7 @@ class ScreenshotPreviews {
     }
 
     private fun pcProfile(p: com.cyberoperative.game.save.PlayerProfile, landscape: Boolean) =
-        p.copy(settings = p.settings.copy(pcMode = true, pcLandscape = landscape))
+        p.copy(settings = p.settings.copy(landscape = landscape))
 
     @Test fun pcModePortrait() {
         assumeTrue(enabled)
