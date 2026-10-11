@@ -172,6 +172,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
     val loot = ArrayList<Loot>()
     private val lootRng = Random(config.seed xor 0x10075EEDL)
+    /** Extra exit doors this room (PC); the top-centre gate is always there too. */
+    val exitDoors = ArrayList<ExitDoor>(3)
+    private val doorRng = Random(config.seed xor 0xD0012EL)
     /** The operative the rules are being applied to right now (outside [update]: the host / solo player). */
     private var cur: Operative = ops[0]
     /** The operative this device plays: 0 on the host / solo, 1 on a co-op guest. */
@@ -1038,17 +1041,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
-    /** The current operative walking into the top gate or the shop's side gate. */
+    /** The current operative walking into an exit gate (top centre or an extra door) or the shop's side gate. */
     private fun portalCheck() {
         if (phase != Phase.PORTAL) return
-        if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) {
+        val door = if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) MAIN_DOOR
+        else exitDoors.firstOrNull { inDoor(it) }
+        if (door != null) {
                 if (shopGateOpen) {
                     // A shop is on offer: ask before letting them skip it, and step them back off the gate.
                     if (!skipShopPrompt) {
                         skipShopPrompt = true
                         sound(GameSound.UI_CLICK)
                     }
-                    py = arena.portalY + PORTAL_RADIUS + 46f
+                    when (door.side) {
+                        1 -> px = 30f + playerRadius + 46f
+                        2 -> px = arena.width - 30f - playerRadius - 46f
+                        else -> py = arena.portalY + PORTAL_RADIUS + 46f
+                    }
                 } else {
                     phase = Phase.TRANSITION
                     phaseTimer = 0f
@@ -1070,6 +1079,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         level = newLevel
         fx.clear()
         if (!mirror) sweepLoot() else loot.clear()
+        exitDoors.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0); bossCharge = 0f
         for (o in ops) { o.cloakTime = 0f; o.cloaked = false }
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
@@ -1446,6 +1456,67 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         sound(GameSound.CURRENCY)
     }
 
+    private fun inDoor(d: ExitDoor): Boolean = when (d.side) {
+        0 -> kotlin.math.abs(px - d.x) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS
+        1 -> px < playerRadius + 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
+        else -> px > arena.width - playerRadius - 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
+    }
+
+    /**
+     * PC rooms (owner, 2026-10-11): up to four exit doors open when the room is clear, so the
+     * player picks a way out. The top-centre gate is always one; up to three more go on the far
+     * wall (left / right of it) or the side walls (never the shop door's wall). Every door has a
+     * clear mouth and can be walked to. Whichever door is taken, the next level is rolled the
+     * same way as before: the choice is in the player's head.
+     */
+    private fun openExtraDoors() {
+        exitDoors.clear()
+        if (!com.cyberoperative.game.data.ArenaShape.wide || mode != GameMode.CAMPAIGN || inShop || mirror) return
+        val roll = doorRng.nextFloat()
+        val extra = when {
+            roll < EXTRA_DOOR_ODDS[0] -> 0
+            roll < EXTRA_DOOR_ODDS[1] -> 1
+            roll < EXTRA_DOOR_ODDS[2] -> 2
+            else -> 3
+        }
+        if (extra == 0) return
+        val reach = reachableCells()
+        val options = ArrayList<ExitDoor>(4)
+        for (f in floatArrayOf(0.22f, 0.78f)) {
+            val x = arena.width * f
+            if (topMouthClear(x) && reach(x, arena.portalY + 40f)) options += ExitDoor(x, arena.portalY, 0)
+        }
+        val offsets = (0..12).flatMap { k -> if (k == 0) listOf(0f) else listOf(k * 40f, -k * 40f) }
+        for (right in listOf(false, true)) {
+            if (shopGateOpen && shopGateRight == right) continue
+            for (off in offsets) {
+                val y = arena.height * 0.42f + off
+                if (y < 200f || y > arena.height - 260f) continue
+                if (gateMouthClear(right, y) && reach(if (right) arena.width - 30f else 30f, y)) {
+                    options += ExitDoor(if (right) arena.width else 0f, y, if (right) 2 else 1)
+                    break
+                }
+            }
+        }
+        options.shuffle(doorRng)
+        exitDoors += options.take(extra)
+        if (exitDoors.isNotEmpty()) showBanner("${exitDoors.size + 1} EXITS OPEN", "CHOOSE YOUR ROUTE", 1.6f)
+    }
+
+    /** The strip in front of a far-wall door is free of obstacles. */
+    private fun topMouthClear(x: Float): Boolean {
+        var dx = -GATE_HALF_WIDTH
+        while (dx <= GATE_HALF_WIDTH) {
+            var y = 10f
+            while (y <= 170f) {
+                if (arena.obstacleAt(x + dx, y, 2f) >= 0) return false
+                y += 20f
+            }
+            dx += 20f
+        }
+        return arena.isFree(x, arena.portalY + 40f, playerRadius + 4f)
+    }
+
     /** Opens the side gate to the shop for this room (also a test hook). */
     fun offerShop() {
         if (mode != GameMode.CAMPAIGN || inShop) return
@@ -1531,6 +1602,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun enterShop() {
         if (!mirror) sweepLoot() else loot.clear()
+        exitDoors.clear()
         goingToShop = false
         shopGateOpen = false
         skipShopPrompt = false
@@ -1650,6 +1722,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phase = Phase.PORTAL
         phaseTimer = 0f
         portalOpen = true
+        openExtraDoors()
         sound(GameSound.PORTAL_OPEN)
     }
 
@@ -3768,6 +3841,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             w.hazards += n
         }
         for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y)
+        for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
             if (!z.active) continue
             val n = NetZap()
@@ -3925,6 +3999,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         loot.clear()
         for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2])
+        exitDoors.clear()
+        for (d in w.exitDoors) exitDoors += ExitDoor(d[0], d[1], d[2].toInt())
         for (h in hazards.items) h.active = false
         for (n in w.hazards) {
             val h = hazards.obtain() ?: break
@@ -4138,6 +4214,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val TRANSITION_TIME = 0.45f
         const val PORTAL_RADIUS = 46f
         const val GATE_HALF_WIDTH = 80f
+        /** The always-open top-centre exit gate, as a door. */
+        private val MAIN_DOOR = ExitDoor(-1f, -1f, 0)
+        /** Cumulative odds of 0 / 1 / 2 extra exit doors (else 3): 1–4 doors in all. */
+        val EXTRA_DOOR_ODDS = floatArrayOf(0.25f, 0.6f, 0.85f)
         const val RING_THICKNESS = 12f
         const val BEAM_MAX_FIRE = 5f
         const val SHOT_CLEARANCE = 4f

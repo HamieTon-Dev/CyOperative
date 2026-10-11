@@ -47,6 +47,22 @@ fun main(args: Array<String>) {
     shot("splash", frames = 100) { com.cyberoperative.game.ui.splash.DeveloperSplash {} }
     shot("boot", frames = 150) { com.cyberoperative.game.ui.splash.BootTerminal(onSound = {}) {} }
     shot("menu") { MainMenuScreen(save.current) {} }
+    run {
+        // A cleared room with extra exit doors open.
+        var s: GameSession? = null
+        for (i in 0 until 40) {
+            val c = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
+            val e = c.engine
+            e.debugJumpToLevel(4)
+            repeat(60 * 40) {
+                for (x in e.enemies.items) if (x.active && x.boss == null) e.killEnemy(x)
+                e.update(1f / 60f)
+                if (e.phase == com.cyberoperative.game.engine.Phase.UPGRADE && e.offer.isNotEmpty()) e.chooseUpgrade(0)
+            }
+            if (e.phase == com.cyberoperative.game.engine.Phase.PORTAL && e.exitDoors.size >= 2) { s = c; break }
+        }
+        s?.let { c -> shot("exits", frames = 30) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) } }
+    }
     shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio) {} }
     shot("store") { StoreScreen(save, audio, {}, {}) }
     run {

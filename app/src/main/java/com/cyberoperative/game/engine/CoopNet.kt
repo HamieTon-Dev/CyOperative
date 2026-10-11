@@ -54,6 +54,8 @@ class CoopWorld {
     val hazards = ArrayList<NetHazard>(64)
     /** PC consumable pickups on the floor: kind, x, y (v15). */
     val loot = ArrayList<FloatArray>(8)
+    /** Extra exit doors (PC): x, y, side (v16). */
+    val exitDoors = ArrayList<FloatArray>(3)
     val zaps = ArrayList<NetZap>(40)
     val texts = ArrayList<NetText>(32)
     val pulses = ArrayList<NetPulse>(24)
@@ -264,6 +266,8 @@ object CoopCodec {
 
             o.var32(w.loot.size)
             for (l in w.loot) { o.writeByte(l[0].toInt()); o.pos(l[1]); o.pos(l[2]) }
+            o.writeByte(w.exitDoors.size)
+            for (d in w.exitDoors) { o.pos(d[0]); o.pos(d[1]); o.writeByte(d[2].toInt()) }
 
             o.var32(w.zaps.size)
             for (z in w.zaps) {
@@ -379,6 +383,7 @@ object CoopCodec {
             }
 
             repeat(i.var32()) { w.loot += floatArrayOf(i.readUnsignedByte().toFloat(), i.pos(), i.pos()) }
+            repeat(i.readUnsignedByte()) { w.exitDoors += floatArrayOf(i.pos(), i.pos(), i.readUnsignedByte().toFloat()) }
 
             repeat(i.var32()) {
                 val z = NetZap()
@@ -451,5 +456,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 15
+    const val VERSION = 16
 }

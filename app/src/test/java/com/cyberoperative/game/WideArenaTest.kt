@@ -65,4 +65,51 @@ class WideArenaTest {
         assertNotNull("boss spawned", b)
         assertTrue("boss inside the room", b!!.x in 0f..g.arena.width && b.y in 0f..g.arena.height)
     }
+
+    /** Clears level 2 (no boss, no event forced) and returns the engine at the open exits. */
+    private fun clearedRoom(seed: Long): GameEngine {
+        val g = GameEngine(RunConfig(baseStats = RunStats(), seed = seed, powerGovernor = false))
+        repeat(60 * 40) {
+            for (x in g.enemies.items) if (x.active && x.boss == null) g.killEnemy(x)
+            g.update(1f / 60f)
+            if (g.phase == com.cyberoperative.game.engine.Phase.UPGRADE && g.offer.isNotEmpty()) g.chooseUpgrade(0)
+            if (g.phase == com.cyberoperative.game.engine.Phase.PORTAL) return g
+        }
+        return g
+    }
+
+    @Test
+    fun clearedRoomsOpenOneToFourExits() {
+        val counts = IntArray(4)
+        for (seed in 1L..24L) {
+            val g = clearedRoom(seed)
+            assertEquals("seed $seed reaches the exits", com.cyberoperative.game.engine.Phase.PORTAL, g.phase)
+            assertTrue(g.exitDoors.size <= 3)
+            counts[g.exitDoors.size]++
+            for (d in g.exitDoors) {
+                when (d.side) {
+                    0 -> assertTrue("far-wall door clear", g.arena.isFree(d.x, g.arena.portalY + 40f, 20f))
+                    1 -> assertTrue("left door clear", g.arena.isFree(30f, d.y, 20f))
+                    else -> assertTrue("right door clear", g.arena.isFree(g.arena.width - 30f, d.y, 20f))
+                }
+                if (g.shopGateOpen) assertTrue("never on the shop's wall", d.side == 0 || (d.side == 2) != g.shopGateRight)
+            }
+        }
+        assertTrue("several rooms get extra exits (${counts.toList()})", counts[1] + counts[2] + counts[3] >= 8)
+    }
+
+    @Test
+    fun anExtraExitLeadsOn() {
+        val g = (1L..40L).asSequence().map { clearedRoom(it) }.first { it.exitDoors.isNotEmpty() && !it.shopGateOpen }
+        val d = g.exitDoors.first()
+        val o = g.operatives[0]
+        when (d.side) {
+            0 -> { o.px = d.x; o.py = g.arena.portalY + 20f }
+            1 -> { o.px = 16f; o.py = d.y }
+            else -> { o.px = g.arena.width - 16f; o.py = d.y }
+        }
+        val level = g.level
+        repeat(120) { g.update(1f / 60f) }
+        assertEquals("through the door to the next level", level + 1, g.level)
+    }
 }

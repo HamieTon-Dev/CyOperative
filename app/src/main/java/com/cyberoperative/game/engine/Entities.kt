@@ -139,6 +139,12 @@ class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0) 
     var age = 0f
 }
 
+/**
+ * An extra exit door (PC, owner 2026-10-11): [side] 0 = far (top) wall at x, 1 = left wall,
+ * 2 = right wall at y. Any exit door leads on to the next level.
+ */
+class ExitDoor(val x: Float, val y: Float, val side: Int)
+
 enum class TextKind { NORMAL, CRIT, BOSS, HEAL, SHIELD, PLAYER_HURT, INFO }
 
 class FloatText {

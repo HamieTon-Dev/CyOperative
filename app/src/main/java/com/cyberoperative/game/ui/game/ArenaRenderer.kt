@@ -439,26 +439,29 @@ class ArenaRenderer {
         } else drawShopGateLeft(g, time, mirrored = false)
     }
 
-    private fun DrawScope.drawShopGateLeft(g: GameEngine, time: Float, mirrored: Boolean) {
-        val cy = g.shopGateY
+    private fun DrawScope.drawShopGateLeft(g: GameEngine, time: Float, mirrored: Boolean) =
+        drawSideDoorLeft(g.shopGateY, Palette.Gold, "SHOP", time, mirrored)
+
+    /** A doorway in the left wall (mirrored for the right): the shop's gold door, or a green EXIT. */
+    private fun DrawScope.drawSideDoorLeft(cy: Float, accent: Color, label: String, time: Float, mirrored: Boolean) {
         val half = GameEngine.SHOP_GATE_HALF
         val p = 0.5f + 0.5f * sin(time * 4f)
         drawRect(Color(0xFF0A0802), Offset(-14f, cy - half), Size(20f, half * 2f))
-        drawRect(Palette.Gold.copy(alpha = 0.25f + 0.2f * p), Offset(-14f, cy - half), Size(20f, half * 2f))
-        drawRect(Palette.Gold, Offset(-14f, cy - half - 6f), Size(26f, 6f))
-        drawRect(Palette.Gold, Offset(-14f, cy + half), Size(26f, 6f))
-        drawOval(Palette.Gold.copy(alpha = 0.12f + 0.08f * p), Offset(-60f, cy - half * 1.3f), Size(160f, half * 2.6f))
+        drawRect(accent.copy(alpha = 0.25f + 0.2f * p), Offset(-14f, cy - half), Size(20f, half * 2f))
+        drawRect(accent, Offset(-14f, cy - half - 6f), Size(26f, 6f))
+        drawRect(accent, Offset(-14f, cy + half), Size(26f, 6f))
+        drawOval(accent.copy(alpha = 0.12f + 0.08f * p), Offset(-60f, cy - half * 1.3f), Size(160f, half * 2.6f))
         for (k in 0 until 3) {
             val xx = 70f - ((time * 50f + k * 24f) % 72f)
             shapePath.reset()
             shapePath.moveTo(xx + 12f, cy - 16f); shapePath.lineTo(xx, cy); shapePath.lineTo(xx + 12f, cy + 16f)
-            drawPath(shapePath, Palette.Gold.copy(alpha = 0.75f), style = Stroke(4f))
+            drawPath(shapePath, accent.copy(alpha = 0.75f), style = Stroke(4f))
         }
         tagPaint.textSize = 14f
-        tagPaint.color = Palette.Gold.toArgb()
+        tagPaint.color = accent.toArgb()
         // Text must not read backwards on the mirrored side.
-        if (mirrored) withTransform({ scale(-1f, 1f, Offset(46f, 0f)) }) { drawGameText("SHOP", 46f, cy - half - 14f, tagPaint) }
-        else drawGameText("SHOP", 46f, cy - half - 14f, tagPaint)
+        if (mirrored) withTransform({ scale(-1f, 1f, Offset(46f, 0f)) }) { drawGameText(label, 46f, cy - half - 14f, tagPaint) }
+        else drawGameText(label, 46f, cy - half - 14f, tagPaint)
     }
 
     private fun mix(a: Color, b: Color, t: Float) =
@@ -636,6 +639,8 @@ class ArenaRenderer {
         var i = 0
         while (bx < w - 50f) {
             if (bx + 60f > gateL && bx < gateR) { bx = gateR + 14f; continue }
+            val extra = g.exitDoors.firstOrNull { it.side == 0 && bx + 60f > it.x - GameEngine.GATE_HALF_WIDTH && bx < it.x + GameEngine.GATE_HALF_WIDTH }
+            if (extra != null) { bx = extra.x + GameEngine.GATE_HALF_WIDTH + 14f; continue }
             drawRoundRect(Color(0xFF111D33), Offset(bx, -WALL_HEIGHT + 10f), Size(60f, WALL_HEIGHT - 16f), CornerRadius(3f))
             for (k in 0 until 4) {
                 val on = sin(time * (2f + k * 0.7f) + i * 1.3f + k) > 0.1f
@@ -648,8 +653,22 @@ class ArenaRenderer {
         }
         drawLine((if (boss) bossAccent else Color(env.wallTrim)).copy(alpha = 0.8f), Offset(-14f, 0f), Offset(w + 14f, 0f), 3f)
 
-        // Gate. Locked red after the player declined to skip the shop.
+        // Gates: the top-centre exit plus any extra far-wall exits (PC). Locked red after the
+        // player declined to skip the shop.
         val open = g.portalOpen && !g.topGateLocked
+        drawFarGate(g.arena.portalX, open, time)
+        for (d in g.exitDoors) if (d.side == 0) drawFarGate(d.x, open, time)
+        for (d in g.exitDoors) if (d.side != 0) {
+            if (d.side == 2) withTransform({ scale(-1f, 1f, Offset(g.arena.width / 2f, 0f)) }) {
+                drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = true)
+            } else drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = false)
+        }
+    }
+
+    /** One exit gate in the far wall, centred on [cx]. */
+    private fun DrawScope.drawFarGate(cx: Float, open: Boolean, time: Float) {
+        val gateL = cx - GameEngine.GATE_HALF_WIDTH
+        val gateR = cx + GameEngine.GATE_HALF_WIDTH
         val gw = gateR - gateL
         drawRect(Color(0xFF02050A), Offset(gateL, -WALL_HEIGHT), Size(gw, WALL_HEIGHT))
         val frame = if (open) Palette.Green else Palette.Red
@@ -669,7 +688,7 @@ class ArenaRenderer {
             for (k in 0 until 3) {
                 val yy = 40f - ((time * 60f + k * 30f) % 90f)
                 shapePath.reset()
-                shapePath.moveTo(g.arena.portalX - 22f, yy + 12f); shapePath.lineTo(g.arena.portalX, yy); shapePath.lineTo(g.arena.portalX + 22f, yy + 12f)
+                shapePath.moveTo(cx - 22f, yy + 12f); shapePath.lineTo(cx, yy); shapePath.lineTo(cx + 22f, yy + 12f)
                 drawPath(shapePath, Palette.Green.copy(alpha = 0.7f), style = Stroke(4f))
             }
         }
