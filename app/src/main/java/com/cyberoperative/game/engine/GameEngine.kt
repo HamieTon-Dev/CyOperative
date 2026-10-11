@@ -1326,8 +1326,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (ops.any { it.pendingUpgrades > 0 }) {
             openUpgrades()
         } else {
+            // No card screen (upgrade chips): the shop still gets its 1-in-20 roll here.
+            if (chipRules) rollShop()
             openPortal()
         }
+    }
+
+    /** 1 in 20: the shopkeeper sends a message and a side gate opens (solo campaign only). */
+    private fun rollShop() {
+        if (!coop && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
     }
 
     /** Rarity luck for the next offer: deeper levels, harder difficulty and boss rewards all help. */
@@ -1363,8 +1370,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.pendingUpgrades = 0
         }
         bossLuckPending = false
-        // 1 in 20: the shopkeeper sends a message and a side gate opens (solo only).
-        if (!coop && !upgradeReturnsToCombat && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
+        if (!upgradeReturnsToCombat) rollShop()
         if (upgradeReturnsToCombat) {
             upgradeReturnsToCombat = false
             phase = Phase.COMBAT

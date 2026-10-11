@@ -146,4 +146,19 @@ class ConsumablesTest {
         assertTrue(spare.id in g.build.weapons())
         assertFalse(old in g.build.weapons())
     }
+
+    @Test
+    fun theShopStillTurnsUpWithChips() {
+        var shops = 0
+        for (seed in 1L..120L) {
+            val g = GameEngine(RunConfig(baseStats = RunStats(), seed = seed, powerGovernor = false, consumables = true))
+            repeat(60 * 30) {
+                for (x in g.enemies.items) if (x.active && x.boss == null) g.killEnemy(x)
+                g.update(1f / 60f)
+                if (g.phase == Phase.PORTAL) return@repeat
+            }
+            if (g.shopGateOpen) shops++
+        }
+        assertTrue("about 1 in 20 rooms offers the shop ($shops / 120)", shops in 1..20)
+    }
 }

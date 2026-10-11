@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.23.1 (versionCode 73) — 2026-10-11 · The shop is back under PC rules
+### Fixed
+- **PC rules (Steam, Android PC MODE): the upgrade shop's side door never opened.** Its 1-in-20
+  roll only happened after the card screen, which the PC rules don't open any more. It now rolls
+  when the room clears. Same odds, solo campaign only, as before.
+  - New test: `ConsumablesTest.theShopStillTurnsUpWithChips`.
+
 ## 0.23.0 (versionCode 72) — 2026-10-11 · Upgrade chips, weapon cards, Android PC MODE
 ### Changed (owner: "change the SYSTEM UPGRADE thing. Players hate it")
 - **PC rules (Steam, and Android PC MODE): no more card screen.** The power-ups a room would have
