@@ -55,21 +55,4 @@ class CampaignTest {
         assertEquals(2, g.level)
         assertEquals(0, g.levelKills)
     }
-
-    @Test fun endlessKeepsSpawningAndRaisesStages() {
-        val s = RunStats().apply { maxHp = 1e7f; damage = 400f; range = 900f; fireRate = 5f; orbDamage = 200f }
-        val g = GameEngine(RunConfig(baseStats = s, seed = 6L, mode = GameMode.ENDLESS))
-        val bot = Bot(g, dodge = false)
-        var t = 0f
-        var upgrades = 0
-        while (t < 320f) {
-            if (g.phase == Phase.UPGRADE) upgrades++
-            bot.step(1f / 30f); t += 1f / 30f
-        }
-        assertTrue("stage ${g.level}", g.level >= 10)
-        assertTrue(g.kills > 100)
-        assertTrue(upgrades > 0)
-        assertTrue("boss at stage 10 should have been fought", g.bossesDefeated >= 1 || g.boss != null)
-        assertTrue(g.phase != Phase.CLEARED && g.phase != Phase.PORTAL)
-    }
 }

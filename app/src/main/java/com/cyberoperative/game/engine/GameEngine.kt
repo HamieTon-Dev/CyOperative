@@ -61,7 +61,7 @@ data class RunConfig(
     val startLevel: Int = 1,
     /** Hidden [PowerGovernor] (always on in play; mechanics tests switch it off). */
     val powerGovernor: Boolean = true,
-    val mode: GameMode = GameMode.CAMPAIGN,
+    val mode: GameMode = GameMode.ENDLESS,
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Account OP level (owner, 2026-10-08: veterans face tougher threats and bosses). */
     val opLevel: Int = 1,
@@ -158,7 +158,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     lateinit var arena: Arena
         private set
-    val mode: GameMode get() = config.mode
+    /** CAMPAIGN (the world map) or ENDLESS. A finished campaign can carry on as ENDLESS. */
+    var mode: GameMode = config.mode
+        private set
+    val campaign: Boolean get() = mode == GameMode.CAMPAIGN
     /** The operatives on the field: [0] is the host / solo player, [1] the co-op partner. */
     private val ops = ArrayList<Operative>(2).apply {
         add(Operative(0, config.baseStats).also {
@@ -169,7 +172,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             add(Operative(1, a.baseStats).also { it.rerollsLeft = a.rerolls; it.build.qualityBonus = a.upgradeQuality; it.build.weaponSlots = config.difficulty.weaponSlots(a.weaponSlots) })
         }
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
-        if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
+        // Power-ups come from rooms, not data, so the data cards are pointless.
+        for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
         if (config.consumables) for (o in this) o.hpCharges = START_HP_CHARGES
         this[0].classId = config.classId
         config.ally?.let { a -> getOrNull(1)?.classId = a.classId }
@@ -178,6 +182,31 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
     val loot = ArrayList<Loot>()
     private val lootRng = Random(config.seed xor 0x10075EEDL)
+    // --- Campaign world map (owner, 2026-10-11) ---------------------------------------
+    /** Server world (1..15) and room on its map (0..9, 10 = the boss room). */
+    var world = 1
+        private set
+    var room = 0
+        private set
+    var worldMap: WorldMap = CampaignMap.generate(config.seed, 1)
+        private set
+    /** Rooms of this world already cleared (they stay empty, doors open) and ones visited. */
+    val clearedRooms = HashSet<Int>()
+    val visitedRooms = HashSet<Int>()
+    /** World 15's boss is down: the UI asks whether to carry on in Endless. */
+    var campaignComplete = false
+        private set
+    /** Endless after the campaign (or chosen from the menu): the HUD hides where you are. */
+    val worldUnknown: Boolean get() = !campaign
+    /** True when the current room was already cleared when entered (no threats, doors open). */
+    var revisit = false
+        private set
+    private var pendingRoom = -1
+    private var pendingEntry = 3
+    /** The room the shop's exit leads back to, and where its doorway was. */
+    private var shopReturnRoom = -1
+    private var shopReturnRight = false
+    private var shopReturnY = 0f
     /** Extra exit doors this room (PC); the top-centre gate is always there too. */
     val exitDoors = ArrayList<ExitDoor>(3)
     private val doorRng = Random(config.seed xor 0xD0012EL)
@@ -829,6 +858,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.firewall = o.build.stats.firewallMax
         }
         if (restore != null) applySnapshot(restore)
+        else if (campaign) enterRoom(0, 3)
         else startLevel(level, null, false)
         if (restore == null) {
             // Starting Weapon Power: free upgrades before the first fight. With upgrade chips they
@@ -1036,6 +1066,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 phaseTimer += dt
                 if (phaseTimer >= TRANSITION_TIME) {
                     if (goingToShop) enterShop()
+                    else if (campaign) campaignAdvance()
                     else startLevel(level + 1, plan.arena.id, plan.kind == LevelKind.EVENT)
                     slideIn = TRANSITION_TIME
                 }
@@ -1050,7 +1081,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         forEachAlive { updatePlayer(dt); updateOrbit(dt); updateCloak(dt) }
         if (config.consumables) updateLoot(dt)
         if (phase == Phase.COMBAT) {
-            if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
+            updateSpawning(dt)
             updateEventRules(dt)
         }
         if (phase == Phase.COMBAT) forEachAlive { path.update(arena, px, py, dt) }
@@ -1072,9 +1103,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
         forEachAlive { updateVault(dt) }
         when (phase) {
-            Phase.COMBAT -> if (mode == GameMode.ENDLESS) {
-                if (ops.any { it.pendingUpgrades > 0 }) openUpgrades(resumeCombat = true)
-            } else checkCleared()
+            Phase.COMBAT -> checkCleared()
             Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
             Phase.PORTAL -> forEachAlive { portalCheck() }
             else -> {}
@@ -1084,7 +1113,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** The current operative walking into an exit gate (top centre or an extra door) or the shop's side gate. */
     private fun portalCheck() {
         if (phase != Phase.PORTAL) return
-        val door = if (kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) MAIN_DOOR
+        val mainGate = !campaign || inShop
+        val door = if (mainGate && kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) MAIN_DOOR
+        else if (campaign && inShop) null
         else exitDoors.firstOrNull { inDoor(it) }
         if (door != null) {
                 if (shopGateOpen) {
@@ -1096,12 +1127,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     when (door.side) {
                         1 -> px = 30f + playerRadius + 46f
                         2 -> px = arena.width - 30f - playerRadius - 46f
+                        3 -> py = arena.height - BOTTOM_DOOR_INSET - PORTAL_RADIUS - 46f
                         else -> py = arena.portalY + PORTAL_RADIUS + 46f
                     }
                 } else {
                     phase = Phase.TRANSITION
                     phaseTimer = 0f
                     goingToShop = false
+                    // Campaign: where this door leads, and you walk in on the matching side.
+                    pendingRoom = door.target
+                    pendingEntry = if (door.target == NEXT_WORLD) 3 else when (door.side) { 0 -> 3; 3 -> 0; 1 -> 2; else -> 1 }
                 }
             } else if (shopGateOpen && kotlin.math.abs(px - shopGateX) < playerRadius + 14f && kotlin.math.abs(py - shopGateY) < SHOP_GATE_HALF) {
                 // Through the side gate into the upgrade shop.
@@ -1142,7 +1177,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
-        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, mode, config.seed, pressureCount(level))
+        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, config.seed, pressureCount(level))
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -1192,8 +1227,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 sound(GameSound.EVENT_START)
             }
             LevelKind.SHOP -> {}
-            LevelKind.NORMAL -> if (mode == GameMode.ENDLESS) showBanner("ENDLESS", "Survive as long as you can", 2f)
-            else showBanner(
+            LevelKind.NORMAL -> showBanner(
                 "LEVEL $level",
                 // A new environment theme every 3 levels gets announced.
                 if (com.cyberoperative.game.data.Environments.isNewTheme(level))
@@ -1203,7 +1237,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             )
         }
         // Upgrade chips: a normal room drops the pick its clear would have given from its kills.
-        if (chipRules && mode == GameMode.CAMPAIGN && plan.kind != LevelKind.BOSS && plan.kind != LevelKind.SHOP) {
+        if (chipRules && plan.kind != LevelKind.BOSS && plan.kind != LevelKind.SHOP) {
             chipBudget = 1 + (if (plan.kind == LevelKind.EVENT) 1 else 0)
         }
     }
@@ -1343,7 +1377,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** 1 in 20: the shopkeeper sends a message and a side gate opens (solo campaign only). */
     private fun rollShop() {
-        if (!coop && mode == GameMode.CAMPAIGN && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
+        if (!coop && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
     }
 
     /** Rarity luck for the next offer: deeper levels, harder difficulty and boss rewards all help. */
@@ -1511,6 +1545,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun inDoor(d: ExitDoor): Boolean = when (d.side) {
         0 -> kotlin.math.abs(px - d.x) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS
+        3 -> kotlin.math.abs(px - d.x) < GATE_HALF_WIDTH && py > arena.height - BOTTOM_DOOR_INSET - PORTAL_RADIUS
         1 -> px < playerRadius + 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
         else -> px > arena.width - playerRadius - 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
     }
@@ -1523,9 +1558,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * same way as before: the choice is in the player's head.
      */
     private fun openExtraDoors() {
+        // Endless only: campaign rooms have the world map's doors.
+        if (mode != GameMode.ENDLESS) return
         exitDoors.clear()
-        // PC rules (Steam, or Android's PC mode in portrait or landscape).
-        if (!config.consumables || mode != GameMode.CAMPAIGN || inShop || mirror) return
+        if (!config.consumables || inShop || mirror) return
         val roll = doorRng.nextFloat()
         val extra = when {
             roll < EXTRA_DOOR_ODDS[0] -> 0
@@ -1573,7 +1609,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Opens the side gate to the shop for this room (also a test hook). */
     fun offerShop() {
-        if (mode != GameMode.CAMPAIGN || inShop) return
+        if (inShop) return
         // Owner, 2026-10-08: the gate must never be blocked by a wall or block.
         if (!placeShopGate()) return
         shopGateOpen = true
@@ -1594,6 +1630,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for (off in offsets) {
                 val y = mid + off
                 if (y < 200f || y > arena.height - 200f) continue
+                // Never on top of a world-map door on the same wall.
+                val side = if (right) 2 else 1
+                if (exitDoors.any { it.side == side && kotlin.math.abs(it.y - y) < SHOP_GATE_HALF * 2f + 40f }) continue
                 if (gateMouthClear(right, y) && reach(if (right) arena.width - 30f else 30f, y)) {
                     shopGateRight = right
                     shopGateY = y
@@ -1655,6 +1694,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun enterShop() {
+        // Campaign: the shop's exit leads back into this room, at the shop's doorway.
+        shopReturnRoom = room; shopReturnRight = shopGateRight; shopReturnY = shopGateY
         if (!mirror) sweepLoot() else loot.clear()
         exitDoors.clear()
         goingToShop = false
@@ -1776,6 +1817,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phase = Phase.PORTAL
         phaseTimer = 0f
         portalOpen = true
+        if (campaign && !inShop && !mirror) campaignCleared()
         openExtraDoors()
         sound(GameSound.PORTAL_OPEN)
     }
@@ -1864,6 +1906,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         return RunSnapshot(
             mode = mode.name, difficulty = config.difficulty.name, seed = config.seed,
             level = level, levelSeed = levelSeed, previousArenaId = previousArenaId, previousEvent = previousEvent,
+            format = 2, world = world, room = room, clearedRooms = clearedRooms.toList(), visitedRooms = visitedRooms.toList(),
             phase = phase.name, phaseTimer = phaseTimer,
             px = px, py = py, hp = hp, firewall = firewall, facing = facing,
             upgrades = HashMap(build.owned()), runLevel = runLevel, xp = xp,
@@ -1885,12 +1928,22 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun applySnapshot(r: RunSnapshot) {
+        mode = GameMode.entries.firstOrNull { it.name == r.mode } ?: mode
+        if (campaign) {
+            world = r.world.coerceIn(1, CampaignMap.WORLDS)
+            room = r.room.coerceIn(0, CampaignMap.BOSS_INDEX)
+            worldMap = CampaignMap.generate(config.seed, world)
+            clearedRooms.clear(); clearedRooms += r.clearedRooms
+            visitedRooms.clear(); visitedRooms += r.visitedRooms
+            revisit = room in clearedRooms
+        }
         level = r.level
         levelSeed = r.levelSeed
         previousArenaId = r.previousArenaId
         previousEvent = r.previousEvent
         // The same seed rebuilds the same room, waves and event rules.
-        plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed, pressureCount(level))
+        plan = if (campaign) campaignPlan(world, room, room in clearedRooms)
+        else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level))
         vaultCracked = r.vaultCracked
         val extra = if (plan.rules.vault && !vaultCracked) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
@@ -1939,7 +1992,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phase = Phase.entries.firstOrNull { it.name == r.phase } ?: Phase.COMBAT
         phaseTimer = r.phaseTimer
         // The shop offered before the save is still waiting (owner: don't punish busy players).
-        if (r.shopGateOpen && mode == GameMode.CAMPAIGN) {
+        if (r.shopGateOpen) {
             shopGateRight = r.shopGateRight
             shopGateY = r.shopGateY
             if (shopGateY <= 0f && !placeShopGate()) shopGateY = arena.height * 0.5f
@@ -1963,8 +2016,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             offer = restored.ifEmpty { build.rollOffer(rng, luck = offerLuck) }
             if (offer.isEmpty()) { pendingUpgrades = 0; finishUpgrades() }
         }
+        if (campaign) {
+            exitDoors.clear()
+            exitDoors += campaignDoors(room)
+            if (room >= CampaignMap.BOSS_INDEX && room in clearedRooms) {
+                if (world >= CampaignMap.WORLDS) campaignComplete = true else exitDoors += doorAt(0, NEXT_WORLD)
+            }
+        }
         invuln = 2f
-        showBanner("OPERATION RESUMED", if (mode == GameMode.ENDLESS) "STAGE $level" else "LEVEL $level", 1.6f)
+        showBanner("OPERATION RESUMED", roomLabel(), 1.6f)
     }
 
     fun summary(): RunSummary = RunSummary(
@@ -2112,6 +2172,148 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     // ======================================================================
+    // Campaign world map (owner, 2026-10-11)
+    // ======================================================================
+
+    /** The room plan for world [w] room [r]: always the same room for the run (seeded by world and room). */
+    internal fun campaignPlan(w: Int, r: Int, revisit: Boolean): LevelPlan {
+        val lvl = CampaignMap.levelFor(w, r)
+        val rng = Random(config.seed xor (w * 1_000_003L + r * 7_919L) xor 0x77C0FFEE)
+        var p = if (r >= CampaignMap.BOSS_INDEX) LevelPlanner.campaignBossPlan(w, lvl, rng, config.seed)
+        else LevelPlanner.campaignRoomPlan(lvl, rng, config.seed, pressureCount(lvl))
+        // A cleared room you walk back into is empty and calm.
+        if (revisit) p = p.copy(kind = LevelKind.NORMAL, waves = emptyList(), boss = null, event = null, rules = com.cyberoperative.game.data.EventRules(), modifierNames = emptyList())
+        return p
+    }
+
+    /** "WORLD 3 · ROOM 7", "WORLD 3 · BOSS", or (Endless) "WORLD ??? · ROOM ???". */
+    fun roomLabel(): String = when {
+        !campaign -> "WORLD ??? · ROOM ???"
+        room >= CampaignMap.BOSS_INDEX -> "WORLD $world · BOSS"
+        else -> "WORLD $world · ROOM ${room + 1}"
+    }
+
+    /** Where a door on [side] sits in the current arena. */
+    private fun doorAt(side: Int, target: Int): ExitDoor = when (side) {
+        0 -> ExitDoor(arena.portalX, arena.portalY, 0, target)
+        1 -> ExitDoor(0f, arena.height * 0.5f, 1, target)
+        2 -> ExitDoor(arena.width, arena.height * 0.5f, 2, target)
+        else -> ExitDoor(arena.width / 2f, arena.height - BOTTOM_DOOR_INSET, 3, target)
+    }
+
+    /** Where an operative stands after walking in through the door on [side]. */
+    private fun entryPoint(side: Int): Pair<Float, Float> = when (side) {
+        0 -> arena.portalX to (arena.portalY + 110f)
+        1 -> 110f to arena.height * 0.5f
+        2 -> (arena.width - 110f) to arena.height * 0.5f
+        else -> arena.spawnX to arena.spawnY
+    }
+
+    /** The doors of map room [r]: back, forward, and (after its boss) on to the next world. */
+    private fun campaignDoors(r: Int): List<ExitDoor> {
+        val out = ArrayList<ExitDoor>(3)
+        for (n in worldMap.neighbours(r)) out += doorAt(worldMap.dir(r, n).side, n)
+        return out
+    }
+
+    /**
+     * Walk into map room [r] through the door on [entrySide]. A room already cleared is empty
+     * with its doors open; a new one fills with threats and its doors stay shut until it's clear.
+     * ([atY]: coming back from the shop, appear at the shop's doorway height.)
+     */
+    private fun enterRoom(r: Int, entrySide: Int, atY: Float = -1f) {
+        room = r
+        revisit = r in clearedRooms
+        visitedRooms += r
+        startLevel(CampaignMap.levelFor(world, r), null, false, campaignPlan(world, r, revisit))
+        exitDoors.clear()
+        exitDoors += campaignDoors(r)
+        var (ex, ey) = entryPoint(entrySide)
+        if (atY >= 0f) ey = atY
+        for (o in ops) {
+            if (o.gone) continue
+            arena.pushOut(ex + if (coop) (o.index * 2 - 1) * 42f else 0f, ey, playerRadius)
+            o.px = arena.out[0]; o.py = arena.out[1]
+            o.facing = when (entrySide) { 0 -> MathUtil.PI / 2f; 1 -> 0f; 2 -> MathUtil.PI; else -> -MathUtil.PI / 2f }
+        }
+        if (revisit) {
+            // Nothing left here: doors open straight away.
+            chipBudget = 0
+            levelEnemyTotal = 0
+            phase = Phase.PORTAL
+            phaseTimer = 0f
+            portalOpen = true
+            showBanner(roomLabel(), "CLEARED", 1.2f)
+        } else when {
+            r == 0 -> showBanner("SERVER WORLD $world", "ROOM 1 · ${plan.enemyCount} THREATS", 2.2f)
+            r >= CampaignMap.BOSS_INDEX -> showBanner("WORLD $world · BOSS", plan.boss?.name ?: "", 2f)
+            plan.kind == LevelKind.EVENT -> {}
+            else -> showBanner("ROOM ${r + 1}", "WORLD $world · ${plan.enemyCount} THREATS", 1.4f)
+        }
+    }
+
+    /** The walk through a door has finished: arrive wherever it led. */
+    private fun campaignAdvance() {
+        if (inShop) {
+            // Out of the shop: back into the room it was entered from, at its doorway.
+            shopGateOpen = false
+            enterRoom(shopReturnRoom.coerceAtLeast(0), if (shopReturnRight) 2 else 1, shopReturnY)
+            return
+        }
+        if (pendingRoom == NEXT_WORLD) {
+            world++
+            worldMap = CampaignMap.generate(config.seed, world)
+            clearedRooms.clear()
+            visitedRooms.clear()
+            enterRoom(0, 3)
+            return
+        }
+        enterRoom(pendingRoom.coerceIn(0, CampaignMap.BOSS_INDEX), pendingEntry)
+    }
+
+    /** Campaign room cleared: its doors open; a world boss down opens the way to the next world. */
+    private fun campaignCleared() {
+        clearedRooms += room
+        if (room < CampaignMap.BOSS_INDEX) return
+        if (world >= CampaignMap.WORLDS) {
+            campaignComplete = true
+            showBanner("CAMPAIGN COMPLETE", "ALL ${CampaignMap.WORLDS} SERVER WORLDS SECURED", 3f)
+        } else {
+            exitDoors += doorAt(0, NEXT_WORLD)
+            showBanner("WORLD $world SECURED", "THE GATE TO WORLD ${world + 1} IS OPEN", 2.2f)
+        }
+    }
+
+    /**
+     * UI: after the campaign, carry on in Endless (no map; WORLD ??? · ROOM ???, doors anywhere),
+     * or stop here. Returns true when the run carries on.
+     */
+    fun answerCampaignComplete(continueEndless: Boolean): Boolean {
+        if (!campaignComplete) return false
+        campaignComplete = false
+        if (!continueEndless) return false
+        mode = GameMode.ENDLESS
+        exitDoors.clear()
+        portalOpen = true
+        phase = Phase.PORTAL
+        phaseTimer = 0f
+        openExtraDoors()
+        showBanner("ENDLESS", "WORLD ??? · ROOM ???", 2.4f)
+        return true
+    }
+
+    /** Test hook: start the campaign at world [w] (room 1). */
+    internal fun debugEnterWorld(w: Int) {
+        world = w
+        worldMap = CampaignMap.generate(config.seed, w)
+        clearedRooms.clear(); visitedRooms.clear()
+        enterRoom(0, 3)
+    }
+
+    /** Test hook: jump to room [r] of this world, entering from [side]. */
+    internal fun debugEnterRoom(r: Int, side: Int = 3) = enterRoom(r, side)
+
+    // ======================================================================
     // PC consumables (owner, 2026-10-11): HP charge packets (Q) and Packet Bombs (E)
     // ======================================================================
 
@@ -2218,7 +2420,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             eurosEarned += oldest.amount
             loot.remove(oldest)
         }
-        val vacuum = phase != Phase.COMBAT && mode == GameMode.CAMPAIGN
+        val vacuum = phase != Phase.COMBAT
         var chime = false
         val it = loot.iterator()
         while (it.hasNext()) {
@@ -3162,17 +3364,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun gainXp(amount: Float) {
-        // Campaign power-ups come from level clears; data only feeds endless mode.
-        if (mode == GameMode.CAMPAIGN) return
-        xp += amount
-        var need = Scaling.xpToNext(runLevel)
-        while (xp >= need) {
-            xp -= need
-            runLevel++
-            grantPick()
-            need = Scaling.xpToNext(runLevel)
-        }
+        // Power-ups come from room clears (upgrade chips); data no longer grants picks.
     }
 
     val xpFraction: Float get() = (xp / Scaling.xpToNext(runLevel)).coerceIn(0f, 1f)
@@ -3978,7 +4172,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
-        grantPick(bossPicks(level) + bonusPicks)
+        // Campaign: a world boss pays out like the end of a world (at least four boosted drops).
+        grantPick(if (campaign) max(CAMPAIGN_BOSS_PICKS, bossPicks(level) + bonusPicks) else bossPicks(level) + bonusPicks)
         bossLuckPending = true
         purgeHostiles()
         return paid
@@ -3994,36 +4189,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
         for (h in hazards.items) h.active = false
         sinkBarriers()
-    }
-
-    /**
-     * Endless: one room, never cleared. Difficulty (the "level" used by every
-     * scaling curve) rises one stage every [Scaling.ENDLESS_STAGE_SECONDS];
-     * every 10th stage brings that stage's boss, and normal spawns pause
-     * until it falls.
-     */
-    private fun updateEndless(dt: Float) {
-        stageTimer += dt
-        if (stageTimer >= Scaling.ENDLESS_STAGE_SECONDS) {
-            stageTimer = 0f
-            level++
-            updateAdaptive()
-            if (Scaling.isBossLevel(level) && boss == null) {
-                val b = com.cyberoperative.game.data.Bosses.randomForLevel(level, config.seed)
-                sound(GameSound.BOSS_SPAWN)
-                bossBrain.spawn(b, arena.width / 2f, 260f, LevelPlanner.rollGlitchedBoss(level, rng))
-            } else {
-                showBanner("STAGE $level", "Threat level rising", 1.2f)
-            }
-        }
-        if (boss != null) return
-        spawnTimer -= dt
-        if (spawnTimer <= 0f && aliveCount() < Scaling.MAX_ALIVE) {
-            spawnTimer = max(0.35f, 1.5f - level * 0.03f) / (if (coop) 1f + COOP_EXTRA_THREATS else 1f)
-            val pool = Enemies.pool(level)
-            val elite = if (rng.nextFloat() < Scaling.eliteChance(level)) EliteModifier.entries[rng.nextInt(EliteModifier.entries.size)] else null
-            spawnEnemy(LevelPlanner.weightedPick(pool, rng), elite, telegraph = true)
-        }
     }
 
     /** Seconds into the current boss's entrance, or -1 when no entrance is running. */
@@ -4112,6 +4277,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val w = CoopWorld()
         w.seq = seq
         w.level = level; w.levelSeed = levelSeed; w.previousArenaId = previousArenaId; w.previousEvent = previousEvent
+        w.campaign = campaign; w.world = world; w.room = room; w.revisit = revisit
         w.vaultCracked = vaultCracked; w.vaultOpening = vaultOpening
         w.phase = phase; w.phaseTimer = phaseTimer; w.slideIn = slideIn
         w.score = score; w.kills = kills; w.euros = eurosEarned; w.diamonds = diamondsEarned
@@ -4221,13 +4387,20 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun applyWorld(w: CoopWorld) {
         if (!mirror || w.seq <= mirrorSeq) return
         mirrorSeq = w.seq
-        val newRoom = w.level != level || w.levelSeed != levelSeed
+        val newRoom = w.level != level || w.levelSeed != levelSeed || w.room != room || w.world != world
         if (newRoom) {
             level = w.level
             levelSeed = w.levelSeed
             previousArenaId = w.previousArenaId
             previousEvent = w.previousEvent
-            plan = LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, mode, config.seed, pressureCount(level))
+            if (w.campaign) {
+                mode = GameMode.CAMPAIGN
+                if (w.world != world) { world = w.world; worldMap = CampaignMap.generate(config.seed, world) }
+                room = w.room
+            } else mode = GameMode.ENDLESS
+            revisit = w.revisit
+            plan = if (w.campaign) campaignPlan(world, room, w.revisit)
+            else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level))
             vaultCracked = false
             val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
             arena = Arena(plan.arena, extra)
@@ -4547,6 +4720,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val TRANSITION_TIME = 0.45f
         const val PORTAL_RADIUS = 46f
         const val GATE_HALF_WIDTH = 80f
+        /** Campaign: a door that leads on to the next server world. */
+        const val NEXT_WORLD = -10
+        /** How far up from the bottom edge a near-wall (bottom) door's trigger sits. */
+        const val BOTTOM_DOOR_INSET = 40f
+        /** Least drops a world boss gives (the old "level 10" haul). */
+        const val CAMPAIGN_BOSS_PICKS = 4
         /** The always-open top-centre exit gate, as a door. */
         private val MAIN_DOOR = ExitDoor(-1f, -1f, 0)
         /** Cumulative odds of 0 / 1 / 2 extra exit doors (else 3): 1–4 doors in all. */

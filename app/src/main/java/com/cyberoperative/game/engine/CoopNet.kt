@@ -21,6 +21,11 @@ class CoopWorld {
     // Run
     var level = 1
     var levelSeed = 0L
+    /** Campaign world map (v19): mode, world, room, and whether the room was already cleared. */
+    var campaign = false
+    var world = 1
+    var room = 0
+    var revisit = false
     var previousArenaId: String? = null
     var previousEvent = false
     var vaultCracked = false
@@ -208,6 +213,7 @@ object CoopCodec {
             o.writeByte(VERSION)
             o.var32(w.seq)
             o.var32(w.level); o.writeLong(w.levelSeed)
+            o.writeBoolean(w.campaign); o.writeByte(w.world); o.writeByte(w.room); o.writeBoolean(w.revisit)
             o.str(w.previousArenaId ?: ""); o.writeBoolean(w.previousEvent)
             o.writeBoolean(w.vaultCracked); o.sec(w.vaultOpening)
             o.writeByte(w.phase.ordinal); o.sec(w.phaseTimer); o.sec(w.slideIn)
@@ -322,6 +328,7 @@ object CoopCodec {
             val w = CoopWorld()
             w.seq = i.var32()
             w.level = i.var32(); w.levelSeed = i.readLong()
+            w.campaign = i.readBoolean(); w.world = i.readUnsignedByte(); w.room = i.readUnsignedByte(); w.revisit = i.readBoolean()
             w.previousArenaId = i.str().ifEmpty { null }; w.previousEvent = i.readBoolean()
             w.vaultCracked = i.readBoolean(); w.vaultOpening = i.sec()
             w.phase = Phase.entries[i.readUnsignedByte()]; w.phaseTimer = i.sec(); w.slideIn = i.sec()
@@ -462,5 +469,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 18
+    const val VERSION = 19
 }

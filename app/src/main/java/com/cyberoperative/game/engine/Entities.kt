@@ -145,10 +145,15 @@ class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0, 
 }
 
 /**
- * An extra exit door (PC, owner 2026-10-11): [side] 0 = far (top) wall at x, 1 = left wall,
- * 2 = right wall at y. Any exit door leads on to the next level.
+ * An exit door: [side] 0 = far (top) wall at x, 1 = left wall, 2 = right wall at y, 3 = near
+ * (bottom) wall at x. Endless: any of them leads on to the next level. Campaign: each leads to
+ * the room on that side of the world map.
  */
-class ExitDoor(val x: Float, val y: Float, val side: Int)
+class ExitDoor(
+    val x: Float, val y: Float, val side: Int,
+    /** Campaign: the world-map room it leads to ([GameEngine.NEXT_WORLD] after a boss); -1 = the next level. */
+    val target: Int = -1
+)
 
 enum class TextKind { NORMAL, CRIT, BOSS, HEAL, SHIELD, PLAYER_HURT, INFO }
 

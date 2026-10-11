@@ -20,7 +20,7 @@ import org.junit.Test
 /** Save & continue, boss save block, mod tiers / reward counts, difficulty and the new weapons. */
 class SaveRewardsWeaponsTest {
 
-    private fun config(seed: Long = 11L, difficulty: Difficulty = Difficulty.MEDIUM, mode: GameMode = GameMode.CAMPAIGN) =
+    private fun config(seed: Long = 11L, difficulty: Difficulty = Difficulty.MEDIUM, mode: GameMode = GameMode.ENDLESS) =
         RunConfig(baseStats = RunStats().apply { maxHp = 1e6f }, seed = seed, freeRevives = 0, mode = mode, difficulty = difficulty)
 
     @Test fun saveRestoresLevelRoomEnemiesAndBuild() {

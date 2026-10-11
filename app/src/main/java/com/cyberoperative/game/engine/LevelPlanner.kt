@@ -46,12 +46,11 @@ object LevelPlanner {
     const val GENERATED_SHARE = 0.85f
 
     fun plan(
-        level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean, mode: GameMode = GameMode.CAMPAIGN,
+        level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean,
         runSeed: Long = 0L,
         /** Threat-count multiplier for the difficulty (GameEngine.pressureCount). */
         countMul: Float = 1f
     ): LevelPlan {
-        if (mode == GameMode.ENDLESS) return endlessPlan(rng)
         if (Scaling.isBossLevel(level)) return bossPlan(level, rng, runSeed)
 
         val event = pickEvent(level, rng, previousWasEvent)
@@ -63,11 +62,33 @@ object LevelPlanner {
         return LevelPlan(level, LevelKind.NORMAL, arena, waves)
     }
 
-    /** Endless: one large generated room; the engine spawns continuously. */
-    fun endlessPlan(rng: Random): LevelPlan {
-        val arena = ArenaGenerator.generate(8, rng).copy(name = "ENDLESS FLOOD")
-        return LevelPlan(1, LevelKind.NORMAL, arena, emptyList())
+    /**
+     * A campaign room (owner, 2026-10-11): a normal or event room at [level], in a room with a
+     * doorway on every wall (the world map can lead out of any side).
+     */
+    fun campaignRoomPlan(level: Int, rng: Random, runSeed: Long, countMul: Float): LevelPlan {
+        val base = plan(level, rng, null, false, runSeed, countMul)
+        // The vault event keeps its open hall (its sides and middle are clear already).
+        return if (base.rules.vault) base else base.copy(arena = ArenaGenerator.generate(level, rng, allDoors = true))
     }
+
+    /** Odds the Nullshade Specter guards worlds 12–14 (it always guards world 15, never earlier). */
+    const val NULLSHADE_CHANCE = 0.3f
+
+    /** A world's boss room: the run's boss deck, except the Nullshade Specter only from world 12. */
+    fun campaignBossPlan(world: Int, level: Int, rng: Random, runSeed: Long): LevelPlan {
+        val base = bossPlan(level, rng, runSeed)
+        val ns = Bosses.byId(NULLSHADE)
+        val boss = when {
+            ns != null && world >= CampaignMap.WORLDS -> ns
+            ns != null && world >= 12 && rng.nextFloat() < NULLSHADE_CHANCE -> ns
+            base.boss?.id == NULLSHADE -> Bosses.eligible(level).filter { it.id != NULLSHADE }.let { it[rng.nextInt(it.size)] }
+            else -> base.boss
+        }
+        return base.copy(boss = boss)
+    }
+
+    private const val NULLSHADE = "nullshade"
 
     fun pickEvent(level: Int, rng: Random, previousWasEvent: Boolean): EventDef? {
         if (previousWasEvent) return null

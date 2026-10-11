@@ -40,9 +40,13 @@ object ArenaGenerator {
         "DMZ", "VLAN", "CLUSTER", "RACK ROW", "COLD AISLE", "HOT AISLE"
     )
 
-    fun generate(level: Int, rng: Random): ArenaTemplate {
+    /**
+     * @param allDoors campaign rooms: keep a doorway clear (and walkable) on every wall, not just
+     * the top gate and the bottom entry, since the world map can lead out of any side.
+     */
+    fun generate(level: Int, rng: Random, allDoors: Boolean = false): ArenaTemplate {
         repeat(24) { attempt ->
-            val t = tryGenerate(level, rng, attempt)
+            val t = tryGenerate(level, rng, attempt, allDoors)
             if (t != null) return t
         }
         // Extremely unlikely; keeps the game playable no matter what.
@@ -59,7 +63,7 @@ object ArenaGenerator {
         return "$base $suffix"
     }
 
-    private fun tryGenerate(level: Int, rng: Random, attempt: Int): ArenaTemplate? {
+    private fun tryGenerate(level: Int, rng: Random, attempt: Int, allDoors: Boolean = false): ArenaTemplate? {
         // Landscape rooms are shorter (16:9 view): about one screen plus a little scroll.
         val height = if (ArenaShape.wide) ArenaShape.WIDE_MIN_HEIGHT + rng.nextInt(0, 4) * 40f else 1080f + rng.nextInt(0, 6) * 50f
         val style = Style.entries[rng.nextInt(Style.entries.size)]
@@ -73,6 +77,9 @@ object ArenaGenerator {
             // Exit gate strip at the top and spawn pocket at the bottom stay open.
             if (r.intersectsRect(cx - 120f, 0f, cx + 120f, 190f)) return false
             if (r.intersectsRect(cx - 110f, height - 230f, cx + 110f, height)) return false
+            // Side doorways (campaign): the middle of the left and right walls.
+            if (allDoors && r.intersectsRect(0f, height * 0.5f - 120f, 230f, height * 0.5f + 120f)) return false
+            if (allDoors && r.intersectsRect(W - 230f, height * 0.5f - 120f, W, height * 0.5f + 120f)) return false
             return true
         }
 
@@ -200,6 +207,11 @@ object ArenaGenerator {
         val arena = Arena(template)
         if (!arena.isFree(arena.spawnX, arena.spawnY, 40f) || !arena.isFree(arena.portalX, arena.portalY, 50f)) return null
         if (!reachable(arena)) return null
+        if (allDoors) {
+            val mid = height * 0.5f
+            if (!arena.isFree(60f, mid, 40f) || !arena.isFree(W - 60f, mid, 40f)) return null
+            if (!reachableTo(arena, 60f, mid) || !reachableTo(arena, W - 60f, mid)) return null
+        }
         return template
     }
 
@@ -322,7 +334,10 @@ object ArenaGenerator {
     }
 
     /** Grid flood fill: can the operative walk from spawn to the gate? */
-    fun reachable(a: Arena): Boolean {
+    fun reachable(a: Arena): Boolean = reachableTo(a, a.portalX, a.portalY)
+
+    /** Grid flood fill from the spawn point to ([tx], [ty]). */
+    fun reachableTo(a: Arena, tx0: Float, ty0: Float): Boolean {
         val cell = 20f
         val cols = (a.width / cell).toInt()
         val rows = (a.height / cell).toInt()
@@ -332,8 +347,8 @@ object ArenaGenerator {
         var tail = 0
         val sc = (a.spawnX / cell).toInt()
         val sr = (a.spawnY / cell).toInt()
-        val tc = (a.portalX / cell).toInt()
-        val tr = (a.portalY / cell).toInt()
+        val tc = (tx0 / cell).toInt().coerceIn(0, cols - 1)
+        val tr = (ty0 / cell).toInt().coerceIn(0, rows - 1)
         queue[tail++] = sr * cols + sc
         seen[sr * cols + sc] = true
         while (head < tail) {

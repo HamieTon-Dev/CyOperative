@@ -74,12 +74,23 @@ data class RunSnapshot(
     val shopGateRight: Boolean = false,
     val shopGateY: Float = 0f,
     /** A Data Vault cache already cracked stays cracked (no second payout). */
-    val vaultCracked: Boolean = false
+    val vaultCracked: Boolean = false,
+    /**
+     * Save format: 1 = before the world-map campaign (CAMPAIGN then meant today's ENDLESS, and
+     * ENDLESS was the retired one-room mode); 2 = world-map campaign.
+     */
+    val format: Int = 1,
+    /** Campaign position (format 2). */
+    val world: Int = 1,
+    val room: Int = 0,
+    val clearedRooms: List<Int> = emptyList(),
+    val visitedRooms: List<Int> = emptyList()
 ) {
     /** One line for the CONTINUE button. */
     val label: String
-        get() = (if (mode == GameMode.ENDLESS.name) "ENDLESS · STAGE $level" else "LEVEL $level") +
-            " · ${Difficulty.byName(difficulty).label}"
+        get() = (if (mode == GameMode.CAMPAIGN.name) {
+            if (room >= CampaignMap.BOSS_INDEX) "WORLD $world · BOSS" else "WORLD $world · ROOM ${room + 1}"
+        } else "ENDLESS · LEVEL $level") + " · ${Difficulty.byName(difficulty).label}"
 
     fun encode(): String = json.encodeToString(serializer(), this)
 
@@ -88,9 +99,16 @@ data class RunSnapshot(
 
         /** A save from an incompatible build is dropped rather than crashing the menu. */
         fun decodeOrNull(raw: String?): RunSnapshot? = try {
-            if (raw.isNullOrEmpty()) null else json.decodeFromString(serializer(), raw)
+            if (raw.isNullOrEmpty()) null else migrate(json.decodeFromString(serializer(), raw))
         } catch (_: Exception) {
             null
+        }
+
+        /** Older saves: the old level-by-level campaign continues as ENDLESS; old one-room ENDLESS runs are gone. */
+        private fun migrate(r: RunSnapshot): RunSnapshot? = when {
+            r.format >= 2 -> r
+            r.mode == GameMode.ENDLESS.name -> null
+            else -> r.copy(mode = GameMode.ENDLESS.name, format = 2)
         }
     }
 }
