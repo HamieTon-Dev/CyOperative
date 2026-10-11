@@ -2,8 +2,6 @@ package com.cyberoperative.game.desktop
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -31,10 +29,9 @@ import com.cyberoperative.game.steam.SteamService
 import com.cyberoperative.game.ui.AppRoot
 import com.cyberoperative.game.ui.theme.CyberOperativeTheme
 
-/** The game is laid out for a tall phone: the PC window keeps that shape (letterboxed when wider). */
-private const val PHONE_ASPECT = 9f / 19.5f
-
 fun main(args: Array<String>) {
+    // Landscape rooms on PC (must be set before any room is generated).
+    com.cyberoperative.game.data.ArenaShape.wide = true
     // Steam first: when launched outside the Steam client in a release build, Steam relaunches it.
     SteamService.start(args)
     val save = SaveRepository()
@@ -47,9 +44,10 @@ fun main(args: Array<String>) {
     val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else OfflineCoopBackend()
 
     application {
+        // Landscape 16:9 at 80% of the screen; F11 for fullscreen.
         val screen = java.awt.Toolkit.getDefaultToolkit().screenSize
-        val h = (screen.height * 0.88f).coerceAtLeast(640f)
-        val w = h * PHONE_ASPECT
+        val w = (screen.width * 0.8f).coerceIn(1024f, 2560f)
+        val h = w * 9f / 16f
         val state = rememberWindowState(size = DpSize(w.dp, h.dp), position = WindowPosition(Alignment.Center))
         Window(
             onCloseRequest = {
@@ -71,10 +69,11 @@ fun main(args: Array<String>) {
         ) {
             LaunchedEffect(state.isMinimized) { if (state.isMinimized) audio.onBackground() else audio.onForeground() }
             LaunchedEffect(Unit) { SteamService.pumpCallbacks() }
-            Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                Box(Modifier.fillMaxHeight().aspectRatio(PHONE_ASPECT, matchHeightConstraintsFirst = true)) {
-                    CyberOperativeTheme { AppRoot(save = save, audio = audio, coop = coop) }
-                }
+            // Controllers: polled every frame (menus too: START = Esc, B = back).
+            LaunchedEffect(Unit) { while (true) { androidx.compose.runtime.withFrameNanos { }; com.cyberoperative.game.platform.Gamepad.poll() } }
+            LaunchedEffect(state.placement) { DesktopInput.releaseAll() }
+            Box(Modifier.fillMaxSize().background(Color.Black)) {
+                CyberOperativeTheme { AppRoot(save = save, audio = audio, coop = coop) }
             }
         }
     }

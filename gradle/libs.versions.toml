@@ -16,9 +16,11 @@ composeMultiplatform = "1.9.3"
 steamworks4j = "1.10.0"
 jna = "5.17.0"
 vorbisspi = "1.0.3.3"
+jamepad = "2.30.0.0"
 kotlinxCoroutines = "1.10.2"
 
 [libraries]
+jamepad = { module = "com.badlogicgames.jamepad:jamepad", version.ref = "jamepad" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }

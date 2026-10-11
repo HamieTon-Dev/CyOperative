@@ -57,6 +57,10 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
         val s = withFrameNanos { it }
         while (true) withFrameNanos { t = (it - s) / 1e9f }
     }
+    if (com.cyberoperative.game.platform.AppInfo.desktop) {
+        LandscapeMainMenu(profile, t, onSelect)
+        return
+    }
     Box(
         Modifier
             .fillMaxSize()

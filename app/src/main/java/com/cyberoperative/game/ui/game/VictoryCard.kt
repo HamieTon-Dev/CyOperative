@@ -111,7 +111,7 @@ fun VictoryCard(h: HudSnapshot, onSkip: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text("TAP TO CONTINUE", color = Palette.TextMuted.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+            Text("${com.cyberoperative.game.ui.common.tapWord.uppercase()} TO CONTINUE", color = Palette.TextMuted.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
         }
     }
 }

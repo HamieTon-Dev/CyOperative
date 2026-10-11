@@ -25,3 +25,6 @@ class GameTextPaint(
 
 /** ARGB int from components (replaces android.graphics.Color.argb in shared code). */
 fun argb(a: Int, r: Int, g: Int, b: Int): Int = (a.coerceIn(0, 255) shl 24) or (r.coerceIn(0, 255) shl 16) or (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
+
+/** "Tap" on phones, "Click" on PC (Steam). */
+val tapWord: String get() = if (com.cyberoperative.game.platform.AppInfo.desktop) "Click" else "Tap"

@@ -83,6 +83,7 @@ dependencies {
     implementation(libs.steamworks4j)
     implementation(libs.jna)
     implementation(libs.vorbisspi)
+    implementation(libs.jamepad)
     testImplementation(libs.junit)
 }
 
@@ -106,4 +107,13 @@ compose.desktop {
         }
         buildTypes.release.proguard { isEnabled.set(false) }
     }
+}
+
+// Developer screenshots of the landscape layouts: gradlew :desktop:shots
+tasks.register<JavaExec>("shots") {
+    group = "verification"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.cyberoperative.game.desktop.DevShotsKt")
+    args(layout.buildDirectory.dir("shots").get().asFile.absolutePath)
+    jvmArgs("-Djava.awt.headless=true")
 }

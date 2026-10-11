@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.AppInfo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -116,14 +117,20 @@ fun GameHud(
         modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
-            .background(Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.94f), HudNavy.copy(alpha = 0.78f))))
+            // PC: see-through, fading out downwards, so the arena shows through (no black bar).
+            .background(
+                if (AppInfo.desktop) Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.55f), HudNavy.copy(alpha = 0f)))
+                else Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.94f), HudNavy.copy(alpha = 0.78f)))
+            )
             .drawBehind {
                 val y = size.height - 0.5.dp.toPx()
-                drawLine(HudHairline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+                if (!AppInfo.desktop) drawLine(HudHairline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
             }
             .windowInsetsPadding(HudInsets)
             .padding(top = 4.dp)
     ) {
+      // Landscape PC: the readouts sit in a centred column instead of stretching edge to edge.
+      Column(Modifier.align(Alignment.CenterHorizontally).then(if (AppInfo.desktop) Modifier.widthIn(max = HUD_MAX_WIDTH) else Modifier)) {
         if (collapsed) {
             CollapsedRow(h, paused, onPause)
         } else {
@@ -137,7 +144,8 @@ fun GameHud(
                     UpgradeBar(h, Modifier.fillMaxWidth())
                 }
                 val boss = h.bossName
-                if (boss != null) {
+                // PC: the boss bar sits at the bottom of the screen (see GameScreen).
+                if (boss != null && !AppInfo.desktop) {
                     Spacer(Modifier.height(4.dp))
                     BossHealthBar(h)
                 } else if (h.eventName != null) {
@@ -151,8 +159,12 @@ fun GameHud(
             }
         }
         PullHandle(collapsed, onToggleCollapsed, Modifier.align(Alignment.CenterHorizontally))
+      }
     }
 }
+
+/** Widest the HUD readouts grow on a landscape (PC) screen. */
+private val HUD_MAX_WIDTH = 900.dp
 
 private fun levelColor(h: HudSnapshot): Color = when (h.kind) {
     LevelKind.BOSS -> Palette.Red

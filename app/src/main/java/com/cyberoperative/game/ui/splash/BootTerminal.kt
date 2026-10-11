@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.splash
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -79,9 +82,19 @@ fun BootTerminal(onSound: (GameSound) -> Unit, onFinished: () -> Unit) {
             .background(Color(0xFF02060A))
             .clickable(remember { MutableInteractionSource() }, indication = null) { finish() }
     ) {
+        val pc = com.cyberoperative.game.platform.AppInfo.desktop
+        if (pc) com.cyberoperative.game.ui.common.LivingBackground(Modifier.fillMaxSize(), intensity = 0.5f)
         Column(
-            Modifier
-                .fillMaxSize()
+            // PC: a framed console window in the middle of the landscape screen.
+            (if (pc) Modifier
+                .align(Alignment.Center)
+                .widthIn(max = 980.dp)
+                .fillMaxWidth(0.72f)
+                .fillMaxHeight(0.82f)
+                .background(Color(0xF002060A), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                .border(1.dp, Palette.Cyan.copy(alpha = 0.55f), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                .padding(horizontal = 18.dp, vertical = 10.dp)
+            else Modifier.fillMaxSize())
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)

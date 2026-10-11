@@ -382,7 +382,7 @@ internal fun WeaponSwap(
                     "Choose a weapon to replace with ${newDef.name}",
                     color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center
                 )
-                Text("Tap to choose · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text("${com.cyberoperative.game.ui.common.tapWord} to choose · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(16.dp))
                 for (row in equipped.chunked(4)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

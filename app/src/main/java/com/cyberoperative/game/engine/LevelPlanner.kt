@@ -1,6 +1,7 @@
 package com.cyberoperative.game.engine
 
 import com.cyberoperative.game.core.Scaling
+import com.cyberoperative.game.data.ArenaShape
 import com.cyberoperative.game.data.Arenas
 import com.cyberoperative.game.data.ArenaTemplate
 import com.cyberoperative.game.data.BossDef
@@ -57,7 +58,7 @@ object LevelPlanner {
         if (event != null) return eventPlan(level, rng, event, previousArenaId, countMul)
 
         val arena = pickArena(level, rng, previousArenaId)
-        val threats = (Scaling.campaignThreats(level) * countMul).roundToInt()
+        val threats = (Scaling.campaignThreats(level) * countMul * ArenaShape.crowd).roundToInt()
         val waves = buildWaves(level, rng, threats, Scaling.campaignWaves(threats), EventRules())
         return LevelPlan(level, LevelKind.NORMAL, arena, waves)
     }
@@ -96,7 +97,7 @@ object LevelPlanner {
         }
         val arena = if (rules.vault) Arenas.templates.first { it.id == "open_grid" }
         else pickArena(level, rng, previousArenaId)
-        val budget = max(4, (Scaling.campaignThreats(level) * countMul * rules.enemyCountMul).roundToInt())
+        val budget = max(4, (Scaling.campaignThreats(level) * countMul * rules.enemyCountMul * ArenaShape.crowd).roundToInt())
         val waves = if (rules.timedSeconds > 0f) emptyList()
         else buildWaves(level, rng, budget, Scaling.campaignWaves(budget) + rules.extraWaves, rules)
         return LevelPlan(level, LevelKind.EVENT, arena, waves, event = event, rules = rules, modifierNames = names)

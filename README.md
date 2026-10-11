@@ -16,11 +16,11 @@ Play **co-op** with a friend (friend codes, invites, live two-player runs; see `
 
 ## Project status
 
-`0.19.4` — Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
+`0.20.0` — Steam build (PC + Steam Deck, landscape) added in `desktop/`; Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
 
 | | |
 |---|---|
-| Platform | Android (portrait only), minSdk 24, target/compile SDK 36 |
+| Platform | Android (portrait only), minSdk 24, target/compile SDK 36 · Steam PC/Steam Deck (landscape, `desktop/`, see `desktop/README.md`) |
 | Stack | Kotlin 2.3, Jetpack Compose (UI) + Compose Canvas (arena), no game engine |
 | Build | Gradle 8.13 wrapper, AGP 8.13, JDK 17+ |
 
@@ -32,6 +32,8 @@ Play **co-op** with a friend (friend codes, invites, live two-player runs; see `
 ./gradlew :app:testDebugUnitTest      # unit + simulation tests
 ./gradlew :app:testDebugUnitTest --tests '*ScreenshotPreviews*' -PrenderPreviews
                                       # renders real screens to docs/screenshots/
+./gradlew :desktop:run                # Steam/PC build (see desktop/README.md)
+./gradlew :desktop:createReleaseDistributable
 ```
 
 ## Repository structure

@@ -171,11 +171,21 @@ private val rawMusic: Map<String, Int> = mapOf(
 
 fun musicResource(file: String): Int = rawMusic[file] ?: error("Unknown music file $file")
 
-/** Keyboard movement (PC only): phones steer with the on-screen stick. */
+/** Keyboard / controller input (PC only): phones steer with the on-screen stick. */
 object GameKeys {
     val active: Boolean get() = false
+    /** Set while a run is on screen (a controller's B button then isn't "back"). */
+    var inGame = false
     val x: Float get() = 0f
     val y: Float get() = 0f
+    /** Right stick held over its dead zone: aim and fire along ([aimX], [aimY]). */
+    val stickAim: Boolean get() = false
+    val aimX: Float get() = 0f
+    val aimY: Float get() = 0f
+    /** A controller is plugged in (UI hints say "press any button"). */
+    val padConnected: Boolean get() = false
+    /** True once per press of any controller button or Enter / Space (consumes it). */
+    fun takeAnyPress(): Boolean = false
 }
 
 /** Real-money ◇ checkout for this platform (Google Play Billing is not wired yet). */

@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.19.4 (versionCode 68) |
+| Version | 0.20.0 (versionCode 69) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Steam / PC build (0.20.0, `desktop/`)**:
+  - Compiles and runs. Offscreen renders and the packaged app booting under Xvfb were checked.
+  - Steam itself (overlay checkout, Inventory claim, lobbies/P2P) and real controllers can only
+    be verified on the owner's PC or Steam Deck.
+  - It uses test App ID 480 until the real one exists.
+  - Rooms are landscape on PC only (`ArenaShape.wide`); phones are unchanged.
 - 0.16.0 balance: mastery is pooled (Upgrades.applyMastery). The hidden PowerGovernor sets HP and
   damage floors from the team's potential DPS on Normal and Hard. BalanceCurveTest guards both.
   Needs a device playtest at L100+ to tune the floors (enemy 0.3 s, boss 60 s).

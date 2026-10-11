@@ -2,6 +2,7 @@ package com.cyberoperative.game.engine
 
 import com.cyberoperative.game.core.Rect
 import com.cyberoperative.game.data.ArenaTemplate
+import com.cyberoperative.game.data.ArenaShape
 import com.cyberoperative.game.data.Arenas
 import com.cyberoperative.game.data.DecorKind
 import com.cyberoperative.game.data.DecorSpec
@@ -25,7 +26,11 @@ object ArenaGenerator {
 
     enum class Style { SCATTER, ROWS, CLUSTERS, CORRIDOR, RING, MIRROR }
 
-    private const val W = ArenaTemplate.ARENA_WIDTH
+    /** Room width for this build (720 portrait on phones, 1440 landscape on PC). */
+    private val W: Float get() = ArenaShape.width
+    /** How many times wider than a phone room: scales piece counts so density stays the same. */
+    private val K: Float get() = W / ArenaShape.PORTRAIT_WIDTH
+    private val cols: Int get() = (W / 60f).toInt()
     /** Gap between obstacles: wide enough for the operative and any enemy. */
     private const val GAP = 74f
     private const val MARGIN = 12f
@@ -55,7 +60,8 @@ object ArenaGenerator {
     }
 
     private fun tryGenerate(level: Int, rng: Random, attempt: Int): ArenaTemplate? {
-        val height = 1080f + rng.nextInt(0, 6) * 50f
+        // Landscape rooms are shorter (16:9 view): about one screen plus a little scroll.
+        val height = if (ArenaShape.wide) ArenaShape.WIDE_MIN_HEIGHT + rng.nextInt(0, 4) * 40f else 1080f + rng.nextInt(0, 6) * 50f
         val style = Style.entries[rng.nextInt(Style.entries.size)]
         // Denser rooms as the run goes on (more cover, more tactics).
         val density = min(1f, 0.55f + level * 0.02f) * (if (attempt > 12) 0.7f else 1f)
@@ -98,7 +104,7 @@ object ArenaGenerator {
         val bottom = height - 260f
         when (style) {
             Style.SCATTER -> {
-                val n = (6 + rng.nextInt(5)) * density
+                val n = (6 + rng.nextInt(5)) * density * K
                 var tries = 0
                 while (placed.size < n && tries++ < 200) {
                     randomPiece(60f + rng.nextFloat() * (W - 120f), top + rng.nextFloat() * (bottom - top))
@@ -108,7 +114,7 @@ object ArenaGenerator {
                 val rows = 2 + rng.nextInt(2)
                 for (i in 0 until rows) {
                     val y = top + (bottom - top) * (i + 0.5f) / rows
-                    val segs = 2 + rng.nextInt(2)
+                    val segs = (2 + rng.nextInt(2)) * K.toInt()
                     for (s in 0 until segs) {
                         if (rng.nextFloat() > 0.85f) continue
                         val cx = W * (s + 0.5f) / segs
@@ -121,10 +127,10 @@ object ArenaGenerator {
                         add(box(cx, y, W / segs - 120f, 46f), rowKind)
                     }
                 }
-                repeat((3 * density).toInt()) { randomPiece(60f + rng.nextFloat() * (W - 120f), top + rng.nextFloat() * (bottom - top)) }
+                repeat((3 * density * K).toInt()) { randomPiece(60f + rng.nextFloat() * (W - 120f), top + rng.nextFloat() * (bottom - top)) }
             }
             Style.CLUSTERS -> {
-                val clusters = 2 + rng.nextInt(3)
+                val clusters = ((2 + rng.nextInt(3)) * K).toInt()
                 repeat(clusters) {
                     val cx = 120f + rng.nextFloat() * (W - 240f)
                     val cy = top + rng.nextFloat() * (bottom - top)
@@ -141,7 +147,7 @@ object ArenaGenerator {
                 for (i in 0 until segments) {
                     val y = top + (bottom - top) * i / max(1, segments - 1)
                     val leftSide = i % 2 == 0
-                    val len = 220f + rng.nextFloat() * 160f
+                    val len = (220f + rng.nextFloat() * 160f) * (1f + (K - 1f) * 0.6f)
                     val r = if (leftSide) Rect(MARGIN + 1f, y - 22f, MARGIN + 1f + len, y + 22f) else Rect(W - MARGIN - 1f - len, y - 22f, W - MARGIN - 1f, y + 22f)
                     add(r, when (rng.nextInt(6)) {
                         0, 1 -> ObstacleKind.FIREWALL_NODE
@@ -150,21 +156,24 @@ object ArenaGenerator {
                         else -> ObstacleKind.SERVER_RACK
                     })
                 }
-                repeat((2 * density).toInt() + 1) { randomPiece(80f + rng.nextFloat() * (W - 160f), top + rng.nextFloat() * (bottom - top)) }
+                repeat((2 * density * K).toInt() + 1) { randomPiece(80f + rng.nextFloat() * (W - 160f), top + rng.nextFloat() * (bottom - top)) }
             }
             Style.RING -> {
                 val cx = W / 2f
                 val cy = (top + bottom) / 2f
                 add(box(cx, cy, 120f, 100f), if (rng.nextBoolean()) ObstacleKind.POWER_UNIT else ObstacleKind.REACTOR)
-                val n = 6 + rng.nextInt(3)
+                val n = 6 + rng.nextInt(3) + (if (ArenaShape.wide) 4 else 0)
+                // An ellipse that fits the room: wide and flat on PC, tall on phones.
+                val rx = if (ArenaShape.wide) W * 0.32f else 230f
+                val ry = if (ArenaShape.wide) min(300f, (bottom - top) / 2f) else 260f
                 for (i in 0 until n) {
                     val a = i * (Math.PI * 2 / n).toFloat() + rng.nextFloat() * 0.2f
-                    add(box(cx + kotlin.math.cos(a) * 230f, cy + kotlin.math.sin(a) * 260f, 56f, 56f), kit[rng.nextInt(kit.size)])
+                    add(box(cx + kotlin.math.cos(a) * rx, cy + kotlin.math.sin(a) * ry, 56f, 56f), kit[rng.nextInt(kit.size)])
                 }
             }
             Style.MIRROR -> {
                 var tries = 0
-                val n = (4 + rng.nextInt(3)) * density
+                val n = (4 + rng.nextInt(3)) * density * K
                 while (placed.size < n * 2 && tries++ < 120) {
                     val k = kit[rng.nextInt(kit.size)]
                     val (w, h) = sizeOf(k, rng)
@@ -182,7 +191,7 @@ object ArenaGenerator {
         // Sprinkle small blinking server units into leftover space.
         var extra = 0
         var guard = 0
-        while (extra < 2 + rng.nextInt(3) && guard++ < 60) {
+        while (extra < (2 + rng.nextInt(3)) * K && guard++ < 60) {
             if (add(box(50f + rng.nextFloat() * (W - 100f), top + rng.nextFloat() * (bottom - top), 40f, 40f), ObstacleKind.SMALL_SERVER)) extra++
         }
         if (placed.size < 3) return null
@@ -238,16 +247,16 @@ object ArenaGenerator {
     fun worldKit(height: Float, rng: Random, level: Int, obstacles: List<ObstacleSpec> = emptyList()): List<DecorSpec> {
         val out = ArrayList<DecorSpec>()
         repeat(2 + rng.nextInt(4)) {
-            out += DecorSpec(DecorKind.CRACKED_TILE, (rng.nextInt(12) * 60).toFloat(), (rng.nextInt((height / 60).toInt()) * 60).toFloat(), 60f, 60f, rng.nextInt())
+            out += DecorSpec(DecorKind.CRACKED_TILE, (rng.nextInt(cols) * 60).toFloat(), (rng.nextInt((height / 60).toInt()) * 60).toFloat(), 60f, 60f, rng.nextInt())
         }
         repeat(1 + rng.nextInt(2)) {
-            out += DecorSpec(DecorKind.CONDUIT, (1 + rng.nextInt(10)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, (2 + rng.nextInt(4)) * 60f, (1 + rng.nextInt(3)) * 60f, rng.nextInt())
+            out += DecorSpec(DecorKind.CONDUIT, (1 + rng.nextInt(cols - 2)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, (2 + rng.nextInt(4)) * 60f, (1 + rng.nextInt(3)) * 60f, rng.nextInt())
         }
         repeat(1 + rng.nextInt(2)) {
             out += DecorSpec(DecorKind.BEACON, 60f + rng.nextFloat() * (W - 120f), 220f + rng.nextFloat() * (height - 440f), 26f, 26f, rng.nextInt())
         }
         if (level >= 15) repeat(rng.nextInt(2)) {
-            out += DecorSpec(DecorKind.SPARK_PANEL, (1 + rng.nextInt(10)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, 60f, 60f, rng.nextInt())
+            out += DecorSpec(DecorKind.SPARK_PANEL, (1 + rng.nextInt(cols - 2)) * 60f, (3 + rng.nextInt(((height - 360f) / 60f).toInt().coerceAtLeast(1))) * 60f, 60f, 60f, rng.nextInt())
         }
         if (level >= 40 && rng.nextFloat() < 0.3f) {
             out += DecorSpec(DecorKind.DARK_EMITTER, 80f + rng.nextFloat() * (W - 160f), 260f + rng.nextFloat() * (height - 520f), 24f, 24f, rng.nextInt())
@@ -260,10 +269,10 @@ object ArenaGenerator {
         // World Kit uses its own seeded random so the room's layout and spawns stay as they were.
         out += worldKit(height, Random(level * 7919L + height.toInt() * 31L + obstacles.size), level)
         out += DecorSpec(DecorKind.WARNING_STRIPES, W / 2f - 120f, 120f, 240f, 22f)
-        repeat(3 + rng.nextInt(3)) {
+        repeat(((3 + rng.nextInt(3)) * K).toInt()) {
             out += DecorSpec(DecorKind.CABLE, rng.nextFloat() * W, 160f + rng.nextFloat() * (height - 320f), 120f + rng.nextFloat() * 260f, 0f, rng.nextInt())
         }
-        repeat(2 + rng.nextInt(3)) {
+        repeat(((2 + rng.nextInt(3)) * K).toInt()) {
             out += DecorSpec(DecorKind.VENT, 40f + rng.nextFloat() * (W - 120f), 160f + rng.nextFloat() * (height - 320f), 70f, 44f)
         }
         repeat(2 + rng.nextInt(2)) {
@@ -276,8 +285,8 @@ object ArenaGenerator {
         repeat(1 + rng.nextInt(2)) {
             out += DecorSpec(DecorKind.HOLO_PANEL, 60f + rng.nextFloat() * (W - 180f), 200f + rng.nextFloat() * (height - 400f), 100f, 40f, rng.nextInt())
         }
-        repeat(4 + rng.nextInt(4)) {
-            out += DecorSpec(DecorKind.FLOOR_TILE, (rng.nextInt(12) * 60).toFloat(), (rng.nextInt((height / 60).toInt()) * 60).toFloat(), 60f, 60f, rng.nextInt())
+        repeat(((4 + rng.nextInt(4)) * K).toInt()) {
+            out += DecorSpec(DecorKind.FLOOR_TILE, (rng.nextInt(cols) * 60).toFloat(), (rng.nextInt((height / 60).toInt()) * 60).toFloat(), 60f, 60f, rng.nextInt())
         }
         // Decor never sits under an obstacle (it would be hidden anyway).
         return out.filter { d -> obstacles.none { it.rect.contains(d.x + d.w / 2f, d.y + d.h / 2f) } }

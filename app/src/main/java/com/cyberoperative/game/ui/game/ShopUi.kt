@@ -103,7 +103,7 @@ fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier:
             Text("X,.,.X  UPGRADE SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             Text("€ $euros", color = Palette.Euro, style = MaterialTheme.typography.titleMedium)
         }
-        Text("Tap a mod to buy it with this run's € · hold for details.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        Text("${com.cyberoperative.game.ui.common.tapWord} a mod to buy it with this run's € · hold for details.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(8.dp))
         if (items.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
         for ((i, it) in items.withIndex()) {

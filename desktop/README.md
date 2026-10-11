@@ -1,0 +1,78 @@
+# Cyber Operative for Steam (PC + Steam Deck)
+
+The `desktop` module is the Steam build. It compiles the same game code as the Android app
+(`app/src/main/java`) with Compose Desktop. Only the platform seam (`platform/`, audio, saves,
+co-op) has desktop versions under `desktop/src/main/kotlin`. Android is unaffected.
+
+## Build and run (Windows, from the repo root)
+
+```
+.\gradlew :desktop:run                          # play it straight from Gradle
+.\gradlew :desktop:createReleaseDistributable   # the folder you upload to Steam
+```
+
+- The app folder lands in `desktop\build\compose\binaries\main-release\app\CyberOperative\`
+  (`CyberOperative.exe` plus its own Java runtime, about 200 MB, with no install needed).
+- Optional installer: `.\gradlew :desktop:packageReleaseMsi`.
+- Any JDK 17+ builds it; Android Studio's bundled one is fine.
+- To test with Steam from Gradle or the folder, put a `steam_appid.txt` with the App ID
+  (`480` until the real one exists) next to where you launch it, and keep Steam running.
+- Developer screenshots: `.\gradlew :desktop:shots` writes 1080p and Steam Deck PNGs to
+  `desktop\build\shots\`.
+
+## Steam Deck
+
+The Windows build runs on Steam Deck through Proton. In Steamworks, set the Steam Deck
+compatibility to use Proton. Controls on Deck and with any controller:
+
+| | |
+|---|---|
+| Left stick / D-pad | move |
+| Right stick (or right trigger) | aim and fire in that direction, while moving |
+| START / MENU | pause (the same as Esc) |
+| B | back out of a menu |
+| any button | continue the first-run briefing |
+
+The touchscreen and trackpads work as the mouse in menus.
+
+## Keyboard and mouse
+
+- **WASD** or arrow keys move.
+- **Hold a mouse button** to fire at the cursor while moving. Standing still auto-targets, as
+  on phones.
+- **Esc** pauses or goes back; **F11** toggles fullscreen.
+
+## Landscape view
+
+- PC rooms are 2160 units across (three phone rooms) and about one screen tall.
+- They are drawn zoomed out, so a whole room fits a 16:9 screen.
+- PC rooms hold 1.6× the threats (`ArenaShape.WIDE_CROWD`).
+- The HUD is a compact, see-through panel, and boss bars sit along the bottom edge.
+
+## Steam store: ◇ packs (Steam Inventory)
+
+All purchases go through Steam. Each ◇ pack is a Steam Inventory item; definitions are in
+`steam/itemdefs.json`, and the ids must match `SteamStore.itemDefs`.
+
+1. In Steamworks, open your App → **Inventory Service** and enable it.
+2. Upload `steam/itemdefs.json`, after setting `appid` to your App ID and checking the price
+   categories.
+3. Publish.
+
+**Flow:**
+1. BUY opens the Steam overlay checkout.
+2. Once Steam grants the item, the game consumes it and credits the ◇.
+3. A pack bought while the game was closed is claimed at the next start.
+
+## Co-op over Steam
+
+- Your Steam name is your callsign, and your Steam friends are the friends list.
+- INVITE creates a friends-only Steam lobby and invites them. Invites also arrive through
+  Steam itself: the overlay (Shift+Tab) and "Join game".
+- Game traffic is peer to peer over Steam's relay, so no server is needed.
+- Phone co-op (Firebase) and PC co-op are separate: PC players play with PC players.
+
+## Uploading (SteamPipe)
+
+Point a depot at `desktop\build\compose\binaries\main-release\app\CyberOperative\`. The launch
+option is `CyberOperative.exe`.

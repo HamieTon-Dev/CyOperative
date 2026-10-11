@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.20.0 (versionCode 69) — 2026-10-11 · Cyber Operative for Steam (PC + Steam Deck)
+### Added (owner: "build it for Steam… all purchases through the Steam store… Co-Op through Steam", "move with WASD and aim with mouse", "full landscape view… premium", "Steam Deck… left joystick move, right joystick fire")
+- **New `desktop` module: the Steam build** (Windows; runs on Steam Deck through Proton).
+  - It compiles the same game code as the phone app.
+  - Only a small platform layer (`platform/`) differs.
+  - See `desktop/README.md`.
+- **Landscape, zoomed out.**
+  - PC rooms are 2160 units wide (three phone rooms) and about one screen tall.
+  - Every generated room, hand-made layout, the shop and a new wide boss stage are built for 16:9.
+  - Rooms hold 1.6× the threats.
+- **PC HUD:** compact, about 70% scale, and see-through, with no black bar. The arena runs under
+  it, and boss bars sit along the bottom edge, clear of the boss.
+- **Landscape main menu, no scrolling:**
+  - A small badge and wordmark, with every button underneath.
+  - Your operative on a holo stage on the left.
+  - Records and controls on the right.
+- **Other PC screens:**
+  - Sub-screens sit in a centred column.
+  - The boot terminal is a framed console.
+- **Controls:**
+  - WASD or arrows move.
+  - Hold a mouse button to fire at the cursor while moving, with a crosshair.
+  - Esc pauses; F11 toggles fullscreen.
+- **Controllers** (Xbox, PlayStation, Switch and Steam Deck through SDL):
+  - Left stick moves; the right stick aims and fires while moving.
+  - START pauses and B backs out.
+  - Any button continues the briefing.
+- **Wording:** PC text says "click" instead of "tap"; the briefing explains keyboard, mouse and
+  controller.
+- **Steam store:** ◇ packs are Steam Inventory items (`steam/itemdefs.json`). BUY opens the Steam
+  overlay checkout, and ◇ are credited only after Steam grants the item and the game consumes it.
+- **Steam co-op:** your Steam friends list, lobby invites (in-game or from the overlay), and
+  peer-to-peer play over Steam's relay. The wire format v14 carries mouse/stick aim.
+- New tests: `WideArenaTest` checks wide rooms (generated, hand-made, boss, shop) are inside the
+  floor, clear at spawn and gate, and walkable, and that a wide boss fight runs.
+
 ## 0.19.4 (versionCode 68) — 2026-10-11 · Full-screen, fewer accidental Backs
 ### Changed (owner: "hide the bottom home and back buttons… swipe up to see them again… too easy to accidentally press back")
 - **Full immersive mode on every screen.** The status bar and the bottom navigation bar (home, back,

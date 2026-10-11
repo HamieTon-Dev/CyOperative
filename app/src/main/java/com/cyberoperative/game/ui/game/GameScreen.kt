@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import androidx.compose.foundation.layout.widthIn
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -92,6 +93,10 @@ fun GameScreen(
 
     // Frame loop: lives with the screen; leaving the composition stops it.
     var time by remember { mutableFloatStateOf(0f) }
+    DisposableEffect(Unit) {
+        GameKeys.inGame = true
+        onDispose { GameKeys.inGame = false }
+    }
     LaunchedEffect(session) {
         var last = withFrameNanos { it }
         val start = last
@@ -108,8 +113,14 @@ fun GameScreen(
                     val keys = live && (kx != 0f || ky != 0f)
                     if (keys) e.setInput(kx, ky) else if (keysMoving) e.setInput(0f, 0f)
                     keysMoving = keys
-                    val sc = renderer.scale.coerceAtLeast(0.0001f)
-                    e.setAim(live && mouseDown, mouse[0] / sc, mouse[1] / sc + renderer.camY)
+                    if (GameKeys.stickAim) {
+                        // Twin-stick: the right stick aims and fires around the operative.
+                        e.setAim(live, e.localX + GameKeys.aimX * 300f, e.localY + GameKeys.aimY * 300f)
+                    } else {
+                        val sc = renderer.scale.coerceAtLeast(0.0001f)
+                        e.setAim(live && mouseDown, mouse[0] / sc, mouse[1] / sc + renderer.camY)
+                    }
+                    if (session.showTutorial && GameKeys.takeAnyPress()) session.dismissTutorial()
                 }
                 session.onFrame(dt)
             }
@@ -144,8 +155,9 @@ fun GameScreen(
         // The arena starts right under the HUD as measured (it grows with the buff row and
         // the boss bar, shrinks when folded); before the first measure, a safe estimate.
         val hudHeightDp = with(density) { if (hudHeightPx > 0) hudHeightPx.toDp() else 96.dp }
-        val topInsetPx = with(density) { (hudHeightDp + 4.dp).toPx() }
-        val bottomInsetPx = with(density) { 150.dp.toPx() }
+        // PC: the arena runs under the see-through HUD, edge to edge.
+        val topInsetPx = with(density) { if (GameKeys.active) 0f else (hudHeightDp + 4.dp).toPx() }
+        val bottomInsetPx = with(density) { (if (GameKeys.active) 24.dp else 150.dp).toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
 
@@ -208,8 +220,12 @@ fun GameScreen(
                 partnerSkin = session.partnerSkin, partnerBody = session.partnerBody, shake = screenShake
             )
             if (GameKeys.active) {
-                // PC: a crosshair at the cursor instead of the stick.
-                val c = Offset(mouse[0], mouse[1])
+                // PC: a crosshair at the cursor (or where the right stick points) instead of the stick.
+                val e = session.engine
+                val c = if (GameKeys.stickAim) Offset(
+                    (e.localX + GameKeys.aimX * 140f) * renderer.scale,
+                    (e.localY + GameKeys.aimY * 140f - renderer.camY) * renderer.scale
+                ) else Offset(mouse[0], mouse[1])
                 val col = Palette.Cyan.copy(alpha = if (mouseDown) 0.95f else 0.55f)
                 drawCircle(col, 11f, c, style = Stroke(2f))
                 drawLine(col, Offset(c.x - 17f, c.y), Offset(c.x - 6f, c.y), 2f)
@@ -230,7 +246,7 @@ fun GameScreen(
 
         if (!stickActive && hud.phase == Phase.COMBAT && hud.level == 1 && time < 12f) {
             Text(
-                if (GameKeys.active) "WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM" else "DRAG TO MOVE · RELEASE TO FIRE",
+                if (GameKeys.padConnected) "LEFT STICK TO MOVE · RIGHT STICK TO AIM & FIRE" else if (GameKeys.active) "WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM" else "DRAG TO MOVE · RELEASE TO FIRE",
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -353,6 +369,16 @@ fun GameScreen(
         // (upgrade pick, game over, briefing) cover it as before.
         val coveredByPanel = hud.phase == Phase.UPGRADE || hud.phase == Phase.DEAD || session.showTutorial
         if (session.paused || !coveredByPanel) {
+          // PC: the boss bar along the bottom edge, compact and see-through, clear of the boss.
+          if (GameKeys.active && hud.bossName != null) androidx.compose.runtime.CompositionLocalProvider(
+              LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
+          ) {
+              Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp).widthIn(max = 900.dp).fillMaxWidth(0.6f)) { BossHealthBar(hud) }
+          }
+          // PC: the zoomed-out arena gets a compact HUD (everything, bars included, at 70%).
+          androidx.compose.runtime.CompositionLocalProvider(
+              LocalDensity provides if (GameKeys.active) androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale) else density
+          ) {
             GameHud(
                 hud,
                 paused = session.paused,
@@ -361,9 +387,13 @@ fun GameScreen(
                 onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
                 modifier = Modifier.onSizeChanged { hudHeightPx = it.height }
             )
+          }
         }
     }
 }
+
+/** HUD scale on PC (compact bars over a zoomed-out arena). */
+private const val HUD_PC_SCALE = 0.7f
 
 @Composable
 private fun HintChip(text: String, color: Color) {
@@ -416,12 +446,17 @@ private fun TutorialOverlay(onDone: () -> Unit) {
         ) {
             Text("OPERATIVE BRIEFING", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
-            for (line in TUTORIAL_LINES) {
+            for (line in if (GameKeys.active) TUTORIAL_LINES_PC else TUTORIAL_LINES) {
                 Text("> $line", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
             }
             Spacer(Modifier.height(10.dp))
-            Text("TAP TO BEGIN", color = Palette.Green, style = MaterialTheme.typography.titleMedium,
+            Text(
+                when {
+                    GameKeys.padConnected -> "PRESS ANY BUTTON TO BEGIN"
+                    GameKeys.active -> "CLICK TO BEGIN"
+                    else -> "TAP TO BEGIN"
+                }, color = Palette.Green, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
@@ -435,6 +470,18 @@ val TUTORIAL_LINES = listOf(
     "Defeat all threats, then enter the ACCESS PORT.",
     "Choose an upgrade when you gain enough data.",
     "A boss appears every 10 levels."
+)
+
+/** The PC briefing: keyboard + mouse, or a controller. */
+val TUTORIAL_LINES_PC = listOf(
+    "Move with WASD (or the left stick).",
+    "Hold the mouse button (or the right stick) to fire while moving.",
+    "Stand still and your gun picks targets on its own.",
+    "Orbiting Packet Nodes attack all the time.",
+    "Avoid red/orange enemy attacks.",
+    "Defeat all threats, then enter the ACCESS PORT.",
+    "Choose an upgrade when you gain enough data.",
+    "A boss appears every 10 levels.  ESC / START pauses."
 )
 
 /** Pause menu tabs (CO-065: current build and a settings shortcut). */
@@ -692,7 +739,7 @@ internal fun BossHealthBar(h: HudSnapshot) {
         Modifier
             .fillMaxWidth()
             .offset(x = shakeX.dp)
-            .background(Color(0xE6120208), RoundedCornerShape(8.dp))
+            .background(Color(0xE6120208).copy(alpha = if (com.cyberoperative.game.platform.AppInfo.desktop) 0.4f else 0.9f), RoundedCornerShape(8.dp))
             .border(2.dp, color.copy(alpha = 0.85f * flicker), RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {

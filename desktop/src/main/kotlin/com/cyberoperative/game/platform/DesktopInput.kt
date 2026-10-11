@@ -14,8 +14,14 @@ import kotlin.math.sqrt
 object DesktopInput {
     private val held = HashSet<Key>()
 
+    private var confirm = false
+
+    /** Enter / Space since the last call (continues the briefing). */
+    fun takeConfirm(): Boolean = confirm.also { confirm = false }
+
     /** True if the key is one the game uses (consumed so it doesn't reach text fields twice). */
     fun onKey(e: KeyEvent): Boolean {
+        if (e.type == KeyEventType.KeyDown && (e.key == Key.Enter || e.key == Key.Spacebar || e.key == Key.NumPadEnter)) confirm = true
         if (e.key !in MOVE_KEYS) return false
         when (e.type) {
             KeyEventType.KeyDown -> held += e.key
@@ -44,9 +50,17 @@ object DesktopInput {
     )
 }
 
-/** Keyboard movement for the shared game screen. */
+/** Keyboard + controller input for the shared game screen. */
 object GameKeys {
     val active: Boolean get() = true
-    val x: Float get() = DesktopInput.axis().first
-    val y: Float get() = DesktopInput.axis().second
+    var inGame: Boolean
+        get() = Gamepad.inGame
+        set(v) { Gamepad.inGame = v }
+    val x: Float get() = if (Gamepad.moving) Gamepad.moveX else DesktopInput.axis().first
+    val y: Float get() = if (Gamepad.moving) Gamepad.moveY else DesktopInput.axis().second
+    val stickAim: Boolean get() = Gamepad.aiming
+    val aimX: Float get() = Gamepad.aimX
+    val aimY: Float get() = Gamepad.aimY
+    val padConnected: Boolean get() = Gamepad.connected
+    fun takeAnyPress(): Boolean = Gamepad.takeAnyPress() or DesktopInput.takeConfirm()
 }
