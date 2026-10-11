@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import com.cyberoperative.game.ui.common.BuildStamp
 import androidx.compose.runtime.getValue
@@ -127,6 +129,48 @@ class ScreenshotPreviews {
     @Test fun arenaPhantomCloaked() {
         assumeTrue(enabled)
         gameplay("arena_25d_phantom_cloaked", 7.6f, profileSetup = { cls(it, "phantom") })
+    }
+
+    /** Every class in DEFAULT, TITANIUM and PURPLE (reference sheet for the owner). */
+    @Test fun classSkinSheet() {
+        assumeTrue(enabled)
+        val skins = listOf(com.cyberoperative.game.data.OperativeSkins.DEFAULT, com.cyberoperative.game.data.OperativeSkins.TITANIUM, com.cyberoperative.game.data.OperativeSkins.PURPLE)
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CyberOperativeTheme {
+                androidx.compose.foundation.layout.Column(
+                    androidx.compose.ui.Modifier.fillMaxSize().background(com.cyberoperative.game.ui.theme.Palette.Background).padding(12.dp)
+                ) {
+                    androidx.compose.foundation.layout.Row(androidx.compose.ui.Modifier.fillMaxWidth()) {
+                        androidx.compose.foundation.layout.Spacer(androidx.compose.ui.Modifier.width(96.dp))
+                        for (sk in skins) androidx.compose.material3.Text(
+                            if (sk.id == "default") "DEFAULT" else sk.name, color = androidx.compose.ui.graphics.Color(sk.edge),
+                            modifier = androidx.compose.ui.Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            style = androidx.compose.material3.MaterialTheme.typography.titleSmall
+                        )
+                    }
+                    for (cls in com.cyberoperative.game.data.Operatives.all) {
+                        androidx.compose.foundation.layout.Row(
+                            androidx.compose.ui.Modifier.fillMaxWidth().weight(1f),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Text(cls.name, color = com.cyberoperative.game.ui.theme.Palette.TextPrimary,
+                                modifier = androidx.compose.ui.Modifier.width(96.dp), style = androidx.compose.material3.MaterialTheme.typography.labelLarge)
+                            for (sk in skins) {
+                                androidx.compose.foundation.Canvas(androidx.compose.ui.Modifier.weight(1f).fillMaxSize()) {
+                                    val u = size.height / 80f
+                                    with(com.cyberoperative.game.ui.game.OperativeFigures) {
+                                        drawFigure(com.cyberoperative.game.ui.game.BodyStyle.byId(cls.bodyId), sk, size.width / 2f, size.height * 0.92f, u, -0.4f, false, 1.3f)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        compose.mainClock.advanceTimeBy(300)
+        save("class_skin_sheet")
     }
 
     @Test fun classPicker() {
