@@ -18,8 +18,8 @@ import kotlin.random.Random
 
 /** The PC (Steam) build's landscape rooms: wide, zoomed out, always playable. */
 class WideArenaTest {
-    @Before fun wide() { ArenaShape.wide = true }
-    @After fun portrait() { ArenaShape.wide = false }
+    @Before fun wide() { ArenaShape.wide = true; ArenaShape.pcRules = true }
+    @After fun portrait() { ArenaShape.wide = false; ArenaShape.pcRules = false }
 
     private fun assertPlayable(t: ArenaTemplate) {
         assertEquals(t.id, ArenaShape.WIDE_WIDTH, t.width)

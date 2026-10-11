@@ -207,3 +207,15 @@ object Checkout {
 /** Keeps the system Back edge-swipe off the gameplay surface (Android 10+). */
 fun androidx.compose.ui.Modifier.platformGestureExclusion(): androidx.compose.ui.Modifier =
     this.systemGestureExclusion()
+
+/** Locks the screen to landscape (Android PC mode, landscape) or portrait (the default). */
+@Composable
+fun ScreenOrientation(landscape: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(landscape) {
+        view.context.findActivity()?.requestedOrientation =
+            if (landscape) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose { }
+    }
+}

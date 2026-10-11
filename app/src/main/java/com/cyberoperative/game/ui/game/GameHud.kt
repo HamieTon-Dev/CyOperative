@@ -445,7 +445,8 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 }
             }
             Spacer(Modifier.width(20.dp))
-            if (h.consumables) {
+            // PC keys only: on Android the on-screen buttons show all of this.
+            if (h.consumables && com.cyberoperative.game.platform.GameKeys.active) {
                 AbilityChip(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, Palette.Cyan)
                 Spacer(Modifier.width(6.dp))
                 h.spell1?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, Palette.Purple) }

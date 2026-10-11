@@ -254,7 +254,14 @@ class GameSession(
             Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
                 .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         }
-        engine = GameEngine(config, restore)
+        // Room shape and rules for this run: always the PC set on Steam; on Android the PC MODE
+        // setting at the start (or what a saved run started with). Phone co-op keeps phone rules
+        // so both devices match.
+        val desktop = com.cyberoperative.game.platform.AppInfo.desktop
+        val pc = desktop || (link == null && (restore?.pcRules ?: com.cyberoperative.game.ui.common.PlayMode.pcRules))
+        com.cyberoperative.game.data.ArenaShape.pcRules = pc
+        com.cyberoperative.game.data.ArenaShape.wide = desktop || (link == null && (restore?.wide ?: com.cyberoperative.game.ui.common.PlayMode.landscape))
+        engine = GameEngine(config.copy(consumables = pc), restore)
         if (link != null) {
             if (!link.room.isHost) engine.enterMirror(1)
             startLink(link)

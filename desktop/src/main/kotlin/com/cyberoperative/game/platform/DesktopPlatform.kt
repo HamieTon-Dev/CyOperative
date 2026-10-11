@@ -156,3 +156,7 @@ object Checkout {
 
 /** No system edge gestures on PC. */
 fun androidx.compose.ui.Modifier.platformGestureExclusion(): androidx.compose.ui.Modifier = this
+
+/** The PC window is always landscape. */
+@Composable
+fun ScreenOrientation(landscape: Boolean) {}

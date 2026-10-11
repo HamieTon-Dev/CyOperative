@@ -74,6 +74,8 @@ object ArenaShape {
     /** PC rooms: three phone rooms wide, zoomed out so a whole room fits a 16:9 screen. */
     const val WIDE_WIDTH = 2160f
     var wide = false
+    /** The PC gameplay rules for the run being played (set with [wide] when a run starts). */
+    var pcRules = false
     val width: Float get() = if (wide) WIDE_WIDTH else PORTRAIT_WIDTH
     /** Wide rooms hold more threats (more floor to fill). */
     const val WIDE_CROWD = 1.6f

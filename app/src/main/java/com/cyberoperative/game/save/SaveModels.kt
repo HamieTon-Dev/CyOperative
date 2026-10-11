@@ -59,7 +59,14 @@ data class GameSettings(
     val screenShake: Boolean = true,
     val showFps: Boolean = false,
     /** PC key bindings: action name → key code (missing = default). */
-    val keyBinds: Map<String, Long> = emptyMap()
+    val keyBinds: Map<String, Long> = emptyMap(),
+    /** Android: PC MODE (the PC gameplay set) and, within it, LANDSCAPE or PORTRAIT. */
+    val pcMode: Boolean = false,
+    val pcLandscape: Boolean = true,
+    /** Android touch controls: joystick AUTO (locked in landscape, floating in portrait), FLOAT or LOCKED. */
+    val joystickMode: String = "AUTO",
+    /** Android touch layout: "<P|L>.<control>.<x|y>" → fraction of the screen. */
+    val touchLayout: Map<String, Float> = emptyMap()
 )
 
 /** Best campaign level reached with one class, per difficulty. */

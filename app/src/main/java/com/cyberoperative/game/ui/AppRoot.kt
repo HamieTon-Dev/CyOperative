@@ -62,6 +62,9 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
     var coopRoom by remember { mutableStateOf<CoopRoom?>(null) }
     var session by remember { mutableStateOf<GameSession?>(null) }
     val profile by save.profile.collectAsState()
+    // Android PC MODE (and its orientation) follows the settings; the PC build is always both.
+    if (!com.cyberoperative.game.platform.AppInfo.desktop) com.cyberoperative.game.ui.common.PlayMode.apply(profile.settings)
+    com.cyberoperative.game.platform.ScreenOrientation(com.cyberoperative.game.ui.common.PlayMode.landscape)
 
     fun click() = audio.play(GameSound.UI_CLICK)
     fun back() {

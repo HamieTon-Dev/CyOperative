@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -354,6 +355,12 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
         audio.setVolumes(next.musicVolume, next.sfxVolume)
         audio.hapticsEnabled = next.haptics
     }
+    var editingTouch by remember { mutableStateOf(false) }
+    if (editingTouch) {
+        com.cyberoperative.game.platform.PlatformBackHandler { editingTouch = false }
+        TouchControlsEditor(s, onChange = { set(it) }, onDone = { editingTouch = false })
+        return
+    }
     ScreenScaffold("SETTINGS", onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             TerminalCard {
@@ -371,6 +378,10 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                     Toggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
                     Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
                 }
+            }
+            if (!com.cyberoperative.game.platform.GameKeys.active) {
+                Spacer(Modifier.height(10.dp))
+                PcModeCard(s, set = { set(it) }, onEditTouch = { editingTouch = true })
             }
             if (com.cyberoperative.game.platform.GameKeys.active) {
                 Spacer(Modifier.height(10.dp))
@@ -525,5 +536,68 @@ private fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>)
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
         }
+    }
+}
+
+/**
+ * Android: PC MODE (owner, 2026-10-11). The PC gameplay set (upgrade chips, cash bags, HP
+ * charges, Packet Bombs, dash, class spells, extra exit doors) with on-screen buttons, played in
+ * LANDSCAPE (wide rooms, joystick locked bottom-left, buttons bottom-right) or PORTRAIT (the
+ * phone HUD plus see-through buttons bottom-right). Applies from the next run.
+ */
+@Composable
+private fun PcModeCard(s: GameSettings, set: (GameSettings) -> Unit, onEditTouch: () -> Unit) {
+    TerminalCard(accent = Palette.Purple) {
+        Column {
+            Text("PC MODE", color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
+            Text(
+                "The PC game: upgrades drop as chips, cash bags, HP charges, Packet Bombs, dash, class spells and route choices, " +
+                    "with on-screen buttons. Starts with your next run.",
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+            Toggle("PC MODE", s.pcMode) { set(s.copy(pcMode = it)) }
+            if (s.pcMode) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CyberButton("PORTRAIT", Modifier.weight(1f), accent = if (!s.pcLandscape) Palette.Green else Palette.Cyan, primary = !s.pcLandscape) { set(s.copy(pcLandscape = false)) }
+                    CyberButton("LANDSCAPE", Modifier.weight(1f), accent = if (s.pcLandscape) Palette.Green else Palette.Cyan, primary = s.pcLandscape) { set(s.copy(pcLandscape = true)) }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("JOYSTICK", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for ((mode, label) in listOf("AUTO" to "AUTO", "FLOAT" to "FREE FLOAT", "LOCKED" to "LOCKED")) {
+                    CyberButton(label, Modifier.weight(1f), accent = if (s.joystickMode == mode) Palette.Green else Palette.Cyan, primary = s.joystickMode == mode) {
+                        set(s.copy(joystickMode = mode))
+                    }
+                }
+            }
+            Text(
+                "AUTO: locked bottom-left in landscape, follows your thumb in portrait.",
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+            Spacer(Modifier.height(8.dp))
+            CyberButton("TOUCH CONTROLS LAYOUT", Modifier.fillMaxWidth()) { onEditTouch() }
+        }
+    }
+}
+
+/** Full-screen editor: drag the joystick and buttons; RESET restores this orientation's defaults. */
+@Composable
+private fun TouchControlsEditor(s: GameSettings, onChange: (GameSettings) -> Unit, onDone: () -> Unit) {
+    val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
+    Box(Modifier.fillMaxSize().background(Palette.Background)) {
+        com.cyberoperative.game.ui.common.LivingBackground(Modifier.fillMaxSize(), intensity = 0.5f)
+        Column(Modifier.align(Alignment.TopCenter).padding(top = 18.dp, start = 16.dp, end = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("TOUCH CONTROLS · ${if (landscape) "LANDSCAPE" else "PORTRAIT"}", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+            Text("Drag the joystick and the buttons where you want them.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val next = when (s.joystickMode) { "AUTO" -> "FLOAT"; "FLOAT" -> "LOCKED"; else -> "AUTO" }
+                CyberButton("JOYSTICK: ${if (s.joystickMode == "FLOAT") "FREE FLOAT" else s.joystickMode}") { onChange(s.copy(joystickMode = next)) }
+                CyberButton("RESET") { onChange(s.copy(touchLayout = com.cyberoperative.game.ui.game.TouchLayout.reset(s, landscape))) }
+                CyberButton("DONE", accent = Palette.Green, primary = true) { onDone() }
+            }
+        }
+        com.cyberoperative.game.ui.game.TouchLayoutEditor(s, landscape) { onChange(s.copy(touchLayout = it)) }
     }
 }

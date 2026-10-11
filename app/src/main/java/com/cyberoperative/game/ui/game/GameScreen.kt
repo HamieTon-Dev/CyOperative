@@ -109,6 +109,11 @@ fun GameScreen(
                 val dt = (now - last) / 1_000_000_000f
                 last = now
                 time = (now - start) / 1_000_000_000f
+                if (!GameKeys.active && session.engine.config.consumables) {
+                    // Touch: spells land where the operative is facing (its gun turns to the nearest threat).
+                    val e = session.engine
+                    e.setAim(false, e.localX + kotlin.math.cos(e.localFacing) * 300f, e.localY + kotlin.math.sin(e.localFacing) * 300f)
+                }
                 if (GameKeys.active) {
                     val e = session.engine
                     val live = !session.paused && e.phase != Phase.UPGRADE && e.phase != Phase.DEAD
@@ -122,7 +127,7 @@ fun GameScreen(
                         e.setAim(live, e.localX + GameKeys.aimX * 300f, e.localY + GameKeys.aimY * 300f)
                     } else {
                         val sc = renderer.scale.coerceAtLeast(0.0001f)
-                        e.setAim(live && mouseDown, mouse[0] / sc, mouse[1] / sc + renderer.camY)
+                        e.setAim(live && mouseDown, mouse[0] / sc + renderer.camX, mouse[1] / sc + renderer.camY)
                     }
                     if (session.showTutorial && GameKeys.takeAnyPress()) session.dismissTutorial()
                     // Q / LB: HP charge, E / RB: Packet Bomb (presses are consumed even when unusable).
@@ -171,16 +176,24 @@ fun GameScreen(
         // the boss bar, shrinks when folded); before the first measure, a safe estimate.
         val hudHeightDp = with(density) { if (hudHeightPx > 0) hudHeightPx.toDp() else 96.dp }
         // PC: the canvas itself starts below the HUD strip, so no inset inside it.
-        val topInsetPx = with(density) { if (GameKeys.active) 0f else (hudHeightDp + 4.dp).toPx() }
-        val bottomInsetPx = with(density) { (if (GameKeys.active) 24.dp else 150.dp).toPx() }
+        val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
+        val topInsetPx = with(density) { if (landscape) 0f else (hudHeightDp + 4.dp).toPx() }
+        val bottomInsetPx = with(density) { (if (landscape) 24.dp else 150.dp).toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
+        // Touch layout (Settings → TOUCH CONTROLS): locked joystick spot, and the PC-mode buttons.
+        val touchSettings = session.settings
+        val stickLocked = !GameKeys.active && TouchLayout.stickLocked(touchSettings, landscape)
+        val lockPos = TouchLayout.pos(touchSettings, TouchControl.STICK, landscape)
+        val lockX = lockPos.x * constraints.maxWidth
+        // The canvas starts under the HUD strip in landscape: its touches are relative to that.
+        val lockY = lockPos.y * constraints.maxHeight - (if (landscape) hudHeightPx.toFloat() else 0f)
 
         Canvas(
             Modifier
                 .fillMaxSize()
                 // PC: the arena lives below the HUD strip and never draws under it.
-                .then(if (GameKeys.active) Modifier.padding(top = hudHeightDp).clipToBounds() else Modifier)
+                .then(if (landscape) Modifier.padding(top = hudHeightDp).clipToBounds() else Modifier)
                 // Steering thumbs near the side edges shouldn't trigger the system Back swipe.
                 // Android honours up to 200dp per edge, bottom-most first: where the stick lives.
                 .platformGestureExclusion()
@@ -195,14 +208,16 @@ fun GameScreen(
                         }
                     }
                 }
-                .pointerInput(session) {
+                .pointerInput(session, stickLocked, lockX, lockY) {
                     if (GameKeys.active) return@pointerInput
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         if (session.paused || session.engine.phase == Phase.UPGRADE || session.engine.phase == Phase.DEAD) return@awaitEachGesture
+                        // Locked joystick: only touches on (or near) it steer, and it never moves.
+                        if (stickLocked && kotlin.math.hypot(down.position.x - lockX, down.position.y - lockY) > stickRadiusPx * 2.2f) return@awaitEachGesture
                         stickActive = true
-                        originX = down.position.x
-                        originY = down.position.y
+                        originX = if (stickLocked) lockX else down.position.x
+                        originY = if (stickLocked) lockY else down.position.y
                         knobX = originX
                         knobY = originY
                         session.engine.setInput(0f, 0f)
@@ -213,7 +228,10 @@ fun GameScreen(
                             var dx = change.position.x - originX
                             var dy = change.position.y - originY
                             val d = sqrt(dx * dx + dy * dy)
-                            if (d > stickRadiusPx) {
+                            if (d > stickRadiusPx && stickLocked) {
+                                dx = dx / d * stickRadiusPx
+                                dy = dy / d * stickRadiusPx
+                            } else if (d > stickRadiusPx) {
                                 // Let the base trail the thumb so direction changes stay instant.
                                 val excess = d - stickRadiusPx
                                 originX += dx / d * excess
@@ -243,7 +261,7 @@ fun GameScreen(
                     val e = session.engine
                     with(com.cyberoperative.game.ui.common.CursorArt) {
                         drawCursor(
-                            (e.localX + GameKeys.aimX * 160f) * renderer.scale,
+                            (e.localX + GameKeys.aimX * 160f - renderer.camX) * renderer.scale,
                             (e.localY + GameKeys.aimY * 160f - renderer.camY) * renderer.scale,
                             34f * density.density, pressed = true
                         )
@@ -252,15 +270,29 @@ fun GameScreen(
                 return@Canvas
             }
             // Joystick
-            val bx = if (stickActive) originX else restX
-            val by = if (stickActive) originY else restY
+            // At rest: its locked spot, or (PC-mode buttons on screen) its layout spot, clear of them.
+            val atLayout = stickLocked || (!GameKeys.active && session.engine.config.consumables)
+            val bx = if (stickActive) originX else if (atLayout) lockX else restX
+            val by = if (stickActive) originY else if (atLayout) lockY else restY
             drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.16f else 0.07f), stickRadiusPx, Offset(bx, by))
             drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.6f else 0.25f), stickRadiusPx, Offset(bx, by), style = Stroke(3f))
-            val kx = if (stickActive) knobX else restX
-            val ky = if (stickActive) knobY else restY
+            val kx = if (stickActive) knobX else bx
+            val ky = if (stickActive) knobY else by
             drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.85f else 0.3f), stickRadiusPx * 0.42f, Offset(kx, ky))
         }
 
+        if (!GameKeys.active && session.engine.config.consumables && !session.paused && hud.phase != Phase.DEAD && hud.phase != Phase.UPGRADE) {
+            TouchActionButtons(touchSettings, landscape, hud) { c ->
+                when (c) {
+                    TouchControl.DASH -> session.dash()
+                    TouchControl.SPELL1 -> session.castSpell(0)
+                    TouchControl.SPELL2 -> session.castSpell(1)
+                    TouchControl.HP -> session.useHpCharge()
+                    TouchControl.BOMB -> session.usePacketBomb()
+                    TouchControl.STICK -> {}
+                }
+            }
+        }
         if (!stickActive && hud.phase == Phase.COMBAT && hud.level == 1 && time < 12f) {
             Text(
                 if (GameKeys.padConnected) "LEFT STICK TO MOVE · RIGHT STICK TO AIM & FIRE" else if (GameKeys.active) "WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM" else "DRAG TO MOVE · RELEASE TO FIRE",
@@ -398,14 +430,14 @@ fun GameScreen(
             )
         }
         if (session.showTutorial) {
-            TutorialOverlay(onDone = { session.dismissTutorial() })
+            TutorialOverlay(pcRun = session.engine.config.consumables, onDone = { session.dismissTutorial() })
         }
         // Drawn last so it stays readable over the pause menu; full-screen panels
         // (upgrade pick, game over, briefing) cover it as before.
         val coveredByPanel = hud.phase == Phase.UPGRADE || hud.phase == Phase.DEAD || session.showTutorial
         if (session.paused || !coveredByPanel) {
           // PC: a compact strip above the arena (never over it), everything at 75%.
-          if (GameKeys.active) androidx.compose.runtime.CompositionLocalProvider(
+          if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
               LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
           ) {
             PcHudStrip(
@@ -464,7 +496,7 @@ private fun Banner(h: HudSnapshot, modifier: Modifier) {
 }
 
 @Composable
-private fun TutorialOverlay(onDone: () -> Unit) {
+private fun TutorialOverlay(pcRun: Boolean, onDone: () -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
@@ -481,7 +513,7 @@ private fun TutorialOverlay(onDone: () -> Unit) {
         ) {
             Text("OPERATIVE BRIEFING", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
-            for (line in if (GameKeys.active) TUTORIAL_LINES_PC else TUTORIAL_LINES) {
+            for (line in if (GameKeys.active) TUTORIAL_LINES_PC else if (pcRun) TUTORIAL_LINES_TOUCH_PC else TUTORIAL_LINES) {
                 Text("> $line", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
                 Spacer(Modifier.height(6.dp))
             }
@@ -504,6 +536,16 @@ val TUTORIAL_LINES = listOf(
     "Avoid red/orange enemy attacks.",
     "Defeat all threats, then enter the ACCESS PORT.",
     "Choose an upgrade when you gain enough data.",
+    "A boss appears every 10 levels."
+)
+
+/** Android PC mode briefing: the joystick plus the on-screen buttons. */
+val TUTORIAL_LINES_TOUCH_PC = listOf(
+    "Move with the joystick; your gun fires on its own.",
+    "Buttons: DASH, your two class SPELLS, HP CHARGE and PACKET BOMB.",
+    "Upgrades drop from threats as glowing chips: walk over them.",
+    "Threats drop € as cash bags; a cleared room pulls them in.",
+    "Defeat all threats, then pick an exit door.",
     "A boss appears every 10 levels."
 )
 

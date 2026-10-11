@@ -70,6 +70,9 @@ class ArenaRenderer {
         private set
     var camY = 0f
         private set
+    /** World x at the left edge of the view (negative when a narrow room is centred on a wide screen). */
+    var camX = 0f
+        private set
 
     fun draw(
         scope: DrawScope, g: GameEngine, time: Float, skin: OperativeSkin, body: BodyStyle,
@@ -86,7 +89,10 @@ class ArenaRenderer {
         this@ArenaRenderer.partnerSkin = partnerSkin
         this@ArenaRenderer.partnerBody = partnerBody
         val arena = g.arena
-        scale = size.width / arena.width
+        // Fit the room's width, but never show less than MIN_VIEW_HEIGHT world units of height:
+        // a narrow (portrait) room on a wide screen is centred instead of hugely zoomed.
+        scale = min(size.width / arena.width, size.height / MIN_VIEW_HEIGHT)
+        camX = -((size.width / scale - arena.width) / 2f).coerceAtLeast(0f)
         val visibleH = size.height / scale
         val top = -topInset / scale - WALL_HEIGHT
         val bottom = arena.height + bottomInset / scale
@@ -107,7 +113,7 @@ class ArenaRenderer {
             val fxShake = if (shake) g.fx.shakeNow else 0f
             val sx = (if (shake) shakeX(g, time) else 0f) + sin(time * 83f) * fxShake
             val sy = cos(time * 71f) * fxShake * 0.7f
-            translate(sx, -camY + slide + sy)
+            translate(sx - camX, -camY + slide + sy)
         }) {
             drawFloor(g, time)
             drawLivingBackground(background, arena.width, arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)
@@ -2506,6 +2512,8 @@ class ArenaRenderer {
 
     companion object {
         const val WALL_HEIGHT = 80f
+        /** Least world height a view shows (see [draw]). */
+        const val MIN_VIEW_HEIGHT = 640f
         const val TILE = 60f
         const val FIGURE_SCALE = 1.3f
         const val BARRIER_HEIGHT = 58f

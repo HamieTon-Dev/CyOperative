@@ -33,6 +33,9 @@ import com.cyberoperative.game.ui.theme.CyberOperativeTheme
 fun main(args: Array<String>) {
     // Landscape rooms on PC (must be set before any room is generated).
     com.cyberoperative.game.data.ArenaShape.wide = true
+    com.cyberoperative.game.data.ArenaShape.pcRules = true
+    com.cyberoperative.game.ui.common.PlayMode.pcRules = true
+    com.cyberoperative.game.ui.common.PlayMode.landscape = true
     // Steam first: when launched outside the Steam client in a release build, Steam relaunches it.
     SteamService.start(args)
     val save = SaveRepository()

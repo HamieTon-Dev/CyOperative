@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.23.0 (versionCode 72) — 2026-10-11 · Upgrade chips, weapon cards, Android PC MODE
+### Changed (owner: "change the SYSTEM UPGRADE thing. Players hate it")
+- **PC rules (Steam, and Android PC MODE): no more card screen.** The power-ups a room would have
+  given drop from threats instead.
+  - Each normal room plans its pick(s) and spreads them over its kills. Anything still owed at the
+    clear drops where the last threat fell. Bosses drop their picks where they die. Endless drops
+    them as you earn them.
+- **Drop styles.** All of them stand in a light beam in the rarity colour (taller for rarer;
+  GOLDEN and TITANIUM have a sweeping sheen).
+  - Power-ups are a **computer chip** in their rarity colour.
+  - Weapons are **the shop's card**, with a glow halo above.
+- **Pickup:** walk over a drop to take it.
+  - A line under the HUD names it in its rarity colour, with no dark panel and a tight outline for
+    legibility.
+  - PURPLE and up glow; GOLDEN and TITANIUM shimmer.
+- **Drops are not pulled in when the room clears.** Ones you leave are collected as you go
+  through a door.
+- **A new weapon with every slot full:**
+  - During the wave you just walk over it.
+  - Once the wave is over, stepping on it opens the swap screen.
+  - Keeping your weapons throws it to the middle of the arena, never on top of another pickup.
+- **Exit doors** now follow the PC rules, not the room shape, so they work in Android PC MODE in
+  portrait and landscape.
+### Added (Android)
+- **Settings → PC MODE** (off by default; starts with your next run):
+  - Turns on the PC game: chips, cash bags, HP charges, Packet Bombs, dash, class spells and exit
+    doors.
+  - **LANDSCAPE:** the whole app turns sideways. Rooms are wide and zoomed out, the HUD strip sits
+    above the arena, the joystick is locked bottom-left and the buttons sit bottom-right.
+  - **PORTRAIT:** the phone HUD, with the buttons bottom-right.
+- **On-screen buttons, always see-through:**
+  - DASH, both class SPELLS (their icons), HP CHARGE (potion, with count) and PACKET BOMB (bomb,
+    with count).
+  - Spells and dash show a cooldown sweep and seconds remaining.
+  - Each button fires the moment it's touched, so it works with a thumb already on the joystick.
+- **JOYSTICK: AUTO / FREE FLOAT / LOCKED.** AUTO is locked in landscape and floating in portrait.
+- **TOUCH CONTROLS LAYOUT:** drag the joystick and every button where you want them (saved for
+  each orientation); RESET restores the defaults.
+- A compact landscape menu for phones held sideways, and a touch version of the briefing.
+- Each run keeps the shape and rules it started with (saved for CONTINUE), and phone co-op always
+  uses the phone rules so both players match.
+- Narrow rooms on a wide screen are centred instead of zoomed in.
+- Co-op wire v18: upgrade chips carry their power-up.
+- New tests: upgrade chips (no card screen, drops not pulled in at the clear, walk over to take)
+  and the weapon-chip swap / throw-to-the-middle.
+- New renders: `docs/screenshots/pc_mode_*`.
+
 ## 0.22.0 (versionCode 71) — 2026-10-11 · PC: exit doors, neon cursor, dash, class spells
 ### Added (owner, PC build)
 - **Up to 4 exit doors** open when a room is cleared.

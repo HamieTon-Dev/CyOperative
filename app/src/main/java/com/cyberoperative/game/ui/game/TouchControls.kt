@@ -1,0 +1,245 @@
+package com.cyberoperative.game.ui.game
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.cyberoperative.game.data.Spell
+import com.cyberoperative.game.save.GameSettings
+import com.cyberoperative.game.ui.theme.Palette
+import kotlin.math.roundToInt
+
+/** The on-screen controls of Android's PC mode (owner, 2026-10-11). */
+enum class TouchControl(val key: String, val label: String, val sizeDp: Int) {
+    STICK("stick", "JOYSTICK", 112),
+    DASH("dash", "DASH", 66),
+    SPELL1("spell1", "SPELL 1", 58),
+    SPELL2("spell2", "SPELL 2", 58),
+    HP("hp", "HP CHARGE", 48),
+    BOMB("bomb", "PACKET BOMB", 48)
+}
+
+/** Where each control sits, as fractions of the screen (customisable per orientation in Settings). */
+object TouchLayout {
+    /** Landscape: joystick bottom-left; dash, spells and pouch bottom-right. */
+    private val LANDSCAPE = mapOf(
+        TouchControl.STICK to Offset(0.13f, 0.74f),
+        TouchControl.DASH to Offset(0.91f, 0.80f),
+        TouchControl.SPELL1 to Offset(0.81f, 0.86f),
+        TouchControl.SPELL2 to Offset(0.88f, 0.57f),
+        TouchControl.HP to Offset(0.76f, 0.64f),
+        TouchControl.BOMB to Offset(0.94f, 0.36f)
+    )
+    /** Portrait: the three abilities bottom-right, the pouch just above them. */
+    private val PORTRAIT = mapOf(
+        TouchControl.STICK to Offset(0.32f, 0.86f),
+        TouchControl.DASH to Offset(0.86f, 0.86f),
+        TouchControl.SPELL1 to Offset(0.68f, 0.90f),
+        TouchControl.SPELL2 to Offset(0.86f, 0.765f),
+        TouchControl.HP to Offset(0.70f, 0.79f),
+        TouchControl.BOMB to Offset(0.88f, 0.675f)
+    )
+
+    private fun key(landscape: Boolean, c: TouchControl, axis: String) = "${if (landscape) "L" else "P"}.${c.key}.$axis"
+
+    fun pos(s: GameSettings, c: TouchControl, landscape: Boolean): Offset {
+        val d = (if (landscape) LANDSCAPE else PORTRAIT).getValue(c)
+        return Offset(s.touchLayout[key(landscape, c, "x")] ?: d.x, s.touchLayout[key(landscape, c, "y")] ?: d.y)
+    }
+
+    fun with(s: GameSettings, c: TouchControl, landscape: Boolean, p: Offset): Map<String, Float> =
+        s.touchLayout + mapOf(key(landscape, c, "x") to p.x.coerceIn(0.03f, 0.97f), key(landscape, c, "y") to p.y.coerceIn(0.05f, 0.97f))
+
+    fun reset(s: GameSettings, landscape: Boolean): Map<String, Float> =
+        s.touchLayout.filterKeys { !it.startsWith(if (landscape) "L." else "P.") }
+
+    /** AUTO: locked in landscape, floating in portrait. */
+    fun stickLocked(s: GameSettings, landscape: Boolean): Boolean = when (s.joystickMode) {
+        "FLOAT" -> false
+        "LOCKED" -> true
+        else -> landscape
+    }
+
+    /** How see-through the controls are: always see-through, a little more while recharging. */
+    const val ALPHA = 0.55f
+}
+
+/** What one button shows right now. */
+data class TouchButtonState(val ready: Boolean, val cooldown: Float = 0f, val maxCooldown: Float = 1f, val count: Int = -1)
+
+/**
+ * The action buttons (dash, spells, HP charge, Packet Bomb) at their layout spots. Each fires
+ * the moment it's touched, so it works with a thumb already on the joystick.
+ */
+@Composable
+fun TouchActionButtons(
+    settings: GameSettings, landscape: Boolean, hud: HudSnapshot,
+    onPress: (TouchControl) -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val w = maxWidth
+        val h = maxHeight
+        for (c in TouchControl.entries) {
+            if (c == TouchControl.STICK) continue
+            val p = TouchLayout.pos(settings, c, landscape)
+            val st = stateOf(c, hud)
+            TouchButton(
+                c, spellOf(c, hud), st,
+                Modifier
+                    .offset(w * p.x - (c.sizeDp / 2).dp, h * p.y - (c.sizeDp / 2).dp)
+                    .size(c.sizeDp.dp)
+                    .pointerInput(c) { detectTapGestures(onPress = { onPress(c) }) }
+            )
+        }
+    }
+}
+
+private fun spellOf(c: TouchControl, h: HudSnapshot): Spell? = when (c) {
+    TouchControl.SPELL1 -> h.spell1
+    TouchControl.SPELL2 -> h.spell2
+    else -> null
+}
+
+private fun stateOf(c: TouchControl, h: HudSnapshot): TouchButtonState = when (c) {
+    TouchControl.DASH -> TouchButtonState(h.dashCd <= 0f, h.dashCd, com.cyberoperative.game.engine.GameEngine.DASH_COOLDOWN)
+    TouchControl.SPELL1 -> TouchButtonState(h.spell1Cd <= 0f, h.spell1Cd, h.spell1?.cooldown ?: 1f)
+    TouchControl.SPELL2 -> TouchButtonState(h.spell2Cd <= 0f, h.spell2Cd, h.spell2?.cooldown ?: 1f)
+    TouchControl.HP -> TouchButtonState(h.hpCharges > 0, count = h.hpCharges)
+    TouchControl.BOMB -> TouchButtonState(h.packetBombs > 0, count = h.packetBombs)
+    TouchControl.STICK -> TouchButtonState(true)
+}
+
+/** One round, see-through button with its icon, a cooldown sweep, and a count badge for the pouch items. */
+@Composable
+fun TouchButton(c: TouchControl, spell: Spell?, st: TouchButtonState, modifier: Modifier) {
+    val accent = when (c) {
+        TouchControl.DASH -> Palette.Cyan
+        TouchControl.SPELL1 -> Palette.Purple
+        TouchControl.SPELL2 -> Palette.Magenta
+        TouchControl.HP -> Palette.Green
+        TouchControl.BOMB -> Color(0xFF7DF9FF)
+        TouchControl.STICK -> Palette.Cyan
+    }
+    Box(modifier.graphicsLayer { alpha = if (st.ready) TouchLayout.ALPHA else TouchLayout.ALPHA * 0.6f }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val r = size.minDimension / 2f
+            val o = Offset(size.width / 2f, size.height / 2f)
+            drawCircle(Color(0xFF05080F).copy(alpha = 0.65f), r, o)
+            drawCircle(accent, r - 1.5f, o, style = Stroke(2.5f))
+            if (!st.ready && st.cooldown > 0f) {
+                val f = (st.cooldown / st.maxCooldown).coerceIn(0f, 1f)
+                drawArc(Color.Black.copy(alpha = 0.55f), -90f, 360f * f, true, Offset(o.x - r, o.y - r), Size(r * 2f, r * 2f))
+            }
+            when (c) {
+                TouchControl.DASH -> dashIcon(o, r, accent)
+                TouchControl.HP -> potionIcon(o, r)
+                TouchControl.BOMB -> bombIcon(o, r)
+                else -> {}
+            }
+        }
+        if (spell != null) Text(spell.icon, color = accent, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        if (!st.ready && st.cooldown > 0f) Text("${kotlin.math.ceil(st.cooldown).toInt()}", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        if (st.count >= 0) Text(
+            "${st.count}", color = if (st.count > 0) Color.White else Palette.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.BottomEnd)
+        )
+    }
+}
+
+private val iconPath = Path()
+
+private fun DrawScope.dashIcon(o: Offset, r: Float, c: Color) {
+    // Double chevron with speed lines.
+    for (k in 0..1) {
+        val x = o.x - r * 0.18f + k * r * 0.32f
+        iconPath.reset()
+        iconPath.moveTo(x - r * 0.2f, o.y - r * 0.35f); iconPath.lineTo(x + r * 0.12f, o.y); iconPath.lineTo(x - r * 0.2f, o.y + r * 0.35f)
+        drawPath(iconPath, c, style = Stroke(r * 0.14f, cap = StrokeCap.Round))
+    }
+    for (k in -1..1) drawLine(c.copy(alpha = 0.6f), Offset(o.x - r * 0.75f, o.y + k * r * 0.22f), Offset(o.x - r * 0.45f, o.y + k * r * 0.22f), r * 0.07f, cap = StrokeCap.Round)
+}
+
+private fun DrawScope.potionIcon(o: Offset, r: Float) {
+    val k = r / 22f
+    drawRect(Color(0xCCBFEFFF), Offset(o.x - 3f * k, o.y - 15f * k), Size(6f * k, 7f * k))
+    drawCircle(Color(0xFF00C878), 9f * k, Offset(o.x, o.y + 2f * k))
+    drawCircle(Color(0xFFBFEFFF), 9.5f * k, Offset(o.x, o.y + 2f * k), style = Stroke(1.4f * k))
+    drawLine(Color.White, Offset(o.x - 4f * k, o.y + 2f * k), Offset(o.x + 4f * k, o.y + 2f * k), 2f * k)
+    drawLine(Color.White, Offset(o.x, o.y - 2f * k), Offset(o.x, o.y + 6f * k), 2f * k)
+}
+
+private fun DrawScope.bombIcon(o: Offset, r: Float) {
+    val k = r / 22f
+    drawCircle(Color(0xFF14181F), 9.5f * k, Offset(o.x - 1f * k, o.y + 2f * k))
+    drawCircle(Color(0xFF2E9BFF), 9.5f * k, Offset(o.x - 1f * k, o.y + 2f * k), style = Stroke(1.6f * k))
+    drawLine(Color(0xFFB0905A), Offset(o.x + 5f * k, o.y - 6f * k), Offset(o.x + 9f * k, o.y - 11f * k), 1.8f * k)
+    drawCircle(Color(0xFFFFC233), 2.6f * k, Offset(o.x + 9f * k, o.y - 11f * k))
+}
+
+/** The joystick graphic (also used by the layout editor). */
+fun DrawScope.drawStick(base: Offset, knob: Offset, radius: Float, active: Boolean) {
+    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.16f else 0.07f), radius, base)
+    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.6f else 0.25f), radius, base, style = Stroke(3f))
+    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.85f else 0.3f), radius * 0.42f, knob)
+}
+
+/**
+ * Settings → TOUCH CONTROLS: drag the joystick and every button where you want them, for the
+ * orientation you're in. RESET puts this orientation back to the defaults.
+ */
+@Composable
+fun TouchLayoutEditor(settings: GameSettings, landscape: Boolean, onChange: (Map<String, Float>) -> Unit) {
+    val density = LocalDensity.current
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val wPx = with(density) { maxWidth.toPx() }
+        val hPx = with(density) { maxHeight.toPx() }
+        for (c in TouchControl.entries) {
+            val p = TouchLayout.pos(settings, c, landscape)
+            val half = with(density) { (c.sizeDp / 2).dp.toPx() }
+            val latest = androidx.compose.runtime.rememberUpdatedState(settings)
+            val change0 = androidx.compose.runtime.rememberUpdatedState(onChange)
+            Box(
+                Modifier
+                    .offset { IntOffset((p.x * wPx - half).roundToInt(), (p.y * hPx - half).roundToInt()) }
+                    .size(c.sizeDp.dp)
+                    .pointerInput(c, landscape) {
+                        var cur = p
+                        detectDragGestures(onDragStart = { cur = TouchLayout.pos(latest.value, c, landscape) }) { change, drag ->
+                            change.consume()
+                            cur = Offset(cur.x + drag.x / wPx, cur.y + drag.y / hPx)
+                            change0.value(TouchLayout.with(latest.value, c, landscape, cur))
+                        }
+                    }
+            ) {
+                if (c == TouchControl.STICK) Canvas(Modifier.fillMaxSize()) {
+                    val o = Offset(size.width / 2f, size.height / 2f)
+                    drawStick(o, o, size.minDimension / 2f, active = true)
+                } else TouchButton(c, null, TouchButtonState(true, count = if (c == TouchControl.HP || c == TouchControl.BOMB) 3 else -1), Modifier.fillMaxSize())
+                Text(c.label, color = Palette.TextSecondary, fontSize = 9.sp, modifier = Modifier.align(Alignment.BottomCenter).offset(y = 14.dp))
+            }
+        }
+    }
+}

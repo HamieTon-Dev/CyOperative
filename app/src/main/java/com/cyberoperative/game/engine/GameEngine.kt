@@ -73,7 +73,7 @@ data class RunConfig(
     /** Weapons this operative can carry (7 + WEAPON SLOTS upgrade). */
     val weaponSlots: Int = Upgrades.MAX_WEAPONS,
     /** PC consumables (HP charges on Q, Packet Bombs on E, floor drops). On for the landscape PC build. */
-    val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.wide,
+    val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.pcRules,
     /** This player's class (its PC spells). */
     val classId: String = "operative"
 ) {
@@ -1856,6 +1856,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             offerLuck = offerLuck, offer = offer.map { it.def.id }, upgradeReturnsToCombat = upgradeReturnsToCombat,
             rerollsLeft = rerollsLeft, revivesLeft = revivesLeft, revivesUsed = revivesUsed,
             hpCharges = cur.hpCharges, packetBombs = cur.packetBombs,
+            wide = com.cyberoperative.game.data.ArenaShape.wide, pcRules = config.consumables,
             score = score, kills = kills, bosses = bossesDefeated, elites = elitesDefeated, events = eventsCompleted,
             completedEventIds = HashSet(completedEventIds), euros = eurosEarned, diamonds = diamondsEarned,
             runSeconds = runSeconds, levelSeconds = levelSeconds, levelDamageTaken = levelDamageTaken,

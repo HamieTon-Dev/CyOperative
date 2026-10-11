@@ -57,7 +57,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
         val s = withFrameNanos { it }
         while (true) withFrameNanos { t = (it - s) / 1e9f }
     }
-    if (com.cyberoperative.game.platform.AppInfo.desktop) {
+    if (com.cyberoperative.game.ui.common.PlayMode.landscape) {
         LandscapeMainMenu(profile, t, onSelect)
         return
     }

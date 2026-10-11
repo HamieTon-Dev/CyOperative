@@ -58,8 +58,11 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
         )
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 28.dp, vertical = 16.dp)) {
             // Everything below the logo needs ~390dp; the logo gets what is left (never huge).
-            val logoW = ((maxHeight - 450.dp) * (1000f / 420f)).coerceIn(260.dp, 470.dp)
-            val centreW = (maxWidth * 0.56f).coerceIn(600.dp, 780.dp)
+            // Short screens (phones held sideways): no badge, a small logo, and two button rows.
+            val compact = maxHeight < 560.dp
+            val logoW = if (compact) ((maxHeight - 300.dp) * (1000f / 420f)).coerceIn(170.dp, 320.dp)
+            else ((maxHeight - 450.dp) * (1000f / 420f)).coerceIn(260.dp, 470.dp)
+            val centreW = if (compact) (maxWidth * 0.68f).coerceIn(560.dp, 720.dp) else (maxWidth * 0.56f).coerceIn(600.dp, 780.dp)
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("OP LVL ${operativeLevel(profile.operativeXp)}", color = Palette.Green, style = MaterialTheme.typography.labelLarge)
@@ -71,13 +74,13 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
                 Row(Modifier.fillMaxWidth().weight(1f)) {
                     HeroStage(profile, t, Modifier.weight(1f).fillMaxHeight())
                     Column(Modifier.width(centreW).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        com.cyberoperative.game.ui.common.OperativeEmblem(
+                        if (!compact) com.cyberoperative.game.ui.common.OperativeEmblem(
                             StoreManager.effectiveSkin(profile),
                             Modifier.size(64.dp).scale(1f + 0.03f * sin(t * 2f))
                         )
                         CyberTitleLogo(Modifier.width(logoW), glow = 0.75f + 0.25f * sin(t * 2.4f))
-                        Spacer(Modifier.height(10.dp))
-                        MenuButtons(profile, onSelect)
+                        Spacer(Modifier.height(if (compact) 4.dp else 10.dp))
+                        MenuButtons(profile, onSelect, compact)
                     }
                     InfoSide(profile, Modifier.weight(1f).fillMaxHeight())
                 }
@@ -87,9 +90,25 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
 }
 
 @Composable
-private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, compact: Boolean = false) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp)) {
         val saved = remember(profile.savedRun) { RunSnapshot.decodeOrNull(profile.savedRun) }
+        val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE && it != MenuTarget.CO_OP }
+        if (compact) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (saved != null) CyberButton("CONTINUE", primary = true, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.CONTINUE) }
+                CyberButton(if (saved != null) "NEW" else "PLAY", primary = saved == null, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.PLAY) }
+                CyberButton("ENDLESS", accent = Palette.Purple, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.ENDLESS) }
+                CyberButton("CO-OP", accent = Palette.Magenta, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
+            }
+            for (row in rest.chunked(4)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (item in row) CyberButton(shortLabel(item), modifier = Modifier.weight(1f)) { onSelect(item) }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+            return@Column
+        }
         if (saved != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CyberButton("CONTINUE", primary = true, accent = Palette.Green, subtitle = saved.label, modifier = Modifier.weight(1.4f)) { onSelect(MenuTarget.CONTINUE) }
@@ -104,9 +123,8 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) 
                 subtitle = if (profile.endlessBestStage > 0) "BEST STAGE ${profile.endlessBestStage}" else "NEVER-ENDING THREATS",
                 modifier = Modifier.weight(1f)
             ) { onSelect(MenuTarget.ENDLESS) }
-            CyberButton("CO-OP", accent = Palette.Magenta, subtitle = "PLAY WITH A STEAM FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
+            CyberButton("CO-OP", accent = Palette.Magenta, subtitle = if (com.cyberoperative.game.platform.AppInfo.desktop) "PLAY WITH A STEAM FRIEND" else "PLAY WITH A FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
         }
-        val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE && it != MenuTarget.CO_OP }
         for (row in rest.chunked(4)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (item in row) CyberButton(item.label, modifier = Modifier.weight(1f)) { onSelect(item) }
@@ -165,6 +183,7 @@ private fun InfoSide(profile: PlayerProfile, modifier: Modifier) {
             if (profile.endlessBestStage > 0) InfoLine("ENDLESS", "STAGE ${profile.endlessBestStage}")
             Spacer(Modifier.height(14.dp))
         }
+        if (!com.cyberoperative.game.platform.AppInfo.desktop) return@Column
         Text("CONTROLS", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(4.dp))
         for (l in listOf("WASD · MOVE", "MOUSE · AIM & FIRE", "LEFT STICK · MOVE", "RIGHT STICK · AIM & FIRE", "ESC / START · PAUSE", "F11 · FULLSCREEN")) {
@@ -179,4 +198,11 @@ private fun InfoLine(label: String, value: String) {
         Text(label, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
         Text(value, color = Palette.TextPrimary, style = MaterialTheme.typography.labelMedium)
     }
+}
+
+/** Labels that fit a phone held sideways. */
+private fun shortLabel(t: MenuTarget): String = when (t) {
+    MenuTarget.LEADERBOARD -> "SCORES"
+    MenuTarget.ACHIEVEMENTS -> "TROPHIES"
+    else -> t.label
 }

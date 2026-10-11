@@ -288,6 +288,62 @@ class ScreenshotPreviews {
         save(name)
     }
 
+    /** Android PC MODE renders (owner, 2026-10-11): touch buttons, chips, landscape layout. */
+    private fun pcMode(landscape: Boolean, block: () -> Unit) {
+        com.cyberoperative.game.ui.common.PlayMode.pcRules = true
+        com.cyberoperative.game.ui.common.PlayMode.landscape = landscape
+        try { block() } finally {
+            com.cyberoperative.game.ui.common.PlayMode.pcRules = false
+            com.cyberoperative.game.ui.common.PlayMode.landscape = false
+            com.cyberoperative.game.data.ArenaShape.wide = false
+            com.cyberoperative.game.data.ArenaShape.pcRules = false
+        }
+    }
+
+    private fun pcProfile(p: com.cyberoperative.game.save.PlayerProfile, landscape: Boolean) =
+        p.copy(settings = p.settings.copy(pcMode = true, pcLandscape = landscape))
+
+    @Test fun pcModePortrait() {
+        assumeTrue(enabled)
+        pcMode(false) {
+            gameplay("pc_mode_portrait", 6f, profileSetup = { pcProfile(it, false) }) { s ->
+                val e = s.engine
+                val up = com.cyberoperative.game.data.Upgrades.all.first { it.rarity == com.cyberoperative.game.data.Rarity.EPIC && !com.cyberoperative.game.data.Upgrades.isWeapon(it) }
+                e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, e.px - 120f, e.py - 220f, upgradeId = up.id)
+            }
+        }
+    }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun pcModeLandscape() {
+        assumeTrue(enabled)
+        pcMode(true) {
+            gameplay("pc_mode_landscape", 6f, profileSetup = { pcProfile(it, true) })
+        }
+    }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun pcModeLandscapeMenu() {
+        assumeTrue(enabled)
+        pcMode(true) {
+            val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+            val repo = SaveRepository(ctx)
+            compose.mainClock.autoAdvance = false
+            compose.setContent { CyberOperativeTheme { MainMenuScreen(repo.current) {} } }
+            compose.mainClock.advanceTimeBy(1500)
+            save("pc_mode_landscape_menu")
+        }
+    }
+
+    @Test fun pcModeSettings() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { pcProfile(it, true) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.SettingsScreen(repo, AudioManager(ctx)) {} } }
+        compose.mainClock.advanceTimeBy(500)
+        save("pc_mode_settings")
+    }
+
     @Test fun bossRewards() {
         assumeTrue(enabled)
         gameplay("reward_counter_boss", 0f) { s ->

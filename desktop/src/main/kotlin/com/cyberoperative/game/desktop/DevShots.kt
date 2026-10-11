@@ -24,6 +24,9 @@ fun main(args: Array<String>) {
     val dir = kotlin.io.path.createTempDirectory("cyberop-shots").toFile()
     val save = SaveRepository(dir)
     com.cyberoperative.game.data.ArenaShape.wide = true
+    com.cyberoperative.game.data.ArenaShape.pcRules = true
+    com.cyberoperative.game.ui.common.PlayMode.pcRules = true
+    com.cyberoperative.game.ui.common.PlayMode.landscape = true
     save.update { it.copy(diamonds = 1250, tutorialDone = true) }
     val audio = AudioManager()
 

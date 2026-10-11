@@ -362,10 +362,10 @@ object Upgrades {
     )
     val SELF_REPAIR = UpgradeDef(
         "self_repair", "SELF-REPAIR", "+~", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,
-        "Slowly regenerate HP.", { if (ArenaShape.wide) "Regenerate 0.6% HP/s, +0.05% per level" else "Regenerate 0.6% HP/s" },
+        "Slowly regenerate HP.", { if (ArenaShape.pcRules) "Regenerate 0.6% HP/s, +0.05% per level" else "Regenerate 0.6% HP/s" },
         // PC (HP charges + floor loot): a gentle ramp, 0.6% at the first level and +0.05% per level
         // after it (owner, 2026-10-11). Phones keep 0.6% per level.
-        { s, l -> s.regenPerSec += if (ArenaShape.wide) 0.006f + 0.0005f * (l - 1f).coerceAtLeast(0f) else 0.006f * l }
+        { s, l -> s.regenPerSec += if (ArenaShape.pcRules) 0.006f + 0.0005f * (l - 1f).coerceAtLeast(0f) else 0.006f * l }
     )
     val DATA_LEECH = UpgradeDef(
         "data_leech", "DATA LEECH", "<+", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,

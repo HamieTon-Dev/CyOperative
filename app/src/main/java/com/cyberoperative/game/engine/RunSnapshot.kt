@@ -44,6 +44,9 @@ data class RunSnapshot(
     /** PC consumables (-1 = saved before they existed: start amounts). */
     val hpCharges: Int = -1,
     val packetBombs: Int = -1,
+    /** The room shape and rules this run started with (Android PC mode can change between runs). */
+    val wide: Boolean = false,
+    val pcRules: Boolean = false,
     val score: Long,
     val kills: Int,
     val bosses: Int,

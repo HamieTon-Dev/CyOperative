@@ -127,7 +127,7 @@ fun ScreenScaffold(
         LivingBackground(Modifier.fillMaxSize(), intensity = 0.45f)
         Column(
             // PC (landscape): a centred column instead of edge-to-edge rows.
-            (if (com.cyberoperative.game.platform.AppInfo.desktop) Modifier.align(Alignment.TopCenter).widthIn(max = 1000.dp).fillMaxHeight().padding(top = 12.dp)
+            (if (com.cyberoperative.game.ui.common.PlayMode.landscape) Modifier.align(Alignment.TopCenter).widthIn(max = 1000.dp).fillMaxHeight().padding(top = 12.dp)
             else Modifier.fillMaxSize())
                 .statusBarsPadding()
                 .navigationBarsPadding()

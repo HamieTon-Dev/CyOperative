@@ -82,7 +82,7 @@ fun BootTerminal(onSound: (GameSound) -> Unit, onFinished: () -> Unit) {
             .background(Color(0xFF02060A))
             .clickable(remember { MutableInteractionSource() }, indication = null) { finish() }
     ) {
-        val pc = com.cyberoperative.game.platform.AppInfo.desktop
+        val pc = com.cyberoperative.game.ui.common.PlayMode.landscape
         if (pc) com.cyberoperative.game.ui.common.LivingBackground(Modifier.fillMaxSize(), intensity = 0.5f)
         Column(
             // PC: a framed console window in the middle of the landscape screen.
