@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.3 (versionCode 59) — 2026-10-11 · Packet Mage hood reshaped
+### Changed (owner)
+- **Packet Mage:** back to the smooth peaked hood, now with the whole top leaning well back like a
+  bent cone, replacing the 0.17.2 hooked tip.
+
 ## 0.17.2 (versionCode 58) — 2026-10-11 · Gray-metal Titanium, bent Mage hood
 ### Changed (owner)
 - **TITANIUM is now gray metal on every class.** It was near-white:
