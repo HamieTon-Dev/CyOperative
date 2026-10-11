@@ -304,3 +304,11 @@ skip, pause, toggle shuffle or return to AUTO. Audio never plays in the backgrou
   - a homing shell: speed 210, turn 1.7 rad/s, damage 34 × threat damage;
   - splash 110 on impact, on walls or blades, or on burn-out after 4.5 s;
   - held while a Phantom is cloaked.
+
+## Threat sprites (0.19.0)
+- `ui/game/EnemySprites.kt`:
+  - form by strain (originals by id or AI);
+  - trim by code family (Kernel-Mode cycles the spectrum);
+  - tier by minLevel: ring at 10+, spark at 20+, sheen at 30+.
+- Elites: `eliteBack` draws the per-modifier frame and `eliteFront` the badge.
+- Bosses keep their own bodies (`BossBodies`).

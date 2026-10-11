@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.19.0 (versionCode 64) — 2026-10-11 · Threat texture upgrade
+### Changed (owner: "upgrade all of the enemy textures for the small ones and elites… many many different colors… sheen… keep the glitched ones")
+- **Every regular threat redrawn** as a neon emblem creature (`ui/game/EnemySprites.kt`). Each has a
+  dark core, a glowing trim and eyes that track you. **Textures only:** stats, AI, hitboxes and
+  damage are unchanged.
+- **Silhouette by strain**, 27 forms:
+  - legged crawlers, segmented grubs, hex nanites, sucker-mouthed leeches;
+  - winged mites, gnats and locusts;
+  - armoured brutes, riveted husks, stacked golems;
+  - turrets that aim at you: single, twin and fan barrels, mortars, gatlings and tripod sentries;
+  - horned rams and bulls, spear lancers, scoped marksmen, hooded stalkers;
+  - pulsing beacons, ringed spires, after-imaging blinkers, wavy-tailed wraiths;
+  - propeller drones and segmented worms.
+  - The 13 originals map onto these by how they fight.
+- **Colour by code family**, a wide spread instead of all reds:
+  - Polymorphic hot pink, Encrypted cyan, Botnet magenta, Ransom gold;
+  - Zero-Day violet, Adware lime, Spyware orange, Cryptojack yellow;
+  - Forkbomb red-orange, Keylogger teal, Backdoor crimson, Stealth indigo;
+  - **Kernel-Mode cycles the spectrum.**
+- **Finish by unlock depth:**
+  - level 10+ adds a rotating inner ring;
+  - level 20+ adds an orbiting spark;
+  - level 30+ (and all Kernel-Mode) gets a **metallic sheen** sweeping across the body.
+- ***GLITCHED*** threats keep hue-cycling with RGB-split ghosts and scanline tears. They now jump
+  between the new body forms on a loop.
+- **Elites** get their own animated frames plus a modifier badge:
+  - Encrypted: a rotating hex cage;
+  - Overclocked: lightning arcs;
+  - Corrupted: dripping glitch pixels;
+  - Armored: rotating armour plates;
+  - Replicating: orbiting mini-copies;
+  - Volatile: a flickering warning burst.
+- The renderer avoids per-frame gradient and list allocations.
+- `docs/screenshots/enemy_sheet.png` is regenerated.
+
 ## 0.18.0 (versionCode 63) — 2026-10-11 · Good Game's Siege Cannon
 ### Added (owner: "Good Game should definitely charge and shoot a shot out of the cannon that tracks you and does splash damage every 5 seconds")
 - **SIEGE CANNON:** on top of its normal patterns, GOOD GAME fires every **5 s**. The first charge

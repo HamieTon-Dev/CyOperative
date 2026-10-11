@@ -1213,10 +1213,24 @@ class ArenaRenderer {
         val cy = e.y - lift
         val depth = e.radius * 0.35f
         val elite = e.elite
-        if (elite != null) {
-            val p = 0.5f + 0.5f * sin(time * 5f + e.uid)
-            drawCircle(Color(elite.color).copy(alpha = 0.15f + 0.15f * p), e.radius * 1.55f, Offset(cx, cy))
-            drawCircle(Color(elite.color).copy(alpha = 0.85f), e.radius * 1.3f, Offset(cx, cy), style = Stroke(2.5f))
+        if (boss == null) {
+            // Regular threats: neon emblem sprites (EnemySprites); elites wear their modifier frame.
+            val ang = kotlin.math.atan2(g.py - e.y, g.px - e.x)
+            with(EnemySprites) {
+                if (elite != null) eliteBack(elite, Offset(cx, cy), e.radius, time, e.uid)
+                draw(e.def, cx, cy, e.radius, time, e.uid, ang, e.state == AiState.WINDUP, e.hitFlash > 0f)
+                if (elite != null) eliteFront(elite, Offset(cx, cy), e.radius, time)
+            }
+            if (e.hp < e.maxHp) {
+                val bw = e.radius * 2f
+                val by = cy - e.radius - (if (elite != null) e.radius * 0.75f else 12f)
+                drawRect(Color(0xAA000000), Offset(e.x - bw / 2f, by), Size(bw, 4f))
+                drawRect(Palette.Red, Offset(e.x - bw / 2f, by), Size(bw * (e.hp / e.maxHp).coerceIn(0f, 1f), 4f))
+            }
+            if (e.uid == g.targetUid) {
+                drawOval(Palette.Cyan.copy(alpha = 0.85f), Offset(e.x - e.radius - 6f, e.y + e.radius * 0.1f), Size(e.radius * 2f + 12f, e.radius + 6f), style = Stroke(2.5f))
+            }
+            return
         }
         // Stealth bosses (Nullshade) bring their own light; no hard aura disc behind them.
         if (boss != null && !boss.def.stealth) drawCircle(base.copy(alpha = 0.14f + 0.08f * sin(time * 3f)), e.radius * 1.7f, Offset(cx, cy))
