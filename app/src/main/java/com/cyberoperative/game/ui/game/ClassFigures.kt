@@ -48,8 +48,15 @@ internal object ClassFigures {
     private fun mix(a: Color, b: Color, t: Float) =
         Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, 1f)
 
-    fun look(skin: OperativeSkin, time: Float): Look {
+    /** [cobaltTitanium]: PHANTOM and PACKET MAGE wear TITANIUM as cobalt blue (owner, 2026-10-11). */
+    fun look(skin: OperativeSkin, time: Float, cobaltTitanium: Boolean = false): Look {
         val c = OperativeMark.colors(skin, time)
+        if (skin.id == OperativeSkins.TITANIUM.id && cobaltTitanium) {
+            return Look(
+                Color(0xFF3A6AD8), Color(0xFF22479F), Color(0xFF10235A),
+                Color(0xFF7DB3FF), Color(0xFFE8F1FF), Color(0xFF05070C), HeroPalette.forSkin(skin)
+            )
+        }
         if (skin.id == OperativeSkins.TITANIUM.id) {
             // Owner, 2026-10-11: gray metal (gunmetal plates, steel edges), not white.
             return Look(
@@ -291,7 +298,7 @@ internal object ClassFigures {
 
     fun DrawScope.phantom(skin: OperativeSkin, x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float) {
         val dir = if (cos(facing) < 0f) -1f else 1f
-        val l = look(skin, time)
+        val l = look(skin, time, cobaltTitanium = true)
         val pulse = 0.8f + 0.2f * sin(time * 2.2f)
         val hover = 5f + sin(time * 2.6f) * 1.6f
         place(x, foot, u, dir, alpha) {
@@ -375,7 +382,7 @@ internal object ClassFigures {
         val dir = if (cos(facing) < 0f) -1f else 1f
         val walk = if (moving) sin(time * 10f) else 0f
         val bob = if (moving) abs(sin(time * 10f)) * 1.2f else sin(time * 1.8f) * 0.5f
-        val l = look(skin, time)
+        val l = look(skin, time, cobaltTitanium = true)
         val pulse = 0.8f + 0.2f * sin(time * 2.2f)
         place(x, foot, u, dir, alpha) {
             floorRing(l, 52f, pulse)

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.6 (versionCode 62) — 2026-10-11 · Cobalt Titanium for Phantom and Packet Mage
+### Changed (owner)
+- The **Phantom** and **Packet Mage** wear their TITANIUM (Normal L100) skin as **cobalt blue**:
+  cobalt plates with light-blue trim. Field Agent, Technician and Juggernaut keep the gray-metal
+  TITANIUM.
+
 ## 0.17.5 (versionCode 61) — 2026-10-11 · Mage hood clears the face
 ### Changed (owner)
 - **Packet Mage:** the hood's right side now curves outward past the octagon face opening, so the
