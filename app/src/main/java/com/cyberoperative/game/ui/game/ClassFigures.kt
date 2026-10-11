@@ -436,8 +436,9 @@ internal object ClassFigures {
                     path.moveTo(34f, 62f)
                     path.cubicTo(32f, 46f, 33f, 32f, 38f, 22f)
                     path.cubicTo(37f, 14f, 30f, 7f, 20f, 3f)
-                    path.cubicTo(38f, 5f, 52f, 12f, 58f, 24f)
-                    path.cubicTo(64f, 34f, 68f, 48f, 70f, 62f)
+                    // Right side bulges outward so it clears the face opening.
+                    path.cubicTo(40f, 4f, 56f, 9f, 64f, 20f)
+                    path.cubicTo(73f, 32f, 75f, 48f, 70f, 62f)
                     path.lineTo(52f, 66f)
                     path.close()
                     fillStroke(path, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 3f, endY = 66f), l.trim, 1.3f)

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.5 (versionCode 61) — 2026-10-11 · Mage hood clears the face
+### Changed (owner)
+- **Packet Mage:** the hood's right side now curves outward past the octagon face opening, so the
+  outline never touches the visor.
+
 ## 0.17.4 (versionCode 60) — 2026-10-11 · Smaller Mage hood, octagon opening
 ### Changed (owner)
 - **Packet Mage:** the whole hood is shrunk to 80% around the collar, keeping its back-leaning
