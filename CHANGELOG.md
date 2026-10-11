@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.19.1 (versionCode 65) — 2026-10-11 · Bigger, more distinct elites
+### Changed (owner: "make the elites bigger and more distinct")
+- **Elites are drawn 30% larger** (`EnemySprites.ELITE_DRAW_SCALE`). The hitbox is unchanged, so
+  balance is the same.
+- **Every elite wears its modifier's colour** on the whole body, plus a strong colour halo on the floor.
+- **A big hexagon badge with a symbol** floats above each elite. Each type also has its own frame:
+
+  | Elite | Badge | Frame |
+  |---|---|---|
+  | Encrypted | padlock | double rotating hex cage |
+  | Overclocked | lightning bolt | speed after-images and arcs |
+  | Corrupted | glitched X | flickering trim, dripping pixels |
+  | Armored | shield | silver body, thick riveted plate ring |
+  | Replicating | copy | ghost clones peeling off, orbiting mini-copies |
+  | Volatile | "!" | red-orange throbbing trim, hazard-stripe ring, rising embers |
+
 ## 0.19.0 (versionCode 64) — 2026-10-11 · Threat texture upgrade
 ### Changed (owner: "upgrade all of the enemy textures for the small ones and elites… many many different colors… sheen… keep the glitched ones")
 - **Every regular threat redrawn** as a neon emblem creature (`ui/game/EnemySprites.kt`). Each has a

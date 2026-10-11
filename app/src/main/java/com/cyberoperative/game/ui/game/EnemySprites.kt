@@ -116,11 +116,14 @@ internal object EnemySprites {
      * Draws threat [def] centred at ([cx], [cy]) with radius [r]. [aim] (radians) points at the
      * operative it is fighting; [winding] flashes the trim before an attack; [hit] whitens it.
      */
-    fun DrawScope.draw(def: EnemyDef, cx: Float, cy: Float, r: Float, time: Float, uid: Int, aim: Float, winding: Boolean, hit: Boolean) {
+    fun DrawScope.draw(def: EnemyDef, cx: Float, cy: Float, r: Float, time: Float, uid: Int, aim: Float, winding: Boolean, hit: Boolean,
+                       elite: EliteModifier? = null) {
         val lk = look(def)
         val glitch = lk.form == Form.GLITCH
         var trim = when {
             glitch -> Color.hsv((time * 220f + uid * 47f) % 360f, 0.85f, 1f)
+            // Elites wear their modifier's colour (owner, 2026-10-11: "more distinct").
+            elite != null -> eliteTrim(elite, time, uid)
             lk.spectrum -> Color.hsv((time * 90f + uid * 31f) % 360f, 0.75f, 1f)
             else -> lk.color
         }
@@ -523,71 +526,135 @@ internal object EnemySprites {
 
     // --- elites --------------------------------------------------------------------------
 
-    /** Behind the body: each elite modifier has its own frame. */
+    /** On-screen size of an elite next to a regular threat (hitbox unchanged). */
+    const val ELITE_DRAW_SCALE = 1.3f
+
+    /** The body trim an elite wears: its modifier colour (Corrupted flickers, Volatile throbs). */
+    private fun eliteTrim(m: EliteModifier, time: Float, uid: Int): Color = when (m) {
+        EliteModifier.CORRUPTED -> if (((time * 11f).toInt() + uid) % 7 == 0) Color(0xFFFF2EC4) else Color(m.color)
+        EliteModifier.VOLATILE -> mix(Color(m.color), Color(0xFFFF2D2D), 0.5f + 0.5f * sin(time * 9f + uid))
+        EliteModifier.ARMORED -> Color(0xFFDCE6F0)
+        else -> Color(m.color)
+    }
+
+    /** Behind the body: each modifier's own frame. */
     fun DrawScope.eliteBack(m: EliteModifier, c: Offset, r: Float, time: Float, uid: Int) {
         val col = Color(m.color)
         val p = 0.5f + 0.5f * sin(time * 5f + uid)
-        drawCircle(col.copy(alpha = 0.12f + 0.1f * p), r * 1.7f, c)
+        // A strong floor halo in the modifier colour so elites pop out of any crowd.
+        drawCircle(col.copy(alpha = 0.10f + 0.08f * p), r * 2.1f, c)
+        drawCircle(col.copy(alpha = 0.16f + 0.1f * p), r * 1.65f, c)
         when (m) {
             EliteModifier.ENCRYPTED -> {
-                // Rotating hex cage.
-                val cage = poly(c, r * 1.45f, 6, time * 0.6f)
-                drawPath(cage, col.copy(alpha = 0.12f))
-                drawPath(cage, col, style = Stroke(2.5f, join = StrokeJoin.Round))
+                val cage = poly(c, r * 1.55f, 6, time * 0.6f)
+                drawPath(cage, col.copy(alpha = 0.14f))
+                drawPath(cage, col.copy(alpha = 0.35f), style = Stroke(7f, join = StrokeJoin.Round))
+                drawPath(cage, col, style = Stroke(2.6f, join = StrokeJoin.Round))
+                val inner = poly(c, r * 1.3f, 6, -time * 0.9f)
+                drawPath(inner, col.copy(alpha = 0.6f), style = Stroke(1.4f, join = StrokeJoin.Round))
             }
             EliteModifier.OVERCLOCKED -> {
-                drawCircle(col.copy(alpha = 0.85f), r * 1.4f, c, style = Stroke(2f))
-                for (k in 0 until 3) {
-                    val a = time * 5f + k * MathUtil.TWO_PI / 3 + uid
-                    val p1 = Offset(c.x + cos(a) * r * 1.4f, c.y + sin(a) * r * 1.4f)
-                    val p2 = Offset(c.x + cos(a + 0.25f) * r * 1.65f, c.y + sin(a + 0.25f) * r * 1.65f)
-                    val p3 = Offset(c.x + cos(a + 0.45f) * r * 1.35f, c.y + sin(a + 0.45f) * r * 1.35f)
-                    drawLine(Color.White, p1, p2, 2f); drawLine(col, p2, p3, 2f)
+                // Speed after-images trailing behind, then crackling arcs.
+                for (k in 1..2) drawCircle(col.copy(alpha = 0.22f / k), r * (1f - k * 0.08f), Offset(c.x - k * r * 0.55f, c.y + k * r * 0.1f))
+                drawCircle(col.copy(alpha = 0.9f), r * 1.45f, c, style = Stroke(2.2f))
+                for (k in 0 until 4) {
+                    val a = time * 6f + k * MathUtil.TWO_PI / 4 + uid
+                    val p1 = Offset(c.x + cos(a) * r * 1.45f, c.y + sin(a) * r * 1.45f)
+                    val p2 = Offset(c.x + cos(a + 0.22f) * r * 1.8f, c.y + sin(a + 0.22f) * r * 1.8f)
+                    val p3 = Offset(c.x + cos(a + 0.42f) * r * 1.4f, c.y + sin(a + 0.42f) * r * 1.4f)
+                    drawLine(Color.White, p1, p2, 2.4f, StrokeCap.Round); drawLine(col, p2, p3, 2.4f, StrokeCap.Round)
                 }
             }
             EliteModifier.CORRUPTED -> {
-                drawCircle(col.copy(alpha = 0.7f), r * 1.4f, c, style = Stroke(2.5f))
-                for (k in 0 until 7) {
-                    val a = k * MathUtil.TWO_PI / 7 + uid
+                drawCircle(col.copy(alpha = 0.75f), r * 1.5f, c, style = Stroke(3f))
+                for (k in 0 until 10) {
+                    val a = k * MathUtil.TWO_PI / 10 + uid
                     val drip = ((time * 0.8f + k * 0.31f) % 1f)
-                    drawRect(col.copy(alpha = 1f - drip), Offset(c.x + cos(a) * r * 1.4f - 2f, c.y + sin(a) * r * 1.4f + drip * r * 0.6f), Size(4f, 4f))
+                    val s = 5f * (1f - drip) + 2f
+                    drawRect(col.copy(alpha = 1f - drip), Offset(c.x + cos(a) * r * 1.5f - s / 2, c.y + sin(a) * r * 1.5f + drip * r * 0.8f), Size(s, s))
                 }
             }
             EliteModifier.ARMORED -> {
                 for (k in 0 until 4) {
                     val a = k * 90f + 45f + time * 20f
-                    drawArc(Color(0xFF3A4452), a - 32f, 64f, false, Offset(c.x - r * 1.45f, c.y - r * 1.45f), Size(r * 2.9f, r * 2.9f), style = Stroke(r * 0.32f))
-                    drawArc(col, a - 32f, 64f, false, Offset(c.x - r * 1.45f, c.y - r * 1.45f), Size(r * 2.9f, r * 2.9f), style = Stroke(2f))
+                    drawArc(Color(0xFF3A4452), a - 36f, 72f, false, Offset(c.x - r * 1.5f, c.y - r * 1.5f), Size(r * 3f, r * 3f), style = Stroke(r * 0.42f))
+                    drawArc(Color(0xFFDCE6F0), a - 36f, 72f, false, Offset(c.x - r * 1.5f, c.y - r * 1.5f), Size(r * 3f, r * 3f), style = Stroke(2.2f))
+                    val ra = Math.toRadians(a.toDouble()).toFloat()
+                    drawCircle(Color(0xFFDCE6F0), r * 0.07f, Offset(c.x + cos(ra) * r * 1.5f, c.y + sin(ra) * r * 1.5f))
                 }
             }
             EliteModifier.REPLICATING -> {
+                // Two ghost clones peeling off the body.
                 for (k in 0 until 2) {
                     val a = time * 2.4f + k * MathUtil.PI
-                    val o = Offset(c.x + cos(a) * r * 1.4f, c.y + sin(a) * r * 0.8f)
-                    drawCircle(col.copy(alpha = 0.3f), r * 0.32f, o)
-                    drawCircle(col, r * 0.32f, o, style = Stroke(1.6f))
+                    val o = Offset(c.x + cos(a) * r * 0.55f, c.y + sin(a) * r * 0.3f)
+                    drawCircle(col.copy(alpha = 0.18f), r * 0.95f, o)
+                    drawCircle(col.copy(alpha = 0.45f), r * 0.95f, o, style = Stroke(1.6f))
                 }
-                drawCircle(col.copy(alpha = 0.8f), r * 1.35f, c, style = Stroke(2f))
+                for (k in 0 until 3) {
+                    val a = -time * 1.8f + k * MathUtil.TWO_PI / 3
+                    val o = Offset(c.x + cos(a) * r * 1.6f, c.y + sin(a) * r * 0.95f)
+                    drawCircle(col.copy(alpha = 0.35f), r * 0.26f, o)
+                    drawCircle(col, r * 0.26f, o, style = Stroke(1.6f))
+                }
             }
             EliteModifier.VOLATILE -> {
-                for (k in 0 until 10) {
-                    val a = k * MathUtil.TWO_PI / 10 + time * 1.5f
-                    val f = 0.6f + 0.4f * sin(time * 12f + k * 1.7f)
-                    drawLine(if (k % 2 == 0) col else Color(0xFFFFE14D), Offset(c.x + cos(a) * r * 1.3f, c.y + sin(a) * r * 1.3f),
-                        Offset(c.x + cos(a) * r * (1.3f + 0.35f * f), c.y + sin(a) * r * (1.3f + 0.35f * f)), 3f, StrokeCap.Round)
+                // Hazard-striped warning ring and rising embers.
+                for (k in 0 until 16) {
+                    val a = k * 22.5f + time * 40f
+                    drawArc(if (k % 2 == 0) col else Color(0xFF1A0E04), a, 22.5f, false, Offset(c.x - r * 1.45f, c.y - r * 1.45f), Size(r * 2.9f, r * 2.9f), style = Stroke(r * 0.2f))
                 }
-                drawCircle(col.copy(alpha = 0.8f), r * 1.3f, c, style = Stroke(2f))
+                for (k in 0 until 6) {
+                    val f = ((time * 0.9f + k * 0.17f + uid * 0.05f) % 1f)
+                    val x = c.x + sin(k * 2.3f + uid) * r * 1.1f
+                    drawCircle(Color(0xFFFFE14D).copy(alpha = 1f - f), 2.6f * (1f - f) + 1f, Offset(x, c.y - f * r * 2f))
+                }
             }
         }
     }
 
-    /** In front of the body: a small badge so the modifier reads even in a crowd. */
+    /** In front of the body: a big badge with the modifier's symbol, readable in a crowd. */
     fun DrawScope.eliteFront(m: EliteModifier, c: Offset, r: Float, time: Float) {
         val col = Color(m.color)
-        val b = Offset(c.x, c.y - r * 1.45f)
-        val s = max(4f, r * 0.26f)
-        drawPath(poly(b, s, 4, -MathUtil.PI / 2f), Color(0xFF05070C))
-        drawPath(poly(b, s, 4, -MathUtil.PI / 2f), col, style = Stroke(1.8f, join = StrokeJoin.Round))
-        drawCircle(col.copy(alpha = 0.6f + 0.4f * sin(time * 6f)), s * 0.35f, b)
+        val s = max(7f, r * 0.4f)
+        val b = Offset(c.x, c.y - r * 1.25f - s)
+        val pulse = 0.75f + 0.25f * sin(time * 6f)
+        drawCircle(col.copy(alpha = 0.3f * pulse), s * 1.5f, b)
+        drawPath(poly(b, s * 1.1f, 6, -MathUtil.PI / 2f), Color(0xFF05070C))
+        drawPath(poly(b, s * 1.1f, 6, -MathUtil.PI / 2f), col, style = Stroke(2f, join = StrokeJoin.Round))
+        val w = max(1.5f, s * 0.2f)
+        val st = Stroke(w, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        when (m) {
+            EliteModifier.ENCRYPTED -> { // padlock
+                drawArc(col, 180f, 180f, false, Offset(b.x - s * 0.35f, b.y - s * 0.65f), Size(s * 0.7f, s * 0.7f), style = st)
+                drawRoundRect(col, Offset(b.x - s * 0.5f, b.y - s * 0.3f), Size(s, s * 0.75f), CornerRadius(s * 0.12f))
+                drawCircle(Color(0xFF05070C), s * 0.12f, Offset(b.x, b.y + s * 0.05f))
+            }
+            EliteModifier.OVERCLOCKED -> { // lightning bolt
+                path.reset(); path.moveTo(b.x + s * 0.15f, b.y - s * 0.7f); path.lineTo(b.x - s * 0.35f, b.y + s * 0.08f)
+                path.lineTo(b.x + s * 0.02f, b.y + s * 0.08f); path.lineTo(b.x - s * 0.15f, b.y + s * 0.7f)
+                path.lineTo(b.x + s * 0.38f, b.y - s * 0.12f); path.lineTo(b.x, b.y - s * 0.12f); path.close()
+                drawPath(path, col)
+            }
+            EliteModifier.CORRUPTED -> { // glitched X
+                drawLine(col, Offset(b.x - s * 0.45f, b.y - s * 0.45f), Offset(b.x + s * 0.45f, b.y + s * 0.45f), w * 1.3f, StrokeCap.Round)
+                drawLine(col, Offset(b.x + s * 0.45f, b.y - s * 0.45f), Offset(b.x - s * 0.45f, b.y + s * 0.45f), w * 1.3f, StrokeCap.Round)
+                drawRect(Color.White.copy(alpha = 0.7f), Offset(b.x + s * 0.2f, b.y - s * 0.1f), Size(s * 0.25f, s * 0.12f))
+            }
+            EliteModifier.ARMORED -> { // shield
+                path.reset(); path.moveTo(b.x, b.y - s * 0.65f); path.lineTo(b.x + s * 0.5f, b.y - s * 0.4f)
+                path.lineTo(b.x + s * 0.4f, b.y + s * 0.25f); path.lineTo(b.x, b.y + s * 0.65f)
+                path.lineTo(b.x - s * 0.4f, b.y + s * 0.25f); path.lineTo(b.x - s * 0.5f, b.y - s * 0.4f); path.close()
+                drawPath(path, col)
+            }
+            EliteModifier.REPLICATING -> { // two overlapping squares
+                drawRect(col, Offset(b.x - s * 0.55f, b.y - s * 0.55f), Size(s * 0.7f, s * 0.7f), style = st)
+                drawRect(col, Offset(b.x - s * 0.15f, b.y - s * 0.15f), Size(s * 0.7f, s * 0.7f))
+            }
+            EliteModifier.VOLATILE -> { // warning !
+                drawLine(col, Offset(b.x, b.y - s * 0.6f), Offset(b.x, b.y + s * 0.15f), w * 1.4f, StrokeCap.Round)
+                drawCircle(col, w * 0.8f, Offset(b.x, b.y + s * 0.5f))
+            }
+        }
     }
 }

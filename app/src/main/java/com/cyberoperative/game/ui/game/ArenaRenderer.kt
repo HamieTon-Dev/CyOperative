@@ -1216,14 +1216,16 @@ class ArenaRenderer {
         if (boss == null) {
             // Regular threats: neon emblem sprites (EnemySprites); elites wear their modifier frame.
             val ang = kotlin.math.atan2(g.py - e.y, g.px - e.x)
+            // Elites are drawn 30% larger than their hitbox so they stand out (owner, 2026-10-11).
+            val vr = if (elite != null) e.radius * EnemySprites.ELITE_DRAW_SCALE else e.radius
             with(EnemySprites) {
-                if (elite != null) eliteBack(elite, Offset(cx, cy), e.radius, time, e.uid)
-                draw(e.def, cx, cy, e.radius, time, e.uid, ang, e.state == AiState.WINDUP, e.hitFlash > 0f)
-                if (elite != null) eliteFront(elite, Offset(cx, cy), e.radius, time)
+                if (elite != null) eliteBack(elite, Offset(cx, cy), vr, time, e.uid)
+                draw(e.def, cx, cy, vr, time, e.uid, ang, e.state == AiState.WINDUP, e.hitFlash > 0f, elite)
+                if (elite != null) eliteFront(elite, Offset(cx, cy), vr, time)
             }
             if (e.hp < e.maxHp) {
-                val bw = e.radius * 2f
-                val by = cy - e.radius - (if (elite != null) e.radius * 0.75f else 12f)
+                val bw = vr * 2f
+                val by = cy - vr - (if (elite != null) vr * 1.3f + 10f else 12f)
                 drawRect(Color(0xAA000000), Offset(e.x - bw / 2f, by), Size(bw, 4f))
                 drawRect(Palette.Red, Offset(e.x - bw / 2f, by), Size(bw * (e.hp / e.maxHp).coerceIn(0f, 1f), 4f))
             }
