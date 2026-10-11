@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -75,9 +78,9 @@ internal object GoodGameBody : BossBody {
             for (bx in listOf(-0.15f, 0.15f)) drawCircle(DARK, r * 0.025f, Offset(p.cx + (pl.first + bx) * r, cy + pl.second * r - r * 0.09f))
         }
         // GG stencil.
-        drawContext.canvas.nativeCanvas.drawText("GG", p.cx, cy + r * 0.38f, android.graphics.Paint().apply {
-            color = android.graphics.Color.argb(200, (red.red * 255).toInt(), (red.green * 255).toInt(), (red.blue * 255).toInt())
-            textSize = r * 0.3f; isAntiAlias = true; typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD); textAlign = android.graphics.Paint.Align.CENTER
+        drawGameText("GG", p.cx, cy + r * 0.38f, GameTextPaint(align = GameTextPaint.Align.LEFT).apply {
+            color = argb(200, (red.red * 255).toInt(), (red.green * 255).toInt(), (red.blue * 255).toInt())
+            textSize = r * 0.3f; bold = true; align = GameTextPaint.Align.CENTER
         })
 
         // Smokestacks venting.

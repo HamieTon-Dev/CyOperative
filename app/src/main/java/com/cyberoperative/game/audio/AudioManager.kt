@@ -268,7 +268,7 @@ class AudioManager(private val context: Context) {
         currentTrack = track
         if (track == null) return
         try {
-            val mp = MediaPlayer.create(context, track.res) ?: return
+            val mp = MediaPlayer.create(context, com.cyberoperative.game.platform.musicResource(track.file)) ?: return
             mp.setVolume(musicGain(), musicGain())
             mp.isLooping = !shuffle && pinned != null
             mp.setOnCompletionListener { onTrackFinished() }

@@ -32,7 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.cyberoperative.game.BuildConfig
+import com.cyberoperative.game.platform.AppInfo
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.data.LivingBackground
 import com.cyberoperative.game.data.OperativeSkins
@@ -65,7 +65,7 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             item { Header("◇ GOLD") }
             items(StoreCatalog.diamondPacks, key = { it.productId }) { pack ->
                 StoreRow(title = "◇ ${"%,d".format(pack.diamonds)}", subtitle = "Premium currency", price = pack.usdPrice, accent = Palette.Diamond) {
-                    if (BuildConfig.DEBUG) {
+                    if (AppInfo.debug) {
                         // Google Play Billing is not wired yet; debug builds grant
                         // test ◇ so the store can be exercised. Release builds never do.
                         save.update { StoreManager.grantDiamonds(it, pack.diamonds) }

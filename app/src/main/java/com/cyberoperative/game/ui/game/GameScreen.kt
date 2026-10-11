@@ -1,6 +1,6 @@
 package com.cyberoperative.game.ui.game
 
-import androidx.activity.compose.BackHandler
+import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,7 +45,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.engine.GameMode
@@ -69,12 +68,8 @@ fun GameScreen(
     onNewOperation: () -> Unit,
     screenShake: Boolean = true
 ) {
-    val view = LocalView.current
-    ImmersiveGameplay()
-    DisposableEffect(Unit) {
-        view.keepScreenOn = true
-        onDispose { view.keepScreenOn = false }
-    }
+    com.cyberoperative.game.platform.ImmersiveGameplay()
+    com.cyberoperative.game.platform.KeepScreenOn()
     // Leaving the app mid-fight opens the pause menu, so coming back never
     // drops the player straight into combat.
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle

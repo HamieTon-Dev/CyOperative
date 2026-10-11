@@ -1,6 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
-import androidx.activity.compose.BackHandler
+import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

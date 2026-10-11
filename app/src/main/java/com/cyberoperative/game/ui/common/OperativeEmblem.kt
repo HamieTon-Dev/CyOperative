@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.common
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
@@ -188,10 +191,8 @@ data class HeroPalette(
 /** What the face shield shows. */
 enum class HeroFace { ICON, KEEPER }
 
-private val keeperFacePaint = android.graphics.Paint().apply {
-    isAntiAlias = true
-    textAlign = android.graphics.Paint.Align.CENTER
-    typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+private val keeperFacePaint = GameTextPaint().apply {
+    align = GameTextPaint.Align.CENTER; bold = true
 }
 
 private fun DrawScope.drawFaceShield(skin: OperativeSkin, time: Float, pulse: Float) {
@@ -217,7 +218,7 @@ private fun DrawScope.drawHeroShield(p: HeroPalette, face: HeroFace, time: Float
             val blink = ((time * 0.7f) % 1f) < 0.06f
             keeperFacePaint.textSize = 7.4f
             keeperFacePaint.color = p.face.toArgb()
-            drawContext.canvas.nativeCanvas.drawText(if (blink) "-,.,.-" else "X,.,.X", 54.4f, 49.5f, keeperFacePaint)
+            drawGameText(if (blink) "-,.,.-" else "X,.,.X", 54.4f, 49.5f, keeperFacePaint)
         }
     }
 }

@@ -1,8 +1,5 @@
 package com.cyberoperative.game.ui.game
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -48,8 +45,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -61,9 +56,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.cyberoperative.game.engine.GameMode
@@ -89,46 +81,6 @@ private val ThreatPink = Color(0xFFFF2D6F)
 
 internal fun mono(size: TextUnit, weight: FontWeight = FontWeight.Normal) =
     TextStyle(fontFamily = TerminalFont, fontSize = size, fontWeight = weight, letterSpacing = 0.4.sp)
-
-/**
- * Hides the status bar while gameplay is on screen. A swipe from the top edge
- * shows it transiently (and a second swipe opens notifications / Quick
- * Settings as usual). Navigation bars and gestures are left alone. The bars
- * come back as soon as the game screen leaves the composition.
- */
-@Composable
-fun ImmersiveGameplay() {
-    val view = LocalView.current
-    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(view, lifecycle) {
-        val window = view.context.findActivity()?.window
-        if (window == null) {
-            onDispose { }
-        } else {
-            val controller = WindowCompat.getInsetsController(window, view)
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-            // The system can bring the bars back while the app is away; hide them again on return.
-            val obs = LifecycleEventObserver { _, e ->
-                if (e == Lifecycle.Event.ON_RESUME) controller.hide(WindowInsetsCompat.Type.systemBars())
-            }
-            lifecycle.addObserver(obs)
-            onDispose {
-                // Bars stay hidden app-wide (MainActivity); only the listener goes.
-                lifecycle.removeObserver(obs)
-            }
-        }
-    }
-}
-
-private fun Context.findActivity(): Activity? {
-    var c: Context? = this
-    while (c is ContextWrapper) {
-        if (c is Activity) return c
-        c = c.baseContext
-    }
-    return null
-}
 
 /**
  * True while the notification shade (or another system window) covers the
@@ -280,18 +232,18 @@ private fun CollapsedRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
  */
 @Composable
 private fun HudClock(modifier: Modifier = Modifier) {
-    val ctx = LocalContext.current
-    var text by remember { mutableStateOf(formatClock(ctx)) }
-    LaunchedEffect(ctx) {
+    val is24 = com.cyberoperative.game.platform.rememberIs24Hour()
+    var text by remember { mutableStateOf(formatClock(is24)) }
+    LaunchedEffect(is24) {
         while (true) {
             val now = System.currentTimeMillis()
             delay(60_000L - now % 60_000L + 50L)
-            text = formatClock(ctx)
+            text = formatClock(is24)
         }
     }
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle, ctx) {
-        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) text = formatClock(ctx) }
+    DisposableEffect(lifecycle, is24) {
+        val obs = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) text = formatClock(is24) }
         lifecycle.addObserver(obs)
         onDispose { lifecycle.removeObserver(obs) }
     }
@@ -301,8 +253,7 @@ private fun HudClock(modifier: Modifier = Modifier) {
     )
 }
 
-private fun formatClock(ctx: Context): String {
-    val is24 = android.text.format.DateFormat.is24HourFormat(ctx)
+private fun formatClock(is24: Boolean): String {
     return SimpleDateFormat(if (is24) "HH:mm" else "h:mm", Locale.getDefault()).format(Date())
 }
 

@@ -1,12 +1,11 @@
 package com.cyberoperative.game.audio
 
-import com.cyberoperative.game.R
-
 /** Where a track came from in CyOps TD, which decides where it plays by default. */
 enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT }
 
 /** One owned CyOps TD soundtrack piece, titled with the owner's CyOps TD naming. */
-data class MusicTrack(val id: String, val res: Int, val title: String, val group: TrackGroup)
+/** [file]: the audio file's base name (Android raw resource / PC resource `music/<file>.ogg`). */
+data class MusicTrack(val id: String, val file: String, val title: String, val group: TrackGroup)
 
 /**
  * The full CyOps TD soundtrack (owner, 2026-10-07: "use all of the music
@@ -16,28 +15,28 @@ data class MusicTrack(val id: String, val res: Int, val title: String, val group
  */
 object MusicLibrary {
 
-    private fun level(n: Int, part: Int, res: Int) =
-        MusicTrack("level${n}_$part", res, "CyOps TD - Level $n ($part)", TrackGroup.LEVEL)
+    private fun level(n: Int, part: Int, file: String) =
+        MusicTrack("level${n}_$part", file, "CyOps TD - Level $n ($part)", TrackGroup.LEVEL)
 
     val all: List<MusicTrack> = listOf(
-        MusicTrack("menu_1", R.raw.track_menu, "CyOps TD - Main Menu (1)", TrackGroup.MENU),
-        MusicTrack("menu_2", R.raw.track_menu_2, "CyOps TD - Main Menu (2)", TrackGroup.MENU),
-        level(1, 1, R.raw.track_level1), level(1, 2, R.raw.track_level1_2),
-        level(2, 1, R.raw.track_level2), level(2, 2, R.raw.track_level2_2),
-        level(3, 1, R.raw.track_level3), level(3, 2, R.raw.track_level3_2),
-        level(4, 1, R.raw.track_level4), level(4, 2, R.raw.track_level4_2),
-        level(5, 1, R.raw.track_level5), level(5, 2, R.raw.track_level5_2),
-        level(6, 1, R.raw.track_level6), level(6, 2, R.raw.track_level6_2),
-        level(7, 1, R.raw.track_level7), level(7, 2, R.raw.track_level7_2),
-        level(8, 1, R.raw.track_level8), level(8, 2, R.raw.track_level8_2),
-        level(9, 1, R.raw.track_level9), level(9, 2, R.raw.track_level9_2),
-        level(10, 1, R.raw.track_level10), level(10, 2, R.raw.track_level10_2),
-        MusicTrack("boss2_1", R.raw.track_boss2_1, "CyOps - Boss 2 (1)", TrackGroup.BOSS),
-        MusicTrack("boss2_2", R.raw.track_boss2_2, "CyOps - Boss 2 (2)", TrackGroup.BOSS),
-        MusicTrack("boss2_remix_1", R.raw.track_boss2_remix_1, "CyOps - Boss 2 Remix (1)", TrackGroup.BOSS),
-        MusicTrack("boss2_remix_2", R.raw.track_boss2_remix_2, "CyOps - Boss 2 Remix (2)", TrackGroup.BOSS),
-        MusicTrack("liminal_space", R.raw.track_liminal_space, "CyOps TD - Liminal Space", TrackGroup.AMBIENT),
-        MusicTrack("liminal_haze", R.raw.track_liminal_haze, "CyOps TD - Liminal Haze", TrackGroup.AMBIENT)
+        MusicTrack("menu_1", "track_menu", "CyOps TD - Main Menu (1)", TrackGroup.MENU),
+        MusicTrack("menu_2", "track_menu_2", "CyOps TD - Main Menu (2)", TrackGroup.MENU),
+        level(1, 1, "track_level1"), level(1, 2, "track_level1_2"),
+        level(2, 1, "track_level2"), level(2, 2, "track_level2_2"),
+        level(3, 1, "track_level3"), level(3, 2, "track_level3_2"),
+        level(4, 1, "track_level4"), level(4, 2, "track_level4_2"),
+        level(5, 1, "track_level5"), level(5, 2, "track_level5_2"),
+        level(6, 1, "track_level6"), level(6, 2, "track_level6_2"),
+        level(7, 1, "track_level7"), level(7, 2, "track_level7_2"),
+        level(8, 1, "track_level8"), level(8, 2, "track_level8_2"),
+        level(9, 1, "track_level9"), level(9, 2, "track_level9_2"),
+        level(10, 1, "track_level10"), level(10, 2, "track_level10_2"),
+        MusicTrack("boss2_1", "track_boss2_1", "CyOps - Boss 2 (1)", TrackGroup.BOSS),
+        MusicTrack("boss2_2", "track_boss2_2", "CyOps - Boss 2 (2)", TrackGroup.BOSS),
+        MusicTrack("boss2_remix_1", "track_boss2_remix_1", "CyOps - Boss 2 Remix (1)", TrackGroup.BOSS),
+        MusicTrack("boss2_remix_2", "track_boss2_remix_2", "CyOps - Boss 2 Remix (2)", TrackGroup.BOSS),
+        MusicTrack("liminal_space", "track_liminal_space", "CyOps TD - Liminal Space", TrackGroup.AMBIENT),
+        MusicTrack("liminal_haze", "track_liminal_haze", "CyOps TD - Liminal Haze", TrackGroup.AMBIENT)
     )
 
     fun byId(id: String?): MusicTrack? = all.firstOrNull { it.id == id }

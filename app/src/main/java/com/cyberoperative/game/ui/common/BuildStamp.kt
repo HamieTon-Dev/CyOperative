@@ -10,10 +10,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cyberoperative.game.BuildConfig
+import com.cyberoperative.game.platform.AppInfo
 
 /** The build the player is on (owner, 2026-10-11): small, soft, bottom-right on every screen. */
-fun buildStampText(): String = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+fun buildStampText(): String = "v${AppInfo.versionName} (${AppInfo.versionCode})"
 
 @Composable
 fun BoxScope.BuildStamp() {

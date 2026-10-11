@@ -1,6 +1,6 @@
 package com.cyberoperative.game.ui
 
-import androidx.activity.compose.BackHandler
+import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier

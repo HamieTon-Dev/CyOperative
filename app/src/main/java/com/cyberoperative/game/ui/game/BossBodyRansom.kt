@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -42,9 +45,9 @@ internal object RansomBody : BossBody {
             val a = t * 0.4f + k * 1.047f
             val gx = p.cx + cos(a) * r * 1.45f
             val gy = cy - r * 0.2f + sin(a) * r * 0.55f
-            drawContext.canvas.nativeCanvas.drawText(glyphs[k], gx, gy, android.graphics.Paint().apply {
-                color = android.graphics.Color.argb((120 + 80 * sin(t * 2f + k)).toInt().coerceIn(0, 255), (gold.red * 255).toInt(), (gold.green * 255).toInt(), (gold.blue * 255).toInt())
-                textSize = r * 0.22f; isAntiAlias = true; typeface = android.graphics.Typeface.MONOSPACE; textAlign = android.graphics.Paint.Align.CENTER
+            drawGameText(glyphs[k], gx, gy, GameTextPaint(align = GameTextPaint.Align.LEFT).apply {
+                color = argb((120 + 80 * sin(t * 2f + k)).toInt().coerceIn(0, 255), (gold.red * 255).toInt(), (gold.green * 255).toInt(), (gold.blue * 255).toInt())
+                textSize = r * 0.22f; align = GameTextPaint.Align.CENTER
             })
         }
 

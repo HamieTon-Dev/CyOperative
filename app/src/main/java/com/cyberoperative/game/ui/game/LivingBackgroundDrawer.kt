@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -64,9 +67,8 @@ object LivingBackgroundDrawer {
                 }
             }
             LivingBackground.RAINFALL -> {
-                val canvas = drawContext.canvas.nativeCanvas
                 val paint = rainPaint
-                paint.color = android.graphics.Color.argb(255, ((bg.tint shr 16) and 0xFF).toInt(), ((bg.tint shr 8) and 0xFF).toInt(), (bg.tint and 0xFF).toInt())
+                paint.color = argb(255, ((bg.tint shr 16) and 0xFF).toInt(), ((bg.tint shr 8) and 0xFF).toInt(), (bg.tint and 0xFF).toInt())
                 for (col in 0 until 16) {
                     val x = 24f + col * 46f
                     val speed = 90f + (col % 5) * 46f
@@ -75,7 +77,7 @@ object LivingBackgroundDrawer {
                         val y = head - n * 26f
                         if (y < 0f || y > h) continue
                         paint.alpha = (bg.intensity * (1f - n / 6f)).toInt().coerceAtLeast(0)
-                        canvas.drawText(binary[(col + n + (time * 3).toInt()) % 2], x, y, paint)
+                        drawGameText(binary[(col + n + (time * 3).toInt()) % 2], x, y, paint)
                     }
                 }
             }
@@ -121,9 +123,7 @@ object LivingBackgroundDrawer {
         }
     }
 
-    private val rainPaint = android.graphics.Paint().apply {
-        isAntiAlias = true
+    private val rainPaint = GameTextPaint(align = GameTextPaint.Align.LEFT).apply {
         textSize = 16f
-        typeface = android.graphics.Typeface.MONOSPACE
     }
 }

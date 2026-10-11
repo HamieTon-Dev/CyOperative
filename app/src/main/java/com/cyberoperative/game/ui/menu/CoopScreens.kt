@@ -1,9 +1,5 @@
 package com.cyberoperative.game.ui.menu
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -79,7 +74,8 @@ fun CoopScreen(
     var status by remember { mutableStateOf(if (backend.available) "CONNECTING…" else "") }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val ctx = LocalContext.current
+    val copyText = com.cyberoperative.game.platform.rememberCopyText()
+    val shareText = com.cyberoperative.game.platform.rememberShareText()
 
     LaunchedEffect(backend) {
         if (!backend.available) return@LaunchedEffect
@@ -124,16 +120,11 @@ fun CoopScreen(
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CyberButton("COPY", Modifier.weight(1f)) {
-                            (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                                .setPrimaryClip(ClipData.newPlainText("Friend code", profileNow.code))
+                            copyText(profileNow.code)
                             message = "Friend code copied"
                         }
                         CyberButton("SHARE", Modifier.weight(1f)) {
-                            val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, "Add me in Cyber Operative co-op! Friend code: ${profileNow.code}")
-                            }
-                            ctx.startActivity(Intent.createChooser(send, "Share friend code"))
+                            shareText("Share friend code", "Add me in Cyber Operative co-op! Friend code: ${profileNow.code}")
                         }
                     }
                 }

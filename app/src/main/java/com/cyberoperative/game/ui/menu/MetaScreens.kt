@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.cyberoperative.game.BuildConfig
+import com.cyberoperative.game.platform.AppInfo
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.data.Bosses
 import com.cyberoperative.game.data.Enemies
@@ -400,7 +400,7 @@ fun AboutScreen(onBack: () -> Unit) {
             TerminalCard(accent = Palette.Cyan) {
                 Column {
                     Text("CYBER OPERATIVE", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
-                    Text("Version ${BuildConfig.VERSION_NAME}", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text("Version ${AppInfo.versionName}", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         "An endless cyber-themed roguelike action RPG. Enter the network, eliminate " +

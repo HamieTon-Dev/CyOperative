@@ -1,7 +1,8 @@
 package com.cyberoperative.game.ui.game
 
-import android.graphics.Paint
-import android.graphics.Typeface
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -55,16 +56,8 @@ import kotlin.math.sin
  */
 class ArenaRenderer {
 
-    private val textPaint = Paint().apply {
-        isAntiAlias = true
-        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        textAlign = Paint.Align.CENTER
-    }
-    private val tagPaint = Paint().apply {
-        isAntiAlias = true
-        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
-        textAlign = Paint.Align.CENTER
-    }
+    private val textPaint = GameTextPaint(bold = true).apply { shadow(3f, 1f, 0xFF000000.toInt()) }
+    private val tagPaint = GameTextPaint(bold = true)
     private val shapePath = Path()
 
     // Depth-sort scratch (no per-frame allocation).
@@ -463,8 +456,8 @@ class ArenaRenderer {
         tagPaint.textSize = 14f
         tagPaint.color = Palette.Gold.toArgb()
         // Text must not read backwards on the mirrored side.
-        if (mirrored) withTransform({ scale(-1f, 1f, Offset(46f, 0f)) }) { drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint) }
-        else drawContext.canvas.nativeCanvas.drawText("SHOP", 46f, cy - half - 14f, tagPaint)
+        if (mirrored) withTransform({ scale(-1f, 1f, Offset(46f, 0f)) }) { drawGameText("SHOP", 46f, cy - half - 14f, tagPaint) }
+        else drawGameText("SHOP", 46f, cy - half - 14f, tagPaint)
     }
 
     private fun mix(a: Color, b: Color, t: Float) =
@@ -990,7 +983,7 @@ class ArenaRenderer {
                     }
                     tagPaint.textSize = 18f
                     tagPaint.color = Palette.Gold.toArgb()
-                    drawContext.canvas.nativeCanvas.drawText("[\$\$\$]", r.centerX, topY + r.height / 2f + 6f, tagPaint)
+                    drawGameText("[\$\$\$]", r.centerX, topY + r.height / 2f + 6f, tagPaint)
                 }
             }
             ObstacleKind.BLAST_WALL -> {
@@ -1122,16 +1115,16 @@ class ArenaRenderer {
                         drawRoundRect(col, Offset(cx - 16f, cy - 26f + bob), Size(32f, 26f), CornerRadius(4f), style = Stroke(2f))
                         tagPaint.textSize = 10f
                         tagPaint.color = col.toArgb()
-                        drawContext.canvas.nativeCanvas.drawText(it.def.glyph.take(5), cx, cy - 9f + bob, tagPaint)
+                        drawGameText(it.def.glyph.take(5), cx, cy - 9f + bob, tagPaint)
                     } else {
                         tagPaint.textSize = 10f
                         tagPaint.color = Palette.TextMuted.toArgb()
-                        drawContext.canvas.nativeCanvas.drawText("SOLD", cx, cy - 9f, tagPaint)
+                        drawGameText("SOLD", cx, cy - 9f, tagPaint)
                     }
                     // Price tag on the counter front.
                     tagPaint.textSize = 11f
                     tagPaint.color = (if (it.sold) Palette.TextMuted else Palette.Euro).toArgb()
-                    drawContext.canvas.nativeCanvas.drawText(if (it.sold) "---" else "€${it.price}", cx, frontTop + h * 0.7f, tagPaint)
+                    drawGameText(if (it.sold) "---" else "€${it.price}", cx, frontTop + h * 0.7f, tagPaint)
                 }
             }
             ObstacleKind.CRATES -> {
@@ -1236,8 +1229,8 @@ class ArenaRenderer {
             }
             if (lost) {
                 tagPaint.textSize = 16f
-                tagPaint.color = android.graphics.Color.argb((170 + 80 * sin(time * 5f + e.uid)).toInt().coerceIn(0, 255), 200, 210, 255)
-                drawContext.canvas.nativeCanvas.drawText("?", cx, cy - vr - 8f + sin(time * 3f + e.uid) * 2f, tagPaint)
+                tagPaint.color = argb((170 + 80 * sin(time * 5f + e.uid)).toInt().coerceIn(0, 255), 200, 210, 255)
+                drawGameText("?", cx, cy - vr - 8f + sin(time * 3f + e.uid) * 2f, tagPaint)
             }
             return
         }
@@ -1303,7 +1296,7 @@ class ArenaRenderer {
         // Tag (CyOps TD ASCII identity) under the eyes.
         tagPaint.textSize = if (boss != null) 18f else max(9f, e.radius * 0.55f)
         tagPaint.color = 0xFF14040A.toInt()
-        drawContext.canvas.nativeCanvas.drawText(e.def.tag, cx, cy + e.radius * 0.62f, tagPaint)
+        drawGameText(e.def.tag, cx, cy + e.radius * 0.62f, tagPaint)
         if (boss == null && e.hp < e.maxHp) {
             val bw = e.radius * 2f
             val by = cy - e.radius - 12f
@@ -2427,7 +2420,6 @@ class ArenaRenderer {
     }
 
     private fun DrawScope.drawTexts(g: GameEngine) {
-        val canvas = drawContext.canvas.nativeCanvas
         for (t in g.texts.items) {
             if (!t.active) continue
             val color = when (t.kind) {
@@ -2448,8 +2440,7 @@ class ArenaRenderer {
             textPaint.textSize = size
             textPaint.color = color
             textPaint.alpha = (min(1f, t.life * 3f) * 255).toInt()
-            textPaint.setShadowLayer(3f, 0f, 1f, 0xFF000000.toInt())
-            canvas.drawText(t.text, t.x, t.y - 30f, textPaint)
+            drawGameText(t.text, t.x, t.y - 30f, textPaint)
         }
     }
 

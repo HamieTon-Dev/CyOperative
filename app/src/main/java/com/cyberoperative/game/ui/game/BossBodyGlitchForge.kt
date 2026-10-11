@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -68,13 +71,13 @@ internal object GlitchForgeBody : BossBody {
         drawRect(FACE_DARK, Offset(p.cx - w * 0.38f, frontTop + h * 0.15f), Size(w * 0.76f, h * 0.7f))
         drawRect(mag.copy(alpha = 0.6f), Offset(p.cx - w * 0.38f, frontTop + h * 0.15f), Size(w * 0.76f, h * 0.7f), style = Stroke(1.8f))
         val glyphs = listOf("}", "#", "¦", "≡", "∆", "/")
-        val gp = android.graphics.Paint().apply {
-            color = android.graphics.Color.argb((200 * (0.6f + 0.4f * pulse)).toInt(), 255, 60, 170)
-            textSize = r * 0.32f; isAntiAlias = true; typeface = android.graphics.Typeface.MONOSPACE
+        val gp = GameTextPaint(align = GameTextPaint.Align.LEFT).apply {
+            color = argb((200 * (0.6f + 0.4f * pulse)).toInt(), 255, 60, 170)
+            textSize = r * 0.32f
         }
         for (k in 0 until 4) {
             val gch = glyphs[((t * 3f).toInt() + k * 2) % glyphs.size]
-            drawContext.canvas.nativeCanvas.drawText(gch, p.cx - w * 0.3f + k * w * 0.18f, frontTop + h * (0.45f + 0.25f * (k % 2)), gp)
+            drawGameText(gch, p.cx - w * 0.3f + k * w * 0.18f, frontTop + h * (0.45f + 0.25f * (k % 2)), gp)
         }
         // Side vents.
         for (s in listOf(-1f, 1f)) for (k in 0 until 3) drawRect(mag.copy(alpha = 0.5f + 0.4f * pulse), Offset(p.cx + s * w * 0.45f - w * 0.02f, frontTop + h * (0.25f + 0.2f * k)), Size(w * 0.04f, h * 0.08f))

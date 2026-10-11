@@ -61,9 +61,7 @@ object OperativeMark {
             SkinEffect.NEON -> {
                 // Glow drifts a little around the skin's own edge hue (the NEON
                 // OPERATIVE face stays green, like the icon), never far from it.
-                val hsv = FloatArray(3)
-                android.graphics.Color.colorToHSV(skin.edge.toInt(), hsv)
-                val hue = (hsv[0] + 14f * sin(time * 0.9f) + 360f) % 360f
+                val hue = (hueOf(skin.edge) + 14f * sin(time * 0.9f) + 360f) % 360f
                 val faceGlow = 0.85f + 0.15f * sin(time * 2.6f)
                 Colors(Color.hsv(hue, 0.85f, 1f), Color.hsv(152f, 0.8f, faceGlow), body)
             }
@@ -126,4 +124,20 @@ fun OperativeMarkIcon(skin: OperativeSkin, modifier: Modifier = Modifier, animat
         val w = minOf(size.width, size.height * OperativeMark.W / OperativeMark.H)
         with(OperativeMark) { drawOperative(skin, time, center, w) }
     }
+}
+
+/** Hue (0..360) of an ARGB colour (shared replacement for android.graphics.Color.colorToHSV). */
+internal fun hueOf(argb: Long): Float {
+    val r = ((argb shr 16) and 0xFF) / 255f
+    val g = ((argb shr 8) and 0xFF) / 255f
+    val b = (argb and 0xFF) / 255f
+    val max = maxOf(r, g, b)
+    val d = max - minOf(r, g, b)
+    if (d == 0f) return 0f
+    val h = when (max) {
+        r -> ((g - b) / d) % 6f
+        g -> (b - r) / d + 2f
+        else -> (r - g) / d + 4f
+    } * 60f
+    return if (h < 0f) h + 360f else h
 }

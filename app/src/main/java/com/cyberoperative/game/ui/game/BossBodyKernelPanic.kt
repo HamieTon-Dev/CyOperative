@@ -1,5 +1,8 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.platform.drawGameText
+import com.cyberoperative.game.ui.common.GameTextPaint
+import com.cyberoperative.game.ui.common.argb
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -101,9 +104,9 @@ internal object KernelPanicBody : BossBody {
         // Error hex scrolling across the bottom of the die.
         val codes = listOf("0x0D", "PANIC", "0xDEAD", "BSOD", "0xC0")
         val code = codes[((t * 1.5f).toInt()) % codes.size]
-        drawContext.canvas.nativeCanvas.drawText(code, cx, cy + d * 0.62f, android.graphics.Paint().apply {
-            color = android.graphics.Color.argb(220, (amb.red * 255).toInt(), (amb.green * 255).toInt(), (amb.blue * 255).toInt())
-            textSize = r * 0.16f; isAntiAlias = true; typeface = android.graphics.Typeface.MONOSPACE; textAlign = android.graphics.Paint.Align.CENTER; isFakeBoldText = true
+        drawGameText(code, cx, cy + d * 0.62f, GameTextPaint(align = GameTextPaint.Align.LEFT).apply {
+            color = argb(220, (amb.red * 255).toInt(), (amb.green * 255).toInt(), (amb.blue * 255).toInt())
+            textSize = r * 0.16f; align = GameTextPaint.Align.CENTER; bold = true
         })
 
         // Sparks arcing between pins.
