@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.4 (versionCode 68) — 2026-10-11 · Full-screen, fewer accidental Backs
+### Changed (owner: "hide the bottom home and back buttons… swipe up to see them again… too easy to accidentally press back")
+- **Full immersive mode on every screen.** The status bar and the bottom navigation bar (home, back,
+  recents) are hidden.
+  - A swipe in from the edge shows them for a moment, then they hide again by themselves.
+  - They are re-hidden whenever the app comes back to the front.
+  - Before, only the status bar was hidden, and only during gameplay.
+- **During gameplay, the edge Back-swipe is blocked** in the steering area.
+  - The game blocks the system gesture zone along the side edges: Android allows up to 200dp per
+    edge, counted from the bottom, which is where the joystick thumb sits.
+  - An accidental Back during a run only ever opens the pause menu.
+
 ## 0.19.3 (versionCode 67) — 2026-10-11 · Phantom cloak actually loses them
 ### Fixed (owner: "Enemies still track, shoot at, and move towards the player while cloaked")
 - **No closing in:** threats that lose a cloaked Phantom no longer walk to the exact spot where it

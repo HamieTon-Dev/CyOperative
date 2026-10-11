@@ -106,18 +106,16 @@ fun ImmersiveGameplay() {
             onDispose { }
         } else {
             val controller = WindowCompat.getInsetsController(window, view)
-            val previousBehavior = controller.systemBarsBehavior
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.statusBars())
-            // The system can bring the bar back while the app is away; hide it again on return.
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            // The system can bring the bars back while the app is away; hide them again on return.
             val obs = LifecycleEventObserver { _, e ->
-                if (e == Lifecycle.Event.ON_RESUME) controller.hide(WindowInsetsCompat.Type.statusBars())
+                if (e == Lifecycle.Event.ON_RESUME) controller.hide(WindowInsetsCompat.Type.systemBars())
             }
             lifecycle.addObserver(obs)
             onDispose {
+                // Bars stay hidden app-wide (MainActivity); only the listener goes.
                 lifecycle.removeObserver(obs)
-                controller.show(WindowInsetsCompat.Type.statusBars())
-                controller.systemBarsBehavior = previousBehavior
             }
         }
     }

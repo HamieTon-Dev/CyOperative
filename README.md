@@ -16,7 +16,7 @@ Play **co-op** with a friend (friend codes, invites, live two-player runs; see `
 
 ## Project status
 
-`0.19.3` — Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
+`0.19.4` — Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
 
 | | |
 |---|---|

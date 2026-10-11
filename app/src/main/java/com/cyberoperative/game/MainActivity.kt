@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.cyberoperative.game.ui.AppRoot
 import com.cyberoperative.game.ui.theme.CyberOperativeTheme
 
@@ -14,6 +17,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        hideSystemBars()
         setContent {
             CyberOperativeTheme {
                 AppRoot(save = app.save, audio = app.audio, coop = app.coop)
@@ -29,5 +33,23 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         app.audio.onForeground()
+        hideSystemBars()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemBars()
+    }
+
+    /**
+     * Full immersive mode on every screen (owner, 2026-10-11: "hide the bottom home and back
+     * buttons… swipe up from bottom to see them again… too easy to accidentally press back").
+     * Status and navigation bars are hidden; a swipe from the edge shows them for a moment and
+     * they hide again by themselves.
+     */
+    private fun hideSystemBars() {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
     }
 }

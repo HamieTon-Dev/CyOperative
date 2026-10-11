@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -139,6 +140,9 @@ fun GameScreen(
         Canvas(
             Modifier
                 .fillMaxSize()
+                // Steering thumbs near the side edges shouldn't trigger the system Back swipe.
+                // Android honours up to 200dp per edge, bottom-most first: where the stick lives.
+                .systemGestureExclusion()
                 .pointerInput(session) {
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
