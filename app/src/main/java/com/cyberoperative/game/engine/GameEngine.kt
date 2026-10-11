@@ -181,6 +181,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Extra exit doors this room (PC); the top-centre gate is always there too. */
     val exitDoors = ArrayList<ExitDoor>(3)
     private val doorRng = Random(config.seed xor 0xD0012EL)
+    /** PC rules: power-ups drop as upgrade chips instead of the card screen. */
+    val chipRules: Boolean get() = config.consumables
+    /** Chips this room still plans to drop from kills, and chips dropped not yet counted. */
+    private var chipBudget = 0
+    private var chipsDropped = 0
+    private var lastKillX = 0f
+    private var lastKillY = 0f
+    /** A weapon chip waiting on the swap prompt (slots full, room clear). */
+    var swapChip: Loot? = null
+        private set
+    /** The last upgrade picked up (name, rarity) for the HUD line, and a serial so the UI can animate it. */
+    var pickupName = ""
+        private set
+    var pickupRarity = com.cyberoperative.game.data.Rarity.COMMON
+        private set
+    var pickupSerial = 0
+        private set
     /** The operative the rules are being applied to right now (outside [update]: the host / solo player). */
     private var cur: Operative = ops[0]
     /** The operative this device plays: 0 on the host / solo, 1 on a co-op guest. */
@@ -955,6 +972,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Every operative still in the run gets a level-up pick. */
     private fun grantPick(n: Int = 1) {
+        if (chipRules) {
+            // Upgrade chips (owner, 2026-10-11): picks become chips on the floor, no card screen.
+            // Chips already dropped from kills this room count toward it.
+            val credit = min(n, chipsDropped)
+            chipsDropped -= credit
+            repeat(n - credit) { k -> dropChip(lastKillX + (k % 3 - 1) * 46f, lastKillY + (k / 3) * 46f) }
+            return
+        }
         for (o in ops) if (!o.gone) o.pendingUpgrades += n
     }
 
@@ -1086,6 +1111,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         fx.clear()
         if (!mirror) sweepLoot() else loot.clear()
         exitDoors.clear()
+        swapChip = null
+        chipsDropped = 0
+        chipBudget = 0
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0); bossCharge = 0f
         for (o in ops) { o.cloakTime = 0f; o.cloaked = false }
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
@@ -1164,6 +1192,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 else "${plan.enemyCount} THREATS · ${plan.arena.name}",
                 1.6f
             )
+        }
+        // Upgrade chips: a normal room drops the pick its clear would have given from its kills.
+        if (chipRules && mode == GameMode.CAMPAIGN && plan.kind != LevelKind.BOSS && plan.kind != LevelKind.SHOP) {
+            chipBudget = 1 + (if (plan.kind == LevelKind.EVENT) 1 else 0)
         }
     }
 
@@ -1477,7 +1509,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      */
     private fun openExtraDoors() {
         exitDoors.clear()
-        if (!com.cyberoperative.game.data.ArenaShape.wide || mode != GameMode.CAMPAIGN || inShop || mirror) return
+        // PC rules (Steam, or Android's PC mode in portrait or landscape).
+        if (!config.consumables || mode != GameMode.CAMPAIGN || inShop || mirror) return
         val roll = doorRng.nextFloat()
         val extra = when {
             roll < EXTRA_DOOR_ODDS[0] -> 0
@@ -2068,6 +2101,68 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         LootKind.HP_CHARGE -> o.hpCharges >= MAX_HP_CHARGES
         LootKind.PACKET_BOMB -> o.packetBombs >= MAX_PACKET_BOMBS
         LootKind.CASH -> false
+        // A new weapon with every slot taken waits for the swap prompt (or is walked over).
+        LootKind.UPGRADE -> l.declined || chipDef(l)?.let { o.build.needsSlot(it) } != false
+    }
+
+    private fun chipDef(l: Loot): com.cyberoperative.game.data.UpgradeDef? = l.upgradeId?.let { Upgrades.byIdOrNull(it) }
+
+    /** Drops one upgrade chip, its power-up rolled now (same odds as a card). */
+    private fun dropChip(x: Float, y: Float) {
+        if (mirror) return
+        val owner = ops.firstOrNull { it.alive } ?: ops[0]
+        val pick = owner.build.rollOffer(lootRng, count = 1, luck = currentLuck()).firstOrNull() ?: return
+        arena.pushOut(x, y, 14f)
+        loot += Loot(LootKind.UPGRADE, arena.out[0], arena.out[1], upgradeId = pick.def.id)
+    }
+
+    /** Applies a chip's power-up to [o] (swapping out [replace] when its weapon slots are full). */
+    private fun applyChip(o: Operative, def: com.cyberoperative.game.data.UpgradeDef, replace: String? = null) {
+        cur = o
+        try {
+            // Not offerable to this operative any more (maxed, or a co-op partner's build): roll a fresh one.
+            val d = if (o.build.isEligible(def)) def else o.build.rollOffer(lootRng, count = 1, luck = currentLuck()).firstOrNull()?.def ?: return
+            o.offer = listOf(UpgradeOffer(d, if (d.instant) 1 else o.build.level(d.id) + 1))
+            o.pendingUpgrades = 1
+            takeOffered(0, replace)
+            o.offer = emptyList()
+            o.pendingUpgrades = 0
+            if (o === ops[primary]) { pickupName = d.name; pickupRarity = d.rarity; pickupSerial++ }
+            addPulse(o.px, o.py, 60f, 0.35f, d.rarity.color)
+        } finally { cur = ops[primary] }
+    }
+
+    /** UI: the swap prompt for a weapon chip. [replace] = weapon to give up, or null to keep yours. */
+    fun answerChipSwap(replace: String?) {
+        val l = swapChip ?: return
+        swapChip = null
+        val def = chipDef(l) ?: return
+        val o = ops[primary]
+        if (replace != null && replace in o.build.weapons()) {
+            loot.remove(l)
+            applyChip(o, def, replace)
+            return
+        }
+        // Kept their weapons: the chip is thrown to the middle of the arena, clear of other pickups.
+        throwToMiddle(l)
+    }
+
+    private fun throwToMiddle(l: Loot) {
+        val cx = arena.width / 2f
+        val cy = arena.height / 2f
+        for (ring in 0 until 12) {
+            val n = if (ring == 0) 1 else ring * 6
+            for (i in 0 until n) {
+                val a = i * MathUtil.TWO_PI / n
+                val x = cx + cos(a) * ring * 56f
+                val y = cy + sin(a) * ring * 56f
+                if (!arena.isFree(x, y, 22f)) continue
+                if (loot.any { it !== l && MathUtil.dist(it.x, it.y, x, y) < 50f }) continue
+                l.x = x; l.y = y; l.declined = false
+                addPulse(x, y, 50f, 0.3f, 0xFFB8C4D6)
+                return
+            }
+        }
     }
 
     private fun collect(o: Operative, l: Loot, quiet: Boolean = false) {
@@ -2075,11 +2170,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             LootKind.HP_CHARGE -> o.hpCharges++
             LootKind.PACKET_BOMB -> o.packetBombs++
             LootKind.CASH -> eurosEarned += l.amount
+            LootKind.UPGRADE -> { chipDef(l)?.let { applyChip(o, it) }; return }
         }
         if (!quiet) addText(l.x, l.y - 26f, when (l.kind) {
             LootKind.HP_CHARGE -> "+1 HP CHARGE"
             LootKind.PACKET_BOMB -> "+1 PACKET BOMB"
             LootKind.CASH -> "+€${l.amount}"
+            LootKind.UPGRADE -> ""
         }, TextKind.INFO)
     }
 
@@ -2110,12 +2207,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 val d = MathUtil.dist(o.px, o.py, l.x, l.y)
                 if (d < bestD) { bestD = d; best = o }
             }
+            if (best == null && l.kind == LootKind.UPGRADE && !l.declined && phase != Phase.COMBAT && swapChip == null) {
+                // Room clear and a weapon chip with full slots underfoot: ask about a swap.
+                val me = ops[primary]
+                if (me.alive && MathUtil.dist(me.px, me.py, l.x, l.y) < LOOT_PICKUP) { swapChip = l; l.declined = true }
+            }
+            if (l.declined && l.kind == LootKind.UPGRADE && swapChip !== l) {
+                val me = ops[primary]
+                if (MathUtil.dist(me.px, me.py, l.x, l.y) > LOOT_PICKUP * 2f) l.declined = false
+            }
             val o = best ?: continue
             if (bestD < LOOT_PICKUP) {
                 collect(o, l, quiet = l.kind == LootKind.CASH && vacuum)
                 chime = true
                 it.remove()
-            } else if (vacuum || bestD < LOOT_MAGNET) {
+            } else if ((vacuum && l.kind != LootKind.UPGRADE) || bestD < LOOT_MAGNET) {
                 // Room clear: everything streams in, faster the longer it flies.
                 val speed = if (vacuum) 520f + 900f * min(1f, l.age * 0.5f) else 260f
                 val k = min(1f, speed * dt / bestD)
@@ -2985,6 +3091,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             elitesDefeated++
             dropLoot(e.x, e.y, ELITE_HP_DROP, ELITE_BOMB_DROP)
         }
+        lastKillX = e.x; lastKillY = e.y
+        if (chipRules && !mirror && chipBudget > 0 && phase == Phase.COMBAT) {
+            // Spread this room's planned chips over its kills: each kill rolls for one.
+            val left = max(1, levelEnemyTotal - levelKills + 1)
+            if (lootRng.nextFloat() < chipBudget.toFloat() / left) {
+                chipBudget--
+                chipsDropped++
+                dropChip(e.x, e.y)
+            }
+        }
         val s = stats
         val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
         gainXp(e.def.xp * (if (e.isElite) EliteModifier.REWARD_MUL else 1f) * s.xpMul)
@@ -3832,6 +3948,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         bossesDefeated++
         val b = boss
         dropLoot(b?.x ?: arena.width / 2f, b?.y ?: arena.height / 2f, BOSS_HP_DROP, BOSS_BOMB_DROP)
+        lastKillX = b?.x ?: arena.width / 2f; lastKillY = (b?.y ?: arena.height / 2f) + 40f
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
@@ -4029,7 +4146,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.timer = h.timer; n.duration = h.duration; n.windup = h.windup; n.color = h.color
             w.hazards += n
         }
-        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y)
+        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, (l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1).toFloat())
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
             if (!z.active) continue
@@ -4187,7 +4304,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             p.life = n.life; p.owner = n.owner; p.returning = false; p.splash = 0f
         }
         loot.clear()
-        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2])
+        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id)
         exitDoors.clear()
         for (d in w.exitDoors) exitDoors += ExitDoor(d[0], d[1], d[2].toInt())
         for (h in hazards.items) h.active = false

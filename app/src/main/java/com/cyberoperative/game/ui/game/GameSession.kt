@@ -102,6 +102,11 @@ data class HudSnapshot(
     val consumables: Boolean = false,
     val hpCharges: Int = 0,
     val packetBombs: Int = 0,
+    /** Upgrade chips: the last one picked up (HUD line) and the weapon chip awaiting a swap answer. */
+    val pickupName: String = "",
+    val pickupRarity: com.cyberoperative.game.data.Rarity = com.cyberoperative.game.data.Rarity.COMMON,
+    val pickupSerial: Int = 0,
+    val swapChipId: String? = null,
     /** PC abilities: dash and the two class spells, with seconds of cooldown left. */
     val dashCd: Float = 0f,
     val spell1: com.cyberoperative.game.data.Spell? = null,
@@ -485,6 +490,8 @@ class GameSession(
             consumables = g.config.consumables,
             hpCharges = g.operatives.getOrNull(g.primary)?.hpCharges ?: 0,
             packetBombs = g.operatives.getOrNull(g.primary)?.packetBombs ?: 0,
+            pickupName = g.pickupName, pickupRarity = g.pickupRarity, pickupSerial = g.pickupSerial,
+            swapChipId = g.swapChip?.upgradeId,
             dashCd = g.operatives.getOrNull(g.primary)?.dashCooldown ?: 0f,
             spell1 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 0) },
             spell2 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 1) },
@@ -614,6 +621,8 @@ class GameSession(
         }
         engine.usePacketBomb()
     }
+
+    fun answerChipSwap(replace: String?) = engine.answerChipSwap(replace)
 
     fun reroll() {
         if (coop != null && !isHost && engine.mirror) {

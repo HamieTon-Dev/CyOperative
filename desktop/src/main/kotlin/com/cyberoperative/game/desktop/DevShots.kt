@@ -63,6 +63,22 @@ fun main(args: Array<String>) {
         }
         s?.let { c -> shot("exits", frames = 30) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) } }
     }
+    run {
+        val c = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
+        val e = c.engine
+        val ups = com.cyberoperative.game.data.Upgrades.all.filter { !com.cyberoperative.game.data.Upgrades.isWeapon(it) && !it.instant }
+        com.cyberoperative.game.data.Rarity.entries.forEachIndexed { i, r ->
+            ups.firstOrNull { it.rarity == r }?.let { d ->
+                e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, e.px - 300f + i * 120f, e.py - 200f, upgradeId = d.id)
+            }
+        }
+        for ((i, r) in listOf(com.cyberoperative.game.data.Rarity.RARE, com.cyberoperative.game.data.Rarity.EPIC, com.cyberoperative.game.data.Rarity.LEGENDARY).withIndex()) {
+            com.cyberoperative.game.data.Upgrades.all.firstOrNull { com.cyberoperative.game.data.Upgrades.isWeapon(it) && it.rarity == r }?.let { d ->
+                e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, e.px - 120f + i * 120f, e.py - 60f, upgradeId = d.id)
+            }
+        }
+        shot("chips", frames = 20) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
+    }
     shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio) {} }
     shot("store") { StoreScreen(save, audio, {}, {}) }
     run {
@@ -80,8 +96,20 @@ fun main(args: Array<String>) {
             e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.PACKET_BOMB, e.px, e.py - 190f)
             e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.CASH, e.px + 90f, e.py - 160f, 40)
             e.operatives[0].packetBombs = 1
+            // One upgrade chip of each rarity in a row, and a GOLDEN one under the operative (picked up: HUD line).
+            val ups = com.cyberoperative.game.data.Upgrades.all.filter { !com.cyberoperative.game.data.Upgrades.isWeapon(it) && !it.instant }
+            com.cyberoperative.game.data.Rarity.entries.forEachIndexed { i, r ->
+                ups.firstOrNull { it.rarity == r }?.let { d ->
+                    e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, e.px - 330f + i * 130f, e.py - 260f, upgradeId = d.id)
+                }
+            }
         }
-        shot(name, frames = 240, before = { i -> s.engine.setInput(if (i in 60..120) 0.6f else 0f, if (i in 60..120) -0.8f else 0f) }) {
+        if (name == "game_l3") {
+            val e = s.engine
+            val gold = com.cyberoperative.game.data.Upgrades.all.first { it.rarity == com.cyberoperative.game.data.Rarity.LEGENDARY && !com.cyberoperative.game.data.Upgrades.isWeapon(it) }
+            e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, e.px, e.py - 400f, upgradeId = gold.id)
+        }
+        shot(name, frames = if (name == "game_l3") 200 else 240, before = { i -> if (name == "game_l3" && i == 170) { s.engine.operatives[0].px = s.engine.loot.last().x; s.engine.operatives[0].py = s.engine.loot.last().y }; if (name != "game_l3") s.engine.setInput(if (i in 60..120) 0.6f else 0f, if (i in 60..120) -0.8f else 0f) }) {
             GameScreen(s, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {})
         }
     }

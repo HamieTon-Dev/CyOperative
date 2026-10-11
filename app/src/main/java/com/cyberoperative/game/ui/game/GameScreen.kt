@@ -1,6 +1,9 @@
 package com.cyberoperative.game.ui.game
 
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.widthIn
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
@@ -338,6 +341,24 @@ fun GameScreen(
                 preview = { old -> session.previewLines(swapItem.def, old) },
                 onReplace = { old -> session.buyShopItem(idx, old); shopSwap = null },
                 onBack = { shopSwap = null }
+            )
+        }
+        // Upgrade chips: the line naming what was just picked up, under the HUD.
+        PickupLine(
+            hud.pickupName, hud.pickupRarity, hud.pickupSerial,
+            // Just under the HUD; under the level banner while one is up.
+            Modifier.align(Alignment.TopCenter).padding(top = hudHeightDp + (if (hud.bannerVisible && hud.banner.isNotEmpty()) 120.dp else 8.dp))
+        )
+        // A weapon chip with every slot taken, once the room is clear: swap, or keep yours (it's
+        // thrown to the middle of the arena).
+        val chipDef = hud.swapChipId?.let { com.cyberoperative.game.data.Upgrades.byIdOrNull(it) }
+        if (chipDef != null) {
+            WeaponSwap(
+                newDef = chipDef, newLevel = 1,
+                equipped = session.equippedWeapons(),
+                preview = { old -> session.previewLines(chipDef, old) },
+                onReplace = { old -> session.answerChipSwap(old) },
+                onBack = { session.answerChipSwap(null) }
             )
         }
         if (hud.skipShopPrompt) {
@@ -847,3 +868,40 @@ internal fun BossHealthBar(h: HudSnapshot) {
         }
     }
 }
+
+/**
+ * "MEMORY EXPANSION" in grey, "GOLDEN PROTOCOL" in shimmering gold, "MALWARE PURGE" in glowing
+ * purple: the upgrade chip just picked up, in its rarity colour, with no dark panel behind it
+ * (a tight dark outline keeps it legible over any floor).
+ */
+@Composable
+private fun PickupLine(name: String, rarity: com.cyberoperative.game.data.Rarity, serial: Int, modifier: Modifier) {
+    if (serial == 0 || name.isEmpty()) return
+    var t by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(serial) {
+        val start = withFrameNanos { it }
+        t = 0f
+        while (t < PICKUP_SECONDS) withFrameNanos { t = (it - start) / 1e9f }
+    }
+    if (t >= PICKUP_SECONDS) return
+    val alpha = (if (t < 0.15f) t / 0.15f else ((PICKUP_SECONDS - t) / 0.6f)).coerceIn(0f, 1f)
+    val c = Color(rarity.color)
+    val tier = rarity.highTier
+    val base = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
+    Box(modifier.graphicsLayer { this.alpha = alpha }, contentAlignment = Alignment.Center) {
+        // Glow (PURPLE and up), then the readable line with a dark outline shadow on top.
+        if (tier >= 1) Text(name.uppercase(), color = c, style = base.copy(shadow = androidx.compose.ui.graphics.Shadow(c, Offset.Zero, 22f)))
+        val sheen = tier >= 2
+        val style = if (sheen) base.copy(
+            brush = Brush.linearGradient(
+                listOf(c, Color.White, c),
+                start = Offset(-300f + t * 520f, 0f), end = Offset(-100f + t * 520f, 40f),
+                tileMode = androidx.compose.ui.graphics.TileMode.Clamp
+            ),
+            shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = 0.9f), Offset(0f, 1.5f), 4f)
+        ) else base.copy(color = c, shadow = androidx.compose.ui.graphics.Shadow(Color.Black.copy(alpha = 0.9f), Offset(0f, 1.5f), 4f))
+        Text(name.uppercase(), style = style)
+    }
+}
+
+private const val PICKUP_SECONDS = 2.8f

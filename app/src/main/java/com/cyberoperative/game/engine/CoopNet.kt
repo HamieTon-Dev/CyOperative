@@ -52,7 +52,7 @@ class CoopWorld {
     val enemies = ArrayList<NetEnemy>(96)
     val shots = ArrayList<NetShot>(200)
     val hazards = ArrayList<NetHazard>(64)
-    /** PC consumable pickups on the floor: kind, x, y (v15). */
+    /** PC pickups on the floor: kind, x, y, upgrade index or -1 (v18). */
     val loot = ArrayList<FloatArray>(8)
     /** Extra exit doors (PC): x, y, side (v16). */
     val exitDoors = ArrayList<FloatArray>(3)
@@ -269,7 +269,7 @@ object CoopCodec {
             }
 
             o.var32(w.loot.size)
-            for (l in w.loot) { o.writeByte(l[0].toInt()); o.pos(l[1]); o.pos(l[2]) }
+            for (l in w.loot) { o.writeByte(l[0].toInt()); o.pos(l[1]); o.pos(l[2]); o.var32(l[3].toInt() + 1) }
             o.writeByte(w.exitDoors.size)
             for (d in w.exitDoors) { o.pos(d[0]); o.pos(d[1]); o.writeByte(d[2].toInt()) }
 
@@ -386,7 +386,7 @@ object CoopCodec {
                 w.hazards += h
             }
 
-            repeat(i.var32()) { w.loot += floatArrayOf(i.readUnsignedByte().toFloat(), i.pos(), i.pos()) }
+            repeat(i.var32()) { w.loot += floatArrayOf(i.readUnsignedByte().toFloat(), i.pos(), i.pos(), (i.var32() - 1).toFloat()) }
             repeat(i.readUnsignedByte()) { w.exitDoors += floatArrayOf(i.pos(), i.pos(), i.readUnsignedByte().toFloat()) }
 
             repeat(i.var32()) {
@@ -462,5 +462,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 17
+    const val VERSION = 18
 }

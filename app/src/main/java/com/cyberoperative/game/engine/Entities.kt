@@ -132,11 +132,16 @@ class Zap {
 }
 
 /** PC consumables lying on the floor (owner, 2026-10-11). */
-enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH }
+enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH, UPGRADE }
 
-/** A pickup on the floor; [amount] is the € in a [LootKind.CASH] bag. */
-class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0) {
+/**
+ * A pickup on the floor; [amount] is the € in a [LootKind.CASH] bag, [upgradeId] the
+ * power-up in an upgrade chip ([LootKind.UPGRADE]).
+ */
+class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0, val upgradeId: String? = null) {
     var age = 0f
+    /** A weapon chip the operative just declined to swap for: ignored until they step off it. */
+    var declined = false
 }
 
 /**
