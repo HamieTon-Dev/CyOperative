@@ -100,12 +100,18 @@ class ArenaRenderer {
         camY = if (bottom - top <= visibleH) (top + bottom - visibleH) / 2f
         else MathUtil.clamp(desired, top, bottom - visibleH)
 
-        // Room-to-room slide: the old room drops away, the new one slides down from above.
-        val slide = when {
-            g.phase == Phase.TRANSITION -> min(1f, g.phaseTimer / GameEngine.TRANSITION_TIME) * visibleH
-            g.slideIn > 0f -> -(g.slideIn / GameEngine.TRANSITION_TIME) * visibleH
+        // Room-to-room slide in the direction of travel (owner, 2026-10-11): through a north door
+        // the old room drops away and the new one comes down from above; south slides up, west
+        // slides right (new room from the left), east slides left (new room from the right).
+        val visibleW = size.width / scale
+        val (dirX, dirY) = when (g.slideSide) { 1 -> 1f to 0f; 2 -> -1f to 0f; 3 -> 0f to -1f; else -> 0f to 1f }
+        val progress = when {
+            g.phase == Phase.TRANSITION -> min(1f, g.phaseTimer / GameEngine.TRANSITION_TIME)
+            g.slideIn > 0f -> -(g.slideIn / GameEngine.TRANSITION_TIME)
             else -> 0f
         }
+        val slide = progress * dirY * visibleH
+        val slideX = progress * dirX * visibleW
 
         drawRect(Color(0xFF04070D))
         withTransform({
@@ -113,7 +119,7 @@ class ArenaRenderer {
             val fxShake = if (shake) g.fx.shakeNow else 0f
             val sx = (if (shake) shakeX(g, time) else 0f) + sin(time * 83f) * fxShake
             val sy = cos(time * 71f) * fxShake * 0.7f
-            translate(sx - camX, -camY + slide + sy)
+            translate(sx - camX + slideX, -camY + slide + sy)
         }) {
             drawFloor(g, time)
             drawLivingBackground(background, arena.width, arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)

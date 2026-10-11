@@ -265,6 +265,22 @@ class ScreenshotPreviews {
         save("boot_terminal")
     }
 
+    /** Cleared room: the next-room hint and a just-picked-up chip line must not overlap. */
+    @Test fun hintAndPickupSeparated() {
+        assumeTrue(enabled)
+        gameplay("hint_and_pickup", 0f, setup = { s ->
+            val g = s.engine
+            var guard = 0
+            while (g.phase != com.cyberoperative.game.engine.Phase.PORTAL && guard++ < 60 * 90) {
+                for (e in g.enemies.items) if (e.active) g.killEnemy(e)
+                g.update(1f / 60f)
+            }
+            repeat(200) { g.update(1f / 60f) }
+            g.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.UPGRADE, g.px, g.py, upgradeId = com.cyberoperative.game.data.Upgrades.PAYLOAD_BOOST.id)
+            repeat(10) { g.update(1f / 60f) }
+        })
+    }
+
     private fun gameplay(
         name: String, simulateSeconds: Float,
         profileSetup: (com.cyberoperative.game.save.PlayerProfile) -> com.cyberoperative.game.save.PlayerProfile = { it },

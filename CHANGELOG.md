@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.25.7 (versionCode 83) — 2026-10-11 · Room slide follows your direction; hint and pickup text separated
+### Changed (owner)
+- **The room-change slide follows the door you walk through** (it used to always slide the same way):
+
+  | Door | Old room slides | New room comes in from |
+  |---|---|---|
+  | North | down | above |
+  | South | up | below |
+  | West | right | the left |
+  | East | left | the right |
+
+  - The side shop gate slides the same way, depending on which wall it's on. The gate to the next world counts as north.
+  - Co-op partners see the same slide.
+### Fixed (owner)
+- **The NEXT ROOM / DOOR OPEN hint and the item-pickup line no longer overlap.** The pickup line now sits below whatever hints are showing.
+- **The hints no longer run into the MAP button** on narrow portrait screens. They stay centred and wrap if needed.
+### Technical
+- Co-op snapshot VERSION 21: carries the slide direction.
+- New `WorldMapCampaignTest.roomSlideFollowsTheDoorYouWalkThrough`.
+- New `hint_and_pickup` screenshot render.
+
 ## 0.25.6 (versionCode 82) — 2026-10-11 · Skin pack ◇1400
 ### Changed (owner)
 - **The ALL SKINS pack now costs ◇1400** (was ◇300). It is now called **ALL COLOUR SKINS**.

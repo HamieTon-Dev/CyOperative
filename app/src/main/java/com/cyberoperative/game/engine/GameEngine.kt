@@ -398,6 +398,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val levelThreats: Int get() = max(plan.enemyCount, levelSpawned)
     /** Seconds left of the slide-in of a new room (gameplay waits for it). */
     var slideIn = 0f
+    /**
+     * Which wall the room was left through (0 top / north, 1 left / west, 2 right / east,
+     * 3 bottom / south): the room-change slide follows the direction of travel (owner, 2026-10-11).
+     */
+    var slideSide = 0
+    private var skipPromptSide = 0
         private set
     /** Endless mode: time into the current difficulty stage. */
     private var stageTimer = 0f
@@ -1151,6 +1157,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     // A shop is on offer: ask before letting them skip it, and step them back off the gate.
                     if (!skipShopPrompt) {
                         skipShopPrompt = true
+                        skipPromptSide = door.side
                         sound(GameSound.UI_CLICK)
                     }
                     when (door.side) {
@@ -1163,6 +1170,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     phase = Phase.TRANSITION
                     phaseTimer = 0f
                     goingToShop = false
+                    slideSide = if (door.target == NEXT_WORLD) 0 else door.side
                     // Campaign: where this door leads, and you walk in on the matching side.
                     pendingRoom = door.target
                     pendingEntry = if (door.target == NEXT_WORLD) 3 else when (door.side) { 0 -> 3; 3 -> 0; 1 -> 2; else -> 1 }
@@ -1172,6 +1180,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 phase = Phase.TRANSITION
                 phaseTimer = 0f
                 goingToShop = true
+                slideSide = if (shopGateRight) 2 else 1
             }
     }
 
@@ -1790,6 +1799,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             phase = Phase.TRANSITION
             phaseTimer = 0f
             goingToShop = false
+            slideSide = skipPromptSide
         } else {
             topGateLocked = true
             shopArrowFlash = SHOP_ARROW_SECONDS
@@ -4379,7 +4389,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.level = level; w.levelSeed = levelSeed; w.previousArenaId = previousArenaId; w.previousEvent = previousEvent
         w.campaign = campaign; w.world = world; w.room = room; w.revisit = revisit
         w.vaultCracked = vaultCracked; w.vaultOpening = vaultOpening
-        w.phase = phase; w.phaseTimer = phaseTimer; w.slideIn = slideIn
+        w.phase = phase; w.phaseTimer = phaseTimer; w.slideIn = slideIn; w.slideSide = slideSide
         w.score = score; w.kills = kills; w.euros = eurosEarned; w.diamonds = diamondsEarned
         w.bosses = bossesDefeated; w.elites = elitesDefeated; w.events = eventsCompleted
         w.levelKills = levelKills; w.levelSpawned = levelSpawned; w.waveIndex = waveIndex
@@ -4523,7 +4533,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val solidNow = barriers.count { it.solid }
         if (solidNow != barrierSolidCount) { barrierSolidCount = solidNow; rebuildArena() }
         vaultOpening = w.vaultOpening
-        phase = w.phase; phaseTimer = w.phaseTimer; slideIn = w.slideIn
+        phase = w.phase; phaseTimer = w.phaseTimer; slideIn = w.slideIn; slideSide = w.slideSide
         score = w.score; kills = w.kills; eurosEarned = w.euros; diamondsEarned = w.diamonds
         bossesDefeated = w.bosses; elitesDefeated = w.elites; eventsCompleted = w.events
         levelKills = w.levelKills; levelSpawned = w.levelSpawned; waveIndex = w.waveIndex

@@ -45,6 +45,35 @@ class WorldMapCampaignTest {
         repeat(90) { g.update(1f / 60f) }
     }
 
+    @Test
+    fun roomSlideFollowsTheDoorYouWalkThrough() {
+        // Walk the first several rooms: every room change slides along the door's wall.
+        val g = campaign(seed = 21L)
+        val seen = HashSet<Int>()
+        repeat(6) {
+            clear(g)
+            val d = forward(g)
+            val o = g.operatives[0]
+            when (d.side) {
+                0 -> { o.px = d.x; o.py = g.arena.portalY + 10f }
+                3 -> { o.px = d.x; o.py = g.arena.height - 30f }
+                1 -> { o.px = 14f; o.py = d.y }
+                else -> { o.px = g.arena.width - 14f; o.py = d.y }
+            }
+            var guard = 0
+            while (g.phase != Phase.TRANSITION && guard++ < 30) g.update(1f / 60f)
+            assertEquals(Phase.TRANSITION, g.phase)
+            assertEquals("slide follows door side", if (d.target == GameEngine.NEXT_WORLD) 0 else d.side, g.slideSide)
+            seen += g.slideSide
+            repeat(90) { g.update(1f / 60f) }
+        }
+        assertTrue("map should turn at least once: $seen", seen.size >= 2)
+        // The guest sees the same direction.
+        val w = g.captureWorld(1, emptyList())
+        val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
+        assertEquals(g.slideSide, back.slideSide)
+    }
+
     private fun forward(g: GameEngine): ExitDoor = g.exitDoors.first { it.target == g.room + 1 || it.target == GameEngine.NEXT_WORLD }
 
     @Test

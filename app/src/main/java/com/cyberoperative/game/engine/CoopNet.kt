@@ -33,6 +33,7 @@ class CoopWorld {
     var phase = Phase.COMBAT
     var phaseTimer = 0f
     var slideIn = 0f
+    var slideSide = 0
     var score = 0L
     var kills = 0
     var euros = 0
@@ -216,7 +217,7 @@ object CoopCodec {
             o.writeBoolean(w.campaign); o.writeByte(w.world); o.writeByte(w.room); o.writeBoolean(w.revisit)
             o.str(w.previousArenaId ?: ""); o.writeBoolean(w.previousEvent)
             o.writeBoolean(w.vaultCracked); o.sec(w.vaultOpening)
-            o.writeByte(w.phase.ordinal); o.sec(w.phaseTimer); o.sec(w.slideIn)
+            o.writeByte(w.phase.ordinal); o.sec(w.phaseTimer); o.sec(w.slideIn); o.writeByte(w.slideSide)
             o.writeLong(w.score); o.var32(w.kills); o.var32(w.euros); o.var32(w.diamonds)
             o.var32(w.bosses); o.var32(w.elites); o.var32(w.events)
             o.var32(w.levelKills); o.var32(w.levelSpawned); o.var32(w.waveIndex)
@@ -331,7 +332,7 @@ object CoopCodec {
             w.campaign = i.readBoolean(); w.world = i.readUnsignedByte(); w.room = i.readUnsignedByte(); w.revisit = i.readBoolean()
             w.previousArenaId = i.str().ifEmpty { null }; w.previousEvent = i.readBoolean()
             w.vaultCracked = i.readBoolean(); w.vaultOpening = i.sec()
-            w.phase = Phase.entries[i.readUnsignedByte()]; w.phaseTimer = i.sec(); w.slideIn = i.sec()
+            w.phase = Phase.entries[i.readUnsignedByte()]; w.phaseTimer = i.sec(); w.slideIn = i.sec(); w.slideSide = i.readUnsignedByte()
             w.score = i.readLong(); w.kills = i.var32(); w.euros = i.var32(); w.diamonds = i.var32()
             w.bosses = i.var32(); w.elites = i.var32(); w.events = i.var32()
             w.levelKills = i.var32(); w.levelSpawned = i.var32(); w.waveIndex = i.var32()
@@ -469,5 +470,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 20
+    const val VERSION = 21
 }

@@ -16,7 +16,7 @@ Play **co-op** with a friend (friend codes, invites, live two-player runs; see `
 
 ## Project status
 
-`0.25.6` — ALL COLOUR SKINS pack ◇1400; `0.25.5` skins renamed by colour; `0.25.4` fixed the crash on START; crash reporter; PURPLE/GLITCHED campaign skins, GOLD and NEON (◇1000) skins, PROXY SHOT removed; boss loot sprays out; per-player co-op loot; World-map CAMPAIGN (15 worlds); Steam build (PC + Steam Deck, landscape) added in `desktop/`; Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
+`0.25.7` — room slide follows the door direction; `0.25.6` ALL COLOUR SKINS pack ◇1400; `0.25.5` skins renamed by colour; `0.25.4` fixed the crash on START; crash reporter; PURPLE/GLITCHED campaign skins, GOLD and NEON (◇1000) skins, PROXY SHOT removed; boss loot sprays out; per-player co-op loot; World-map CAMPAIGN (15 worlds); Steam build (PC + Steam Deck, landscape) added in `desktop/`; Boss Expansion Vol. 1 under way; 0.16.0 balance pass (pooled mastery, bigger Packet Flood) (see `DEVELOPMENT_STATE.md` and `docs/BOSS_EXPANSION_LOG.md`).
 
 | | |
 |---|---|

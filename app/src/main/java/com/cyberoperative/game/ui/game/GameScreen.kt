@@ -309,10 +309,18 @@ fun GameScreen(
         }
 
         // Hints and banners stack under the HUD instead of sitting at fixed offsets.
+        // Measured so the pickup line can sit below them (owner: they overlapped).
+        var hintsHeightPx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+        val mapButtonShown = hud.campaign && !GameKeys.active && !session.paused && hud.phase != Phase.DEAD
         Column(
             Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = hudHeightDp + HUD_HINT_GAP, start = 12.dp, end = 12.dp),
+                // Clear of the MAP button on both sides (stays centred) while it shows.
+                .padding(
+                    top = hudHeightDp + HUD_HINT_GAP,
+                    start = if (mapButtonShown) 84.dp else 12.dp, end = if (mapButtonShown) 84.dp else 12.dp
+                )
+                .onSizeChanged { hintsHeightPx = it.height },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
         ) {
@@ -380,7 +388,7 @@ fun GameScreen(
             )
         }
         // Android: a see-through MAP button under the HUD (campaign only).
-        if (hud.campaign && !GameKeys.active && !session.paused && hud.phase != Phase.DEAD) {
+        if (mapButtonShown) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + 8.dp, end = 10.dp)
                     .graphicsLayer { alpha = 0.6f }
@@ -403,8 +411,14 @@ fun GameScreen(
         // Upgrade chips: the line naming what was just picked up, under the HUD.
         PickupLine(
             hud.pickupName, hud.pickupRarity, hud.pickupSerial,
-            // Just under the HUD; under the level banner while one is up.
-            Modifier.align(Alignment.TopCenter).padding(top = hudHeightDp + (if (hud.bannerVisible && hud.banner.isNotEmpty()) 120.dp else 8.dp))
+            // Just under the HUD, below any hint chips ("NEXT ROOM ▶ …"), and under the level
+            // banner while one is up.
+            Modifier.align(Alignment.TopCenter).padding(
+                top = hudHeightDp + maxOf(
+                    if (hud.bannerVisible && hud.banner.isNotEmpty()) 120.dp else 8.dp,
+                    if (hintsHeightPx > 0) HUD_HINT_GAP + with(density) { hintsHeightPx.toDp() } + 10.dp else 0.dp
+                )
+            )
         )
         // A weapon chip with every slot taken, once the room is clear: swap, or keep yours (it's
         // thrown to the middle of the arena).
