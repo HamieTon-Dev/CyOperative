@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.2 (versionCode 66) — 2026-10-11 · Packet Mage staff orbit restored
+### Fixed (owner)
+- **Packet Mage staff:** the orbit animation around the orb is clearly visible again, in every skin.
+  - Three sparks with short trails circle along a tilted ring.
+  - They pass behind the orb on the back half and in front of it on the front half.
+  - The ring gently rocks.
+  - Before this, only a faint drifting ring and one stray dot were left after the redraw.
+
 ## 0.19.1 (versionCode 65) — 2026-10-11 · Bigger, more distinct elites
 ### Changed (owner: "make the elites bigger and more distinct")
 - **Elites are drawn 30% larger** (`EnemySprites.ELITE_DRAW_SCALE`). The hitbox is unchanged, so

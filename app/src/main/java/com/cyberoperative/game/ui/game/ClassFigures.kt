@@ -423,15 +423,30 @@ internal object ClassFigures {
                 val top = Offset(82f, 24f)
                 limb(Offset(80f, 117f), Offset(82f, 30f), 2.2f, l.plateDark, l.trim.copy(alpha = 0.5f))
                 fillStroke(poly(78f, 30f, 86f, 30f, 84f, 34f, 80f, 34f), l.plateLight, l.trim, 0.6f)
+                // Orb with a tilted ring and three sparks orbiting along it: the back half passes
+                // behind the orb, the front half in front of it.
+                val tilt = -18f + sin(time * 0.9f) * 6f
+                fun spark(k: Int, front: Boolean) {
+                    for (tr in 0..2) {
+                        val a = time * 4f + k * 2.0944f - tr * 0.22f
+                        if ((sin(a) >= 0f) != front) continue
+                        val alpha = (if (front) 1f else 0.45f) * (1f - tr * 0.32f)
+                        drawCircle(if (tr == 0) l.face.copy(alpha = alpha) else l.trim.copy(alpha = alpha * 0.8f),
+                            if (tr == 0) 1.5f else 1.1f - tr * 0.2f, Offset(top.x + cos(a) * 11f, top.y + sin(a) * 3.4f))
+                    }
+                }
+                rotate(tilt, top) {
+                    drawArc(l.trim.copy(alpha = 0.45f), 180f, 180f, false, Offset(top.x - 11f, top.y - 3.4f), Size(22f, 6.8f), style = Stroke(0.8f))
+                    for (k in 0 until 3) spark(k, front = false)
+                }
                 drawCircle(l.trim.copy(alpha = 0.16f * pulse), 11f, top)
                 drawCircle(l.trim.copy(alpha = 0.35f * pulse), 7f, top)
                 drawCircle(l.trim, 4.8f, top)
                 drawCircle(Color.White.copy(alpha = 0.85f), 2f, top + Offset(-1f, -1f))
-                val ra = time * 1.6f
-                rotate((ra * 57.29578f) * 0.2f - 18f, top) {
-                    drawOval(l.trim.copy(alpha = 0.8f), Offset(top.x - 10f, top.y - 3f), Size(20f, 6f), style = Stroke(0.8f))
+                rotate(tilt, top) {
+                    drawArc(l.trim.copy(alpha = 0.9f), 0f, 180f, false, Offset(top.x - 11f, top.y - 3.4f), Size(22f, 6.8f), style = Stroke(0.9f))
+                    for (k in 0 until 3) spark(k, front = true)
                 }
-                drawCircle(l.face, 1f, Offset(top.x + cos(ra * 3f) * 10f, top.y + sin(ra * 3f) * 3f))
                 // Staff arm.
                 fillStroke(poly(64f, 60f, 74f, 66f, 82f, 70f, 80f, 76f, 70f, 74f, 62f, 70f), l.plateMid, l.trim.copy(alpha = 0.8f), 0.8f)
                 drawCircle(l.plateLight, 2.8f, Offset(81f, 72f))
