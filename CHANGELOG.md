@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.22.0 (versionCode 71) — 2026-10-11 · PC: exit doors, neon cursor, dash, class spells
+### Added (owner, PC build)
+- **Up to 4 exit doors** open when a room is cleared.
+  - The top-centre gate is always one. Extra doors go on the far wall and the side walls (green
+    EXIT doorways), never on the shop door's wall.
+  - Every door is checked to be clear and walkable.
+  - Any door leads on, and the next level is rolled exactly as before. The shop door keeps its
+    1-in-20 chance.
+- **The owner's neon arrow cursor**, traced as vectors, is the system cursor everywhere; you aim
+  with its tip. With a controller, the same arrow marks where the right stick aims.
+- **Space: dash.** A short, quick dash where you're heading, with a moment of invulnerability and
+  a 1.1s cooldown. Controller: A.
+- **R / F: class spells** (controller: X / Y). Damage scales with your damage. Draft designs, open
+  to tuning:
+
+  | Class | R | F |
+  |---|---|---|
+  | Field Agent | Overclock: +60% fire rate for 5s | Frag Grenade: a blast at the cursor |
+  | Technician | Missile Barrage: 8 homing missiles | EMP Field: big pulse that wipes enemy shots |
+  | Juggernaut | Fortify: −60% damage taken for 4s, firewall refilled | Ground Slam: shockwave with knockback |
+  | Phantom | Shadow Step: blink toward the cursor | Smoke Veil: cloak now, for 4s |
+  | Packet Mage | Firestorm: fire rains on the cursor area | Arcane Nova: ring of homing fire bolts |
+
+- **HUD strip:** dash and spell chips with key names and cooldown countdowns.
+- **KEYBINDS:** dash and both spells can be rebound.
+- **Co-op:** carries dash and spell uses (wire v17).
+- New tests: `AbilitiesTest` (dash, every class's two spells, frag at the cursor, shadow step,
+  co-op serials) and exit-door tests in `WideArenaTest`.
+
 ## 0.21.0 (versionCode 70) — 2026-10-11 · PC: HP charges, Packet Bombs, cash bags, keybinds
 ### Added (owner, PC build)
 - **Q: HP charge packet.** Heals 35% of max HP.

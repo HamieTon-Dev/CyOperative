@@ -102,6 +102,12 @@ data class HudSnapshot(
     val consumables: Boolean = false,
     val hpCharges: Int = 0,
     val packetBombs: Int = 0,
+    /** PC abilities: dash and the two class spells, with seconds of cooldown left. */
+    val dashCd: Float = 0f,
+    val spell1: com.cyberoperative.game.data.Spell? = null,
+    val spell2: com.cyberoperative.game.data.Spell? = null,
+    val spell1Cd: Float = 0f,
+    val spell2Cd: Float = 0f,
     /** Plasma Beam: heat 0..1 while usable, and seconds of overheat lockout left (0 = ready). */
     val beamHeat: Float = 0f,
     val beamCooldown: Float = 0f,
@@ -237,7 +243,7 @@ class GameSession(
             val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed)
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
-                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots)
+                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots, guestCfg.classId)
             )
         } else {
             Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
@@ -377,7 +383,8 @@ class GameSession(
             link.room.sendInput(
                 CoopCodec.encodeInput(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
-                        engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial)
+                        engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial,
+                        dashSerial, spell1Serial, spell2Serial)
                 )
             )
         }
@@ -478,6 +485,11 @@ class GameSession(
             consumables = g.config.consumables,
             hpCharges = g.operatives.getOrNull(g.primary)?.hpCharges ?: 0,
             packetBombs = g.operatives.getOrNull(g.primary)?.packetBombs ?: 0,
+            dashCd = g.operatives.getOrNull(g.primary)?.dashCooldown ?: 0f,
+            spell1 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 0) },
+            spell2 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 1) },
+            spell1Cd = g.operatives.getOrNull(g.primary)?.spellCd?.get(0) ?: 0f,
+            spell2Cd = g.operatives.getOrNull(g.primary)?.spellCd?.get(1) ?: 0f,
             beamHeat = (g.beamHeat / GameEngine.BEAM_MAX_FIRE * 20f).toInt() / 20f,
             beamCooldown = (g.beamCooldown * 10f).toInt() / 10f,
             shopMessageSerial = g.shopMessageSerial,
@@ -573,6 +585,24 @@ class GameSession(
             return
         }
         engine.useHpCharge()
+    }
+
+    private var dashSerial = 0
+    private var spell1Serial = 0
+    private var spell2Serial = 0
+    private val guest: Boolean get() = coop != null && !isHost && engine.mirror
+
+    /** Space: dash (a guest dashes on its own screen and tells the host for the invulnerability). */
+    fun dash() {
+        if (engine.dash() && guest) { dashSerial++; sendTimer = 1f }
+    }
+
+    /** R (0) / F (1): cast the class spell. */
+    fun castSpell(slot: Int) {
+        if (engine.castSpell(slot) && guest) {
+            if (slot == 0) spell1Serial++ else spell2Serial++
+            sendTimer = 1f
+        }
     }
 
     /** E: set off a Packet Bomb (a co-op guest asks the host). */

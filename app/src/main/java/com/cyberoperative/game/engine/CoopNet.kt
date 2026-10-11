@@ -156,7 +156,11 @@ data class CoopInput(
     val aimY: Float = 0f,
     /** Bumped on every HP charge / Packet Bomb use (PC consumables). */
     val hpSerial: Int = 0,
-    val bombSerial: Int = 0
+    val bombSerial: Int = 0,
+    /** Bumped on every dash / R spell / F spell (PC abilities). */
+    val dashSerial: Int = 0,
+    val spell1Serial: Int = 0,
+    val spell2Serial: Int = 0
 )
 
 object CoopCodec {
@@ -438,6 +442,7 @@ object CoopCodec {
             o.var32(c.seq); o.pos(c.x); o.pos(c.y); o.ang(c.facing); o.writeBoolean(c.moving)
             o.var32(c.pickSerial); o.writeByte(c.pickIndex); o.var32(c.rerollSerial); o.var32(c.level); o.var32(c.replaceIndex + 1)
             o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY); o.var32(c.hpSerial); o.var32(c.bombSerial)
+            o.var32(c.dashSerial); o.var32(c.spell1Serial); o.var32(c.spell2Serial)
         }
         return bytes.toByteArray()
     }
@@ -448,7 +453,8 @@ object CoopCodec {
             CoopInput(
                 seq = i.var32(), x = i.pos(), y = i.pos(), facing = i.ang(), moving = i.readBoolean(),
                 pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1,
-                aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32()
+                aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32(),
+                dashSerial = i.var32(), spell1Serial = i.var32(), spell2Serial = i.var32()
             )
         }
     } catch (_: Exception) {
@@ -456,5 +462,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 16
+    const val VERSION = 17
 }

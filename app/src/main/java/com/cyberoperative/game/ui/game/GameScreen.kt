@@ -127,6 +127,12 @@ fun GameScreen(
                     val bombKey = GameKeys.takePacketBomb()
                     if (live && hpKey) session.useHpCharge()
                     if (live && bombKey) session.usePacketBomb()
+                    val dashKey = GameKeys.takeDash()
+                    val r = GameKeys.takeSpell(0)
+                    val f = GameKeys.takeSpell(1)
+                    if (live && dashKey) session.dash()
+                    if (live && r) session.castSpell(0)
+                    if (live && f) session.castSpell(1)
                 }
                 session.onFrame(dt)
             }
@@ -228,18 +234,18 @@ fun GameScreen(
                 partnerSkin = session.partnerSkin, partnerBody = session.partnerBody, shake = screenShake
             )
             if (GameKeys.active) {
-                // PC: a crosshair at the cursor (or where the right stick points) instead of the stick.
-                val e = session.engine
-                val c = if (GameKeys.stickAim) Offset(
-                    (e.localX + GameKeys.aimX * 140f) * renderer.scale,
-                    (e.localY + GameKeys.aimY * 140f - renderer.camY) * renderer.scale
-                ) else Offset(mouse[0], mouse[1])
-                val col = Palette.Cyan.copy(alpha = if (mouseDown) 0.95f else 0.55f)
-                drawCircle(col, 11f, c, style = Stroke(2f))
-                drawLine(col, Offset(c.x - 17f, c.y), Offset(c.x - 6f, c.y), 2f)
-                drawLine(col, Offset(c.x + 6f, c.y), Offset(c.x + 17f, c.y), 2f)
-                drawLine(col, Offset(c.x, c.y - 17f), Offset(c.x, c.y - 6f), 2f)
-                drawLine(col, Offset(c.x, c.y + 6f), Offset(c.x, c.y + 17f), 2f)
+                // PC: the mouse is the neon arrow cursor itself (system cursor). With a controller,
+                // the same arrow marks where the right stick aims.
+                if (GameKeys.stickAim) {
+                    val e = session.engine
+                    with(com.cyberoperative.game.ui.common.CursorArt) {
+                        drawCursor(
+                            (e.localX + GameKeys.aimX * 160f) * renderer.scale,
+                            (e.localY + GameKeys.aimY * 160f - renderer.camY) * renderer.scale,
+                            34f * density.density, pressed = true
+                        )
+                    }
+                }
                 return@Canvas
             }
             // Joystick

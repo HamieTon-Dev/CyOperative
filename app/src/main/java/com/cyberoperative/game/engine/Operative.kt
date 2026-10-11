@@ -43,6 +43,16 @@ class Operative(val index: Int, baseStats: RunStats) {
     var hpCharges = 0
     var packetBombs = 0
     var consumableCooldown = 0f
+    /** PC abilities: class (for its spells), Space dash, R/F spell cooldowns and spell timers. */
+    var classId = "operative"
+    var dashTime = 0f
+    var dashCooldown = 0f
+    var dashX = 0f
+    var dashY = 0f
+    val spellCd = FloatArray(2)
+    var overclock = 0f
+    var fortify = 0f
+    var veil = 0f
     /** PC mouse aim (button held): fire at ([aimX], [aimY]) in world space, even while moving. */
     var aiming = false
     var aimX = 0f

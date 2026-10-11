@@ -189,6 +189,8 @@ object GameKeys {
     /** HP charge / Packet Bomb key or button pressed since the last call. */
     fun takeHpCharge(): Boolean = false
     fun takePacketBomb(): Boolean = false
+    fun takeDash(): Boolean = false
+    fun takeSpell(slot: Int): Boolean = false
     /** A key's display name ("Q", "Space"). */
     fun keyName(code: Long): String = ""
     /** Settings: the next key pressed is handed to [onKey] (null = cancelled with Esc). */

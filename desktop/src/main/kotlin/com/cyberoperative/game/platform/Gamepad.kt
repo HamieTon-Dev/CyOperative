@@ -65,6 +65,10 @@ object Gamepad {
             // LB = HP charge, RB = Packet Bomb (thumbs stay on the sticks).
             if (s.lbJustPressed) hpCharge = true
             if (s.rbJustPressed) packetBomb = true
+            // A = dash, X = class spell 1 (R), Y = class spell 2 (F).
+            if (s.aJustPressed) dash = true
+            if (s.xJustPressed) spell[0] = true
+            if (s.yJustPressed) spell[1] = true
             // START / MENU = Esc (pause, or back out of a menu); B backs out of menus too.
             if (s.startJustPressed) DesktopBack.dispatch()
             if (s.bJustPressed && !inGame) DesktopBack.dispatch()
@@ -80,6 +84,10 @@ object Gamepad {
     fun takePacketBomb(): Boolean = packetBomb.also { packetBomb = false }
     private var hpCharge = false
     private var packetBomb = false
+    private var dash = false
+    private val spell = BooleanArray(2)
+    fun takeDash(): Boolean = dash.also { dash = false }
+    fun takeSpell(slot: Int): Boolean = spell[slot].also { spell[slot] = false }
 
     private fun dead(x: Float, y: Float, dz: Float): Pair<Float, Float> {
         val m = sqrt(x * x + y * y)

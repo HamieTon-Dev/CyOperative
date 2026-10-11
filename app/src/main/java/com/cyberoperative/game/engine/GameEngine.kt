@@ -41,7 +41,9 @@ data class AllyConfig(
     val upgradeQuality: Float = 0f,
     val startingUpgrades: Int = 0,
     val opLevel: Int = 1,
-    val weaponSlots: Int = Upgrades.MAX_WEAPONS
+    val weaponSlots: Int = Upgrades.MAX_WEAPONS,
+    /** The partner's class (its PC spells). */
+    val classId: String = "operative"
 )
 
 const val COOP_HP_MUL = 1.4f
@@ -71,7 +73,9 @@ data class RunConfig(
     /** Weapons this operative can carry (7 + WEAPON SLOTS upgrade). */
     val weaponSlots: Int = Upgrades.MAX_WEAPONS,
     /** PC consumables (HP charges on Q, Packet Bombs on E, floor drops). On for the landscape PC build. */
-    val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.wide
+    val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.wide,
+    /** This player's class (its PC spells). */
+    val classId: String = "operative"
 ) {
     val coop: Boolean get() = ally != null
     /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
@@ -167,6 +171,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
         if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
         if (config.consumables) for (o in this) o.hpCharges = START_HP_CHARGES
+        this[0].classId = config.classId
+        config.ally?.let { a -> getOrNull(1)?.classId = a.classId }
     }
     val operatives: List<Operative> get() = ops
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
@@ -877,7 +883,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             return
         }
         o.cloakTime += dt
-        val now = o.cloakTime % CLOAK_CYCLE >= CLOAK_CYCLE - CLOAK_SECONDS
+        val now = o.cloakTime % CLOAK_CYCLE >= CLOAK_CYCLE - CLOAK_SECONDS || o.veil > 0f
         if (now && !o.cloaked) {
             o.cloakX = px; o.cloakY = py
             addText(px, py - 40f, "CLOAKED", TextKind.INFO)
@@ -1933,9 +1939,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
         }
 
+        tickAbilities(cur, dt)
         // Movement. A co-op guest moves its own operative and reports where it is.
         val mag = sqrt(inputX * inputX + inputY * inputY)
-        moving = if (cur.remote) cur.netMoving else mag > MOVE_DEADZONE
+        moving = if (cur.remote) cur.netMoving else mag > MOVE_DEADZONE || cur.dashTime > 0f
         updateStatuses(dt)
         if (cur.remote && (cur.rooted > 0f || cur.frozen > 0f)) {
             // SEIZED: the guest's reported position is ignored until it breaks free.
@@ -1949,6 +1956,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 stillTime = 0f
                 followUpLeft = 0
             } else stillTime += dt
+        } else if (cur.dashTime > 0f) {
+            dashStep(cur, dt)
+            stillTime = 0f
         } else if (moving && cur.rooted <= 0f && cur.frozen <= 0f) {
             val m = min(1f, mag)
             val speed = s.moveSpeed * m * chillSlow(cur)
@@ -2009,7 +2019,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
         if (fireCooldown <= 0f) {
             fireVolley(facing)
-            fireCooldown = 1f / s.fireRate
+            fireCooldown = 1f / (s.fireRate * (if (cur.overclock > 0f) OVERCLOCK_RATE else 1f))
             followUpLeft = s.followUpShots
             followUpTimer = FOLLOW_UP_GAP
             if (s.coneLevel > 0) fireCone(facing)
@@ -2154,6 +2164,178 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         } finally { cur = ops[primary] }
         sound(GameSound.EMP)
         return true
+    }
+
+    // ======================================================================
+    // PC abilities (owner, 2026-10-11): Space dash, R / F class spells
+    // ======================================================================
+
+    private fun tickAbilities(o: Operative, dt: Float) {
+        if (o.dashCooldown > 0f) o.dashCooldown = max(0f, o.dashCooldown - dt)
+        if (o.spellCd[0] > 0f) o.spellCd[0] = max(0f, o.spellCd[0] - dt)
+        if (o.spellCd[1] > 0f) o.spellCd[1] = max(0f, o.spellCd[1] - dt)
+        if (o.overclock > 0f) o.overclock = max(0f, o.overclock - dt)
+        if (o.fortify > 0f) o.fortify = max(0f, o.fortify - dt)
+        if (o.veil > 0f) o.veil = max(0f, o.veil - dt)
+    }
+
+    private fun dashStep(o: Operative, dt: Float) {
+        val step = min(dt, o.dashTime)
+        o.dashTime -= step
+        arena.pushOut(o.px + o.dashX * DASH_SPEED * step, o.py + o.dashY * DASH_SPEED * step, playerRadius)
+        o.px = arena.out[0]
+        o.py = arena.out[1]
+        o.facing = atan2(o.dashY, o.dashX)
+        if (rng.nextFloat() < 0.6f) addParticle(o.px, o.py, 0xFF7DF9FF, 60f, 0.3f, 3f)
+    }
+
+    private fun abilityPhase(): Boolean = phase == Phase.COMBAT || phase == Phase.CLEARED || phase == Phase.PORTAL
+
+    /**
+     * Space: a short dash where the operative is heading (or facing, standing still), with a
+     * moment of invulnerability. A co-op guest dashes on its own screen; the host only grants
+     * the invulnerability.
+     */
+    fun dash(index: Int = primary): Boolean {
+        val o = ops.getOrNull(index) ?: return false
+        if (!config.consumables || !o.alive || o.dashCooldown > 0f || o.rooted > 0f || o.frozen > 0f || !abilityPhase()) return false
+        o.dashCooldown = DASH_COOLDOWN
+        o.invuln = max(o.invuln, DASH_TIME + 0.12f)
+        if (o.remote) return true
+        val m = sqrt(o.inputX * o.inputX + o.inputY * o.inputY)
+        if (m > MOVE_DEADZONE) { o.dashX = o.inputX / m; o.dashY = o.inputY / m }
+        else { o.dashX = cos(o.facing); o.dashY = sin(o.facing) }
+        o.dashTime = DASH_TIME
+        if (!mirror) sound(GameSound.UI_CLICK)
+        return true
+    }
+
+    /** R (slot 0) / F (slot 1): cast this operative's class spell. */
+    fun castSpell(slot: Int, index: Int = primary): Boolean {
+        val o = ops.getOrNull(index) ?: return false
+        if (!config.consumables || !o.alive || slot !in 0..1 || o.spellCd[slot] > 0f || !abilityPhase()) return false
+        val spell = com.cyberoperative.game.data.Spells.of(o.classId, slot)
+        o.spellCd[slot] = spell.cooldown
+        // A guest only runs its own movement spell locally; the host does the rest.
+        if (mirror) {
+            if (spell == com.cyberoperative.game.data.Spell.SHADOW_STEP) shadowStep(o)
+            return true
+        }
+        cur = o
+        try { cast(spell, o) } finally { cur = ops[primary] }
+        addText(o.px, o.py - 52f, spell.label, TextKind.INFO)
+        return true
+    }
+
+    /** Where a spell lands: the cursor / right-stick point, at most [range] away. */
+    private fun spellTarget(o: Operative, range: Float): Pair<Float, Float> {
+        var dx = o.aimX - o.px
+        var dy = o.aimY - o.py
+        val d = sqrt(dx * dx + dy * dy)
+        if (d < 1f) { dx = cos(o.facing); dy = sin(o.facing); return (o.px + dx * range * 0.6f) to (o.py + dy * range * 0.6f) }
+        val k = min(1f, range / d)
+        return (o.px + dx * k) to (o.py + dy * k)
+    }
+
+    private fun shadowStep(o: Operative) {
+        val (tx, ty) = spellTarget(o, SHADOW_STEP_RANGE)
+        addPulse(o.px, o.py, 60f, 0.3f, 0xFF8FA7FF)
+        // Step along the line so the blink never ends inside a wall.
+        var x = o.px; var y = o.py
+        val n = 12
+        for (i in 1..n) {
+            val nx = o.px + (tx - o.px) * i / n
+            val ny = o.py + (ty - o.py) * i / n
+            if (!arena.isFree(nx, ny, playerRadius)) break
+            x = nx; y = ny
+        }
+        o.px = x; o.py = y
+        o.invuln = max(o.invuln, 0.35f)
+        addPulse(x, y, 70f, 0.35f, 0xFF8FA7FF)
+        repeat(14) { addParticle(x, y, 0xFF8FA7FF, 160f, 0.4f, 3f) }
+    }
+
+    private fun cast(spell: com.cyberoperative.game.data.Spell, o: Operative) {
+        val s = stats
+        when (spell) {
+            com.cyberoperative.game.data.Spell.OVERCLOCK -> {
+                o.overclock = OVERCLOCK_SECONDS
+                addPulse(o.px, o.py, 80f, 0.4f, 0xFFFFC233)
+                sound(GameSound.ACCESS_GRANTED)
+            }
+            com.cyberoperative.game.data.Spell.FRAG_GRENADE -> {
+                val (tx, ty) = spellTarget(o, 480f)
+                firePulseDamage(tx, ty, 170f, s.damage * 14f, clearsProjectiles = false)
+                addPulse(tx, ty, 120f, 0.5f, 0xFFFF9A1A)
+                repeat(30) { addParticle(tx, ty, if (it % 2 == 0) 0xFFFF9A1A else 0xFFFFE066, 320f, 0.6f, 3.5f) }
+                fx.shake(7f, 0.3f)
+                sound(GameSound.EMP)
+            }
+            com.cyberoperative.game.data.Spell.MISSILE_BARRAGE -> {
+                for (i in 0 until 8) {
+                    val a = o.facing + (i - 3.5f) * 0.32f
+                    val p = spawnBolt(o.px, o.py, a, ProjKind.MISSILE, s.damage * 2.4f) ?: break
+                    p.vx *= 0.5f; p.vy *= 0.5f
+                    p.homing = 8f; p.radius = 7f; p.life = 3.2f
+                    p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+                    p.splash = 60f
+                }
+                sound(GameSound.LANCE)
+            }
+            com.cyberoperative.game.data.Spell.EMP_FIELD -> {
+                firePulseDamage(o.px, o.py, 340f, s.damage * 6f, clearsProjectiles = true)
+                addPulse(o.px, o.py, 200f, 0.5f, 0xFF7DF9FF)
+                sound(GameSound.EMP)
+            }
+            com.cyberoperative.game.data.Spell.FORTIFY -> {
+                o.fortify = FORTIFY_SECONDS
+                if (s.firewallMax > 0f) o.firewall = s.firewallMax
+                addPulse(o.px, o.py, 90f, 0.5f, 0xFFFFC233)
+                sound(GameSound.FIREWALL_UP)
+            }
+            com.cyberoperative.game.data.Spell.GROUND_SLAM -> {
+                val r = 240f
+                firePulseDamage(o.px, o.py, r, s.damage * 12f, clearsProjectiles = false)
+                for (e in enemies.items) {
+                    if (!e.active || e.boss != null || !e.targetable) continue
+                    val dx = e.x - o.px; val dy = e.y - o.py
+                    val d = sqrt(dx * dx + dy * dy)
+                    if (d < 1f || d > r + e.radius) continue
+                    arena.pushOut(e.x + dx / d * 130f, e.y + dy / d * 130f, e.radius)
+                    e.x = arena.out[0]; e.y = arena.out[1]
+                }
+                fx.shake(10f, 0.4f)
+                sound(GameSound.EMP)
+            }
+            com.cyberoperative.game.data.Spell.SHADOW_STEP -> if (o.remote) o.invuln = max(o.invuln, 0.35f) else shadowStep(o)
+            com.cyberoperative.game.data.Spell.SMOKE_VEIL -> {
+                o.veil = VEIL_SECONDS
+                repeat(24) { addParticle(o.px, o.py, 0xFF5A6478, 120f, 0.9f, 6f) }
+            }
+            com.cyberoperative.game.data.Spell.FIRESTORM -> {
+                val (tx, ty) = spellTarget(o, 520f)
+                for (i in 0 until 6) {
+                    val a = i * 1.047f + rng.nextFloat() * 0.5f
+                    val rr = if (i == 0) 0f else 70f + rng.nextFloat() * 50f
+                    val x = tx + cos(a) * rr; val y = ty + sin(a) * rr
+                    firePulseDamage(x, y, 90f, s.damage * 5f, clearsProjectiles = false)
+                    addPulse(x, y, 70f, 0.45f, 0xFFFF5A1F)
+                    repeat(8) { addParticle(x, y, 0xFFFF7A1A, 200f, 0.5f, 3f) }
+                }
+                sound(GameSound.EMP)
+            }
+            com.cyberoperative.game.data.Spell.ARCANE_NOVA -> {
+                for (i in 0 until 16) {
+                    val p = spawnBolt(o.px, o.py, i * MathUtil.TWO_PI / 16f, ProjKind.MISSILE, s.damage * 1.8f) ?: break
+                    p.vx *= 0.6f; p.vy *= 0.6f
+                    p.homing = 5f; p.radius = 7f; p.life = 2.6f
+                    p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+                    p.tint = 0xFFFF7A1A
+                }
+                addPulse(o.px, o.py, 110f, 0.4f, 0xFFFF7A1A)
+                sound(GameSound.LANCE)
+            }
+        }
     }
 
     // ======================================================================
@@ -2712,6 +2894,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             return
         }
         var dmg = amount * PowerGovernor.threatDamage(config.difficulty) * (1f - s.armor)
+        if (cur.fortify > 0f) dmg *= 1f - FORTIFY_REDUCTION
         // No single hit takes more than a set share of the full HP + Firewall pool: nothing one-shots.
         dmg = min(dmg, PowerGovernor.hitCap(config.difficulty) * (s.maxHp + s.firewallMax))
         sinceDamage = 0f
@@ -3745,6 +3928,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var lastPickSerial = 0
     private var lastHpSerial = 0
     private var lastBombSerial = 0
+    private var lastDashSerial = 0
+    private var lastSpell1Serial = 0
+    private var lastSpell2Serial = 0
     private var lastRerollSerial = 0
 
     /** Host: the guest's latest movement and picks. */
@@ -3763,6 +3949,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         // PC consumables used by the guest (serials so a lost packet never double-uses one).
         if (c.hpSerial > lastHpSerial) { lastHpSerial = c.hpSerial; useHpCharge(index) }
         if (c.bombSerial > lastBombSerial) { lastBombSerial = c.bombSerial; usePacketBomb(index) }
+        if (c.dashSerial > lastDashSerial) { lastDashSerial = c.dashSerial; dash(index) }
+        if (c.spell1Serial > lastSpell1Serial) { lastSpell1Serial = c.spell1Serial; castSpell(0, index) }
+        if (c.spell2Serial > lastSpell2Serial) { lastSpell2Serial = c.spell2Serial; castSpell(1, index) }
         if (c.pickSerial > lastPickSerial) {
             lastPickSerial = c.pickSerial
             chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
@@ -4063,6 +4252,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 me.facing = atan2(me.inputY, me.inputX)
             }
             if (me.aiming) me.facing = atan2(me.aimY - me.py, me.aimX - me.px)
+            tickAbilities(me, dt)
+            if (me.dashTime > 0f) dashStep(me, dt)
         } else me.moving = false
         me.orbAngle = (me.orbAngle + stats.orbAngularSpeed * dt) % MathUtil.TWO_PI
         me.bladeAngle = (me.bladeAngle - 3.4f * dt) % MathUtil.TWO_PI
@@ -4237,6 +4428,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val LOOT_PICKUP = 34f
         const val LOOT_MAGNET = 110f
         const val MAX_FLOOR_LOOT = 160
+        // PC abilities (owner, 2026-10-11).
+        const val DASH_TIME = 0.16f
+        const val DASH_DISTANCE = 160f
+        const val DASH_SPEED = DASH_DISTANCE / DASH_TIME
+        const val DASH_COOLDOWN = 1.1f
+        const val OVERCLOCK_SECONDS = 5f
+        const val OVERCLOCK_RATE = 1.6f
+        const val FORTIFY_SECONDS = 4f
+        const val FORTIFY_REDUCTION = 0.6f
+        const val VEIL_SECONDS = 4f
+        const val SHADOW_STEP_RANGE = 380f
         const val VAULT_OPEN_SECONDS = 1.3f
 
         /** Owner: €1,000 and up, €100 per level (level 70 → €7,000). */

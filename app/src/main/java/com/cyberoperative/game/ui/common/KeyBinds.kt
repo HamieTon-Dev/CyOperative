@@ -10,6 +10,9 @@ enum class KeyAction(val label: String, val default: Key) {
     MOVE_RIGHT("MOVE RIGHT", Key.D),
     HP_CHARGE("USE HP CHARGE", Key.Q),
     PACKET_BOMB("PACKET BOMB", Key.E),
+    DASH("DASH", Key.Spacebar),
+    SPELL_1("CLASS SPELL 1", Key.R),
+    SPELL_2("CLASS SPELL 2", Key.F),
     PAUSE("PAUSE", Key.P)
 }
 

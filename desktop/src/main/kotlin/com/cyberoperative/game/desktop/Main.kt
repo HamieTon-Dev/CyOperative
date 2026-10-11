@@ -7,6 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -74,7 +75,11 @@ fun main(args: Array<String>) {
             // Controllers: polled every frame (menus too: START = Esc, B = back).
             LaunchedEffect(Unit) { while (true) { androidx.compose.runtime.withFrameNanos { }; com.cyberoperative.game.platform.Gamepad.poll() } }
             LaunchedEffect(state.placement) { DesktopInput.releaseAll() }
-            Box(Modifier.fillMaxSize().background(Color.Black)) {
+            Box(
+                Modifier.fillMaxSize().background(Color.Black)
+                    // The owner's neon arrow is the cursor everywhere (aim with its tip).
+                    .pointerHoverIcon(androidx.compose.ui.input.pointer.PointerIcon(com.cyberoperative.game.platform.DesktopCursor.cursor), overrideDescendants = true)
+            ) {
                 CyberOperativeTheme { AppRoot(save = save, audio = audio, coop = coop) }
             }
         }

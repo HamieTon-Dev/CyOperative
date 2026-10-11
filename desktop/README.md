@@ -29,6 +29,8 @@ compatibility to use Proton. Controls on Deck and with any controller:
 |---|---|
 | Left stick / D-pad | move |
 | Right stick (or right trigger) | aim and fire in that direction, while moving |
+| A | dash |
+| X / Y | class spell R / F |
 | LB / RB | HP charge / Packet Bomb |
 | START / MENU | pause (the same as Esc) |
 | B | back out of a menu |
@@ -41,6 +43,7 @@ The touchscreen and trackpads work as the mouse in menus.
 - **WASD** or arrow keys move.
 - **Hold a mouse button** to fire at the cursor while moving. Standing still auto-targets, as
   on phones.
+- **Space** dashes; **R** / **F** cast your class's two spells.
 - **Q** drinks an HP charge (start with 3); **E** sets off a Packet Bomb (found as rare drops).
 - **Esc** pauses or goes back; **F11** toggles fullscreen.
 - Every key can be rebound in Settings → KEYBINDS.
@@ -79,3 +82,21 @@ All purchases go through Steam. Each ◇ pack is a Steam Inventory item; definit
 
 Point a depot at `desktop\build\compose\binaries\main-release\app\CyberOperative\`. The launch
 option is `CyberOperative.exe`.
+
+## Building Android vs Steam (they never mix)
+
+The two builds are separate Gradle modules with separate commands and outputs.
+
+| | Command | Output |
+|---|---|---|
+| Google Play | `.\gradlew bundleRelease` (or `:app:bundleRelease`) | `app\build\outputs\bundle\release\app-release.aab` |
+| Steam | `.\gradlew :desktop:createReleaseDistributable` | `desktop\build\compose\binaries\main-release\app\CyberOperative\` |
+
+**Why Steam code can't end up in the Android build:**
+- `desktop/` (Steamworks, Steam store, controllers, cursor, PC audio and saves) is never compiled
+  into `app`.
+- The `app` module has no Steam libraries.
+- The shared game code holds a few PC-only branches. They are switched on only by the desktop
+  launcher (`ArenaShape.wide`) or by the desktop platform layer (`AppInfo.desktop`,
+  `GameKeys.active`). The Android versions of those are always off.
+- So phones keep portrait rooms, no cash bags, no Q/E/R/F, and Google Play wording.

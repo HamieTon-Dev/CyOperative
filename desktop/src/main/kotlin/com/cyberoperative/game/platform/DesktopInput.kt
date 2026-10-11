@@ -20,6 +20,8 @@ object DesktopInput {
     private var confirm = false
     private var hpCharge = false
     private var packetBomb = false
+    private var dash = false
+    private val spell = BooleanArray(2)
     /** Settings is waiting for a key to bind. */
     private var capture: ((Long?) -> Unit)? = null
 
@@ -28,6 +30,8 @@ object DesktopInput {
     fun takeConfirm(): Boolean = confirm.also { confirm = false }
     fun takeHpCharge(): Boolean = hpCharge.also { hpCharge = false }
     fun takePacketBomb(): Boolean = packetBomb.also { packetBomb = false }
+    fun takeDash(): Boolean = dash.also { dash = false }
+    fun takeSpell(slot: Int): Boolean = spell[slot].also { spell[slot] = false }
 
     fun captureKey(onKey: (Long?) -> Unit) { capture = onKey }
 
@@ -50,6 +54,9 @@ object DesktopInput {
                 when (code) {
                     KeyBinds.code(KeyAction.HP_CHARGE) -> hpCharge = true
                     KeyBinds.code(KeyAction.PACKET_BOMB) -> packetBomb = true
+                    KeyBinds.code(KeyAction.DASH) -> dash = true
+                    KeyBinds.code(KeyAction.SPELL_1) -> spell[0] = true
+                    KeyBinds.code(KeyAction.SPELL_2) -> spell[1] = true
                     KeyBinds.code(KeyAction.PAUSE) -> DesktopBack.dispatch()
                 }
             }
@@ -96,6 +103,8 @@ object GameKeys {
     fun takeAnyPress(): Boolean = Gamepad.takeAnyPress() or DesktopInput.takeConfirm()
     fun takeHpCharge(): Boolean = Gamepad.takeHpCharge() or DesktopInput.takeHpCharge()
     fun takePacketBomb(): Boolean = Gamepad.takePacketBomb() or DesktopInput.takePacketBomb()
+    fun takeDash(): Boolean = Gamepad.takeDash() or DesktopInput.takeDash()
+    fun takeSpell(slot: Int): Boolean = Gamepad.takeSpell(slot) or DesktopInput.takeSpell(slot)
     fun keyName(code: Long): String = DesktopInput.keyName(code)
     fun captureKey(onKey: (Long?) -> Unit) = DesktopInput.captureKey(onKey)
 }

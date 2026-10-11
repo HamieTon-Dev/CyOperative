@@ -210,6 +210,7 @@ object Operatives {
         // the same stats with mastery stripped give how much stronger mastery made the operative.
         val (core, _) = build(operativeId, permanent, seed, coreOnly = true)
         return config.copy(
+            classId = byId(operativeId).id,
             masteryDpsRatio = (dps(stats) / dps(core)).coerceAtLeast(1f),
             masterySurvivalRatio = (survival(stats) / survival(core)).coerceAtLeast(1f)
         )

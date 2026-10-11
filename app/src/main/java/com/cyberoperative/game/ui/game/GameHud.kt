@@ -446,6 +446,12 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
             }
             Spacer(Modifier.width(20.dp))
             if (h.consumables) {
+                AbilityChip(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, Palette.Cyan)
+                Spacer(Modifier.width(6.dp))
+                h.spell1?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, Palette.Purple) }
+                Spacer(Modifier.width(6.dp))
+                h.spell2?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_2, it.icon, it.label, h.spell2Cd, Palette.Magenta) }
+                Spacer(Modifier.width(14.dp))
                 ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", h.hpCharges, Palette.Green)
                 Spacer(Modifier.width(8.dp))
                 ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", h.packetBombs, Palette.Cyan)
@@ -475,5 +481,28 @@ private fun ConsumableChip(action: com.cyberoperative.game.ui.common.KeyAction, 
         Text("[$key]", color = Palette.TextSecondary, style = mono(11.sp, FontWeight.Bold))
         Spacer(Modifier.width(6.dp))
         Text("$icon $count", color = c, style = mono(14.sp, FontWeight.Bold))
+    }
+}
+
+/** "[R] ☄ FIRESTORM" with a countdown while it recharges. */
+@Composable
+private fun AbilityChip(action: com.cyberoperative.game.ui.common.KeyAction, icon: String, label: String, cooldown: Float, color: Color) {
+    val key = com.cyberoperative.game.platform.GameKeys.keyName(com.cyberoperative.game.ui.common.KeyBinds.code(action)).uppercase().take(5)
+    val ready = cooldown <= 0f
+    val c = if (ready) color else Palette.TextMuted
+    Row(
+        Modifier
+            .border(1.dp, c.copy(alpha = if (ready) 0.8f else 0.4f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("[$key]", color = Palette.TextSecondary, style = mono(11.sp, FontWeight.Bold))
+        Spacer(Modifier.width(5.dp))
+        Text(icon, color = c, style = mono(14.sp, FontWeight.Bold))
+        Spacer(Modifier.width(4.dp))
+        Text(
+            if (ready) label else "${kotlin.math.ceil(cooldown).toInt()}s",
+            color = c, style = mono(11.sp, FontWeight.Bold), maxLines = 1
+        )
     }
 }
