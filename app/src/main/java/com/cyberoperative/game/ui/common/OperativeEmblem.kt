@@ -124,11 +124,13 @@ data class HeroPalette(
     val accent: Color,
     val shieldEdge: Color, val shieldTop: Color, val shieldBottom: Color, val face: Color,
     /** Hue cycles over time (SPECTRUM keeper). */
-    val spectrum: Boolean = false
+    val spectrum: Boolean = false,
+    /** Degrees of hue per second while [spectrum] (GLITCHED cycles slowly). */
+    val spectrumSpeed: Float = 70f
 ) {
     fun at(time: Float): HeroPalette {
         if (!spectrum) return this
-        val h = (time * 70f) % 360f
+        val h = (time * spectrumSpeed) % 360f
         val c = Color.hsv(h, 0.85f, 1f)
         val c2 = Color.hsv((h + 120f) % 360f, 0.8f, 1f)
         return copy(outline = c, glow = c2, accent = Color.hsv((h + 240f) % 360f, 0.8f, 1f), shieldEdge = c, face = c2,
@@ -152,7 +154,8 @@ data class HeroPalette(
                 mix(body, edge, 0.55f), mix(body, edge, 0.32f), mix(body, edge, 0.14f), edge.copy(alpha = 0.5f),
                 edge, Color(0xFF05070C), mix(body, edge, 0.3f), face, edge,
                 edge, mix(body, Color.Black, 0.2f), Color(0xFF020306), face,
-                spectrum = skin.effect == com.cyberoperative.game.data.SkinEffect.SPECTRUM
+                spectrum = skin.effect == com.cyberoperative.game.data.SkinEffect.SPECTRUM || skin.effect == com.cyberoperative.game.data.SkinEffect.GLITCH,
+                spectrumSpeed = if (skin.effect == com.cyberoperative.game.data.SkinEffect.GLITCH) 24f else 70f
             )
         }
 

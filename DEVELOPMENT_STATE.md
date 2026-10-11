@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.25.1 (versionCode 77) |
+| Version | 0.25.2 (versionCode 78) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Skins 0.25.2**:
+  - PURPLE and GLITCHED unlock for every class at `campaignsCompleted > 0` (`SkinUnlock.campaign`). PURPLE also stays unlocked for anyone who earned it at L100 on Hard.
+  - GOLD and NEON are premium: `OperativeSkin.price` is ◇1000, and neither is in the ◇300 pack.
+  - NEON's colour is `PlayerProfile.neonColor`. It travels to co-op as the token `neon_custom#RRGGBB` (`OperativeSkins.token` and `byId`).
 - **Boss loot spray and per-player co-op loot (0.25.1)**:
   - Boss drops queue up and spray out every `GameEngine.SPEW_INTERVAL` (0.1 s), sliding 70–170 units.
   - The interval runs on game time, so the kill's slow motion stretches it a little.

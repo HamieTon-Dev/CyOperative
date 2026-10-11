@@ -84,7 +84,7 @@ class ScreenshotPreviews {
         assumeTrue(enabled)
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
-        repo.update { it.copy(diamonds = 120, ownedSkins = setOf("default", "red_hat"), selectedSkin = "red_hat") }
+        repo.update { it.copy(diamonds = 1200, ownedSkins = setOf("default", "red_hat", "neon_custom"), selectedSkin = "red_hat", neonColor = 0xFF00FFD0, campaignsCompleted = 1) }
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.SkinsScreen(repo, AudioManager(ctx)) {} } }
         compose.mainClock.advanceTimeBy(800)

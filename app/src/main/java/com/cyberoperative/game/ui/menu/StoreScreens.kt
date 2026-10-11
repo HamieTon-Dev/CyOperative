@@ -170,27 +170,46 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
                     CyberButton("ALL ${OperativeSkins.paid.size} SKINS  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
                         enabled = p.diamonds >= StoreCatalog.ALL_SKINS_PRICE) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
                 }
-                items(OperativeSkins.all, key = { it.id }) { skin ->
+                items(OperativeSkins.all, key = { it.id }) { listed ->
                     val cls = com.cyberoperative.game.data.Operatives.byId(p.selectedOperative)
-                    val owned = StoreManager.skinUnlocked(p, skin, cls.id)
+                    val owned = StoreManager.skinUnlocked(p, listed, cls.id)
+                    // NEON shows in the owner's own colour.
+                    var picking by remember { mutableStateOf(false) }
+                    // While the wheel is open the pick is previewed here and saved on DONE.
+                    var draft by remember { mutableStateOf(p.neonColor) }
+                    val skin = if (listed.id == OperativeSkins.NEON_ID && owned) OperativeSkins.neon(if (picking) draft else p.neonColor) else listed
                     val equipped = StoreManager.effectiveSkin(p).id == skin.id
                     TerminalCard(accent = if (equipped) Palette.Green else Palette.Divider) {
+                      Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             OperativeMarkIcon(skin, Modifier.size(56.dp))
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(skin.name, color = Color(skin.edge), style = MaterialTheme.typography.titleSmall)
-                                Text(skin.unlock?.let { "${it.label} (${cls.name})" } ?: skin.origin, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                                Text(skin.unlock?.let { if (it.campaign) it.label else "${it.label} (${cls.name})" } ?: skin.origin, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (owned && skin.id == OperativeSkins.NEON_ID) {
+                                CyberButton(if (picking) "DONE" else "COLOUR", accent = Color(skin.edge)) {
+                                    if (picking) save.update { StoreManager.setNeonColor(it, draft) ?: it } else draft = p.neonColor
+                                    picking = !picking
+                                }
+                                Spacer(Modifier.width(6.dp))
                             }
                             when {
                                 equipped -> Text("EQUIPPED", color = Palette.Green, style = MaterialTheme.typography.labelMedium)
                                 owned -> CyberButton("EQUIP", accent = Palette.Green) { spend(save, audio) { StoreManager.equipSkin(it, skin.id) } }
                                 skin.unlock != null -> Text("LOCKED", color = Palette.TextMuted, style = MaterialTheme.typography.labelMedium)
-                                else -> CyberButton("◇${StoreCatalog.SKIN_PRICE}", accent = Palette.Diamond, enabled = p.diamonds >= StoreCatalog.SKIN_PRICE) {
+                                else -> CyberButton("◇${skin.price}", accent = if (skin.premium) Palette.Gold else Palette.Diamond, enabled = p.diamonds >= skin.price) {
                                     spend(save, audio) { StoreManager.buySkin(it, skin.id) }
                                 }
                             }
                         }
+                        if (picking && owned && skin.id == OperativeSkins.NEON_ID) {
+                            Spacer(Modifier.height(8.dp))
+                            NeonColorWheel(draft, onPick = { draft = it },
+                                modifier = Modifier.fillMaxWidth().height(200.dp))
+                        }
+                      }
                     }
                 }
                 item { Spacer(Modifier.height(16.dp)) }

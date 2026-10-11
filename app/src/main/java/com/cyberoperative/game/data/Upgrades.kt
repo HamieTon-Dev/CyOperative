@@ -250,12 +250,6 @@ object Upgrades {
         { "+2 diagonal shots" },
         { s, l -> s.diagonalPairs += l }
     )
-    val PROXY_SHOT = UpgradeDef(
-        "proxy_shot", "PROXY SHOT", "<->", Rarity.UNCOMMON, UpgradeCategory.WEAPON, 1,
-        "A proxy relays a copy of each volley behind you.",
-        { "Adds a rear shot" },
-        { s, _ -> s.rearShot = true }
-    )
     val PENETRATION = UpgradeDef(
         "penetration", "PENETRATION", "-|>", Rarity.RARE, UpgradeCategory.WEAPON, 2,
         "Packets pass through threats.",
@@ -418,7 +412,7 @@ object Upgrades {
         PACKET_NODES, ENHANCED_NODES, SENTINEL_NODES, AUTONOMOUS_NODE, NODE_OVERCLOCK,
         FIREWALL, REINFORCED_FIREWALL, ADAPTIVE_FIREWALL, ZERO_TRUST,
         PACKET_SCATTER, EXPLOIT_LANCE, PLASMA_BEAM, ENCRYPTION_BLADES, EMP_BURST, BOTNET_CHAIN,
-        PACKET_SPLIT, MULTISHOT, DIAGONAL_ROUTING, PROXY_SHOT, PENETRATION, PACKET_BOUNCE,
+        PACKET_SPLIT, MULTISHOT, DIAGONAL_ROUTING, PENETRATION, PACKET_BOUNCE,
         KERNEL_OVERCLOCK, PAYLOAD_BOOST, CRITICAL_INJECTION, ZERO_DAY_STRIKE, EXPLOIT_CHANCE,
         THREAT_DETECTION, LOW_LATENCY, MEMORY_EXPANSION, SELF_REPAIR, DATA_LEECH,
         ENCRYPTION_ARMOR, PACKET_EVASION, INTRUSION_COUNTER, MALWARE_PURGE, DATA_COMPRESSION,

@@ -50,20 +50,22 @@ object StoreManager {
     /** Is [skin] usable by class [classId]: free, bought, or (class skins) earned with that class. */
     fun skinUnlocked(p: PlayerProfile, skin: com.cyberoperative.game.data.OperativeSkin, classId: String): Boolean {
         val u = skin.unlock ?: return skin.free || skin.id in p.ownedSkins
-        return (p.classRecords[classId]?.best(u.difficulty) ?: 0) >= u.level
+        if (u.campaign && p.campaignsCompleted > 0) return true
+        return u.level > 0 && (p.classRecords[classId]?.best(u.difficulty) ?: 0) >= u.level
     }
 
     /** The skin a class actually wears: the equipped one, or the default if this class hasn't earned it. */
     fun effectiveSkin(p: PlayerProfile, classId: String = p.selectedOperative): com.cyberoperative.game.data.OperativeSkin {
         val s = OperativeSkins.byId(p.selectedSkin)
-        return if (skinUnlocked(p, s, classId)) s else OperativeSkins.DEFAULT
+        if (!skinUnlocked(p, s, classId)) return OperativeSkins.DEFAULT
+        return if (s.id == OperativeSkins.NEON_ID) OperativeSkins.neon(p.neonColor) else s
     }
 
     fun buySkin(p: PlayerProfile, skinId: String): PlayerProfile? {
         val skin = OperativeSkins.all.firstOrNull { it.id == skinId } ?: return null
         if (skin.free || skin.unlock != null || skinId in p.ownedSkins) return null
-        if (p.diamonds < StoreCatalog.SKIN_PRICE) return null
-        return p.copy(diamonds = p.diamonds - StoreCatalog.SKIN_PRICE, ownedSkins = p.ownedSkins + skinId, selectedSkin = skinId)
+        if (p.diamonds < skin.price) return null
+        return p.copy(diamonds = p.diamonds - skin.price, ownedSkins = p.ownedSkins + skinId, selectedSkin = skinId)
     }
 
     /** The ◇300 skin pack covers every paid colour skin (class skins are earned, not sold). */
@@ -104,6 +106,10 @@ object StoreManager {
 
     fun equipSkin(p: PlayerProfile, id: String): PlayerProfile? =
         if (skinUnlocked(p, OperativeSkins.byId(id), p.selectedOperative) && OperativeSkins.byId(id).id == id) p.copy(selectedSkin = id) else null
+
+    /** NEON skin colour (owners only); stored as an opaque ARGB colour. */
+    fun setNeonColor(p: PlayerProfile, color: Long): PlayerProfile? =
+        if (OperativeSkins.NEON_ID in p.ownedSkins) p.copy(neonColor = color or 0xFF000000) else null
 
     fun equipBackground(p: PlayerProfile, id: String): PlayerProfile? =
         if (id == LivingBackground.NONE.id || id in p.ownedBackgrounds) p.copy(selectedBackground = id) else null

@@ -73,6 +73,22 @@ object OperativeMark {
                 val t = 0.5f + 0.5f * sin(time * 3f)
                 Colors(lerp(edge.copy(alpha = 0.7f), edge, t), face, body)
             }
+            SkinEffect.GLITCH -> {
+                // A slow trip round the whole colour wheel (a glitched boss's cycle, slowed down),
+                // with a brief glitch jump to the opposite colour every couple of seconds.
+                val jump = (time * 0.45f) % 1f < 0.035f
+                val hue = ((time * 24f) + (if (jump) 180f else 0f)) % 360f
+                Colors(Color.hsv(hue, 0.85f, 1f), Color.hsv((hue + 30f) % 360f, 0.25f, 1f), Color.hsv(hue, 0.7f, 0.14f))
+            }
+            SkinEffect.GOLD -> {
+                // Polished gold: a bright glint sweeps across now and then.
+                val glint = ((sin(time * 1.6f) + 1f) / 2f).let { it * it * it }
+                Colors(lerp(edge, Color(0xFFFFF4C2), glint * 0.8f), lerp(face, Color.White, glint * 0.5f), body)
+            }
+            SkinEffect.GLOW -> {
+                val breathe = 0.85f + 0.15f * sin(time * 2.4f)
+                Colors(edge.copy(alpha = breathe), face, body)
+            }
         }
     }
 
@@ -84,7 +100,7 @@ object OperativeMark {
         translate(center.x - width / 2f, center.y - h / 2f) {
             scale(s, s, Offset.Zero) {
                 translate(-22f, -18f) {
-                    if (skin.effect == SkinEffect.NEON) {
+                    if (skin.effect == SkinEffect.NEON || skin.effect == SkinEffect.GLOW) {
                         // Breathing neon bloom: layered soft strokes outside the shield.
                         val breathe = 0.75f + 0.25f * sin(time * 2.2f)
                         drawPath(body, c.edge.copy(alpha = 0.10f * alpha * breathe), style = Stroke(14f, join = StrokeJoin.Round))
@@ -97,7 +113,7 @@ object OperativeMark {
                     drawPath(left, c.face.copy(alpha = alpha), style = faceStroke)
                     drawPath(mouth, c.face.copy(alpha = alpha), style = faceStroke)
                     drawPath(right, c.face.copy(alpha = alpha), style = faceStroke)
-                    if (skin.effect == SkinEffect.NEON) {
+                    if (skin.effect == SkinEffect.NEON || skin.effect == SkinEffect.GLOW) {
                         // Glowing face, like the icon's lit >_<.
                         val fg = c.face.copy(alpha = 0.25f * alpha)
                         drawPath(left, fg, style = faceGlowStroke)

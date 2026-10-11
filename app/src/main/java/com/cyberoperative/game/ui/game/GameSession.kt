@@ -798,7 +798,7 @@ class GameSession(
                 !com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, it, classId) &&
                     com.cyberoperative.game.meta.StoreManager.skinUnlocked(updated, it, classId)
             }
-            unlocked = newly.map { it.name } + skinsEarned.map { "${it.name} SKIN · $className" }
+            unlocked = newly.map { it.name } + skinsEarned.map { "${it.name} SKIN · " + if (it.unlock?.campaign == true) "EVERY CLASS" else className }
             updated.copy(
                 achievements = updated.achievements + newly.map { it.id },
                 euros = updated.euros + newly.sumOf { it.rewardEuros.toLong() }

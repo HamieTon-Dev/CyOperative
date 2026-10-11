@@ -32,7 +32,6 @@ class RunStats {
     var parallelShots = 1
     var followUpShots = 0
     var diagonalPairs = 0
-    var rearShot = false
     var pierce = 0
     var bounce = 0
     var chain = 0
@@ -86,7 +85,7 @@ class RunStats {
         damage = o.damage; fireRate = o.fireRate; projectileSpeed = o.projectileSpeed
         range = o.range; critChance = o.critChance; critMul = o.critMul
         parallelShots = o.parallelShots; followUpShots = o.followUpShots
-        diagonalPairs = o.diagonalPairs; rearShot = o.rearShot; pierce = o.pierce
+        diagonalPairs = o.diagonalPairs; pierce = o.pierce
         bounce = o.bounce; chain = o.chain; chainDamageMul = o.chainDamageMul
         instantDeleteChance = o.instantDeleteChance; eliteDamageMul = o.eliteDamageMul
         moveSpeed = o.moveSpeed

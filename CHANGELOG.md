@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.25.2 (versionCode 78) — 2026-10-11 · Campaign and premium skins; PROXY SHOT removed
+### Added (owner)
+- **PURPLE skin:** earned by beating World 15's boss, and unlocks for **every class**.
+  - It used to unlock at level 100 on Hard. Anyone who already earned it that way keeps it.
+- **GLITCHED skin:** also earned by beating World 15's boss, for every class.
+  - Slowly runs through every colour, like a glitched boss but slower, with a brief glitch jump every couple of seconds.
+- **GOLD skin, ◇1000:** polished gold with a light that sweeps across it.
+  - No gold skin existed before, so nothing needed converting.
+- **NEON skin, ◇1000:** pick any colour from a wheel of bright neon colours (SKINS → NEON → COLOUR, then DONE).
+  - It glows and breathes.
+  - Your co-op partner sees the colour you picked.
+- GOLD and NEON are not part of the ◇300 ALL SKINS pack.
+### Removed (owner)
+- **PROXY SHOT** (the rear shot) is gone from the game.
+  - A saved run that had it simply drops it.
+### Technical
+- New `CampaignPremiumSkinsTest` (5 tests).
+
 ## 0.25.1 (versionCode 77) — 2026-10-11 · Boss loot sprays out; co-op loot is per player
 ### Changed (owner)
 - **Boss loot sprays out of the boss** instead of landing in a pile.

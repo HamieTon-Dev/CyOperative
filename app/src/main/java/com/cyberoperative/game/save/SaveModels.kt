@@ -21,6 +21,8 @@ data class PlayerProfile(
     val achievements: Set<String> = emptySet(),
     val ownedSkins: Set<String> = setOf("default"),
     val selectedSkin: String = "default",
+    /** The NEON skin's colour, picked on the colour wheel (owner, 2026-10-11). */
+    val neonColor: Long = 0xFFFF2BD6,
     val ownedOperatives: Set<String> = setOf("operative"),
     val selectedOperative: String = "operative",
     val ownedThemes: Set<String> = setOf("default"),

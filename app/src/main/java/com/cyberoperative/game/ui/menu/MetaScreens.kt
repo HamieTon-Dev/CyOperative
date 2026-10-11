@@ -195,7 +195,7 @@ private fun ClassCard(p: PlayerProfile, cls: com.cyberoperative.game.data.Operat
                     val got = com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, cs, cls.id)
                     val diff = if (cs.unlock?.difficulty == "HARD") "HARD" else "NORMAL"
                     Text(
-                        if (got) "${cs.name} SKIN ✓" else "${cs.name} SKIN · reach L${cs.unlock?.level} on $diff",
+                        if (got) "${cs.name} SKIN ✓" else if (cs.unlock?.campaign == true) "${cs.name} SKIN · beat World 15's boss" else "${cs.name} SKIN · reach L${cs.unlock?.level} on $diff",
                         color = if (got) Color(cs.edge) else Palette.TextMuted,
                         style = MaterialTheme.typography.labelSmall
                     )

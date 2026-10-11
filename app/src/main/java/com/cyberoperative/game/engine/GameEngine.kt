@@ -3167,7 +3167,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             spawnBolt(px, py, angle + a, ProjKind.BOLT, s.damage * 0.8f)
             spawnBolt(px, py, angle - a, ProjKind.BOLT, s.damage * 0.8f)
         }
-        if (s.rearShot) spawnBolt(px, py, angle + MathUtil.PI, ProjKind.BOLT, s.damage * 0.8f)
         sound(GameSound.PLAYER_SHOT)
     }
 

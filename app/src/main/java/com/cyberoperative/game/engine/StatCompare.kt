@@ -27,7 +27,6 @@ object StatCompare {
         Stat("Shots per volley", Kind.COUNT) { it.parallelShots.toFloat() },
         Stat("Follow-up shots", Kind.COUNT) { it.followUpShots.toFloat() },
         Stat("Diagonal pairs", Kind.COUNT) { it.diagonalPairs.toFloat() },
-        Stat("Rear shot", Kind.COUNT) { if (it.rearShot) 1f else 0f },
         Stat("Pierce", Kind.COUNT) { it.pierce.toFloat() },
         Stat("Bounce", Kind.COUNT) { it.bounce.toFloat() },
         Stat("Chain", Kind.COUNT) { it.chain.toFloat() },
@@ -54,7 +53,7 @@ object StatCompare {
 
     /** Primary gun: damage × volleys/s × shots per volley, with average crits. */
     fun mainGunDps(s: RunStats): Float {
-        val shots = s.parallelShots + 0.8f * (2 * s.diagonalPairs + if (s.rearShot) 1 else 0)
+        val shots = s.parallelShots + 0.8f * (2 * s.diagonalPairs)
         val volleys = s.fireRate * (1 + s.followUpShots)
         return s.damage * volleys * shots * (1f + s.critChance.coerceIn(0f, 1f) * (s.critMul - 1f))
     }
