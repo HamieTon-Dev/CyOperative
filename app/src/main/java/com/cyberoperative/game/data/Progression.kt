@@ -124,7 +124,7 @@ object PermanentUpgrades {
             { l -> p(8f * l) + " crit damage" }, { s, l -> s.critMul += 0.08f * l }),
         PermanentUpgradeDef("armor", "ENEMY DAMAGE REDUCTION", "Hardened chassis.", 10, 100, 3,
             { l -> "-${n(2f * l)}% damage taken" }, { s, l -> s.armor += 0.02f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("firewall", "FIREWALL STRENGTH", "Start every run with a recharging firewall.", 10, 110, 4,
+        PermanentUpgradeDef("firewall", "FIREWALL STRENGTH", "Start every run with a firewall (refills when a room is cleared).", 10, 110, 4,
             { l -> "+${n(10f * l)} firewall" }, { s, l -> s.firewallMax += 10f * l }),
         PermanentUpgradeDef("orb_damage", "ORB DAMAGE", "Packet Nodes hit harder.", 15, 70, 2,
             { l -> p(8f * l) + " node damage" }, { s, l -> s.orbDamage *= 1f + 0.08f * l }),

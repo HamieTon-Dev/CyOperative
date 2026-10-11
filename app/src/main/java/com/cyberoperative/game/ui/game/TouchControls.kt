@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.ui.unit.sp
 import com.cyberoperative.game.data.Spell
 import com.cyberoperative.game.save.GameSettings
@@ -76,6 +78,32 @@ object TouchLayout {
     fun reset(s: GameSettings, landscape: Boolean): Map<String, Float> =
         s.touchLayout.filterKeys { !it.startsWith(if (landscape) "L." else "P.") }
 
+    /**
+     * The MAP button's corner (top right, under the HUD) is off limits to every control
+     * (owner, 2026-10-11: "buttons should not be able to block the map button"). Sizes in dp.
+     */
+    const val MAP_ZONE_W = 120f
+    fun mapZoneH(landscape: Boolean): Float = if (landscape) 120f else 210f
+
+    /** [p] (screen fractions) moved out of the MAP corner if control [c] would overlap it. */
+    fun clearOfMap(p: Offset, c: TouchControl, landscape: Boolean, wDp: Float, hDp: Float): Offset {
+        if (wDp <= 0f || hDp <= 0f) return p
+        val half = c.sizeDp / 2f
+        val zoneLeft = wDp - MAP_ZONE_W
+        val zoneBottom = mapZoneH(landscape)
+        val cx = p.x * wDp
+        val cy = p.y * hDp
+        if (cx + half <= zoneLeft || cy - half >= zoneBottom) return p
+        // Out the shorter way: left of the corner, or below it.
+        val left = (cx + half) - zoneLeft
+        val down = zoneBottom - (cy - half)
+        return if (left < down) Offset((zoneLeft - half) / wDp, p.y) else Offset(p.x, (zoneBottom + half) / hDp)
+    }
+
+    /** Where [c] goes on a [wDp] x [hDp] screen: the saved spot, kept out of the MAP corner. */
+    fun place(s: GameSettings, c: TouchControl, landscape: Boolean, wDp: Float, hDp: Float): Offset =
+        clearOfMap(pos(s, c, landscape), c, landscape, wDp, hDp)
+
     /** AUTO: locked in landscape, floating in portrait. */
     fun stickLocked(s: GameSettings, landscape: Boolean): Boolean = when (s.joystickMode) {
         "FLOAT" -> false
@@ -104,7 +132,7 @@ fun TouchActionButtons(
         val h = maxHeight
         for (c in TouchControl.entries) {
             if (c == TouchControl.STICK) continue
-            val p = TouchLayout.pos(settings, c, landscape)
+            val p = TouchLayout.place(settings, c, landscape, w.value, h.value)
             val st = stateOf(c, hud)
             TouchButton(
                 c, spellOf(c, hud), st,
@@ -216,8 +244,19 @@ fun TouchLayoutEditor(settings: GameSettings, landscape: Boolean, onChange: (Map
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wPx = with(density) { maxWidth.toPx() }
         val hPx = with(density) { maxHeight.toPx() }
+        val wDp = maxWidth.value
+        val hDp = maxHeight.value
+        // The MAP button's corner: shown, and no control can be dragged into it.
+        Box(
+            Modifier
+                .align(Alignment.TopEnd)
+                .size(TouchLayout.MAP_ZONE_W.dp, TouchLayout.mapZoneH(landscape).dp)
+                .border(1.dp, Palette.Cyan.copy(alpha = 0.5f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+                .background(Palette.Cyan.copy(alpha = 0.06f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
+            contentAlignment = Alignment.Center
+        ) { Text("MAP\n(KEEP CLEAR)", color = Palette.Cyan.copy(alpha = 0.8f), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
         for (c in TouchControl.entries) {
-            val p = TouchLayout.pos(settings, c, landscape)
+            val p = TouchLayout.place(settings, c, landscape, wDp, hDp)
             val half = with(density) { (c.sizeDp / 2).dp.toPx() }
             val latest = androidx.compose.runtime.rememberUpdatedState(settings)
             val change0 = androidx.compose.runtime.rememberUpdatedState(onChange)
@@ -227,10 +266,10 @@ fun TouchLayoutEditor(settings: GameSettings, landscape: Boolean, onChange: (Map
                     .size(c.sizeDp.dp)
                     .pointerInput(c, landscape) {
                         var cur = p
-                        detectDragGestures(onDragStart = { cur = TouchLayout.pos(latest.value, c, landscape) }) { change, drag ->
+                        detectDragGestures(onDragStart = { cur = TouchLayout.place(latest.value, c, landscape, wDp, hDp) }) { change, drag ->
                             change.consume()
                             cur = Offset(cur.x + drag.x / wPx, cur.y + drag.y / hPx)
-                            change0.value(TouchLayout.with(latest.value, c, landscape, cur))
+                            change0.value(TouchLayout.with(latest.value, c, landscape, TouchLayout.clearOfMap(cur, c, landscape, wDp, hDp)))
                         }
                     }
             ) {

@@ -12,12 +12,9 @@ class RunStats {
     var maxHp = 100f
     var armor = 0f              // fraction of incoming damage removed, 0..0.6
     var dodge = 0f              // chance to ignore a hit, 0..0.4
-    var regenPerSec = 0f        // fraction of max HP per second
     var healOnKill = 0f         // flat HP per kill
     var healMul = 1f
     var firewallMax = 0f        // absorb shield
-    var firewallDelay = 3.0f    // seconds without damage before recharge
-    var firewallRate = 0.25f    // fraction of firewallMax per second
     var firewallOnKill = 0f     // fraction restored per kill (adaptive firewall)
     var firewallBreakPulse = 0f // damage of the shockwave when the firewall breaks
     var counterRing = 0         // projectiles released when hit
@@ -77,9 +74,8 @@ class RunStats {
     var euroMul = 1f
 
     fun copyFrom(o: RunStats) {
-        maxHp = o.maxHp; armor = o.armor; dodge = o.dodge; regenPerSec = o.regenPerSec
+        maxHp = o.maxHp; armor = o.armor; dodge = o.dodge
         healOnKill = o.healOnKill; healMul = o.healMul; firewallMax = o.firewallMax
-        firewallDelay = o.firewallDelay; firewallRate = o.firewallRate
         firewallOnKill = o.firewallOnKill; firewallBreakPulse = o.firewallBreakPulse
         counterRing = o.counterRing
         damage = o.damage; fireRate = o.fireRate; projectileSpeed = o.projectileSpeed

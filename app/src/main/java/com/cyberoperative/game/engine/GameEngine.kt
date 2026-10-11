@@ -2082,17 +2082,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (hurtFlash > 0f) hurtFlash -= dt
         sinceDamage += dt
 
-        // Regeneration and firewall recharge.
-        // PC (consumables): no regeneration once the room is clear and nothing is left to fight.
-        val regenOn = !config.consumables || (phase == Phase.COMBAT && aliveCount() > 0)
-        if (s.regenPerSec > 0f && hp < s.maxHp && regenOn) heal(s.maxHp * s.regenPerSec * dt, quiet = true)
-        if (s.firewallMax > 0f && sinceDamage >= s.firewallDelay && firewall < s.firewallMax) {
-            firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallRate * dt)
-            if (firewall >= s.firewallMax && !firewallWasUp) {
-                firewallWasUp = true
-                sound(GameSound.FIREWALL_UP)
-            }
-        }
+        // No HP or Firewall regeneration over time (owner, 2026-10-11: "way too easy" with HP
+        // charges in the game). Firewall refills when a room is cleared and from kills (ADAPTIVE).
 
         tickAbilities(cur, dt)
         // Movement. A co-op guest moves its own operative and reports where it is.

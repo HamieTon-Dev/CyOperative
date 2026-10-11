@@ -193,7 +193,7 @@ fun GameScreen(
         // Touch layout (Settings → TOUCH CONTROLS): locked joystick spot, and the PC-mode buttons.
         val touchSettings = session.settings
         val stickLocked = !GameKeys.active && TouchLayout.stickLocked(touchSettings, landscape)
-        val lockPos = TouchLayout.pos(touchSettings, TouchControl.STICK, landscape)
+        val lockPos = TouchLayout.place(touchSettings, TouchControl.STICK, landscape, maxWidth.value, maxHeight.value)
         val lockX = lockPos.x * constraints.maxWidth
         // The canvas starts under the HUD strip in landscape: its touches are relative to that.
         val lockY = lockPos.y * constraints.maxHeight - (if (landscape) hudHeightPx.toFloat() else 0f)

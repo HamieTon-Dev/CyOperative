@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.25.9 (versionCode 85) — 2026-10-11 · No regeneration; MAP button kept clear
+### Removed (owner: "making the game way too easy… with the new potions these features will no longer be needed")
+- **SELF-REPAIR** (HP over time) is gone from the game. A saved run that had it simply drops it.
+- **Firewall no longer recharges over time.**
+  - It still refills fully when a room is cleared, and ADAPTIVE FIREWALL kills still restore 8%.
+  - REINFORCED FIREWALL is now just "Firewall +50%" (its "recharge 1s sooner" is gone). ADAPTIVE FIREWALL's faster recharge is gone.
+  - Texts no longer say "recharging".
+- The stat sheet no longer lists "Regen" or "Firewall recharge delay".
+### Changed (owner)
+- **Settings → TOUCH CONTROLS:** the MAP button's corner (top right) is marked "MAP (KEEP CLEAR)".
+  - Buttons dragged into it are pushed back out.
+  - In play, a layout saved there earlier is moved out too, so nothing can cover MAP.
+### Technical
+- New tests: `NoRegenTest`, `TouchLayoutMapZoneTest`.
+
 ## 0.25.8 (versionCode 84) — 2026-10-11 · Shop window you can close
 ### Changed (owner: "the shop screen is so large, players cannot close it")
 - At the vendor's counter an **OPEN SHOP** button appears. The shop no longer pops open by itself.

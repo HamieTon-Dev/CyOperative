@@ -169,22 +169,22 @@ object Upgrades {
     // --- Defense: Firewall evolution chain ----------------------------------
     val FIREWALL = UpgradeDef(
         "firewall", "FIREWALL", "[#]", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,
-        "A recharging barrier that absorbs damage before your HP.",
-        { "+25 Firewall (recharges)" },
+        "A barrier that absorbs damage before your HP. Refills when a room is cleared.",
+        { "+25 Firewall" },
         { s, l -> s.firewallMax += 25f * l }
     )
     val REINFORCED_FIREWALL = UpgradeDef(
         "reinforced_firewall", "REINFORCED FIREWALL", "[##]", Rarity.RARE, UpgradeCategory.DEFENSE, 1,
-        "EVOLUTION. Thicker rules, faster recovery.",
-        { "Firewall +50%, recharge 1s sooner" },
-        { s, _ -> s.firewallMax *= 1.5f; s.firewallDelay -= 1f },
+        "EVOLUTION. Thicker rules.",
+        { "Firewall +50%" },
+        { s, _ -> s.firewallMax *= 1.5f },
         evolvesFrom = "firewall"
     )
     val ADAPTIVE_FIREWALL = UpgradeDef(
         "adaptive_firewall", "ADAPTIVE FIREWALL", "[#~]", Rarity.EPIC, UpgradeCategory.DEFENSE, 1,
         "EVOLUTION. Learns from every threat: kills restore Firewall.",
         { "Each kill restores 8% Firewall" },
-        { s, _ -> s.firewallOnKill += 0.08f; s.firewallRate *= 1.4f },
+        { s, _ -> s.firewallOnKill += 0.08f },
         evolvesFrom = "reinforced_firewall"
     )
     val ZERO_TRUST = UpgradeDef(
@@ -354,13 +354,6 @@ object Upgrades {
         "Raises max HP.", { "+20% max HP" },
         { s, l -> s.maxHp *= 1f + 0.2f * l }
     )
-    val SELF_REPAIR = UpgradeDef(
-        "self_repair", "SELF-REPAIR", "+~", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 1,
-        "Slowly regenerate HP in a fight.", { "Regenerate 0.1% HP/s while enemies are present" },
-        // Owner, 2026-10-11 ("it heals too much"): a flat 0.1% HP/s, one level only, and (in the
-        // engine) only while a room still has enemies in it.
-        { s, _ -> s.regenPerSec += 0.001f }
-    )
     val DATA_LEECH = UpgradeDef(
         "data_leech", "DATA LEECH", "<+", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,
         "Siphon data from destroyed threats to repair yourself.", { "+2 HP per kill" },
@@ -414,7 +407,7 @@ object Upgrades {
         PACKET_SCATTER, EXPLOIT_LANCE, PLASMA_BEAM, ENCRYPTION_BLADES, EMP_BURST, BOTNET_CHAIN,
         PACKET_SPLIT, MULTISHOT, DIAGONAL_ROUTING, PENETRATION, PACKET_BOUNCE,
         KERNEL_OVERCLOCK, PAYLOAD_BOOST, CRITICAL_INJECTION, ZERO_DAY_STRIKE, EXPLOIT_CHANCE,
-        THREAT_DETECTION, LOW_LATENCY, MEMORY_EXPANSION, SELF_REPAIR, DATA_LEECH,
+        THREAT_DETECTION, LOW_LATENCY, MEMORY_EXPANSION, DATA_LEECH,
         ENCRYPTION_ARMOR, PACKET_EVASION, INTRUSION_COUNTER, MALWARE_PURGE, DATA_COMPRESSION,
         SYSTEM_RESTORE, CRYPTO_CACHE, DATA_DUMP,
         LOGIC_BOMBS, MALWARE_MISSILES, ARC_DISCHARGE, QUANTUM_RAILGUN, ORBITAL_STRIKE,
