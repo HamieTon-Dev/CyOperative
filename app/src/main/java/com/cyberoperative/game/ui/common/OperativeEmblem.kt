@@ -241,6 +241,14 @@ private fun DrawScope.drawHeroHeadset(p: HeroPalette, time: Float, pulse: Float)
     drawCircle(Color(0xFFE6FDFF).copy(alpha = 0.6f + 0.4f * blink), 2.4f, Offset(26f, 17f))
 }
 
+/** The hero's hood, face shield and headset alone (FIELD AGENT helmet), emblem units. */
+fun DrawScope.drawHeroHelmet(palette: HeroPalette, time: Float) {
+    val p = palette.at(time)
+    val pulse = 0.8f + 0.2f * sin(time * 2.2f)
+    drawHeroHead(p, HeroFace.ICON, time, pulse)
+    drawHeroHeadset(p, time, pulse)
+}
+
 // Full-body extension of the traced hero (shoulders from the icon; cloak and legs below).
 private val heroShoulders = path(16f, 82f, 22f, 66f, 28f, 60f, 47f, 67f, 51f, 76f, 62f, 68f, 74f, 62f, 84f, 70f, 88f, 82f)
 private val heroCloak = path(28f, 78f, 78f, 78f, 74f, 98f, 62f, 106f, 44f, 106f, 32f, 98f)

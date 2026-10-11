@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.17.1 (versionCode 57) — 2026-10-11 · Class bodies redrawn from the concept sheet
+### Changed (owner: "make them look as close to this as possible… Technician looks fine")
+- New vector bodies for four classes (`ui/game/ClassFigures.kt`), traced from the owner's concept sheet:
+  - **FIELD AGENT:** the icon hood with headset and antenna on a crouched, armoured rifleman. It has
+    knee and shoulder plates, a glowing chest bar, a neon-trimmed rifle that tilts with your aim,
+    and a trailing scarf.
+  - **JUGGERNAUT:** a hulking frame with a round shoulder pad and glowing ring, a gauntlet with three
+    lit ports, glowing V-seams, a visor helmet and a tall tower shield on the facing side.
+  - **PHANTOM:** a swept-back hood, a tattered cloak that dissolves into pixels, a crouched hover,
+    twin daggers and floating diamond shards.
+  - **PACKET MAGE:** a tall peaked hood, a long robe with a light front panel, glowing hem runes, a
+    chest gem, floating code cards and a staff whose orb and ring follow the skin colour.
+- Skins follow the concept:
+  - Default: dark plates with neon-green trim (the Field Agent keeps the blue icon hood).
+  - Titanium: light titanium plates with cool white trim.
+  - Purple: dark plates with violet trim.
+- The Technician is unchanged. The old agent, mech and runner drawings were removed.
+
 ## 0.17.0 (versionCode 56) — 2026-10-11 · Classes
 ### Added (owner)
 - **Five classes**, picked on the OPERATIVE screen (Field Agent listed first). The body follows the
