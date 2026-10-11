@@ -1182,7 +1182,7 @@ class ArenaRenderer {
 
     // --- Enemies -------------------------------------------------------------
 
-    private fun DrawScope.drawEnemy(g: GameEngine, e: Enemy, time: Float) {
+    internal fun DrawScope.drawEnemy(g: GameEngine, e: Enemy, time: Float) {
         // *GLITCHED*: colour cycles and the body snaps between shapes.
         val glitch = e.def.glitched || e.boss?.glitched == true
         val base = if (glitch) Color.hsv((time * 220f + e.uid * 47f) % 360f, 0.85f, 1f) else Color(e.def.color)
