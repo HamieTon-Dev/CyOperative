@@ -58,9 +58,8 @@ enum class SkinEffect {
 }
 
 /**
- * Operative skins: recolours of the >_< shield — the same mark as the CYBER
- * OPERATIVE agent in CyOps TD. One per CyOps TD agent colour, plus the CORE
- * skin palettes and the SPECTRUM agent skin, all from CyOps TD's palette.
+ * Operative skins: recolours of the >_< shield. Named by how they look (owner, 2026-10-11);
+ * the ids are the original CyOps TD palette names, kept so owned skins carry over.
  */
 data class OperativeSkin(
     val id: String,
@@ -134,25 +133,25 @@ object OperativeSkins {
 
     val all: List<OperativeSkin> = listOf(
         DEFAULT, TITANIUM, PURPLE, GLITCHED, GOLD, NEON,
-        // CyOps TD agent colours
-        OperativeSkin("firewall", "FIREWALL", "Agent: FIREWALL", 0xFF00FF9C, 0xFFB8FFE0, 0xFF033322),
-        OperativeSkin("ids", "IDS", "Agent: IDS / AI SENTINEL", 0xFF00E5FF, 0xFFB5F6FF, 0xFF032A33),
-        OperativeSkin("blue_hat", "BLUE HAT", "Agent: BLUE HAT / TARPIT / IPS", 0xFF2E7BFF, 0xFFA9C8FF, 0xFF081A3D),
-        OperativeSkin("analyst", "ANALYST", "Agent: ANALYST", 0xFFFFD426, 0xFFFFF0A8, 0xFF2E2603),
-        OperativeSkin("cryptographer", "CRYPTOGRAPHER", "Agent: CRYPTOGRAPHER / QUANTUM", 0xFFA259FF, 0xFFDCC2FF, 0xFF1E0B36),
-        OperativeSkin("zero_day_hunter", "ZERO-DAY HUNTER", "Agent: ZERO-DAY HUNTER", 0xFFFF7A1A, 0xFFFFCFA8, 0xFF331604),
-        OperativeSkin("red_hat", "RED HAT", "Agent: RED HAT", 0xFFFF2D55, 0xFFFFB3C2, 0xFF33070F),
-        OperativeSkin("ace", "ACE", "Agent: ACE", 0xFFE6EEFA, 0xFFFFFFFF, 0xFF1A2130),
-        OperativeSkin("anti_duck", "ANTI DUCK HOLOGRAM", "Agent: ANTI DUCK USB", 0xFF5CFF7A, 0xFFF2F25A, 0xFF0E2A12, SkinEffect.HOLOGRAM),
-        OperativeSkin("spectrum", "SPECTRUM", "Skin: SPECTRUM AGENTS", 0xFF00E5FF, 0xFFFFFFFF, 0xFF0C1322, SkinEffect.SPECTRUM),
-        // CyOps TD CORE-SERVER skin palettes
-        OperativeSkin("reactor", "REACTOR", "Core skin: REACTOR", 0xFFFF9A03, 0xFFFFD08A, 0xFF17100A, SkinEffect.PULSE),
-        OperativeSkin("meridian", "MERIDIAN", "Core skin: MERIDIAN", 0xFFE8BE55, 0xFF7F73C0, 0xFF0B0A1E),
-        OperativeSkin("glacier", "GLACIER", "Core skin: GLACIER", 0xFF96E0FF, 0xFFE6F8FF, 0xFF071620),
-        OperativeSkin("mainframe", "MAINFRAME", "Core skin: MAINFRAME", 0xFF00FF52, 0xFFB3FFC9, 0xFF031008),
-        OperativeSkin("cascade", "CASCADE", "Core skin: CASCADE", 0xFF00F578, 0xFF167F4C, 0xFF020C06),
-        OperativeSkin("neongrid", "NEONGRID", "Core skin: NEONGRID", 0xFF0062FF, 0xFF00FF9C, 0xFF030E24, SkinEffect.PULSE),
-        OperativeSkin("void", "VOID", "Core skin: VOID", 0xFFB653FF, 0xFFE2C4FF, 0xFF0D0716)
+        // Colour skins (owner, 2026-10-11: named by how they look; ids kept so owned skins carry over)
+        OperativeSkin("firewall", "MINT", "Colour skin", 0xFF00FF9C, 0xFFB8FFE0, 0xFF033322),
+        OperativeSkin("ids", "CYAN", "Colour skin", 0xFF00E5FF, 0xFFB5F6FF, 0xFF032A33),
+        OperativeSkin("blue_hat", "ROYAL BLUE", "Colour skin", 0xFF2E7BFF, 0xFFA9C8FF, 0xFF081A3D),
+        OperativeSkin("analyst", "YELLOW", "Colour skin", 0xFFFFD426, 0xFFFFF0A8, 0xFF2E2603),
+        OperativeSkin("cryptographer", "DEEP PURPLE", "Colour skin", 0xFFA259FF, 0xFFDCC2FF, 0xFF1E0B36),
+        OperativeSkin("zero_day_hunter", "ORANGE", "Colour skin", 0xFFFF7A1A, 0xFFFFCFA8, 0xFF331604),
+        OperativeSkin("red_hat", "RED", "Colour skin", 0xFFFF2D55, 0xFFFFB3C2, 0xFF33070F),
+        OperativeSkin("ace", "WHITE", "Colour skin", 0xFFE6EEFA, 0xFFFFFFFF, 0xFF1A2130),
+        OperativeSkin("anti_duck", "LIME HOLOGRAM", "Shimmers between lime and yellow", 0xFF5CFF7A, 0xFFF2F25A, 0xFF0E2A12, SkinEffect.HOLOGRAM),
+        OperativeSkin("spectrum", "RAINBOW", "Cycles through every colour", 0xFF00E5FF, 0xFFFFFFFF, 0xFF0C1322, SkinEffect.SPECTRUM),
+        // Animated and two-tone skins
+        OperativeSkin("reactor", "AMBER", "Pulsing glow", 0xFFFF9A03, 0xFFFFD08A, 0xFF17100A, SkinEffect.PULSE),
+        OperativeSkin("meridian", "SAND & VIOLET", "Two-tone", 0xFFE8BE55, 0xFF7F73C0, 0xFF0B0A1E),
+        OperativeSkin("glacier", "ICE BLUE", "Colour skin", 0xFF96E0FF, 0xFFE6F8FF, 0xFF071620),
+        OperativeSkin("mainframe", "GREEN", "Colour skin", 0xFF00FF52, 0xFFB3FFC9, 0xFF031008),
+        OperativeSkin("cascade", "EMERALD", "Two-tone", 0xFF00F578, 0xFF167F4C, 0xFF020C06),
+        OperativeSkin("neongrid", "ELECTRIC BLUE", "Pulsing glow, mint face", 0xFF0062FF, 0xFF00FF9C, 0xFF030E24, SkinEffect.PULSE),
+        OperativeSkin("void", "VIOLET", "Colour skin", 0xFFB653FF, 0xFFE2C4FF, 0xFF0D0716)
     )
 
     /** The ◇100 colour skins (what the skin pack covers). */

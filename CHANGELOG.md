@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.25.5 (versionCode 81) — 2026-10-11 · Skins named by how they look
+### Changed (owner: "most of them are related to CyOps TD and confusing")
+- Shop skins renamed by their colour. Owned and equipped skins carry over, since the ids are unchanged.
+
+  | Old | New |
+  |---|---|
+  | FIREWALL | MINT |
+  | IDS | CYAN |
+  | BLUE HAT | ROYAL BLUE |
+  | ANALYST | YELLOW |
+  | CRYPTOGRAPHER | DEEP PURPLE |
+  | ZERO-DAY HUNTER | ORANGE |
+  | RED HAT | RED |
+  | ACE | WHITE |
+  | ANTI DUCK HOLOGRAM | LIME HOLOGRAM |
+  | SPECTRUM | RAINBOW |
+  | REACTOR | AMBER |
+  | MERIDIAN | SAND & VIOLET |
+  | GLACIER | ICE BLUE |
+  | MAINFRAME | GREEN |
+  | CASCADE | EMERALD |
+  | NEONGRID | ELECTRIC BLUE |
+  | VOID | VIOLET |
+
+- Subtitles now describe the look ("Colour skin", "Pulsing glow", "Cycles through every colour", …) instead of the CyOps TD agent names.
+
 ## 0.25.4 (versionCode 80) — 2026-10-11 · Fix: crash when a run starts
 ### Fixed
 - **The game crashed the moment a run started** (PLAY or ENDLESS, any difficulty, portrait or landscape).
