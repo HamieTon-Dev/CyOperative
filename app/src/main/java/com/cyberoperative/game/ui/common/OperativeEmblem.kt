@@ -140,7 +140,7 @@ data class HeroPalette(
          */
         fun forSkin(skin: com.cyberoperative.game.data.OperativeSkin): HeroPalette {
             if (skin.id == com.cyberoperative.game.data.OperativeSkins.DEFAULT.id) return ICON
-            if (skin.id == com.cyberoperative.game.data.OperativeSkins.TITANIUM.id) return KEEPER_TITANIUM
+            if (skin.id == com.cyberoperative.game.data.OperativeSkins.TITANIUM.id) return TITANIUM_METAL
             val edge = Color(skin.edge)
             val face = Color(skin.face)
             val body = Color(skin.body)
@@ -163,6 +163,12 @@ data class HeroPalette(
             Color(0xFFB8860B), Color(0xFF6B4A08), Color(0xFF2E1F04), Color(0xFFFFD86A).copy(alpha = 0.45f),
             Color(0xFFFFD426), Color(0xFF0E0A02), Color(0xFF6B4A08), Color(0xFFFFE680), Color(0xFFFFC94D),
             Color(0xFFFFD426), Color(0xFF2A2006), Color(0xFF0E0A02), Color(0xFFFFE680)
+        )
+        /** TITANIUM class skin: gray gunmetal hood with steel edges (owner, 2026-10-11). */
+        val TITANIUM_METAL = HeroPalette(
+            Color(0xFF8E98A3), Color(0xFF5E6873), Color(0xFF343B44), Color(0xFFFFFFFF).copy(alpha = 0.22f),
+            Color(0xFFB8C2CC), Color(0xFF0B0F14), Color(0xFF5E6873), Color(0xFFD0D8E0), Color(0xFF9AA6B2),
+            Color(0xFFB8C2CC), Color(0xFF2A3038), Color(0xFF0E1116), Color(0xFFE8EEF4)
         )
         val KEEPER_TITANIUM = HeroPalette(
             Color(0xFFC8D4E0), Color(0xFF6B7A8A), Color(0xFF2A3340), Color(0xFFFFFFFF).copy(alpha = 0.4f),

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.2 (versionCode 58) — 2026-10-11 · Gray-metal Titanium, bent Mage hood
+### Changed (owner)
+- **TITANIUM is now gray metal on every class.** It was near-white:
+  - gunmetal plates with steel-grey edges;
+  - a new `HeroPalette.TITANIUM_METAL` for the Technician's hood;
+  - the skin's own colours were retuned to match.
+  - The titanium shopkeeper is unchanged.
+- **Packet Mage:** the tip of the peaked hood now bends sharply back, with a glowing seam along the
+  bend.
+
 ## 0.17.1 (versionCode 57) — 2026-10-11 · Class bodies redrawn from the concept sheet
 ### Changed (owner: "make them look as close to this as possible… Technician looks fine")
 - New vector bodies for four classes (`ui/game/ClassFigures.kt`), traced from the owner's concept sheet:

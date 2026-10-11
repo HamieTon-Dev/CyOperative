@@ -31,7 +31,7 @@ import kotlin.math.sin
  * x = 52, facing right) and placed/mirrored into the world like the TECHNICIAN's icon hero.
  *
  * Colours come from the skin: dark plates with neon trim (DEFAULT green, PURPLE violet), or
- * light titanium plates with cool white trim (TITANIUM).
+ * gunmetal-grey plates with steel trim (TITANIUM).
  */
 internal object ClassFigures {
 
@@ -51,9 +51,10 @@ internal object ClassFigures {
     fun look(skin: OperativeSkin, time: Float): Look {
         val c = OperativeMark.colors(skin, time)
         if (skin.id == OperativeSkins.TITANIUM.id) {
+            // Owner, 2026-10-11: gray metal (gunmetal plates, steel edges), not white.
             return Look(
-                Color(0xFFE6EDF4), Color(0xFFA7B4C2), Color(0xFF4E5A69),
-                Color(0xFFCFE6FF), Color(0xFFF4FAFF), Color(0xFF070A0E), HeroPalette.forSkin(skin)
+                Color(0xFF9CA5AF), Color(0xFF66707B), Color(0xFF353C45),
+                Color(0xFFC3CCD6), Color(0xFFE8EEF4), Color(0xFF070A0E), HeroPalette.forSkin(skin)
             )
         }
         // Default skin: the concept's bright neon green trim on near-black plates.
@@ -428,9 +429,22 @@ internal object ClassFigures {
                 fillStroke(poly(64f, 60f, 74f, 66f, 82f, 70f, 80f, 76f, 70f, 74f, 62f, 70f), l.plateMid, l.trim.copy(alpha = 0.8f), 0.8f)
                 drawCircle(l.plateLight, 2.8f, Offset(81f, 72f))
                 // The tall peaked hood with the visor.
-                val hood = poly(34f, 62f, 38f, 38f, 46f, 22f, 52f, 2f, 58f, 22f, 66f, 38f, 70f, 62f, 52f, 66f)
-                fillStroke(hood, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 2f, endY = 66f), l.trim, 1.1f)
-                neon(Offset(52f, 6f), Offset(52f, 26f), l.trim.copy(alpha = 0.6f), 0.6f, pulse)
+                // Peaked hood whose tip bends sharply back (owner, 2026-10-11).
+                path.reset()
+                path.moveTo(34f, 62f)
+                path.lineTo(38f, 38f)
+                path.lineTo(44f, 22f)
+                path.cubicTo(46f, 14f, 44f, 8f, 36f, 6f)
+                path.lineTo(16f, 4f)
+                path.lineTo(32f, 12f)
+                path.cubicTo(44f, 13f, 54f, 16f, 60f, 26f)
+                path.lineTo(66f, 38f)
+                path.lineTo(70f, 62f)
+                path.lineTo(52f, 66f)
+                path.close()
+                fillStroke(path, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 4f, endY = 66f), l.trim, 1.1f)
+                path.reset(); path.moveTo(52f, 28f); path.cubicTo(50f, 18f, 44f, 11f, 22f, 6f)
+                neonPath(path, l.trim.copy(alpha = 0.6f), 0.6f, pulse)
                 drawOval(Color(0xFF020306), Offset(40f, 34f), Size(24f, 26f))
                 visorFace(52f, 47f, 18f, 13f, l, pulse)
             }

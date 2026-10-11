@@ -78,7 +78,7 @@ object OperativeSkins {
     val DEFAULT = OperativeSkin("default", "CYBER OPERATIVE", "The logo", 0xFF23C55E, 0xFF6EF7A5, 0xFF07301E, free = true)
 
     /** Class skins (owner, 2026-10-11): every class earns these on its own. */
-    val TITANIUM = OperativeSkin("titanium", "TITANIUM", "Class skin: level 100 on Normal", 0xFFDCE8F2, 0xFFFFFFFF, 0xFF1C2430,
+    val TITANIUM = OperativeSkin("titanium", "TITANIUM", "Class skin: level 100 on Normal", 0xFFAEB7C1, 0xFFE6ECF2, 0xFF2B3138,
         SkinEffect.PULSE, unlock = SkinUnlock("MEDIUM", 100))
     val PURPLE = OperativeSkin("purple", "PURPLE", "Class skin: level 100 on Hard", 0xFFA259FF, 0xFFE7D2FF, 0xFF1A0833,
         SkinEffect.HOLOGRAM, unlock = SkinUnlock("HARD", 100))
