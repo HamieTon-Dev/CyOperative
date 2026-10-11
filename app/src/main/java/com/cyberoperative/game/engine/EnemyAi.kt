@@ -18,6 +18,8 @@ class EnemyAi(private val g: GameEngine) {
     companion object {
         /** Seconds between path re-plans per enemy (staggered by spawn time). */
         const val NAV_REFRESH = 0.12f
+        /** Threats that lost a cloaked PHANTOM search at least this far from where it vanished. */
+        const val SEARCH_RING = 170f
     }
 
     fun update(dt: Float) {
@@ -67,10 +69,22 @@ class EnemyAi(private val g: GameEngine) {
      * where it last saw the operative and waits there.
      */
     private fun search(e: Enemy, dt: Float) {
-        if (MathUtil.dist2(e.x, e.y, g.searchX, g.searchY) > 60f * 60f) {
-            moveToward(e, g.searchX, g.searchY, e.speed * 0.6f, dt, useField = false)
+        // Lost the target: no attack, no charge. Each threat sweeps its own spot on a wide ring
+        // around where the operative vanished, so they never close in on someone standing still.
+        if (e.state == AiState.WINDUP || e.state == AiState.DASH || e.state == AiState.RECOVER) {
+            e.state = AiState.MOVE
+            e.vx = 0f; e.vy = 0f
         }
-        if (e.state == AiState.WINDUP) e.state = AiState.MOVE
+        val d = SEARCH_RING + (e.uid % 5) * 30f
+        val ox = e.x - g.searchX
+        val oy = e.y - g.searchY
+        val od = sqrt(ox * ox + oy * oy)
+        // Inside the ring: back straight out (never across the vanish point). On it: circle slowly.
+        val a = if (od < d * 0.8f) (if (od > 1f) atan2(oy, ox) else e.uid * 2.39996f)
+            else atan2(oy, ox) + (if (e.uid % 2 == 0) 0.35f else -0.35f)
+        val tx = g.searchX + cos(a) * d
+        val ty = g.searchY + sin(a) * d
+        if (MathUtil.dist2(e.x, e.y, tx, ty) > 30f * 30f) moveToward(e, tx, ty, e.speed * 0.5f, dt, useField = false)
     }
 
     // --- Movement helpers ---------------------------------------------------

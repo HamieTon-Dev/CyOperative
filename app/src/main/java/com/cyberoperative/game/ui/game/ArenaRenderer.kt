@@ -1215,7 +1215,9 @@ class ArenaRenderer {
         val elite = e.elite
         if (boss == null) {
             // Regular threats: neon emblem sprites (EnemySprites); elites wear their modifier frame.
-            val ang = kotlin.math.atan2(g.py - e.y, g.px - e.x)
+            // A cloaked PHANTOM can't be seen: threats glance around instead of locking on.
+            val lost = g.isCloaked(g.primary)
+            val ang = if (lost) e.uid * 1.7f + sin(time * 1.3f + e.uid) * 1.4f else kotlin.math.atan2(g.py - e.y, g.px - e.x)
             // Elites are drawn 30% larger than their hitbox so they stand out (owner, 2026-10-11).
             val vr = if (elite != null) e.radius * EnemySprites.ELITE_DRAW_SCALE else e.radius
             with(EnemySprites) {
@@ -1231,6 +1233,11 @@ class ArenaRenderer {
             }
             if (e.uid == g.targetUid) {
                 drawOval(Palette.Cyan.copy(alpha = 0.85f), Offset(e.x - e.radius - 6f, e.y + e.radius * 0.1f), Size(e.radius * 2f + 12f, e.radius + 6f), style = Stroke(2.5f))
+            }
+            if (lost) {
+                tagPaint.textSize = 16f
+                tagPaint.color = android.graphics.Color.argb((170 + 80 * sin(time * 5f + e.uid)).toInt().coerceIn(0, 255), 200, 210, 255)
+                drawContext.canvas.nativeCanvas.drawText("?", cx, cy - vr - 8f + sin(time * 3f + e.uid) * 2f, tagPaint)
             }
             return
         }

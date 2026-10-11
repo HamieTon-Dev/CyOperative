@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.19.3 (versionCode 67) — 2026-10-11 · Phantom cloak actually loses them
+### Fixed (owner: "Enemies still track, shoot at, and move towards the player while cloaked")
+- **No closing in:** threats that lose a cloaked Phantom no longer walk to the exact spot where it
+  vanished, which is where a player standing still still is.
+  - Each one backs straight out and circles its own point on a wide ring (170 units or more) around
+    that spot.
+  - Melee threats that were on top of you now drift away.
+- **Dashes and charges in progress are cancelled** the moment you cloak.
+- **Homing shots already in flight stop homing** and fly straight.
+- **They visibly lose you:** eyes and gun barrels glance around instead of tracking you, and a
+  pulsing **"?"** floats over each threat while you're hidden.
+- They still fire nothing while you're cloaked. A new test guards all of this: no new shots, and
+  nothing within 60 units of you while cloaked.
+- The Nullshade Specter still sees through it.
+
 ## 0.19.2 (versionCode 66) — 2026-10-11 · Packet Mage staff orbit restored
 ### Fixed (owner)
 - **Packet Mage staff:** the orbit animation around the orb is clearly visible again, in every skin.

@@ -134,4 +134,30 @@ class ClassesTest {
         val r = ClassRecord().with("MEDIUM", 40).with("MEDIUM", 30).with("HARD", 12)
         assertEquals(40, r.bestNormal); assertEquals(12, r.bestHard); assertEquals(0, r.bestEasy)
     }
+
+    @Test fun cloakedThreatsNeitherShootNorCloseIn() {
+        val cfg = Operatives.buildConfig("phantom", emptyMap(), 5L).let { it.copy(baseStats = it.baseStats.apply { maxHp = 1e6f; damage = 0.001f; orbCount = 0 }) }
+        val g = GameEngine(cfg)
+        g.debugStartPlan(LevelPlanner.plan(13, Random(1), null, true).copy(waves = emptyList()))
+        val ids = listOf("sniffer", "sql_injector", "malware", "exploit", "poly_spitter", "enc_gunner")
+        val es = ids.mapIndexed { i, id -> g.spawnEnemyAt(Enemies.byId(id), null, g.px + 250f * kotlin.math.cos(i * 1.05f), g.py + 250f * kotlin.math.sin(i * 1.05f), false)!! }
+        var t = 0f
+        var cloakedShots = 0
+        var closestWhileCloaked = Float.MAX_VALUE
+        var cloakedFor = 0f
+        while (t < 20f) {
+            val n0 = g.projectiles.items.count { it.active && !it.friendly }
+            g.setInput(0f, 0f)
+            g.update(1f / 60f); t += 1f / 60f
+            if (!g.isCloaked()) continue
+            cloakedFor += 1f / 60f
+            cloakedShots += (g.projectiles.items.count { it.active && !it.friendly } - n0).coerceAtLeast(0)
+            // Give them a second to turn away, then nobody should be on top of the operative.
+            if (cloakedFor % GameEngine.CLOAK_SECONDS > 1.5f) for (e in es) if (e.active)
+                closestWhileCloaked = minOf(closestWhileCloaked, com.cyberoperative.game.core.MathUtil.dist(e.x, e.y, g.px, g.py))
+        }
+        assertTrue("cloaked for ${cloakedFor}s", cloakedFor > 5f)
+        assertEquals("no new shots at a cloaked operative", 0, cloakedShots)
+        assertTrue("threats keep their distance while it is cloaked (closest $closestWhileCloaked)", closestWhileCloaked > 60f)
+    }
 }

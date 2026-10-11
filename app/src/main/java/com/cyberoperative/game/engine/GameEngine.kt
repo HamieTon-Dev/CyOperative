@@ -2792,7 +2792,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     p.vx = cos(cur + turn) * sp
                     p.vy = sin(cur + turn) * sp
                 }
-            } else if (p.homing > 0f && !p.friendly) {
+            } else if (p.homing > 0f && !p.friendly && !cur.cloaked) {
+                // (A cloaked PHANTOM can't be homed on: the shot flies straight.)
                 val want = atan2(py - p.y, px - p.x)
                 val cur = atan2(p.vy, p.vx)
                 val diff = MathUtil.wrapAngle(want - cur)
