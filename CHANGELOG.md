@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.26.0 (versionCode 86) — 2026-10-11 · Co-op shop
+### Added (owner: "both players have a separate shop, and both teleport in and out of shop together")
+- **The shop now appears in co-op** (it was solo-only before). It is the same 1-in-20 side gate after a room is cleared.
+- **In together:** either player walking into the shop gate brings both players into the shop.
+- **A shop each:**
+  - Every player gets their own 4 items, rolled from their own build, with their own SOLD marks.
+  - Run € is the shared pool, as everywhere in co-op.
+  - The guest's purchases are sent to the host, which runs the game, and each player sees their own stock.
+- **Out together:**
+  - Walking into the exit gate marks you ready, and you wait there.
+  - Your partner sees "‹NAME› FINISHED SHOPPING · READY TO LEAVE 1/2 · WALK TO THE GATE"; you see "WAITING FOR ‹NAME› · READY TO LEAVE 1/2".
+  - When both stand in the gate, you leave together. Stepping out of the gate cancels your ready.
+- In co-op the "skip the shop?" question isn't asked. Walking out the exit door skips the shop, as the door hint says.
+### Technical
+- Co-op snapshot VERSION 22, and the guest input gains shop purchases. Both players need 0.26.0.
+- New `CoopShopTest`. It runs a host and a mirrored guest through the codec: in together, separate stock, guest purchase, 1/2 wait, out together.
+
 ## 0.25.9 (versionCode 85) — 2026-10-11 · No regeneration; MAP button kept clear
 ### Removed (owner: "making the game way too easy… with the new potions these features will no longer be needed")
 - **SELF-REPAIR** (HP over time) is gone from the game. A saved run that had it simply drops it.

@@ -335,6 +335,14 @@ fun GameScreen(
                     if (hud.topGateLocked) Palette.Red else Palette.Green
                 )
             }
+            // Co-op shop: both leave together through the exit gate.
+            if (hud.inShop && hud.coop && hud.shopReadyCount > 0) {
+                HintChip(
+                    if (hud.meShopReady) "WAITING FOR ${hud.partnerName.ifEmpty { "PARTNER" }} · READY TO LEAVE ${hud.shopReadyCount}/${hud.shopReadyTotal}"
+                    else "${hud.partnerName.ifEmpty { "PARTNER" }} FINISHED SHOPPING · READY TO LEAVE ${hud.shopReadyCount}/${hud.shopReadyTotal} · WALK TO THE GATE",
+                    Palette.Gold
+                )
+            }
             if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
                 HintChip(if (hud.shopGateRight) "SHOP GATE OPEN — RIGHT WALL ►" else "◄ SHOP GATE OPEN — LEFT WALL", Palette.Gold)
             }

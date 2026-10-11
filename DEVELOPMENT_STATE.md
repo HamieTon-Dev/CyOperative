@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.25.9 (versionCode 85) |
+| Version | 0.26.0 (versionCode 86) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Co-op shop (0.26.0)**:
+  - Each Operative has its own `shopItems` and `shopReady`. `GameEngine.shopItems` is the current operative's stock.
+  - The guest buys through `CoopInput.shopSerial/shopIndex/shopReplace`, applied on the host by `buyShopItemFor`.
+  - The snapshot (v22) carries inShop, shopSeed, keeper, the shop side gate, and each operative's stock and ready flag.
+  - In the shop, `portalCheck` waits until every player still in the run stands in the exit gate.
+  - The "skip the shop?" prompt is solo-only.
 - **Fixed in 0.25.4: crash on every run start (0.25.x, Android).**
   - A just-dropped chip's glow had radius 0 on its first frame, and Android throws "ending radius must be > 0".
   - Every radial glow now goes through `ui/common/SafeBrush`. `ZeroRadiusGlowTest` fails if a raw `Brush.radialGradient(` comes back.

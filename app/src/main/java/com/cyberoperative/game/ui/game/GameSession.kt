@@ -134,6 +134,10 @@ data class HudSnapshot(
     val inShop: Boolean = false,
     val atShopCounter: Boolean = false,
     val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
+    /** Co-op shop: players standing in the exit gate, of how many; and whether that includes me. */
+    val shopReadyCount: Int = 0,
+    val shopReadyTotal: Int = 1,
+    val meShopReady: Boolean = false,
     val shopGateRight: Boolean = false,
     val skipShopPrompt: Boolean = false,
     val topGateLocked: Boolean = false,
@@ -409,7 +413,7 @@ class GameSession(
                 CoopCodec.encodeInput(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
                         engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial,
-                        dashSerial, spell1Serial, spell2Serial)
+                        dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace)
                 )
             )
         }
@@ -528,6 +532,7 @@ class GameSession(
             inShop = g.inShop,
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
+            shopReadyCount = g.shopReadyCount, shopReadyTotal = g.shopReadyTotal, meShopReady = g.meShopReady,
             vaultReady = g.vaultReady,
             shopGateRight = g.shopGateRight,
             skipShopPrompt = g.skipShopPrompt,
@@ -659,7 +664,23 @@ class GameSession(
         engine.reroll()
     }
 
-    fun buyShopItem(i: Int, replace: String? = null) = engine.buyShopItem(i, replace)
+    private var shopSerial = 0
+    private var shopIndex = 0
+    private var shopReplace = -1
+
+    /** Buy from my own shop (a co-op guest asks the host, like card picks). */
+    fun buyShopItem(i: Int, replace: String? = null) {
+        if (guest) {
+            val item = engine.shopItems.getOrNull(i) ?: return
+            if (item.sold || engine.eurosEarned < item.price) return
+            shopIndex = i
+            shopReplace = replace?.let { id -> com.cyberoperative.game.data.Upgrades.all.indexOfFirst { it.id == id } } ?: -1
+            shopSerial++
+            sendTimer = 1f
+            return
+        }
+        engine.buyShopItem(i, replace)
+    }
 
     fun shopNeedsSlot(i: Int) = engine.shopNeedsSlot(i)
 

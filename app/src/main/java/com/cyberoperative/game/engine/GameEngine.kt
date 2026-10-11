@@ -335,8 +335,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     val inShop: Boolean get() = plan.kind == LevelKind.SHOP
     private var goingToShop = false
-    var shopItems: List<ShopItem> = emptyList()
+    /** The current operative's own shop stock. */
+    val shopItems: List<ShopItem> get() = cur.shopItems
+    /** Seed of the shop room (so a co-op guest builds the same room). */
+    var shopSeed = 0L
         private set
+    /** Co-op shop: how many players stand in the exit gate, of how many are in the run. */
+    val shopReadyCount: Int get() = ops.count { !it.gone && it.shopReady }
+    val shopReadyTotal: Int get() = ops.count { !it.gone }
+    val meShopReady: Boolean get() = ops[primary].shopReady
     /** True while the operative stands at the counter (the buy panel shows). */
     val atShopCounter: Boolean
         get() = inShop && arena.obstacles.firstOrNull { it.kind == com.cyberoperative.game.data.ObstacleKind.SHOP_COUNTER }?.let {
@@ -1152,8 +1159,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val door = if (mainGate && kotlin.math.abs(px - arena.portalX) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS) MAIN_DOOR
         else if (campaign && inShop) null
         else exitDoors.firstOrNull { inDoor(it) }
+        if (coop && inShop) {
+            // Co-op shop (owner, 2026-10-11): both leave together. Standing in the gate marks you
+            // ready; the way out opens once every player still in the run is standing in it.
+            cur.shopReady = door != null
+            if (door == null || ops.any { !it.gone && !it.shopReady }) return
+        }
         if (door != null) {
-                if (shopGateOpen) {
+                if (shopGateOpen && !coop) {
                     // A shop is on offer: ask before letting them skip it, and step them back off the gate.
                     if (!skipShopPrompt) {
                         skipShopPrompt = true
@@ -1211,7 +1224,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         victory = null
         shopGateOpen = false
         goingToShop = false
-        shopItems = emptyList()
+        for (o in ops) { o.shopItems = emptyList(); o.shopReady = false }
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
@@ -1411,7 +1424,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** 1 in 20: the shopkeeper sends a message and a side gate opens (solo campaign only). */
     private fun rollShop() {
-        if (!coop && !inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
+        if (!inShop && rng.nextFloat() < SHOP_CHANCE) offerShop()
     }
 
     /** Rarity luck for the next offer: deeper levels, harder difficulty and boss rewards all help. */
@@ -1737,16 +1750,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         skipShopPrompt = false
         topGateLocked = false
         shopArrowFlash = 0f
-        val room = ArenaGenerator.shopRoom(Random(rng.nextLong()))
+        shopSeed = rng.nextLong()
+        val room = ArenaGenerator.shopRoom(Random(shopSeed))
         plan = LevelPlan(level, LevelKind.SHOP, room, emptyList())
         arena = Arena(room)
         clearAll()
-        px = arena.spawnX
-        py = arena.spawnY
-        facing = -MathUtil.PI / 2f
+        // Everyone comes in together, side by side; each player gets their own stock.
+        for (o in ops) {
+            if (o.gone) continue
+            arena.pushOut(arena.spawnX + if (coop) (o.index * 2 - 1) * 42f else 0f, arena.spawnY, playerRadius)
+            o.px = arena.out[0]; o.py = arena.out[1]
+            o.facing = -MathUtil.PI / 2f
+            o.shopReady = false
+            cur = o
+            try { o.shopItems = rollShopItems() } finally { cur = ops[primary] }
+        }
         phaseTimer = 0f
-        shopItems = rollShopItems()
-        keeperLook = KeeperLook.forStock(shopItems)
+        keeperLook = KeeperLook.forStock(ops[primary].shopItems)
         phase = Phase.PORTAL
         portalOpen = true
         invuln = 1f
@@ -1821,11 +1841,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         eurosEarned -= item.price
         applyUpgrade(item.def)
-        shopItems = shopItems.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
+        cur.shopItems = shopItems.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
         addText(px, py - 40f, "-${item.price} €", TextKind.INFO)
         sound(GameSound.CURRENCY)
         sound(GameSound.UPGRADE_SELECTED)
         return true
+    }
+
+    /** Host: operative [opIndex] buys from their own shop (a co-op guest's purchase). */
+    fun buyShopItemFor(opIndex: Int, index: Int, replace: String? = null): Boolean {
+        val o = ops.getOrNull(opIndex) ?: return false
+        if (o.gone) return false
+        cur = o
+        try { return buyShopItem(index, replace) } finally { cur = ops[primary] }
     }
 
     /** Frees a weapon slot: the weapon, its timers and anything it left on the field. */
@@ -4340,6 +4368,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var lastSpell1Serial = 0
     private var lastSpell2Serial = 0
     private var lastRerollSerial = 0
+    private var lastShopSerial = 0
 
     /** Host: the guest's latest movement and picks. */
     fun applyInput(index: Int, c: CoopInput) {
@@ -4363,6 +4392,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (c.pickSerial > lastPickSerial) {
             lastPickSerial = c.pickSerial
             chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
+        }
+        if (c.shopSerial > lastShopSerial) {
+            lastShopSerial = c.shopSerial
+            buyShopItemFor(index, c.shopIndex, Upgrades.all.getOrNull(c.shopReplace)?.id)
         }
         if (c.rerollSerial > lastRerollSerial) {
             lastRerollSerial = c.rerollSerial
@@ -4402,6 +4435,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.hpCharges = o.hpCharges; n.packetBombs = o.packetBombs
             for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
+            for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
+            n.shopReady = o.shopReady
             w.ops += n
         }
         for (e in enemies.items) {
@@ -4467,6 +4502,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             w.victoryIndex = if (v == null) -1 else com.cyberoperative.game.data.Bosses.roster.indexOf(v.def)
             if (v != null) { w.victorySerial = v.serial; w.victoryT = v.t; w.victorySeconds = v.seconds; w.victoryBounty = v.bounty; w.victoryX = v.x; w.victoryY = v.y; w.victoryPhase = v.phase }
         }
+        w.inShop = inShop; w.shopSeed = shopSeed; w.keeper = keeperLook.ordinal
+        w.shopGateOpen = shopGateOpen; w.shopGateRight = shopGateRight; w.shopGateY = shopGateY; w.shopMessageSerial = shopMessageSerial
         return w
     }
 
@@ -4488,8 +4525,20 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun applyWorld(w: CoopWorld) {
         if (!mirror || w.seq <= mirrorSeq) return
         mirrorSeq = w.seq
-        val newRoom = w.level != level || w.levelSeed != levelSeed || w.room != room || w.world != world
-        if (newRoom) {
+        // Co-op shop (v22): in and out of the shop rebuild the room too.
+        val newRoom = w.level != level || w.levelSeed != levelSeed || w.room != room || w.world != world ||
+            w.inShop != inShop || (w.inShop && w.shopSeed != shopSeed)
+        shopGateOpen = w.shopGateOpen; shopGateRight = w.shopGateRight; shopGateY = w.shopGateY; shopMessageSerial = w.shopMessageSerial
+        if (newRoom && w.inShop) {
+            level = w.level; levelSeed = w.levelSeed
+            shopSeed = w.shopSeed
+            keeperLook = KeeperLook.entries.getOrElse(w.keeper) { KeeperLook.GOLD }
+            val shopRoom = ArenaGenerator.shopRoom(Random(shopSeed))
+            plan = LevelPlan(level, LevelKind.SHOP, shopRoom, emptyList())
+            arena = Arena(shopRoom)
+            netTargets.clear()
+            for (e in enemies.items) e.active = false
+        } else if (newRoom) {
             level = w.level
             levelSeed = w.levelSeed
             previousArenaId = w.previousArenaId
@@ -4556,6 +4605,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (owned != o.build.owned()) o.build.restore(owned)
             val offer = n.offer.mapNotNull { (k, l) -> Upgrades.all.getOrNull(k)?.let { UpgradeOffer(it, l) } }
             if (offer.map { it.def.id to it.nextLevel } != o.offer.map { it.def.id to it.nextLevel }) o.offer = offer
+            o.shopItems = n.shop.mapNotNull { s -> Upgrades.all.getOrNull(s[0])?.let { ShopItem(it, s[1], s[2], s[3] != 0) } }
+            o.shopReady = n.shopReady
         }
 
         // Enemies by uid: keep the ones still alive (smoothly moved), add new, burst the vanished.

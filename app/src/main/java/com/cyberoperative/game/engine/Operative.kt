@@ -65,6 +65,10 @@ class Operative(val index: Int, baseStats: RunStats) {
     var empTimer = 0f
     var sinceDamage = 99f
     var firewallWasUp = false
+    /** This player's own shop stock (co-op: each player has a separate shop, owner 2026-10-11). */
+    var shopItems: List<ShopItem> = emptyList()
+    /** Co-op shop: standing in the exit gate, waiting for the partner to leave together. */
+    var shopReady = false
     var orbAngle = 0f
     var bladeAngle = 0f
     var orbBoltTimer = 0f
