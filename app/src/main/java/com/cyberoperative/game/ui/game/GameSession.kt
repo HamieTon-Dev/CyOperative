@@ -98,6 +98,10 @@ data class HudSnapshot(
     val difficulty: Difficulty = Difficulty.MEDIUM,
     /** Owned upgrade ids and levels, in the order they were taken (bottom icon bar). */
     val owned: List<Pair<String, Int>> = emptyList(),
+    /** PC consumables: shown only when [consumables]. */
+    val consumables: Boolean = false,
+    val hpCharges: Int = 0,
+    val packetBombs: Int = 0,
     /** Plasma Beam: heat 0..1 while usable, and seconds of overheat lockout left (0 = ready). */
     val beamHeat: Float = 0f,
     val beamCooldown: Float = 0f,
@@ -373,7 +377,7 @@ class GameSession(
             link.room.sendInput(
                 CoopCodec.encodeInput(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
-                        engine.localAiming, engine.localAimX, engine.localAimY)
+                        engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial)
                 )
             )
         }
@@ -471,6 +475,9 @@ class GameSession(
             victoryBest = g.victory != null && victoryBest,
             difficulty = difficulty,
             owned = ownedList(),
+            consumables = g.config.consumables,
+            hpCharges = g.operatives.getOrNull(g.primary)?.hpCharges ?: 0,
+            packetBombs = g.operatives.getOrNull(g.primary)?.packetBombs ?: 0,
             beamHeat = (g.beamHeat / GameEngine.BEAM_MAX_FIRE * 20f).toInt() / 20f,
             beamCooldown = (g.beamCooldown * 10f).toInt() / 10f,
             shopMessageSerial = g.shopMessageSerial,
@@ -553,6 +560,29 @@ class GameSession(
             return
         }
         engine.chooseUpgrade(i, replace)
+    }
+
+    private var hpSerial = 0
+    private var bombSerial = 0
+
+    /** Q: drink an HP charge packet (a co-op guest asks the host). */
+    fun useHpCharge() {
+        if (coop != null && !isHost && engine.mirror) {
+            val me = engine.operatives.getOrNull(engine.primary) ?: return
+            if (me.hpCharges > 0) { hpSerial++; sendTimer = 1f }
+            return
+        }
+        engine.useHpCharge()
+    }
+
+    /** E: set off a Packet Bomb (a co-op guest asks the host). */
+    fun usePacketBomb() {
+        if (coop != null && !isHost && engine.mirror) {
+            val me = engine.operatives.getOrNull(engine.primary) ?: return
+            if (me.packetBombs > 0) { bombSerial++; sendTimer = 1f }
+            return
+        }
+        engine.usePacketBomb()
     }
 
     fun reroll() {

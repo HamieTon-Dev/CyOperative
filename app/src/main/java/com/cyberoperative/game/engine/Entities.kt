@@ -131,6 +131,14 @@ class Zap {
     var tick = 0f
 }
 
+/** PC consumables lying on the floor (owner, 2026-10-11). */
+enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH }
+
+/** A pickup on the floor; [amount] is the € in a [LootKind.CASH] bag. */
+class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0) {
+    var age = 0f
+}
+
 enum class TextKind { NORMAL, CRIT, BOSS, HEAL, SHIELD, PLAYER_HURT, INFO }
 
 class FloatText {

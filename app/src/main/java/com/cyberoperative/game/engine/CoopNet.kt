@@ -52,6 +52,8 @@ class CoopWorld {
     val enemies = ArrayList<NetEnemy>(96)
     val shots = ArrayList<NetShot>(200)
     val hazards = ArrayList<NetHazard>(64)
+    /** PC consumable pickups on the floor: kind, x, y (v15). */
+    val loot = ArrayList<FloatArray>(8)
     val zaps = ArrayList<NetZap>(40)
     val texts = ArrayList<NetText>(32)
     val pulses = ArrayList<NetPulse>(24)
@@ -99,6 +101,7 @@ class NetOp {
     /** CHILL stacks and FROZEN time (v10). */
     var chill = 0f; var frozen = 0f
     var pending = 0; var rerolls = 0; var batchTotal = 0; var batchTaken = 0
+    var hpCharges = 0; var packetBombs = 0
     /** Owned upgrades: index into Upgrades.all → level. */
     val owned = LinkedHashMap<Int, Int>()
     /** Current cards: (index into Upgrades.all, next level). */
@@ -148,7 +151,10 @@ data class CoopInput(
     /** PC mouse aim: fire at ([aimX], [aimY]) while held. */
     val aiming: Boolean = false,
     val aimX: Float = 0f,
-    val aimY: Float = 0f
+    val aimY: Float = 0f,
+    /** Bumped on every HP charge / Packet Bomb use (PC consumables). */
+    val hpSerial: Int = 0,
+    val bombSerial: Int = 0
 )
 
 object CoopCodec {
@@ -218,6 +224,7 @@ object CoopCodec {
                 o.sec(p.pulled); o.pos(p.pullX); o.pos(p.pullY); o.pos(p.pullStrength)
                 o.writeByte((p.chill * 40f).toInt().coerceIn(0, 255)); o.sec(p.frozen)
                 o.var32(p.pending); o.var32(p.rerolls); o.var32(p.batchTotal); o.var32(p.batchTaken)
+                o.writeByte(p.hpCharges.coerceIn(0, 255)); o.writeByte(p.packetBombs.coerceIn(0, 255))
                 o.var32(p.owned.size)
                 for ((k, v) in p.owned) { o.var32(k); o.var32(v) }
                 o.writeByte(p.offer.size)
@@ -254,6 +261,9 @@ object CoopCodec {
                 o.pos(h.radius); o.pos(h.maxRadius); o.sec(h.timer); o.sec(h.duration); o.sec(h.windup)
                 o.writeInt(h.color.toInt())
             }
+
+            o.var32(w.loot.size)
+            for (l in w.loot) { o.writeByte(l[0].toInt()); o.pos(l[1]); o.pos(l[2]) }
 
             o.var32(w.zaps.size)
             for (z in w.zaps) {
@@ -327,6 +337,7 @@ object CoopCodec {
                 p.pulled = i.sec(); p.pullX = i.pos(); p.pullY = i.pos(); p.pullStrength = i.pos()
                 p.chill = i.readUnsignedByte() / 40f; p.frozen = i.sec()
                 p.pending = i.var32(); p.rerolls = i.var32(); p.batchTotal = i.var32(); p.batchTaken = i.var32()
+                p.hpCharges = i.readUnsignedByte(); p.packetBombs = i.readUnsignedByte()
                 repeat(i.var32()) { val k = i.var32(); p.owned[k] = i.var32() }
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
                 w.ops += p
@@ -366,6 +377,8 @@ object CoopCodec {
                 h.color = i.readInt().toLong() and 0xFFFFFFFFL
                 w.hazards += h
             }
+
+            repeat(i.var32()) { w.loot += floatArrayOf(i.readUnsignedByte().toFloat(), i.pos(), i.pos()) }
 
             repeat(i.var32()) {
                 val z = NetZap()
@@ -419,7 +432,7 @@ object CoopCodec {
             o.writeByte(VERSION)
             o.var32(c.seq); o.pos(c.x); o.pos(c.y); o.ang(c.facing); o.writeBoolean(c.moving)
             o.var32(c.pickSerial); o.writeByte(c.pickIndex); o.var32(c.rerollSerial); o.var32(c.level); o.var32(c.replaceIndex + 1)
-            o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY)
+            o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY); o.var32(c.hpSerial); o.var32(c.bombSerial)
         }
         return bytes.toByteArray()
     }
@@ -430,7 +443,7 @@ object CoopCodec {
             CoopInput(
                 seq = i.var32(), x = i.pos(), y = i.pos(), facing = i.ang(), moving = i.readBoolean(),
                 pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1,
-                aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos()
+                aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32()
             )
         }
     } catch (_: Exception) {
@@ -438,5 +451,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 14
+    const val VERSION = 15
 }

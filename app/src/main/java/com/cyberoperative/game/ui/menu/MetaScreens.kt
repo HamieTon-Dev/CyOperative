@@ -27,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -364,9 +367,17 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
             Spacer(Modifier.height(10.dp))
             TerminalCard {
                 Column {
-                    Toggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
+                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
                     Toggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
                     Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+                }
+            }
+            if (com.cyberoperative.game.platform.GameKeys.active) {
+                Spacer(Modifier.height(10.dp))
+                KeybindsCard(s.keyBinds) { next ->
+                    com.cyberoperative.game.ui.common.KeyBinds.map = next
+                    set(s.copy(keyBinds = next))
+                    audio.play(GameSound.UI_CLICK)
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -473,5 +484,46 @@ private fun LockedBadge(opLevel: Int) {
             drawCircle(Palette.Surface, size.width * 0.1f, androidx.compose.ui.geometry.Offset(size.width / 2f, size.height * 0.68f))
         }
         Text("OP LVL $opLevel", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/** PC: rebind the game's keys. Click an action, then press the new key (Esc cancels). */
+@Composable
+private fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit) {
+    val keys = com.cyberoperative.game.platform.GameKeys
+    var waiting by remember { mutableStateOf<com.cyberoperative.game.ui.common.KeyAction?>(null) }
+    TerminalCard {
+        Column {
+            Text("KEYBINDS", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(
+                "Click an action, then press its new key (Esc cancels). Arrow keys always move and Esc always pauses.",
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+            Spacer(Modifier.height(8.dp))
+            for (a in com.cyberoperative.game.ui.common.KeyAction.entries) {
+                val code = binds[a.name] ?: a.default.keyCode
+                Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(a.label, color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    CyberButton(
+                        if (waiting == a) "PRESS A KEY…" else keys.keyName(code).uppercase(),
+                        accent = if (waiting == a) Palette.Orange else Palette.Cyan,
+                        modifier = Modifier.width(170.dp)
+                    ) {
+                        waiting = a
+                        keys.captureKey { pressed ->
+                            waiting = null
+                            if (pressed != null) onChange(com.cyberoperative.game.ui.common.KeyBinds.rebind(binds, a, pressed))
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            CyberButton("RESET TO DEFAULTS", Modifier.fillMaxWidth()) { onChange(emptyMap()) }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Controller: left stick move · right stick aim & fire · LB HP charge · RB Packet Bomb · START pause · B back",
+                color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 }

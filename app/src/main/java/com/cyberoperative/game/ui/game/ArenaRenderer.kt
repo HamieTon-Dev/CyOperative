@@ -117,6 +117,7 @@ class ArenaRenderer {
             drawBarrierGhosts(g, time)
             drawPulses(g)
             drawShadows(g)
+            if (g.loot.isNotEmpty()) with(LootSprites) { drawLoot(g, time) }
             drawEnemyMarkers(g, time)
             drawSorted(g, time, skin, body)
             drawVictoryShatter(g, time)

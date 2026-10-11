@@ -41,6 +41,9 @@ data class RunSnapshot(
     val rerollsLeft: Int,
     val revivesLeft: Int,
     val revivesUsed: Int,
+    /** PC consumables (-1 = saved before they existed: start amounts). */
+    val hpCharges: Int = -1,
+    val packetBombs: Int = -1,
     val score: Long,
     val kills: Int,
     val bosses: Int,

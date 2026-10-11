@@ -41,6 +41,7 @@ fun main(args: Array<String>) {
         hapticsEnabled = false
         initialize()
     }
+    com.cyberoperative.game.ui.common.KeyBinds.map = save.current.settings.keyBinds
     val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else OfflineCoopBackend()
 
     application {
@@ -58,6 +59,7 @@ fun main(args: Array<String>) {
             state = state,
             onPreviewKeyEvent = { e ->
                 when {
+                    DesktopInput.capturing -> DesktopInput.onKey(e)
                     e.type == KeyEventType.KeyDown && e.key == Key.Escape -> DesktopBack.dispatch()
                     e.type == KeyEventType.KeyDown && e.key == Key.F11 -> {
                         state.placement = if (state.placement == WindowPlacement.Fullscreen) WindowPlacement.Floating else WindowPlacement.Fullscreen

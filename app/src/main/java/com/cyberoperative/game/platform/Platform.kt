@@ -186,6 +186,13 @@ object GameKeys {
     val padConnected: Boolean get() = false
     /** True once per press of any controller button or Enter / Space (consumes it). */
     fun takeAnyPress(): Boolean = false
+    /** HP charge / Packet Bomb key or button pressed since the last call. */
+    fun takeHpCharge(): Boolean = false
+    fun takePacketBomb(): Boolean = false
+    /** A key's display name ("Q", "Space"). */
+    fun keyName(code: Long): String = ""
+    /** Settings: the next key pressed is handed to [onKey] (null = cancelled with Esc). */
+    fun captureKey(onKey: (Long?) -> Unit) {}
 }
 
 /** Real-money ◇ checkout for this platform (Google Play Billing is not wired yet). */

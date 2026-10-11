@@ -4,28 +4,56 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.type
+import com.cyberoperative.game.ui.common.KeyAction
+import com.cyberoperative.game.ui.common.KeyBinds
 import kotlin.math.sqrt
 
 /**
- * PC keyboard state. The window forwards key events here; the game screen reads
- * [GameKeys] every frame. WASD and the arrow keys move.
+ * PC keyboard state. The window forwards key events here; the game screen reads [GameKeys]
+ * every frame. Movement and actions follow [KeyBinds] (rebindable in Settings); arrow keys
+ * always move and Esc always pauses / goes back.
  */
 object DesktopInput {
-    private val held = HashSet<Key>()
-
+    private val held = HashSet<Long>()
     private var confirm = false
+    private var hpCharge = false
+    private var packetBomb = false
+    /** Settings is waiting for a key to bind. */
+    private var capture: ((Long?) -> Unit)? = null
 
-    /** Enter / Space since the last call (continues the briefing). */
+    val capturing: Boolean get() = capture != null
+
     fun takeConfirm(): Boolean = confirm.also { confirm = false }
+    fun takeHpCharge(): Boolean = hpCharge.also { hpCharge = false }
+    fun takePacketBomb(): Boolean = packetBomb.also { packetBomb = false }
 
-    /** True if the key is one the game uses (consumed so it doesn't reach text fields twice). */
+    fun captureKey(onKey: (Long?) -> Unit) { capture = onKey }
+
+    /** True if the event was used here (not passed on). */
     fun onKey(e: KeyEvent): Boolean {
-        if (e.type == KeyEventType.KeyDown && (e.key == Key.Enter || e.key == Key.Spacebar || e.key == Key.NumPadEnter)) confirm = true
-        if (e.key !in MOVE_KEYS) return false
+        val code = e.key.keyCode
+        val cap = capture
+        if (cap != null) {
+            if (e.type == KeyEventType.KeyDown) {
+                capture = null
+                cap(if (e.key == Key.Escape) null else code)
+            }
+            return true
+        }
         when (e.type) {
-            KeyEventType.KeyDown -> held += e.key
-            KeyEventType.KeyUp -> held -= e.key
+            KeyEventType.KeyDown -> {
+                if (code in held) return false // key repeat
+                held += code
+                if (e.key == Key.Enter || e.key == Key.Spacebar || e.key == Key.NumPadEnter) confirm = true
+                when (code) {
+                    KeyBinds.code(KeyAction.HP_CHARGE) -> hpCharge = true
+                    KeyBinds.code(KeyAction.PACKET_BOMB) -> packetBomb = true
+                    KeyBinds.code(KeyAction.PAUSE) -> DesktopBack.dispatch()
+                }
+            }
+            KeyEventType.KeyUp -> held -= code
         }
         return false
     }
@@ -33,21 +61,24 @@ object DesktopInput {
     /** Window lost focus: let go of everything so the operative doesn't keep walking. */
     fun releaseAll() = held.clear()
 
+    private fun down(a: KeyAction, alt: Key): Boolean = KeyBinds.code(a) in held || alt.keyCode in held
+
     internal fun axis(): Pair<Float, Float> {
         var x = 0f
         var y = 0f
-        if (Key.A in held || Key.DirectionLeft in held) x -= 1f
-        if (Key.D in held || Key.DirectionRight in held) x += 1f
-        if (Key.W in held || Key.DirectionUp in held) y -= 1f
-        if (Key.S in held || Key.DirectionDown in held) y += 1f
+        if (down(KeyAction.MOVE_LEFT, Key.DirectionLeft)) x -= 1f
+        if (down(KeyAction.MOVE_RIGHT, Key.DirectionRight)) x += 1f
+        if (down(KeyAction.MOVE_UP, Key.DirectionUp)) y -= 1f
+        if (down(KeyAction.MOVE_DOWN, Key.DirectionDown)) y += 1f
         val m = sqrt(x * x + y * y)
         return if (m > 0f) Pair(x / m, y / m) else Pair(0f, 0f)
     }
 
-    private val MOVE_KEYS = setOf(
-        Key.W, Key.A, Key.S, Key.D,
-        Key.DirectionUp, Key.DirectionDown, Key.DirectionLeft, Key.DirectionRight
-    )
+    fun keyName(code: Long): String = try {
+        java.awt.event.KeyEvent.getKeyText(Key(code).nativeKeyCode)
+    } catch (_: Throwable) {
+        "?"
+    }
 }
 
 /** Keyboard + controller input for the shared game screen. */
@@ -63,4 +94,8 @@ object GameKeys {
     val aimY: Float get() = Gamepad.aimY
     val padConnected: Boolean get() = Gamepad.connected
     fun takeAnyPress(): Boolean = Gamepad.takeAnyPress() or DesktopInput.takeConfirm()
+    fun takeHpCharge(): Boolean = Gamepad.takeHpCharge() or DesktopInput.takeHpCharge()
+    fun takePacketBomb(): Boolean = Gamepad.takePacketBomb() or DesktopInput.takePacketBomb()
+    fun keyName(code: Long): String = DesktopInput.keyName(code)
+    fun captureKey(onKey: (Long?) -> Unit) = DesktopInput.captureKey(onKey)
 }

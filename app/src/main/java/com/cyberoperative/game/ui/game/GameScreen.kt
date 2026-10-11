@@ -122,6 +122,11 @@ fun GameScreen(
                         e.setAim(live && mouseDown, mouse[0] / sc, mouse[1] / sc + renderer.camY)
                     }
                     if (session.showTutorial && GameKeys.takeAnyPress()) session.dismissTutorial()
+                    // Q / LB: HP charge, E / RB: Packet Bomb (presses are consumed even when unusable).
+                    val hpKey = GameKeys.takeHpCharge()
+                    val bombKey = GameKeys.takePacketBomb()
+                    if (live && hpKey) session.useHpCharge()
+                    if (live && bombKey) session.usePacketBomb()
                 }
                 session.onFrame(dt)
             }

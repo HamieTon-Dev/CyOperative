@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.21.0 (versionCode 70) — 2026-10-11 · PC: HP charges, Packet Bombs, cash bags, keybinds
+### Added (owner, PC build)
+- **Q: HP charge packet.** Heals 35% of max HP.
+  - You start each run with 3 and can carry up to 9.
+  - Drops on the floor as a green potion flask: from elites 8% of the time, from bosses 50%.
+  - Controller: LB.
+- **E: Packet Bomb.** A big blast around you (radius 420) that also wipes enemy shots.
+  - You start with 0 and can carry up to 3.
+  - Drops as a small lit bomb with a pulsing cyan ring: from elites 2%, from bosses 25%.
+  - Controller: RB.
+- **Kills pay € only as cash bags on the floor.**
+  - Walk near a bag to collect it.
+  - When the room is clear, every bag and pickup streams into the operative.
+  - Anything left when you leave is collected automatically.
+- **HUD strip:** shows `[Q] ✚ n` and `[E] ✹ n` with your current keys.
+- **Settings → KEYBINDS (PC):** rebind move, HP charge, Packet Bomb and pause.
+  - Click an action, then press the new key. A key already in use swaps places.
+  - RESET TO DEFAULTS restores the default keys.
+  - Arrow keys always move and Esc always pauses.
+- **Co-op:** syncs the uses (serials), floor loot and each player's counts (wire v15).
+### Changed (PC)
+- **SELF-REPAIR regeneration:**
+  - It now starts at 0.6% HP/s and adds 0.05% per level after that. Before, it was 0.6% per
+    level, so stacked levels reached 6% and more.
+  - It no longer heals once the room is clear with no threats left.
+- Phones are unchanged.
+
 ## 0.20.0 (versionCode 69) — 2026-10-11 · Cyber Operative for Steam (PC + Steam Deck)
 ### Added (owner: "build it for Steam… all purchases through the Steam store… Co-Op through Steam", "move with WASD and aim with mouse", "full landscape view… premium", "Steam Deck… left joystick move, right joystick fire")
 - **New `desktop` module: the Steam build** (Windows; runs on Steam Deck through Proton).

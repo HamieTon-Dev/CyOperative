@@ -29,6 +29,7 @@ compatibility to use Proton. Controls on Deck and with any controller:
 |---|---|
 | Left stick / D-pad | move |
 | Right stick (or right trigger) | aim and fire in that direction, while moving |
+| LB / RB | HP charge / Packet Bomb |
 | START / MENU | pause (the same as Esc) |
 | B | back out of a menu |
 | any button | continue the first-run briefing |
@@ -40,7 +41,9 @@ The touchscreen and trackpads work as the mouse in menus.
 - **WASD** or arrow keys move.
 - **Hold a mouse button** to fire at the cursor while moving. Standing still auto-targets, as
   on phones.
+- **Q** drinks an HP charge (start with 3); **E** sets off a Packet Bomb (found as rare drops).
 - **Esc** pauses or goes back; **F11** toggles fullscreen.
+- Every key can be rebound in Settings → KEYBINDS.
 
 ## Landscape view
 

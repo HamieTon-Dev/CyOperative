@@ -69,7 +69,9 @@ data class RunConfig(
     /** Co-op partner (owner, 2026-10-08), or null for a solo run. */
     val ally: AllyConfig? = null,
     /** Weapons this operative can carry (7 + WEAPON SLOTS upgrade). */
-    val weaponSlots: Int = Upgrades.MAX_WEAPONS
+    val weaponSlots: Int = Upgrades.MAX_WEAPONS,
+    /** PC consumables (HP charges on Q, Packet Bombs on E, floor drops). On for the landscape PC build. */
+    val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.wide
 ) {
     val coop: Boolean get() = ally != null
     /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
@@ -164,8 +166,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         // Campaign picks come from clearing levels, not data, so data-only cards are pointless.
         if (config.mode == GameMode.CAMPAIGN) for (o in this) o.build.excluded = setOf(Upgrades.DATA_DUMP.id, Upgrades.DATA_COMPRESSION.id)
+        if (config.consumables) for (o in this) o.hpCharges = START_HP_CHARGES
     }
     val operatives: List<Operative> get() = ops
+    /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
+    val loot = ArrayList<Loot>()
+    private val lootRng = Random(config.seed xor 0x10075EEDL)
     /** The operative the rules are being applied to right now (outside [update]: the host / solo player). */
     private var cur: Operative = ops[0]
     /** The operative this device plays: 0 on the host / solo, 1 on a co-op guest. */
@@ -999,6 +1005,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (phase == Phase.COMBAT) levelSeconds += dt
 
         forEachAlive { updatePlayer(dt); updateOrbit(dt); updateCloak(dt) }
+        if (config.consumables) updateLoot(dt)
         if (phase == Phase.COMBAT) {
             if (mode == GameMode.ENDLESS) updateEndless(dt) else updateSpawning(dt)
             updateEventRules(dt)
@@ -1062,6 +1069,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         fx.clear()
+        if (!mirror) sweepLoot() else loot.clear()
         darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0); bossCharge = 0f
         for (o in ops) { o.cloakTime = 0f; o.cloaked = false }
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
@@ -1522,6 +1530,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun enterShop() {
+        if (!mirror) sweepLoot() else loot.clear()
         goingToShop = false
         shopGateOpen = false
         skipShopPrompt = false
@@ -1734,6 +1743,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             pendingUpgrades = pendingUpgrades, rewardBatchTotal = rewardBatchTotal, rewardBatchTaken = rewardBatchTaken,
             offerLuck = offerLuck, offer = offer.map { it.def.id }, upgradeReturnsToCombat = upgradeReturnsToCombat,
             rerollsLeft = rerollsLeft, revivesLeft = revivesLeft, revivesUsed = revivesUsed,
+            hpCharges = cur.hpCharges, packetBombs = cur.packetBombs,
             score = score, kills = kills, bosses = bossesDefeated, elites = elitesDefeated, events = eventsCompleted,
             completedEventIds = HashSet(completedEventIds), euros = eurosEarned, diamonds = diamondsEarned,
             runSeconds = runSeconds, levelSeconds = levelSeconds, levelDamageTaken = levelDamageTaken,
@@ -1765,6 +1775,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         offerLuck = r.offerLuck
         upgradeReturnsToCombat = r.upgradeReturnsToCombat
         rerollsLeft = r.rerollsLeft; revivesLeft = r.revivesLeft; revivesUsed = r.revivesUsed
+        if (config.consumables) {
+            if (r.hpCharges >= 0) cur.hpCharges = r.hpCharges
+            if (r.packetBombs >= 0) cur.packetBombs = r.packetBombs
+        }
         score = r.score; kills = r.kills; bossesDefeated = r.bosses; elitesDefeated = r.elites
         eventsCompleted = r.events; completedEventIds += r.completedEventIds
         eurosEarned = r.euros; diamondsEarned = r.diamonds; runSeconds = r.runSeconds
@@ -1835,7 +1849,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         sinceDamage += dt
 
         // Regeneration and firewall recharge.
-        if (s.regenPerSec > 0f && hp < s.maxHp) heal(s.maxHp * s.regenPerSec * dt, quiet = true)
+        // PC (consumables): no regeneration once the room is clear and nothing is left to fight.
+        val regenOn = !config.consumables || (phase == Phase.COMBAT && aliveCount() > 0)
+        if (s.regenPerSec > 0f && hp < s.maxHp && regenOn) heal(s.maxHp * s.regenPerSec * dt, quiet = true)
         if (s.firewallMax > 0f && sinceDamage >= s.firewallDelay && firewall < s.firewallMax) {
             firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallRate * dt)
             if (firewall >= s.firewallMax && !firewallWasUp) {
@@ -1952,6 +1968,119 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 fireRail(facing)
             }
         }
+    }
+
+    // ======================================================================
+    // PC consumables (owner, 2026-10-11): HP charge packets (Q) and Packet Bombs (E)
+    // ======================================================================
+
+
+    private fun dropLoot(x: Float, y: Float, hpChance: Float, bombChance: Float) {
+        if (!config.consumables || mirror) return
+        if (lootRng.nextFloat() < hpChance) loot += Loot(LootKind.HP_CHARGE, x - 12f, y)
+        if (lootRng.nextFloat() < bombChance) loot += Loot(LootKind.PACKET_BOMB, x + 12f, y)
+    }
+
+    private fun full(o: Operative, l: Loot): Boolean = when (l.kind) {
+        LootKind.HP_CHARGE -> o.hpCharges >= MAX_HP_CHARGES
+        LootKind.PACKET_BOMB -> o.packetBombs >= MAX_PACKET_BOMBS
+        LootKind.CASH -> false
+    }
+
+    private fun collect(o: Operative, l: Loot, quiet: Boolean = false) {
+        when (l.kind) {
+            LootKind.HP_CHARGE -> o.hpCharges++
+            LootKind.PACKET_BOMB -> o.packetBombs++
+            LootKind.CASH -> eurosEarned += l.amount
+        }
+        if (!quiet) addText(l.x, l.y - 26f, when (l.kind) {
+            LootKind.HP_CHARGE -> "+1 HP CHARGE"
+            LootKind.PACKET_BOMB -> "+1 PACKET BOMB"
+            LootKind.CASH -> "+€${l.amount}"
+        }, TextKind.INFO)
+    }
+
+    /**
+     * Pickups drift to an operative close by and are collected on touch (if there's room in the
+     * pouch). Once the room is clear, everything on the floor is pulled in to the operatives.
+     */
+    private fun updateLoot(dt: Float) {
+        for (o in ops) if (o.consumableCooldown > 0f) o.consumableCooldown = max(0f, o.consumableCooldown - dt)
+        if (loot.isEmpty()) return
+        // Endless never clears: very old bags bank themselves so the floor never fills up.
+        while (loot.size > MAX_FLOOR_LOOT) {
+            val oldest = loot.firstOrNull { it.kind == LootKind.CASH } ?: break
+            eurosEarned += oldest.amount
+            loot.remove(oldest)
+        }
+        val vacuum = phase != Phase.COMBAT && mode == GameMode.CAMPAIGN
+        var chime = false
+        val it = loot.iterator()
+        while (it.hasNext()) {
+            val l = it.next()
+            l.age += dt
+            // The nearest operative with room for it.
+            var best: Operative? = null
+            var bestD = Float.MAX_VALUE
+            for (o in ops) {
+                if (!o.alive || full(o, l)) continue
+                val d = MathUtil.dist(o.px, o.py, l.x, l.y)
+                if (d < bestD) { bestD = d; best = o }
+            }
+            val o = best ?: continue
+            if (bestD < LOOT_PICKUP) {
+                collect(o, l, quiet = l.kind == LootKind.CASH && vacuum)
+                chime = true
+                it.remove()
+            } else if (vacuum || bestD < LOOT_MAGNET) {
+                // Room clear: everything streams in, faster the longer it flies.
+                val speed = if (vacuum) 520f + 900f * min(1f, l.age * 0.5f) else 260f
+                val k = min(1f, speed * dt / bestD)
+                l.x += (o.px - l.x) * k
+                l.y += (o.py - l.y) * k
+            }
+        }
+        if (chime) sound(GameSound.CURRENCY)
+    }
+
+    /** Leaving the room: whatever is still on the floor is collected (if there's room for it). */
+    private fun sweepLoot() {
+        val o = ops.getOrNull(primary)?.takeIf { it.alive } ?: ops.firstOrNull { it.alive }
+        if (o != null) for (l in loot) if (!full(o, l)) collect(o, l, quiet = true)
+        loot.clear()
+    }
+
+    /** Operative [index] drinks an HP charge packet: +[HP_CHARGE_HEAL] of max HP. False if it couldn't. */
+    fun useHpCharge(index: Int = primary): Boolean {
+        val o = ops.getOrNull(index) ?: return false
+        if (!config.consumables || !o.alive || o.hpCharges <= 0 || o.consumableCooldown > 0f) return false
+        if (phase == Phase.UPGRADE || phase == Phase.DEAD || phase == Phase.TRANSITION) return false
+        if (o.hp >= o.build.stats.maxHp) return false
+        o.hpCharges--
+        o.consumableCooldown = CONSUMABLE_COOLDOWN
+        cur = o
+        try {
+            heal(stats.maxHp * HP_CHARGE_HEAL, ignoreMul = true)
+            addPulse(o.px, o.py, 70f, 0.4f, 0xFF00FF9C)
+        } finally { cur = ops[primary] }
+        sound(GameSound.REVIVE)
+        return true
+    }
+
+    /** Operative [index] sets off a Packet Bomb: a big blast around it that also wipes hostile shots. */
+    fun usePacketBomb(index: Int = primary): Boolean {
+        val o = ops.getOrNull(index) ?: return false
+        if (!config.consumables || !o.alive || o.packetBombs <= 0 || o.consumableCooldown > 0f || phase != Phase.COMBAT) return false
+        o.packetBombs--
+        o.consumableCooldown = CONSUMABLE_COOLDOWN
+        cur = o
+        try {
+            firePulseDamage(o.px, o.py, PACKET_BOMB_RADIUS, stats.damage * PACKET_BOMB_DAMAGE, clearsProjectiles = true)
+            addPulse(o.px, o.py, PACKET_BOMB_RADIUS * 0.6f, 0.6f, 0xFF7DF9FF)
+            fx.shake(10f, 0.4f)
+        } finally { cur = ops[primary] }
+        sound(GameSound.EMP)
+        return true
     }
 
     // ======================================================================
@@ -2596,11 +2725,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         kills++
         levelKills++
         stragglerTimer = 0f
-        if (e.isElite) elitesDefeated++
+        if (e.isElite) {
+            elitesDefeated++
+            dropLoot(e.x, e.y, ELITE_HP_DROP, ELITE_BOMB_DROP)
+        }
         val s = stats
         val rewardMul = e.rewardMul * (if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f)
         gainXp(e.def.xp * (if (e.isElite) EliteModifier.REWARD_MUL else 1f) * s.xpMul)
-        eurosEarned += max(1, (e.def.euros * rewardMul * s.euroMul * difficultyReward).toInt())
+        val euros = max(1, (e.def.euros * rewardMul * s.euroMul * difficultyReward).toInt())
+        // PC: kills pay out as a cash bag on the floor (walk over it, or it's pulled in when the room is clear).
+        if (config.consumables && !mirror) loot += Loot(LootKind.CASH, e.x, e.y, euros) else eurosEarned += euros
         score += (Scoring.kill(e.def.score, level, e.isElite, e.isChild) * difficultyReward).toLong()
         if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
         if (s.firewallOnKill > 0f && s.firewallMax > 0f) firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallOnKill)
@@ -3440,6 +3574,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Credits a boss kill; returns the € actually paid. */
     internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0): Int {
         bossesDefeated++
+        val b = boss
+        dropLoot(b?.x ?: arena.width / 2f, b?.y ?: arena.height / 2f, BOSS_HP_DROP, BOSS_BOMB_DROP)
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
@@ -3534,6 +3670,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     /** Host: last input seen from the guest. */
     private var lastPickSerial = 0
+    private var lastHpSerial = 0
+    private var lastBombSerial = 0
     private var lastRerollSerial = 0
 
     /** Host: the guest's latest movement and picks. */
@@ -3549,6 +3687,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             // Still in the previous room on the guest's side: hold the spawn spot.
             o.netX = o.px; o.netY = o.py; o.netMoving = false
         }
+        // PC consumables used by the guest (serials so a lost packet never double-uses one).
+        if (c.hpSerial > lastHpSerial) { lastHpSerial = c.hpSerial; useHpCharge(index) }
+        if (c.bombSerial > lastBombSerial) { lastBombSerial = c.bombSerial; usePacketBomb(index) }
         if (c.pickSerial > lastPickSerial) {
             lastPickSerial = c.pickSerial
             chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
@@ -3587,6 +3728,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.beamActive = o.beamActive; n.beamX2 = o.beamX2; n.beamY2 = o.beamY2; n.beamHeat = o.beamHeat; n.beamCooldown = o.beamCooldown
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone; n.cloaked = o.cloaked
             n.pending = o.pendingUpgrades; n.rerolls = o.rerollsLeft; n.batchTotal = o.rewardBatchTotal; n.batchTaken = o.rewardBatchTaken
+            n.hpCharges = o.hpCharges; n.packetBombs = o.packetBombs
             for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
             w.ops += n
@@ -3625,6 +3767,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.timer = h.timer; n.duration = h.duration; n.windup = h.windup; n.color = h.color
             w.hazards += n
         }
+        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y)
         for (z in zaps.items) {
             if (!z.active) continue
             val n = NetZap()
@@ -3728,6 +3871,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.beamActive = n.beamActive; o.beamX2 = n.beamX2; o.beamY2 = n.beamY2; o.beamHeat = n.beamHeat; o.beamCooldown = n.beamCooldown
             o.downed = n.downed; o.reviveProgress = n.reviveProgress; o.gone = n.gone; o.cloaked = n.cloaked
             o.pendingUpgrades = n.pending; o.rerollsLeft = n.rerolls; o.rewardBatchTotal = n.batchTotal; o.rewardBatchTaken = n.batchTaken
+            o.hpCharges = n.hpCharges; o.packetBombs = n.packetBombs
             val owned = HashMap<String, Int>()
             for ((k, l) in n.owned) Upgrades.all.getOrNull(k)?.let { owned[it.id] = l }
             if (owned != o.build.owned()) o.build.restore(owned)
@@ -3779,6 +3923,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             p.radius = n.radius; p.crit = n.crit; p.homing = if (n.homing) 1f else 0f; p.tint = n.tint; p.armTimer = n.armTimer
             p.life = n.life; p.owner = n.owner; p.returning = false; p.splash = 0f
         }
+        loot.clear()
+        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2])
         for (h in hazards.items) h.active = false
         for (n in w.hazards) {
             val h = hazards.obtain() ?: break
@@ -3996,6 +4142,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val BEAM_MAX_FIRE = 5f
         const val SHOT_CLEARANCE = 4f
         const val SHOP_CHANCE = 1f / 20f
+        // PC consumables (owner, 2026-10-11).
+        const val START_HP_CHARGES = 3
+        const val MAX_HP_CHARGES = 9
+        const val MAX_PACKET_BOMBS = 3
+        const val HP_CHARGE_HEAL = 0.35f
+        const val PACKET_BOMB_RADIUS = 420f
+        const val PACKET_BOMB_DAMAGE = 30f
+        const val CONSUMABLE_COOLDOWN = 1f
+        const val ELITE_HP_DROP = 0.08f
+        const val ELITE_BOMB_DROP = 0.02f
+        const val BOSS_HP_DROP = 0.5f
+        const val BOSS_BOMB_DROP = 0.25f
+        const val LOOT_PICKUP = 34f
+        const val LOOT_MAGNET = 110f
+        const val MAX_FLOOR_LOOT = 160
         const val VAULT_OPEN_SECONDS = 1.3f
 
         /** Owner: €1,000 and up, €100 per level (level 70 → €7,000). */

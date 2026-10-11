@@ -9,7 +9,8 @@ import kotlin.math.sqrt
  * built-in controls (Steam Input presents them as a standard pad).
  *
  * Left stick moves, right stick aims and fires in that direction (twin-stick), START or
- * MENU pauses (the same as Esc), B backs out of menus. Any button continues the briefing.
+ * MENU pauses (the same as Esc), B backs out of menus, LB drinks an HP charge, RB sets off a
+ * Packet Bomb. Any button continues the briefing.
  * Without SDL (or with no pad) this stays idle and the keyboard and mouse work as before.
  */
 object Gamepad {
@@ -61,6 +62,9 @@ object Gamepad {
             if (ax != 0f || ay != 0f) { val l = sqrt(ax * ax + ay * ay); aimX = ax / l; aimY = ay / l }
             if (s.aJustPressed || s.bJustPressed || s.xJustPressed || s.yJustPressed || s.startJustPressed ||
                 s.backJustPressed || s.lbJustPressed || s.rbJustPressed) anyPress = true
+            // LB = HP charge, RB = Packet Bomb (thumbs stay on the sticks).
+            if (s.lbJustPressed) hpCharge = true
+            if (s.rbJustPressed) packetBomb = true
             // START / MENU = Esc (pause, or back out of a menu); B backs out of menus too.
             if (s.startJustPressed) DesktopBack.dispatch()
             if (s.bJustPressed && !inGame) DesktopBack.dispatch()
@@ -72,6 +76,10 @@ object Gamepad {
     @Volatile var inGame = false
 
     fun takeAnyPress(): Boolean = anyPress.also { anyPress = false }
+    fun takeHpCharge(): Boolean = hpCharge.also { hpCharge = false }
+    fun takePacketBomb(): Boolean = packetBomb.also { packetBomb = false }
+    private var hpCharge = false
+    private var packetBomb = false
 
     private fun dead(x: Float, y: Float, dz: Float): Pair<Float, Float> {
         val m = sqrt(x * x + y * y)

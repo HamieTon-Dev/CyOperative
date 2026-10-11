@@ -57,7 +57,9 @@ data class GameSettings(
     val haptics: Boolean = true,
     val damageNumbers: Boolean = true,
     val screenShake: Boolean = true,
-    val showFps: Boolean = false
+    val showFps: Boolean = false,
+    /** PC key bindings: action name → key code (missing = default). */
+    val keyBinds: Map<String, Long> = emptyMap()
 )
 
 /** Best campaign level reached with one class, per difficulty. */

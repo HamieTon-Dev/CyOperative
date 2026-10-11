@@ -39,6 +39,10 @@ class Operative(val index: Int, baseStats: RunStats) {
     var frozen = 0f
     var inputX = 0f
     var inputY = 0f
+    /** PC consumables: HP charge packets (Q) and Packet Bombs (E). */
+    var hpCharges = 0
+    var packetBombs = 0
+    var consumableCooldown = 0f
     /** PC mouse aim (button held): fire at ([aimX], [aimY]) in world space, even while moving. */
     var aiming = false
     var aimX = 0f

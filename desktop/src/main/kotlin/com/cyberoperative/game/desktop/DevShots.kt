@@ -47,6 +47,7 @@ fun main(args: Array<String>) {
     shot("splash", frames = 100) { com.cyberoperative.game.ui.splash.DeveloperSplash {} }
     shot("boot", frames = 150) { com.cyberoperative.game.ui.splash.BootTerminal(onSound = {}) {} }
     shot("menu") { MainMenuScreen(save.current) {} }
+    shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio) {} }
     shot("store") { StoreScreen(save, audio, {}, {}) }
     run {
         val s = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
@@ -56,6 +57,14 @@ fun main(args: Array<String>) {
     for ((name, level) in listOf("game_l3" to 3, "game_l14" to 14, "game_l42" to 42, "boss_l10" to 10, "boss_l30" to 30)) {
         val s = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
         s.engine.debugJumpToLevel(level)
+        if (name == "game_l14") {
+            // Floor pickups next to the operative, for review.
+            val e = s.engine
+            e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.HP_CHARGE, e.px - 90f, e.py - 160f)
+            e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.PACKET_BOMB, e.px, e.py - 190f)
+            e.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.CASH, e.px + 90f, e.py - 160f, 40)
+            e.operatives[0].packetBombs = 1
+        }
         shot(name, frames = 240, before = { i -> s.engine.setInput(if (i in 60..120) 0.6f else 0f, if (i in 60..120) -0.8f else 0f) }) {
             GameScreen(s, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {})
         }

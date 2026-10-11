@@ -445,6 +445,12 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 }
             }
             Spacer(Modifier.width(20.dp))
+            if (h.consumables) {
+                ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", h.hpCharges, Palette.Green)
+                Spacer(Modifier.width(8.dp))
+                ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", h.packetBombs, Palette.Cyan)
+                Spacer(Modifier.width(14.dp))
+            }
             HudClock()
             PauseButton(paused, onPause)
         }
@@ -452,5 +458,22 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
             Spacer(Modifier.height(4.dp))
             UpgradeBar(h, Modifier.fillMaxWidth())
         }
+    }
+}
+
+/** "[Q] ✚ 3": a consumable, its key and how many are carried (dimmed at zero). */
+@Composable
+private fun ConsumableChip(action: com.cyberoperative.game.ui.common.KeyAction, icon: String, count: Int, color: Color) {
+    val key = com.cyberoperative.game.platform.GameKeys.keyName(com.cyberoperative.game.ui.common.KeyBinds.code(action)).uppercase().take(5)
+    val c = if (count > 0) color else Palette.TextMuted
+    Row(
+        Modifier
+            .border(1.dp, c.copy(alpha = 0.6f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("[$key]", color = Palette.TextSecondary, style = mono(11.sp, FontWeight.Bold))
+        Spacer(Modifier.width(6.dp))
+        Text("$icon $count", color = c, style = mono(14.sp, FontWeight.Bold))
     }
 }
