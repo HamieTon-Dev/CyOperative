@@ -181,6 +181,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val operatives: List<Operative> get() = ops
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
     val loot = ArrayList<Loot>()
+    /** Boss loot sprays out of the dying boss one piece every [SPEW_INTERVAL] (owner, 2026-10-11). */
+    private val spewQueue = ArrayDeque<Loot>()
+    private var spewing = false
+    private var spewTimer = 0f
+    private var spewX = 0f
+    private var spewY = 0f
     private val lootRng = Random(config.seed xor 0x10075EEDL)
     // --- Campaign world map (owner, 2026-10-11) ---------------------------------------
     /** Server world (1..15) and room on its map (0..9, 10 = the boss room). */
@@ -867,10 +873,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             // Starting Weapon Power: free upgrades before the first fight. With upgrade chips they
             // drop in a ring around the operative instead of opening a card screen.
             if (chipRules) {
-                val n = config.startingUpgrades + (config.ally?.startingUpgrades ?: 0)
-                for (i in 0 until n) {
-                    val a = -MathUtil.PI / 2f + (i - (n - 1) / 2f) * 0.6f
-                    dropChip(px + cos(a) * 110f, py + sin(a) * 110f)
+                // Each operative's own Starting Weapon Power, as chips only they can take.
+                for (o in ops) {
+                    val n = if (o.index == 0) config.startingUpgrades else config.ally?.startingUpgrades ?: 0
+                    for (i in 0 until n) {
+                        val a = -MathUtil.PI / 2f + (i - (n - 1) / 2f) * 0.6f
+                        dropChip(o.px + cos(a) * 110f, o.py + sin(a) * 110f, only = o)
+                    }
                 }
             } else {
                 ops[0].pendingUpgrades = config.startingUpgrades
@@ -1013,13 +1022,30 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** Every operative still in the run gets a level-up pick. */
+    private var chipSlot = 0
+
+    /**
+     * Every cleared level earns a power-up, and deeper levels roll for bonus rewards
+     * (owner, 2026-10-08: "higher levels give more"). Balance pass (2026-10-11, "maybe we are
+     * upgrading too often?"): the bonus rolls are smaller.
+     */
+    private fun clearPicks() {
+        grantPick()
+        if (rng.nextFloat() < min(BONUS_PICK_CAP, (level - 1) * 0.01f)) grantPick()
+        if (level >= 25 && rng.nextFloat() < min(DEEP_PICK_CAP, (level - 24) * 0.005f)) grantPick()
+    }
+
     private fun grantPick(n: Int = 1) {
         if (chipRules) {
             // Upgrade chips (owner, 2026-10-11): picks become chips on the floor, no card screen.
             // Chips already dropped from kills this room count toward it.
             val credit = min(n, chipsDropped)
             chipsDropped -= credit
-            repeat(n - credit) { k -> dropChip(lastKillX + (k % 3 - 1) * 46f, lastKillY + (k / 3) * 46f) }
+            repeat(n - credit) {
+                // A rolling slot so back-to-back grants don't land in one pile.
+                val k = chipSlot++ % 9
+                dropChip(lastKillX + (k % 3 - 1) * 46f, lastKillY + (k / 3) * 46f)
+            }
             return
         }
         for (o in ops) if (!o.gone) o.pendingUpgrades += n
@@ -1353,12 +1379,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (plan.rules.diamondChance > 0f && rng.nextFloat() < plan.rules.diamondChance) diamondsEarned += 1
             grantPick()
         }
-        // Campaign: every cleared level earns a power-up, and deeper levels
-        // roll for bonus rewards (owner, 2026-10-08: "higher levels give more").
-        // Balance pass (2026-10-11, "maybe we are upgrading too often?"): the bonus rolls are smaller.
-        grantPick()
-        if (rng.nextFloat() < min(BONUS_PICK_CAP, (level - 1) * 0.01f)) grantPick()
-        if (level >= 25 && rng.nextFloat() < min(DEEP_PICK_CAP, (level - 24) * 0.005f)) grantPick()
+        // A boss room's clear picks were already sprayed out with the boss's loot.
+        if (plan.kind != LevelKind.BOSS) clearPicks()
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // Firewall fully restores between arenas.
@@ -2005,9 +2027,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (chipRules && (phase == Phase.UPGRADE || ops.any { it.pendingUpgrades > 0 })) {
             // A save from before upgrade chips, made mid-pick: its picks drop as chips instead.
-            val n = ops.sumOf { it.pendingUpgrades }
-            for (o in ops) { o.pendingUpgrades = 0; o.offer = emptyList() }
-            for (i in 0 until n) dropChip(px + (i % 3 - 1) * 60f, py - 90f - (i / 3) * 60f)
+            for (o in ops) {
+                val n = o.pendingUpgrades
+                o.pendingUpgrades = 0; o.offer = emptyList()
+                for (i in 0 until n) dropChip(o.px + (i % 3 - 1) * 60f, o.py - 90f - (i / 3) * 60f, only = o)
+            }
             if (phase == Phase.UPGRADE) {
                 if (upgradeReturnsToCombat) { upgradeReturnsToCombat = false; phase = Phase.COMBAT; phaseTimer = 0f } else openPortal()
             }
@@ -2335,10 +2359,38 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     // ======================================================================
 
 
+    /** HP charge / Packet Bomb rolls: one set per operative in co-op (each player's own drops). */
     private fun dropLoot(x: Float, y: Float, hpChance: Float, bombChance: Float) {
         if (!config.consumables || mirror) return
-        if (lootRng.nextFloat() < hpChance) loot += Loot(LootKind.HP_CHARGE, x - 12f, y)
-        if (lootRng.nextFloat() < bombChance) loot += Loot(LootKind.PACKET_BOMB, x + 12f, y)
+        for (o in ops) {
+            if (o.gone) continue
+            val ox = (o.index * 2 - (ops.size - 1)) * 18f
+            if (lootRng.nextFloat() < hpChance) placeLoot(Loot(LootKind.HP_CHARGE, x - 12f + ox, y).also { it.owner = o.index })
+            if (lootRng.nextFloat() < bombChance) placeLoot(Loot(LootKind.PACKET_BOMB, x + 12f + ox, y).also { it.owner = o.index })
+        }
+    }
+
+    /** Onto the floor, or (a boss dying) into the queue it sprays out of. */
+    private fun placeLoot(l: Loot) {
+        if (spewing) spewQueue += l else loot += l
+    }
+
+    private fun updateSpew(dt: Float) {
+        if (spewQueue.isEmpty()) return
+        spewTimer -= dt
+        if (spewTimer > 0f) return
+        spewTimer = SPEW_INTERVAL
+        val l = spewQueue.removeFirst()
+        val a = lootRng.nextFloat() * MathUtil.TWO_PI
+        // Slides SPEW_MIN..SPEW_MAX units before stopping (velocity decays at SPEW_DRAG per second).
+        val dist = SPEW_MIN + lootRng.nextFloat() * (SPEW_MAX - SPEW_MIN)
+        l.x = spewX; l.y = spewY
+        l.vx = cos(a) * dist * SPEW_DRAG
+        l.vy = sin(a) * dist * SPEW_DRAG
+        l.age = 0f
+        loot += l
+        addParticle(spewX, spewY, 0xFFFFD426, 160f, 0.35f, 3f)
+        sound(GameSound.CURRENCY)
     }
 
     private fun full(o: Operative, l: Loot): Boolean = when (l.kind) {
@@ -2352,12 +2404,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun chipDef(l: Loot): com.cyberoperative.game.data.UpgradeDef? = l.upgradeId?.let { Upgrades.byIdOrNull(it) }
 
     /** Drops one upgrade chip, its power-up rolled now (same odds as a card). */
-    private fun dropChip(x: Float, y: Float) {
+    private fun dropChip(x: Float, y: Float, only: Operative? = null) {
         if (mirror) return
-        val owner = ops.firstOrNull { it.alive } ?: ops[0]
-        val pick = owner.build.rollOffer(lootRng, count = 1, luck = currentLuck()).firstOrNull() ?: return
-        arena.pushOut(x, y, 14f)
-        loot += Loot(LootKind.UPGRADE, arena.out[0], arena.out[1], upgradeId = pick.def.id)
+        // One chip per operative (co-op: each player's own pick, rolled from their own build).
+        for (o in ops) {
+            if (o.gone || (only != null && o !== only)) continue
+            val pick = o.build.rollOffer(lootRng, count = 1, luck = currentLuck()).firstOrNull() ?: continue
+            arena.pushOut(x + (o.index * 2 - (ops.size - 1)) * 26f, y, 14f)
+            placeLoot(Loot(LootKind.UPGRADE, arena.out[0], arena.out[1], upgradeId = pick.def.id).also { it.owner = o.index })
+        }
     }
 
     /** Applies a chip's power-up to [o] (swapping out [replace] when its weapon slots are full). */
@@ -2430,6 +2485,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      */
     private fun updateLoot(dt: Float) {
         for (o in ops) if (o.consumableCooldown > 0f) o.consumableCooldown = max(0f, o.consumableCooldown - dt)
+        if (!mirror) updateSpew(dt)
         if (loot.isEmpty()) return
         // Endless never clears: very old bags bank themselves so the floor never fills up.
         while (loot.size > MAX_FLOOR_LOOT) {
@@ -2443,15 +2499,24 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         while (it.hasNext()) {
             val l = it.next()
             l.age += dt
-            // The nearest operative with room for it.
+            if (l.vx != 0f || l.vy != 0f) {
+                // Sprayed out of a boss: slide, slowing down, kept inside the room.
+                arena.pushOut(l.x + l.vx * dt, l.y + l.vy * dt, 14f)
+                l.x = arena.out[0]; l.y = arena.out[1]
+                val damp = kotlin.math.exp(-SPEW_DRAG * dt)
+                l.vx *= damp; l.vy *= damp
+                if (!l.flying) { l.vx = 0f; l.vy = 0f } else continue
+            }
+            // The nearest operative with room for it (only its owner, in co-op).
             var best: Operative? = null
             var bestD = Float.MAX_VALUE
             for (o in ops) {
                 if (!o.alive || full(o, l)) continue
+                if (l.owner >= 0 && l.owner != o.index) continue
                 val d = MathUtil.dist(o.px, o.py, l.x, l.y)
                 if (d < bestD) { bestD = d; best = o }
             }
-            if (best == null && l.kind == LootKind.UPGRADE && !l.declined && phase != Phase.COMBAT && swapChip == null) {
+            if (best == null && l.kind == LootKind.UPGRADE && !l.declined && phase != Phase.COMBAT && swapChip == null && (l.owner < 0 || l.owner == primary)) {
                 // Room clear and a weapon chip with full slots underfoot: ask about a swap.
                 val me = ops[primary]
                 if (me.alive && MathUtil.dist(me.px, me.py, l.x, l.y) < LOOT_PICKUP) { swapChip = l; l.declined = true }
@@ -2478,8 +2543,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Leaving the room: whatever is still on the floor is collected (if there's room for it). */
     private fun sweepLoot() {
-        val o = ops.getOrNull(primary)?.takeIf { it.alive } ?: ops.firstOrNull { it.alive }
-        if (o != null) for (l in loot) if (!full(o, l)) collect(o, l, quiet = true)
+        loot += spewQueue
+        spewQueue.clear()
+        spewing = false
+        val fallback = ops.getOrNull(primary)?.takeIf { it.alive } ?: ops.firstOrNull { it.alive }
+        for (l in loot) {
+            // Each drop to its owner (if they're still in the run), else whoever is.
+            val o = ops.getOrNull(l.owner)?.takeIf { !it.gone } ?: fallback ?: continue
+            if (!full(o, l)) collect(o, l, quiet = true)
+        }
         loot.clear()
     }
 
@@ -3350,7 +3422,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         gainXp(e.def.xp * (if (e.isElite) EliteModifier.REWARD_MUL else 1f) * s.xpMul)
         val euros = max(1, (e.def.euros * rewardMul * s.euroMul * difficultyReward).toInt())
         // PC: kills pay out as a cash bag on the floor (walk over it, or it's pulled in when the room is clear).
-        if (config.consumables && !mirror) loot += Loot(LootKind.CASH, e.x, e.y, euros) else eurosEarned += euros
+        if (config.consumables && !mirror) {
+            // A cash bag for whoever is nearest (co-op: your partner's bags aren't yours to take).
+            val near = ops.filter { it.alive }.minByOrNull { MathUtil.dist2(it.px, it.py, e.x, e.y) }
+            loot += Loot(LootKind.CASH, e.x, e.y, euros).also { it.owner = near?.index ?: -1 }
+        } else eurosEarned += euros
         score += (Scoring.kill(e.def.score, level, e.isElite, e.isChild) * difficultyReward).toLong()
         if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
         if (s.firewallOnKill > 0f && s.firewallMax > 0f) firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallOnKill)
@@ -4184,14 +4260,21 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     internal fun onBossDefeated(eurosReward: Int, scoreReward: Int, bonusPicks: Int = 0): Int {
         bossesDefeated++
         val b = boss
-        dropLoot(b?.x ?: arena.width / 2f, b?.y ?: arena.height / 2f, BOSS_HP_DROP, BOSS_BOMB_DROP)
-        lastKillX = b?.x ?: arena.width / 2f; lastKillY = (b?.y ?: arena.height / 2f) + 40f
+        // Everything the boss drops goes into a queue it sprays out of during its death.
+        spewX = b?.x ?: arena.width / 2f; spewY = b?.y ?: arena.height / 2f
+        spewTimer = 0.1f
+        spewing = true
+        dropLoot(spewX, spewY, BOSS_HP_DROP, BOSS_BOMB_DROP)
+        lastKillX = spewX; lastKillY = spewY
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         eurosEarned += paid
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
         // Campaign: a world boss pays out like the end of a world (at least four boosted drops).
         grantPick(if (campaign) max(CAMPAIGN_BOSS_PICKS, bossPicks(level) + bonusPicks) else bossPicks(level) + bonusPicks)
+        // The room's own clear reward joins the same spray (the room clears after the victory sequence).
+        clearPicks()
+        spewing = false
         bossLuckPending = true
         purgeHostiles()
         return paid
@@ -4355,7 +4438,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.timer = h.timer; n.duration = h.duration; n.windup = h.windup; n.color = h.color
             w.hazards += n
         }
-        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, (l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1).toFloat())
+        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, (l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1).toFloat(), l.owner.toFloat())
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
             if (!z.active) continue
@@ -4520,7 +4603,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             p.life = n.life; p.owner = n.owner; p.returning = false; p.splash = 0f
         }
         loot.clear()
-        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id)
+        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id).also { it.owner = l.getOrElse(4) { -1f }.toInt() }
         exitDoors.clear()
         for (d in w.exitDoors) exitDoors += ExitDoor(d[0], d[1], d[2].toInt())
         for (h in hazards.items) h.active = false
@@ -4767,6 +4850,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val LOOT_PICKUP = 34f
         const val LOOT_MAGNET = 110f
         const val MAX_FLOOR_LOOT = 160
+        /** Boss loot: one piece every half second, sliding 70–170 units out of the boss. */
+        const val SPEW_INTERVAL = 0.1f
+        const val SPEW_MIN = 70f
+        const val SPEW_MAX = 170f
+        const val SPEW_DRAG = 4f
         // PC abilities (owner, 2026-10-11).
         const val DASH_TIME = 0.16f
         const val DASH_DISTANCE = 160f

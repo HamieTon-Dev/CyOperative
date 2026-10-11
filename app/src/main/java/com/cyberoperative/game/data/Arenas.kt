@@ -56,7 +56,7 @@ enum class DecorKind {
     SPARK_PANEL,
     /** 12 Light beacon: a pylon that lights the floor around it. */
     BEACON,
-    /** 11 EMP dark-zone emitter: darkens the floor around it (high-drama rooms only). */
+    /** Overhead strip light (was the 11 EMP dark-zone emitter; redrawn 2026-10-11 so it can't pass for loot). */
     DARK_EMITTER
 }
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.25.1 (versionCode 77) — 2026-10-11 · Boss loot sprays out; co-op loot is per player
+### Changed (owner)
+- **Boss loot sprays out of the boss** instead of landing in a pile.
+  - One piece every 0.1 s, in a random direction, sliding a short way (70–170 units) and staying inside the room.
+  - This covers chips, weapon cards, HP charges and Packet Bombs, including the room-clear chip.
+  - Bosses can still drop weapons: every drop is rolled from the full pick pool.
+- **Co-op loot is per player.**
+  - Chips, weapon cards, HP charges and Packet Bombs are rolled separately for each player, from that player's own build.
+  - A cash bag belongs to whoever was closest to the kill. Run € is still shared.
+  - You see your own drops normally. Your partner's drops show only as a faint glow in the item's colour (green HP, cyan bomb, gold cash, rarity colour for chips): no icon, no beam, and you can't pick them up.
+  - When you leave a room, anything left on the floor goes to its owner.
+  - Starting Weapon Power chips belong to the player who brought them.
+- **SELF-REPAIR (heal over time) nerfed to 0.1% HP/s.**
+  - It now has one level only.
+  - It still only heals while the room has enemies in it.
+- **The purple EMP "dark-zone emitter" decoration is now an overhead strip light.**
+  - Flat housing, warm-white flickering tube and a soft floor spill.
+  - No ring, no purple, nothing round, so it no longer looks like a drop.
+### Fixed
+- Several room-clear chips granted at once used to land on the same spot. They now fan out.
+### Technical
+- Co-op snapshot VERSION 20: each loot entry carries its owner.
+- New tests in `BossLootSpewTest`:
+  - The spray comes out one piece at a time, at least 0.1 s apart, and ends spread out.
+  - Co-op ownership: the partner can't take the host's chip, and the owner can.
+  - Loot ownership survives the co-op codec.
+
 ## 0.25.0 (versionCode 76) — 2026-10-11 · The world-map CAMPAIGN; Endless is the old regular game
 ### Added (owner: the campaign plan)
 - **PLAY is now the CAMPAIGN: 15 SERVER WORLDS.** Each world is 10 rooms, then a boss in room 11.

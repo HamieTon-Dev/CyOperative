@@ -32,8 +32,29 @@ object LootSprites {
 
     fun DrawScope.drawLoot(g: GameEngine, time: Float) {
         // Beams first so every chip body sits on top of every beam.
-        for (l in g.loot) if (l.kind == LootKind.UPGRADE) beam(l, time)
-        for (l in g.loot) drawOne(l, time)
+        // Co-op: a partner's drops are theirs alone, so they show only as a faint colour glow.
+        for (l in g.loot) if (isMine(g, l) && l.kind == LootKind.UPGRADE) beam(l, time)
+        for (l in g.loot) if (isMine(g, l)) drawOne(l, time) else ghost(l, time)
+    }
+
+    private fun isMine(g: GameEngine, l: Loot) = l.owner < 0 || l.owner == g.primary
+
+    private fun colourOf(l: Loot) = when (l.kind) {
+        LootKind.HP_CHARGE -> Color(0xFF00FF9C)
+        LootKind.PACKET_BOMB -> Color(0xFF7DF9FF)
+        LootKind.CASH -> Color(0xFFFFC23D)
+        LootKind.UPGRADE -> Color(rarityOf(l).color)
+    }
+
+    /** Someone else's drop: just a soft pulse of its colour, no icon, beam or prompt. */
+    private fun DrawScope.ghost(l: Loot, time: Float) {
+        val c = colourOf(l)
+        val pop = (l.age * 5f).coerceAtMost(1f)
+        val a = 0.22f + 0.08f * sin(time * 3f + l.x * 0.05f)
+        val r = 22f * pop
+        if (r <= 0f) return
+        drawCircle(Brush.radialGradient(listOf(c.copy(alpha = a), Color.Transparent), Offset(l.x, l.y), r), r, Offset(l.x, l.y))
+        drawCircle(c.copy(alpha = a * 1.3f), 4f * pop, Offset(l.x, l.y))
     }
 
     private fun rarityOf(l: Loot) =

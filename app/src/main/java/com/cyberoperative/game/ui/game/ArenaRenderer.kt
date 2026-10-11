@@ -553,16 +553,23 @@ class ArenaRenderer {
                     drawOval(Color(0xFF0C1A2A), Offset(c.x - 14f, c.y - 6f), Size(28f, 12f))
                 }
                 DecorKind.DARK_EMITTER -> {
-                    // 11 EMP dark-zone emitter: a purple device swallowing the light around it.
+                    // Owner, 2026-10-11: the old purple EMP emitter read as an item drop. Now a
+                    // flickering overhead strip light: flat housing, warm-white tube, a soft
+                    // rectangular spill on the floor. No ring, no purple, nothing round.
                     val c = Offset(d.x + d.w / 2f, d.y + d.h / 2f)
-                    val purple = Color(0xFFB040FF)
-                    val p = 0.7f + 0.3f * sin(time * 3f + d.seed)
-                    drawOval(Brush.radialGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Black.copy(alpha = 0.35f), Color.Transparent), center = c, radius = 170f), Offset(c.x - 170f, c.y - 100f), Size(340f, 200f))
-                    drawOval(purple.copy(alpha = 0.5f * p), Offset(c.x - 120f, c.y - 70f), Size(240f, 140f), style = Stroke(2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f), -time * 30f)))
-                    drawRect(Color(0xFF14081E), Offset(c.x - 14f, c.y - 30f), Size(28f, 30f))
-                    drawRect(purple, Offset(c.x - 14f, c.y - 30f), Size(28f, 30f), style = Stroke(1.6f))
-                    drawCircle(purple.copy(alpha = p), 7f, Offset(c.x, c.y - 36f))
-                    drawCircle(purple.copy(alpha = 0.25f * p), 16f, Offset(c.x, c.y - 36f))
+                    val warm = Color(0xFFFFF1D6)
+                    // Old-tube flicker: mostly steady, the odd quick dip.
+                    val f = if (sin(time * 13f + d.seed) > 0.93f) 0.45f else 0.9f + 0.1f * sin(time * 1.7f + d.seed)
+                    drawRect(
+                        Brush.verticalGradient(listOf(warm.copy(alpha = 0f), warm.copy(alpha = 0.10f * f), warm.copy(alpha = 0f)), c.y - 10f, c.y + 90f),
+                        Offset(c.x - 60f, c.y - 10f), Size(120f, 100f)
+                    )
+                    drawRect(Color(0xFF2A2F38), Offset(c.x - 30f, c.y - 7f), Size(60f, 12f))
+                    drawRect(Color(0xFF4A5260), Offset(c.x - 30f, c.y - 7f), Size(60f, 12f), style = Stroke(1.2f))
+                    drawRect(warm.copy(alpha = 0.85f * f), Offset(c.x - 25f, c.y - 3f), Size(50f, 4f))
+                    // Mounting brackets.
+                    drawRect(Color(0xFF14181F), Offset(c.x - 33f, c.y - 5f), Size(4f, 8f))
+                    drawRect(Color(0xFF14181F), Offset(c.x + 29f, c.y - 5f), Size(4f, 8f))
                 }
                 DecorKind.CABLE -> {
                     shapePath.reset()

@@ -140,6 +140,12 @@ enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH, UPGRADE }
  */
 class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0, val upgradeId: String? = null) {
     var age = 0f
+    /** Co-op: whose drop this is (operative index; -1 = anyone). Only its owner can pick it up. */
+    var owner = -1
+    /** Flying out of a dying boss: slides to a stop before it can be picked up. */
+    var vx = 0f
+    var vy = 0f
+    val flying: Boolean get() = vx * vx + vy * vy > 30f * 30f
     /** A weapon chip the operative just declined to swap for: ignored until they step off it. */
     var declined = false
 }

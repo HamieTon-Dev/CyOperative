@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.25.0 (versionCode 76) |
+| Version | 0.25.1 (versionCode 77) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Boss loot spray and per-player co-op loot (0.25.1)**:
+  - Boss drops queue up and spray out every `GameEngine.SPEW_INTERVAL` (0.1 s), sliding 70–170 units.
+  - The interval runs on game time, so the kill's slow motion stretches it a little.
+  - Co-op loot has an `owner`: only the owner picks it up, and the partner's drops render as a colour-only glow (`LootSprites.ghost`).
+  - CoopCodec VERSION is 20.
 - **Steam / PC build (0.20.0, `desktop/`)**:
   - Compiles and runs. Offscreen renders and the packaged app booting under Xvfb were checked.
   - Steam itself (overlay checkout, Inventory claim, lobbies/P2P) and real controllers can only
