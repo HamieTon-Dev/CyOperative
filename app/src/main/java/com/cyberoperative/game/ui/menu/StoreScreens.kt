@@ -102,7 +102,7 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             item {
                 val owned = StoreManager.allSkinsOwned(p)
                 StoreRow(
-                    title = "ALL OPERATIVE SKINS", subtitle = "Unlock all ${OperativeSkins.paid.size} paid skins (every class can wear them)",
+                    title = "ALL OPERATIVE SKINS", subtitle = "All ${OperativeSkins.paid.size} colour skins, every class (premium skins like GOLD and NEON not included)",
                     price = if (owned) "OWNED" else "◇${StoreCatalog.ALL_SKINS_PRICE}", accent = Palette.Gold,
                     enabled = !owned && p.diamonds >= StoreCatalog.ALL_SKINS_PRICE
                 ) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
@@ -167,7 +167,7 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
         if (tab == 0) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!StoreManager.allSkinsOwned(p)) item {
-                    CyberButton("ALL ${OperativeSkins.paid.size} SKINS  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
+                    CyberButton("ALL ${OperativeSkins.paid.size} COLOUR SKINS  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
                         enabled = p.diamonds >= StoreCatalog.ALL_SKINS_PRICE) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
                 }
                 items(OperativeSkins.all, key = { it.id }) { listed ->

@@ -19,7 +19,7 @@ class StoreTest {
         assertEquals(listOf("$1.00", "$4.50", "$8.50", "$69.99"), StoreCatalog.diamondPacks.map { it.usdPrice })
         assertEquals(listOf(1 to 100, 7 to 500, 20 to 800, 250 to 6500), StoreCatalog.revivePacks.map { it.revives to it.priceDiamonds })
         assertEquals(100, StoreCatalog.SKIN_PRICE)
-        assertEquals(300, StoreCatalog.ALL_SKINS_PRICE)
+        assertEquals(1400, StoreCatalog.ALL_SKINS_PRICE)
         assertTrue(OperativeSkins.paid.size >= 10)
     }
 
@@ -31,7 +31,7 @@ class StoreTest {
         assertEquals("red_hat", a.selectedSkin)
         assertNull("can't buy twice", StoreManager.buySkin(a, "red_hat"))
         assertNull("not enough for bundle", StoreManager.buyAllSkins(a))
-        val all = StoreManager.buyAllSkins(a.copy(diamonds = 300))!!
+        val all = StoreManager.buyAllSkins(a.copy(diamonds = 1400))!!
         assertEquals(0, all.diamonds)
         assertTrue(StoreManager.allSkinsOwned(all))
         assertNull(StoreManager.buyAllSkins(all.copy(diamonds = 999)))
@@ -67,15 +67,15 @@ class StoreTest {
         assertEquals("refund happens once", m.diamonds, StoreManager.migrate(m).diamonds)
         // Body follows the class: the base class wears the agent body.
         assertEquals("agent", m.operativeBody)
-        // Got it inside the ◇300 skin bundle: nothing to refund.
-        val bundle = StoreManager.buyAllSkins(PlayerProfile(diamonds = 300))!!.copy(ownedOperatives = setOf("operative", "neon_operative"))
+        // Got it inside the skin bundle: nothing to refund.
+        val bundle = StoreManager.buyAllSkins(PlayerProfile(diamonds = 1400))!!.copy(ownedOperatives = setOf("operative", "neon_operative"))
         assertEquals(bundle.diamonds, StoreManager.migrate(bundle).diamonds)
         // Never bought: nothing.
         assertEquals(0L, StoreManager.migrate(PlayerProfile()).diamonds)
     }
 
     @Test fun skinPackCoversPaidSkinsOnly() {
-        val p = StoreManager.buyAllSkins(PlayerProfile(diamonds = 300))!!
+        val p = StoreManager.buyAllSkins(PlayerProfile(diamonds = 1400))!!
         assertTrue(StoreManager.allSkinsOwned(p))
         assertTrue("class skins are earned, not bought", OperativeSkins.classSkins.none { it.id in p.ownedSkins })
         assertNull(StoreManager.buySkin(PlayerProfile(diamonds = 999), OperativeSkins.TITANIUM.id))

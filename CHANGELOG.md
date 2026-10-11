@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.25.6 (versionCode 82) — 2026-10-11 · Skin pack ◇1400
+### Changed (owner)
+- **The ALL SKINS pack now costs ◇1400** (was ◇300). It is now called **ALL COLOUR SKINS**.
+- The pack covers the 17 ◇100 colour skins only.
+  - It never includes premium skins: GOLD, NEON, or any later skin priced above ◇100.
+  - The shop now says so.
+- Earned skins (TITANIUM, PURPLE, GLITCHED) are not sold, as before.
+- Anyone who already bought the pack keeps everything.
+
 ## 0.25.5 (versionCode 81) — 2026-10-11 · Skins named by how they look
 ### Changed (owner: "most of them are related to CyOps TD and confusing")
 - Shop skins renamed by their colour. Owned and equipped skins carry over, since the ids are unchanged.

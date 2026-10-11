@@ -44,6 +44,11 @@ class CampaignPremiumSkinsTest {
             assertEquals(0L, bought.diamonds)
             assertTrue(skin.id in bought.ownedSkins)
         }
+        // Any premium skin, now or later (priced above ◇100), stays out of the pack.
+        val premium = OperativeSkins.all.filter { it.price > StoreCatalog.SKIN_PRICE }
+        assertTrue(premium.size >= 2)
+        assertTrue(premium.none { it in OperativeSkins.paid })
+        assertEquals(1400, StoreCatalog.ALL_SKINS_PRICE)
         val pack = StoreManager.buyAllSkins(PlayerProfile(diamonds = StoreCatalog.ALL_SKINS_PRICE.toLong()))!!
         assertFalse(OperativeSkins.GOLD.id in pack.ownedSkins)
         assertFalse(OperativeSkins.NEON_ID in pack.ownedSkins)

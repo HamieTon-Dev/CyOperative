@@ -34,7 +34,11 @@ object StoreCatalog {
 
     /** NEON OPERATIVE (the app-icon operative): ◇100 alone, or included in the skin pack. */
     const val NEON_OPERATIVE_PRICE = 100
-    const val ALL_SKINS_PRICE = 300
+    /**
+     * Every ◇100 colour skin (owner, 2026-10-11: ◇1400). Never includes premium skins (GOLD,
+     * NEON, or any later skin priced above [SKIN_PRICE]) — see [OperativeSkins.paid].
+     */
+    const val ALL_SKINS_PRICE = 1_400
 
     /** Owner decision pending — provisional ◇ prices for living backgrounds. */
     const val BACKGROUND_PRICE = 150
