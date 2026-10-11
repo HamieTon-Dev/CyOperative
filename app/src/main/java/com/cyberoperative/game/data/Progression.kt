@@ -86,6 +86,16 @@ data class PermanentUpgradeDef(
 }
 
 object PermanentUpgrades {
+    /**
+     * Retired in 0.24.1 (owner: the card screen is gone, so rerolls did nothing). Kept only to
+     * work out the refund for players who bought it ([StoreManager.migrate]).
+     */
+    val RETIRED_REROLLS = PermanentUpgradeDef("rerolls", "LEVEL-UP REROLLS", "Redraw the upgrade cards.", 3, 400, 4,
+        { l -> "${l.toInt()} reroll" + (if (l >= 2f) "s" else "") + " per run" }, mastery = Mastery.NONE)
+
+    /** € spent on [def] up to [level] (refunds). */
+    fun spentOn(def: PermanentUpgradeDef, level: Int): Long = (0 until level).sumOf { def.costFor(it) }
+
 
     private fun p(v: Float) = "+${"%.1f".format(v).removeSuffix(".0")}%"
     private fun n(v: Float) = "%.1f".format(v).removeSuffix(".0")
@@ -132,9 +142,6 @@ object PermanentUpgrades {
         PermanentUpgradeDef("upgrade_quality", "LEVEL-UP UPGRADE QUALITY", "Rare, Epic and Legendary upgrade drops appear more often.", 5, 250, 5,
             { l -> p(15f * l) + " rare+ chance" },
             applyConfig = { c, l -> c.copy(upgradeQuality = c.upgradeQuality + 0.15f * l) }, mastery = Mastery.SOFT, softExtra = 5),
-        PermanentUpgradeDef("rerolls", "LEVEL-UP REROLLS", "Redraw the upgrade cards.", 3, 400, 4,
-            { l -> "${l.toInt()} reroll" + (if (l >= 2f) "s" else "") + " per run" },
-            applyConfig = { c, l -> c.copy(rerolls = c.rerolls + l.toInt()) }, mastery = Mastery.NONE),
         PermanentUpgradeDef("xp_gain", "EXPERIENCE GAIN", "Collect run data faster.", 10, 60, 3,
             { l -> p(5f * l) + " data gain" }, { s, l -> s.xpMul += 0.05f * l }),
         PermanentUpgradeDef("euro_gain", "€ GAIN", "Earn more € from every operation.", 10, 120, 3,

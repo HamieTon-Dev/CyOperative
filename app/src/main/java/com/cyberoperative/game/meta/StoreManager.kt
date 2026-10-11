@@ -23,6 +23,15 @@ object StoreManager {
             if (NEON_OPERATIVE_ID in out.ownedOperatives && !allSkinsBundleBought(out)) out = out.copy(diamonds = out.diamonds + StoreCatalog.NEON_OPERATIVE_PRICE)
             out = out.copy(neonRefunded = true)
         }
+        // LEVEL-UP REROLLS retired with the card screen (0.24.1): remove it and refund its €.
+        val rerolls = out.permanentUpgrades[com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.id] ?: 0
+        if (rerolls > 0 || com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.id in out.permanentUpgrades) {
+            val refund = com.cyberoperative.game.data.PermanentUpgrades.spentOn(com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS, rerolls)
+            out = out.copy(
+                euros = out.euros + refund,
+                permanentUpgrades = out.permanentUpgrades - com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.id
+            )
+        }
         // The body always follows the class.
         val body = com.cyberoperative.game.data.Operatives.byId(out.selectedOperative).bodyId
         if (out.operativeBody != body) out = out.copy(operativeBody = body)

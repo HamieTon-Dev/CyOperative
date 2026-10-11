@@ -54,13 +54,14 @@ class MasteryProgressionTest {
     }
 
     @Test fun hardCappedUpgradesNeverPassTheirMax() {
-        for (id in listOf("starting_orbs", "starting_power", "rerolls")) {
+        for (id in listOf("starting_orbs", "starting_power")) {
             val d = def(id)
             assertEquals(d.maxLevel, d.levelCap)
             assertEquals(d.maxLevel, d.capAt(9999))
         }
+        // Retired (0.24.1): an old save's rerolls no longer do anything.
         val cfg = Operatives.buildConfig("operative", mapOf("rerolls" to 50, "starting_orbs" to 50), 1L)
-        assertEquals(3, cfg.rerolls)
+        assertEquals(0, cfg.rerolls)
         assertEquals(3, cfg.baseStats.orbCount)
     }
 

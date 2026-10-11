@@ -130,9 +130,8 @@ class DataTest {
         for (d in PermanentUpgrades.all) {
             for (l in 0 until d.maxLevel - 1) assertTrue(d.costFor(l + 1) > d.costFor(l))
         }
-        val cfg = Operatives.buildConfig("operative", mapOf("max_hp" to 5, "rerolls" to 2, "starting_orbs" to 1), 1L)
+        val cfg = Operatives.buildConfig("operative", mapOf("max_hp" to 5, "starting_orbs" to 1), 1L)
         assertEquals(140f, cfg.baseStats.maxHp, 1e-3f)
-        assertEquals(2, cfg.rerolls)
         assertEquals(2, cfg.baseStats.orbCount)
     }
 }

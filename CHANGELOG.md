@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.24.1 (versionCode 75) — 2026-10-11 · LEVEL-UP REROLLS retired and refunded
+### Changed (owner: option 1)
+- **LEVEL-UP REROLLS** only redrew the card screen, which no longer exists. It's gone from the
+  upgrades list.
+- Players who bought it get back every € they spent on it, once, the first time the game loads
+  their save. It doesn't show up anywhere afterwards.
+- New test: `ConsumablesTest.retiredRerollsAreRefundedOnce`. Two older tests updated for the
+  retired upgrade.
+
 ## 0.24.0 (versionCode 74) — 2026-10-11 · One way to play: drops everywhere, no SYSTEM UPGRADE screen
 ### Changed (owner: "Remove PC mode. Cash, card and chips drop on both modes always" · "SYSTEM UPGRADE screen is no longer a feature but a hassle")
 - **PC MODE is gone.** Every run on every platform (phone portrait, phone landscape, Steam, solo

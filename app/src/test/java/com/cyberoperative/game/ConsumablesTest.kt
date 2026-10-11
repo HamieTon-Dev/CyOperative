@@ -169,4 +169,16 @@ class ConsumablesTest {
         assertEquals(2, g.loot.count { it.kind == LootKind.UPGRADE })
         assertEquals(0, g.operatives[0].pendingUpgrades)
     }
+
+    @Test
+    fun retiredRerollsAreRefundedOnce() {
+        val p0 = com.cyberoperative.game.save.PlayerProfile(euros = 100, permanentUpgrades = mapOf("rerolls" to 2, "attack_speed" to 3))
+        val spent = com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.let { it.costFor(0) + it.costFor(1) }
+        val p1 = com.cyberoperative.game.meta.StoreManager.migrate(p0)
+        assertEquals(100 + spent, p1.euros)
+        assertFalse("rerolls" in p1.permanentUpgrades)
+        assertEquals(3, p1.permanentUpgrades["attack_speed"])
+        assertEquals("only once", p1.euros, com.cyberoperative.game.meta.StoreManager.migrate(p1).euros)
+        assertTrue(com.cyberoperative.game.data.PermanentUpgrades.all.none { it.id == "rerolls" })
+    }
 }
