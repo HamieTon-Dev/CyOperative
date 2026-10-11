@@ -64,6 +64,8 @@ class CoopWorld {
     var bossVeil = 0f
     /** Ransom shield (v5): 1 up, 0 broken, -1 none. */
     var bossShield = -1f
+    /** GOOD GAME siege cannon charge (v13). */
+    var bossCharge = 0f
     /** Spectral Firewall ring (v6): angle, plates filled (-1 none), launched. */
     var bossRingAngle = 0f
     var bossRingFilled = -1
@@ -280,6 +282,7 @@ object CoopCodec {
             o.writeByte(w.bossTrail.size / 2)
             for (v in w.bossTrail) o.pos(v)
             o.writeByte(if (w.bossIceShell < 0f) 255 else (w.bossIceShell * 200f).toInt().coerceIn(0, 200))
+            o.writeByte((w.bossCharge * 255f).toInt().coerceIn(0, 255))
             o.writeByte(if (w.bossHeadMask < 0) 255 else w.bossHeadMask and 0x7F)
             o.writeByte(w.victoryIndex + 1)
             if (w.victoryIndex >= 0) {
@@ -392,6 +395,7 @@ object CoopCodec {
             w.bossSync = i.readUnsignedByte() / 255f
             w.bossTrail = FloatArray(i.readUnsignedByte() * 2) { i.pos() }
             w.bossIceShell = i.readUnsignedByte().let { if (it == 255) -1f else it / 200f }
+            w.bossCharge = i.readUnsignedByte() / 255f
             w.bossHeadMask = i.readUnsignedByte().let { if (it == 255) -1 else it }
             w.victoryIndex = i.readUnsignedByte() - 1
             if (w.victoryIndex >= 0) {
@@ -428,5 +432,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 12
+    const val VERSION = 13
 }

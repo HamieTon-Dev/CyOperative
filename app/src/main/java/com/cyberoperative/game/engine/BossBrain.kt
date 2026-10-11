@@ -18,6 +18,9 @@ import kotlin.math.sin
 
 /** Runtime state of the boss currently in the arena. */
 class BossState(val def: BossDef, val cycle: Int) {
+    /** GOOD GAME siege cannon: seconds to the next charge, and the charge clock (−1 = idle). */
+    var cannonTimer = BossBrain.CANNON_FIRST
+    var cannonCharge = -1f
     var phaseIndex = 0
     var patternIndex = 0
     var rest = 1.6f
@@ -180,6 +183,7 @@ class BossBrain(private val g: GameEngine) {
         }
 
         if (st.glitched) glitchBurst(e, st, dt)
+        if (st.def.siegeCannon) siegeCannon(e, st, dt)
         if (st.def.stealth) stealth(e, st, dt)
         if (st.def.keyShield) ransomShield(e, st, dt)
         if (st.def.firewallRing) firewallRing(e, st, dt)
@@ -575,6 +579,42 @@ class BossBrain(private val g: GameEngine) {
         g.fx.flash(0xFFFFC233, 0.3f, 0.35f)
         g.fx.shake(8f, 0.4f)
         g.showBanner("DECRYPTED", "Shield down — hit him now", 1.4f)
+    }
+
+    /**
+     * GOOD GAME's SIEGE CANNON (owner, 2026-10-11): on top of its patterns, every
+     * [CANNON_EVERY] s the turret charges for [CANNON_CHARGE] s (muzzles glowing) and fires a
+     * heavy shell that tracks the operative and bursts with splash on impact, on a wall or
+     * when it burns out. A cloaked PHANTOM gives it nothing to aim at: the charge waits.
+     */
+    private fun siegeCannon(e: Enemy, st: BossState, dt: Float) {
+        if (st.cannonCharge < 0f) {
+            st.cannonTimer -= dt
+            g.bossCharge = 0f
+            if (st.cannonTimer > 0f || g.hiddenFrom(e)) return
+            st.cannonCharge = 0f
+            g.sound(GameSound.BOSS_GROWL)
+            return
+        }
+        if (g.hiddenFrom(e)) { st.cannonCharge = 0f; g.bossCharge = 0f; return }
+        st.cannonCharge += dt
+        g.bossCharge = (st.cannonCharge / CANNON_CHARGE).coerceIn(0f, 1f)
+        if (st.cannonCharge < CANNON_CHARGE) return
+        st.cannonCharge = -1f
+        st.cannonTimer = CANNON_EVERY - CANNON_CHARGE
+        g.bossCharge = 0f
+        val aim = kotlin.math.atan2(g.py - e.y, g.px - e.x)
+        val mx = e.x + cos(aim) * e.radius * 1.35f
+        val my = e.y + sin(aim) * e.radius * 1.35f
+        val p = g.fireEnemyProjectile(mx, my, aim, CANNON_SPEED, CANNON_DAMAGE * e.damageMul, 15f, ProjKind.BOSS) ?: return
+        p.homing = CANNON_HOMING
+        p.splash = CANNON_SPLASH
+        p.life = 4.5f
+        p.tint = st.def.color
+        g.addPulse(mx, my, 70f, 0.3f, 0xFFFFC14D)
+        repeat(10) { g.addParticle(mx, my, 0xFFFFC14D, 260f, 0.35f, 3f) }
+        g.fx.shake(7f, 0.3f)
+        g.sound(GameSound.ELITE_DEATH)
     }
 
     /** *GLITCHED* boss: on top of its own patterns, a random corrupted volley every few seconds. */
@@ -1787,6 +1827,14 @@ class BossBrain(private val g: GameEngine) {
     }
 
     companion object {
+        /** GOOD GAME siege cannon: one shell every 5 s including a 1.2 s charge; first charge 3 s in. */
+        const val CANNON_EVERY = 5f
+        const val CANNON_CHARGE = 1.2f
+        const val CANNON_FIRST = 3f
+        const val CANNON_SPEED = 210f
+        const val CANNON_HOMING = 1.7f
+        const val CANNON_SPLASH = 110f
+        const val CANNON_DAMAGE = 34f
         /** Circuit Hydra: how long the core stays exposed once every head is down. */
         const val EXPOSE_SECONDS = 6f
         /** Circuit Hydra: each head's HP as a share of the hydra's max HP. */

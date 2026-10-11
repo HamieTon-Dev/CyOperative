@@ -173,6 +173,24 @@ class ScreenshotPreviews {
         save("class_skin_sheet")
     }
 
+    private fun goodGame(name: String, until: (GameSession) -> Boolean) = gameplay(name, 0f, setup = { s ->
+        s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(10, kotlin.random.Random(1))
+            .copy(boss = com.cyberoperative.game.data.Bosses.byId("good_game"), glitchedBoss = false))
+        val me = s.engine.operatives[0]
+        var t = 0f
+        while (t < 20f && !until(s)) { me.invuln = 99f; me.hp = me.build.stats.maxHp; s.engine.setInput(0f, 0f); s.engine.update(1f / 60f); t += 1f / 60f }
+    })
+    @Test fun goodGameCharging() { assumeTrue(enabled); goodGame("boss_good_game_charging") { it.engine.bossCharge > 0.4f } }
+    @Test fun goodGameShell() {
+        assumeTrue(enabled)
+        var seen = 0f
+        goodGame("boss_good_game_shell") { s ->
+            val shell = s.engine.projectiles.items.any { it.active && !it.friendly && it.splash > 0f }
+            if (shell) seen += 1f / 60f
+            shell && seen > 0.7f
+        }
+    }
+
     @Test fun classPicker() {
         assumeTrue(enabled)
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()

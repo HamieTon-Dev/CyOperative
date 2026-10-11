@@ -1230,7 +1230,8 @@ class ArenaRenderer {
                 ring = g.bossRingAngle, ringFilled = if (boss.def.firewallRing) g.bossRingFilled else -1, ringOut = g.bossRingOut,
                 trail = if (boss.def.segments > 0) FloatArray(g.bossTrail.size) { k -> if (k % 2 == 0) g.bossTrail[k] else g.bossTrail[k] - lift } else FloatArray(0),
                 aimX = g.px, aimY = g.py - lift,
-                heads = if (boss.def.headShield) g.bossHeadMask else -1
+                heads = if (boss.def.headShield) g.bossHeadMask else -1,
+                charge = if (boss.def.siegeCannon) g.bossCharge else 0f
             )
             if (glitch) {
                 val j = ((time * 14f).toInt() + e.uid) % 5 - 2
@@ -1507,6 +1508,23 @@ class ArenaRenderer {
 
     // --- Projectiles / hazards / effects -----------------------------------
 
+    /** GOOD GAME's siege shell: blast-radius ring on the floor, a hot iron ball and a smoke trail. */
+    private fun DrawScope.drawSiegeShell(p: com.cyberoperative.game.engine.Projectile, c: Offset, time: Float) {
+        val blast = com.cyberoperative.game.engine.BossBrain.CANNON_SPLASH
+        val pulse = 0.5f + 0.5f * sin(time * 10f)
+        drawCircle(Color(0xFFFF5A1A).copy(alpha = 0.07f + 0.05f * pulse), blast, Offset(p.x, p.y))
+        drawCircle(Color(0xFFFF7A1A).copy(alpha = 0.45f + 0.25f * pulse), blast, Offset(p.x, p.y), style = Stroke(2f))
+        val sp = kotlin.math.sqrt(p.vx * p.vx + p.vy * p.vy).coerceAtLeast(1f)
+        for (k in 1..5) {
+            val back = k * 9f
+            drawCircle(Color(0xFF3A3436).copy(alpha = 0.45f - k * 0.07f), p.radius * (0.55f + k * 0.12f), Offset(c.x - p.vx / sp * back, c.y - p.vy / sp * back))
+        }
+        drawCircle(Color(0xFFFF7A1A).copy(alpha = 0.35f), p.radius * 1.7f, c)
+        drawCircle(Color(0xFF1A1414), p.radius, c)
+        drawCircle(Color(0xFFFF9A3C), p.radius, c, style = Stroke(2.5f))
+        drawCircle(Color(0xFFFFE0A0).copy(alpha = 0.7f + 0.3f * pulse), p.radius * 0.4f, c)
+    }
+
     private fun DrawScope.drawProjectiles(g: GameEngine, time: Float) {
         val lift = 22f
         for (o in g.operatives) if (o.alive) g.viewAs(o.index) { drawBeam(g, time, lift) }
@@ -1516,6 +1534,7 @@ class ArenaRenderer {
             drawCircle(Color.Black.copy(alpha = 0.25f), p.radius * 0.8f, Offset(p.x, p.y))
             val c = Offset(p.x, p.y - lift)
             if (p.kind == ProjKind.MISSILE) { drawMissile(c, p.vx, p.vy, time); continue }
+            if (!p.friendly && p.kind == ProjKind.BOSS && p.homing > 0f && p.radius >= 14f) { drawSiegeShell(p, c, time); continue }
             if (p.kind == ProjKind.BOOMERANG) {
                 val col = if (p.tint != 0L) Color(p.tint) else Palette.Green
                 rotate(time * 900f % 360f, c) {

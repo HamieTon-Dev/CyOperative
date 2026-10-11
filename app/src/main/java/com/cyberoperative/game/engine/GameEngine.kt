@@ -515,6 +515,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Ransom shield on the current boss: 1 = up (reduced damage), 0 = broken, -1 = no shield boss. */
     var bossShield = -1f
+    /** GOOD GAME siege cannon charge, 0..1 (renderer; synced to the co-op guest). */
+    var bossCharge = 0f
 
     /** Golden key zone (see [HazardKind.KEY_ZONE]). */
     fun addKeyZone(x: Float, y: Float, radius: Float, duration: Float, color: Long) {
@@ -1052,7 +1054,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
         level = newLevel
         fx.clear()
-        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0)
+        darkness = 0f; darknessTarget = 0f; lightFlicker = 0f; bossVeil = 0f; bossShield = -1f; bossSync = 0f; bossTrail = FloatArray(0); bossCharge = 0f
         for (o in ops) { o.cloakTime = 0f; o.cloaked = false }
         for (o in ops) { o.rooted = 0f; o.encrypted = 0f; o.encryptCharge = 0f; o.burning = 0f; o.burnDps = 0f; o.pulled = 0f; o.chill = 0f; o.frozen = 0f }
         bossIceShell = -1f
@@ -2748,7 +2750,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (p.friendly) cur = ops.getOrNull(p.owner)?.takeIf { !it.gone } ?: ops[primary]
             else focusNearest(p.x, p.y)
             p.life -= dt
-            if (p.life <= 0f) { p.active = false; continue }
+            if (p.life <= 0f) {
+                p.active = false
+                if (!p.friendly && p.splash > 0f) hostileBlast(p.x, p.y, p.splash, p.damage)
+                continue
+            }
             if (p.kind == ProjKind.MINE) {
                 if (p.armTimer > 0f) { p.armTimer -= dt; continue }
                 for (e in enemies.items) {
@@ -2817,7 +2823,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     p.lastHitUid = -1
                 } else {
                     p.active = false
-                    if (p.kind == ProjKind.MISSILE) detonate(ox, oy, p.splash, p.damage * 0.6f)
+                    if (!p.friendly && p.splash > 0f) hostileBlast(ox, oy, p.splash, p.damage)
+                    else if (p.kind == ProjKind.MISSILE) detonate(ox, oy, p.splash, p.damage * 0.6f)
                     else addParticle(p.x, p.y, if (p.friendly) 0xFF00E5FF else 0xFFFF7A1A, 90f, 0.2f, 2f)
                 }
                 continue
@@ -2854,6 +2861,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 val rr = 16f + p.radius
                 if (MathUtil.dist2(bx, by, p.x, p.y) < rr * rr) {
                     p.active = false
+                    // A blocked shell still bursts, out at the blade.
+                    if (p.splash > 0f) { hostileBlast(p.x, p.y, p.splash, p.damage); return }
                     addParticle(p.x, p.y, 0xFF00E5FF, 120f, 0.25f, 2f)
                     sound(GameSound.SHIELD_BLOCK)
                     return
@@ -2863,8 +2872,27 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val rr = playerRadius * 0.8f + p.radius
         if (MathUtil.dist2(p.x, p.y, px, py) < rr * rr) {
             p.active = false
-            damagePlayer(p.damage, p.x, p.y)
+            if (p.splash > 0f) hostileBlast(p.x, p.y, p.splash, p.damage)
+            else damagePlayer(p.damage, p.x, p.y)
         }
+    }
+
+    /** A hostile shell bursting (GOOD GAME's siege cannon): hurts every operative in [radius]. */
+    private fun hostileBlast(x: Float, y: Float, radius: Float, damage: Float) {
+        addPulse(x, y, radius, 0.4f, 0xFFFF5A1A)
+        addPulse(x, y, radius * 0.55f, 0.25f, 0xFFFFE0A0)
+        repeat(12) { addParticle(x, y, 0xFFFF9A1A, 260f, 0.4f, 3.2f) }
+        fx.shake(6f, 0.25f)
+        sound(GameSound.ELITE_DEATH)
+        val keep = cur
+        for (o in ops) {
+            if (!o.alive) continue
+            val r = radius + playerRadius * 0.6f
+            if (MathUtil.dist2(x, y, o.px, o.py) >= r * r) continue
+            cur = o
+            damagePlayer(damage, x, y)
+        }
+        cur = keep
     }
 
     private fun onBoltHit(p: Projectile, e: Enemy) {
@@ -3600,7 +3628,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         w.sounds += sounds.take(16)
         for (b in barriers) w.barriers += floatArrayOf(b.x, b.y, b.half, b.rise, b.life, b.timer, b.style.toFloat())
-        w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield
+        w.darkness = darkness; w.lightFlicker = lightFlicker; w.bossVeil = bossVeil; w.bossShield = bossShield; w.bossCharge = bossCharge
         w.bossRingAngle = bossRingAngle; w.bossRingFilled = bossRingFilled; w.bossRingOut = bossRingOut; w.bossSync = bossSync; w.bossTrail = bossTrail.copyOf(); w.bossIceShell = bossIceShell; w.bossHeadMask = bossHeadMask
         victory.let { v ->
             w.victoryIndex = if (v == null) -1 else com.cyberoperative.game.data.Bosses.roster.indexOf(v.def)
@@ -3646,7 +3674,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         barriers.clear()
         for (n in w.barriers) barriers += Barrier(n[0], n[1], n[2], n[3], n[4], n.getOrElse(6) { 0f }.toInt()).also { it.timer = n[5] }
-        darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield
+        darkness = w.darkness; darknessTarget = w.darkness; lightFlicker = w.lightFlicker; bossVeil = w.bossVeil; bossShield = w.bossShield; bossCharge = w.bossCharge
         bossRingAngle = w.bossRingAngle; bossRingFilled = w.bossRingFilled; bossRingOut = w.bossRingOut; bossSync = w.bossSync; bossTrail = w.bossTrail; bossIceShell = w.bossIceShell; bossHeadMask = w.bossHeadMask
         val vd = com.cyberoperative.game.data.Bosses.roster.getOrNull(w.victoryIndex)
         victory = if (vd == null) null else {

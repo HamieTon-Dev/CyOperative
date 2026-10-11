@@ -300,7 +300,9 @@ data class BossDef(
     /** Ransom shield: takes reduced damage until every key zone is captured (Ransom King). */
     val keyShield: Boolean = false,
     /** Orbiting firewall ring that blocks shots except through its gaps (Spectral Firewall). */
-    val firewallRing: Boolean = false
+    val firewallRing: Boolean = false,
+    /** Charges and fires a tracking splash shell every few seconds on top of its patterns (Good Game). */
+    val siegeCannon: Boolean = false
 ) {
     /** Up to [max] ability names: the named ones, or one per distinct pattern kind. */
     fun abilityNames(max: Int = 4): List<String> =
@@ -634,7 +636,8 @@ object Bosses {
                 Pattern.Spiral(4, 3.5f, 12f, 90f, 190f, 12f),
                 Pattern.Blasts(8, 100f, 1.1f, 26f)
             ), "GAME OVER?")
-        ), euros = 360, score = 6600, role = BossRole.TANK, tier = 3
+        ), euros = 360, score = 6600, role = BossRole.TANK, tier = 3, siegeCannon = true,
+        abilities = listOf("Siege Cannon", "Burst Ring", "Shockwave", "Strike Markers")
     )
 
     /** The original twelve, levels 10–120. */

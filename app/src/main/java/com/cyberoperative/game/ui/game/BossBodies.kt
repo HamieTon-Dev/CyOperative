@@ -49,7 +49,9 @@ class BossPose(
     val aimX: Float = Float.NaN,
     val aimY: Float = Float.NaN,
     /** Circuit Hydra's living heads: bit k = head k; -1 = all (previews); 0 = core exposed. */
-    val heads: Int = -1
+    val heads: Int = -1,
+    /** GOOD GAME siege cannon charge 0..1 (0 = not charging). */
+    val charge: Float = 0f
 ) {
     /** Body fill: white on a hit, otherwise the boss colour. */
     val fill: Color get() = if (hitFlash) Color.White else color

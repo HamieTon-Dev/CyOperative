@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.0 (versionCode 63) — 2026-10-11 · Good Game's Siege Cannon
+### Added (owner: "Good Game should definitely charge and shoot a shot out of the cannon that tracks you and does splash damage every 5 seconds")
+- **SIEGE CANNON:** on top of its normal patterns, GOOD GAME fires every **5 s**. The first charge
+  starts 3 s into the fight.
+  - **Charge (1.2 s):** heat climbs both barrels, the muzzles swell with orange light, sparks are
+    pulled in, a ring pulses around the turret and it growls.
+  - **Shot:** a muzzle flash, a screen kick and a heavy iron shell that **tracks you**. It turns at a
+    dodgeable rate and shows its blast-radius ring on the floor.
+  - **Splash:** the shell bursts (radius 110) when it hits you, a wall or an Encryption Blade, or when
+    it burns out after 4.5 s. Every operative inside the blast takes the damage.
+  - A cloaked Phantom gives it nothing to aim at, so the charge waits.
+- Hostile shells can now carry splash (`Projectile.splash` on enemy shots, `GameEngine.hostileBlast`).
+- Co-op wire format is now **v13**: the cannon charge is synced so the guest sees the wind-up.
+
 ## 0.17.6 (versionCode 62) — 2026-10-11 · Cobalt Titanium for Phantom and Packet Mage
 ### Changed (owner)
 - The **Phantom** and **Packet Mage** wear their TITANIUM (Normal L100) skin as **cobalt blue**:

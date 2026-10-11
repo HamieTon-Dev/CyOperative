@@ -297,3 +297,10 @@ skip, pause, toggle shuffle or return to AUTO. Audio never plays in the backgrou
   - `focusNearest` prefers a visible partner.
 - Class skins: TITANIUM (L100 Normal) and PURPLE (L100 Hard), checked against
   `PlayerProfile.classRecords` (`StoreManager.skinUnlocked` / `effectiveSkin`).
+
+## Boss signatures (0.18.0)
+- GOOD GAME, SIEGE CANNON (`BossDef.siegeCannon`, `BossBrain.siegeCannon`):
+  - every 5 s, a 1.2 s visible charge (`GameEngine.bossCharge`, synced in co-op v13);
+  - a homing shell: speed 210, turn 1.7 rad/s, damage 34 × threat damage;
+  - splash 110 on impact, on walls or blades, or on burn-out after 4.5 s;
+  - held while a Phantom is cloaked.

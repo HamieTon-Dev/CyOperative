@@ -108,6 +108,27 @@ internal object GoodGameBody : BossBody {
                 if (hot) glow(Offset(tc.x + r * 1.05f, by), r * 0.12f, red, 1.6f)
             }
         }
+        // SIEGE CANNON charge: heat climbs the barrels, the muzzles swell with light and
+        // sparks are sucked in; a white-hot flash just before it fires.
+        val ch = p.charge
+        if (ch > 0f) {
+            rotate(p.aim * 180f / PI.toFloat(), tc) {
+                for (s in listOf(-1f, 1f)) {
+                    val by = tc.y + s * tr * 0.34f
+                    drawRect(Color(0xFFFF5A1A).copy(alpha = 0.55f * ch), Offset(tc.x + r * 0.1f, by - r * 0.06f), Size(r * 0.85f * ch, r * 0.12f))
+                    val m = Offset(tc.x + r * 1.08f, by)
+                    glow(m, r * (0.1f + 0.22f * ch), Color(0xFFFF7A1A), 1f + 2f * ch)
+                    drawCircle(Color(0xFFFFC14D).copy(alpha = 0.5f + 0.5f * ch), r * (0.05f + 0.1f * ch), m)
+                    if (ch > 0.85f) drawCircle(Color.White.copy(alpha = (ch - 0.85f) / 0.15f), r * 0.12f, m)
+                    for (k in 0 until 6) {
+                        val a = k * (PI.toFloat() / 3f) + t * 3f
+                        val d = r * (0.55f - 0.45f * ((t * 2.2f + k * 0.17f) % 1f)) * (1.2f - ch * 0.4f)
+                        drawCircle(Color(0xFFFFC14D).copy(alpha = 0.8f * ch), r * 0.025f, Offset(m.x + cos(a) * d, m.y + sin(a) * d))
+                    }
+                }
+            }
+            drawCircle(Color(0xFFFF7A1A).copy(alpha = 0.6f * ch), tr * (1.1f + 0.15f * sin(t * 30f)), tc, style = Stroke(3f))
+        }
         drawCircle(DARK, tr * 1.05f, Offset(tc.x, tc.y + r * 0.06f))
         drawCircle(Brush.radialGradient(listOf(lit, MID, DARK), center = Offset(tc.x - tr * 0.3f, tc.y - tr * 0.35f), radius = tr * 1.4f), tr, tc)
         drawCircle(red.copy(alpha = 0.8f), tr, tc, style = Stroke(2.5f))
