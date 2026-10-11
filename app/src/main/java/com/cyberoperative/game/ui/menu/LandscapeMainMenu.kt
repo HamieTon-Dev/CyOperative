@@ -123,7 +123,7 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
                 subtitle = if (profile.endlessBestStage > 0) "BEST LEVEL ${profile.endlessBestStage}" else "NO MAP · NO END",
                 modifier = Modifier.weight(1f)
             ) { onSelect(MenuTarget.ENDLESS) }
-            CyberButton("CO-OP", accent = Palette.Magenta, subtitle = if (com.cyberoperative.game.platform.AppInfo.desktop) "PLAY WITH A STEAM FRIEND" else "PLAY WITH A FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
+            CyberButton("CO-OP", accent = Palette.Magenta, subtitle = "PLAY WITH A FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
         }
         for (row in rest.chunked(4)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

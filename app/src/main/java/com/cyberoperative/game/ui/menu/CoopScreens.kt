@@ -109,6 +109,28 @@ fun CoopScreen(
                 return@Column
             }
 
+            // PC without Steam: host, or join by IP address.
+            if (backend.directIp) {
+                DirectIpCard(
+                    backend, profileNow.callsign,
+                    onRename = { n -> scope.launch { backend.register(n) } },
+                    onHost = {
+                        scope.launch {
+                            backend.hostDirect(roomPlayerFor(profileNow.uid, profileNow.callsign, profile))
+                                .onSuccess { onRoom(it) }.onFailure { message = it.message }
+                        }
+                    },
+                    onJoin = { addr ->
+                        message = "Connecting to $addr…"
+                        scope.launch {
+                            backend.joinDirect(addr, roomPlayerFor(profileNow.uid, profileNow.callsign, profile))
+                                .onSuccess { message = null; onRoom(it) }.onFailure { message = it.message }
+                        }
+                    }
+                )
+                return@Column
+            }
+
             // Who am I + the code to share (Steam: your Steam name; friends come from Steam).
             if (backend.platformFriends) TerminalCard(accent = Palette.Cyan) {
                 Column {
@@ -177,6 +199,60 @@ fun CoopScreen(
                 onRemove = if (backend.platformFriends) null else ({ scope.launch { backend.removeFriend(f.uid) } })
             )
             Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/** Direct IP co-op: your name, HOST (shows your address), or JOIN a typed address. */
+@Composable
+private fun DirectIpCard(backend: CoopBackend, name: String, onRename: (String) -> Unit, onHost: () -> Unit, onJoin: (String) -> Unit) {
+    var callsign by remember(name) { mutableStateOf(name) }
+    var address by remember { mutableStateOf("") }
+    val addresses = remember(backend) { backend.localAddresses() }
+    val copyText = com.cyberoperative.game.platform.rememberCopyText()
+    TerminalCard(accent = Palette.Cyan) {
+        Column {
+            Text("DIRECT IP CO-OP", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+            Text(
+                "One of you hosts, the other joins with the host's address. Same network: works as is. " +
+                    "Over the internet the host forwards TCP port ${backend.directPort} on their router, or you both use a virtual LAN (Tailscale, ZeroTier, Radmin VPN).",
+                color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = callsign, onValueChange = { callsign = it.take(16); onRename(callsign) },
+                label = { Text("YOUR NAME") }, singleLine = true, colors = neonFieldColors(), modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+    TerminalCard(accent = Palette.Green) {
+        Column {
+            Text("HOST A GAME", color = Palette.Green, style = MaterialTheme.typography.titleSmall)
+            Text(
+                if (addresses.isEmpty()) "Tell your friend this PC's IP address."
+                else "Your friend joins with: " + addresses.joinToString("  ·  ") + "   (port ${backend.directPort})",
+                color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                CyberButton("HOST", Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onHost)
+                if (addresses.isNotEmpty()) CyberButton("COPY IP", Modifier.weight(1f)) { copyText(addresses.first()) }
+            }
+        }
+    }
+    TerminalCard {
+        Column {
+            Text("JOIN A GAME", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = address, onValueChange = { address = it.trim().take(64) },
+                    label = { Text("HOST'S IP ADDRESS") }, singleLine = true, colors = neonFieldColors(),
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                CyberButton("JOIN", accent = Palette.Green, enabled = address.isNotBlank()) { onJoin(address) }
+            }
         }
     }
 }
@@ -368,7 +444,7 @@ private fun PlayerCard(role: String, p: RoomPlayer?, online: Boolean, waiting: B
             Column(Modifier.weight(1f)) {
                 Text(role, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Text(
-                    p?.name ?: if (waiting) "INVITE SENT · WAITING…" else "—",
+                    p?.name ?: if (waiting) "WAITING FOR YOUR PARTNER…" else "—",
                     color = if (p != null) Palette.TextPrimary else Palette.TextMuted, style = MaterialTheme.typography.titleMedium
                 )
             }

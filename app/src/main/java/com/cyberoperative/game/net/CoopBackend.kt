@@ -34,6 +34,14 @@ interface CoopBackend {
     suspend fun invite(friend: Friend, me: RoomPlayer): Result<CoopRoom>
     /** Joins the invite's room (accept) or declines it. */
     suspend fun answerInvite(invite: Invite, accept: Boolean, me: RoomPlayer): Result<CoopRoom?>
+
+    // --- Direct IP (PC build without Steam): host on a port, or join an address -----------
+    val directIp: Boolean get() = false
+    val directPort: Int get() = 0
+    /** This machine's addresses to tell the partner. */
+    fun localAddresses(): List<String> = emptyList()
+    suspend fun hostDirect(me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException("Not available"))
+    suspend fun joinDirect(address: String, me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException("Not available"))
 }
 
 /**

@@ -21,7 +21,6 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.net.CoopBackend
-import com.cyberoperative.game.net.OfflineCoopBackend
 import com.cyberoperative.game.platform.DesktopBack
 import com.cyberoperative.game.platform.DesktopInput
 import com.cyberoperative.game.save.SaveRepository
@@ -46,7 +45,8 @@ fun main(args: Array<String>) {
         initialize()
     }
     com.cyberoperative.game.ui.common.KeyBinds.map = save.current.settings.keyBinds
-    val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else OfflineCoopBackend()
+    // Steam co-op when Steam is running; otherwise direct IP co-op (host / join by address).
+    val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else com.cyberoperative.game.lan.DirectIpCoopBackend()
 
     application {
         // Landscape 16:9 at 80% of the screen; F11 for fullscreen.

@@ -90,6 +90,24 @@ All purchases go through Steam. Each ◇ pack is a Steam Inventory item; definit
 2. Once Steam grants the item, the game consumes it and credits the ◇.
 3. A pack bought while the game was closed is claimed at the next start.
 
+## Co-op by IP address (no Steam needed)
+
+When Steam isn't running, CO-OP shows **DIRECT IP CO-OP**:
+
+- **Host:** press **HOST**. The screen shows your IP address(es) and the port (TCP **47615**). Tell your friend the address.
+- **Friend:** type that address in **JOIN A GAME** and press **JOIN**. You're both in the normal lobby; the host picks the difficulty and starts.
+- **Same network (LAN):** works as is. Use the `192.168…` / `10.…` address.
+- **Over the internet**, do one of these:
+  - The host forwards TCP port 47615 on their router to their PC. The friend then joins with the host's public IP (whatismyip.com).
+  - Easier: you both install a virtual LAN such as Tailscale, ZeroTier or Radmin VPN, and join with the host's address on it.
+- **Windows Firewall:** the first time the host presses HOST, Windows asks whether to allow the game on networks. Allow it.
+- **Versions:** both players need the same game version.
+
+**Sending the game to a friend:**
+1. Build it with `.\gradlew :desktop:createReleaseDistributable`.
+2. Zip the folder `desktop\build\compose\binaries\main-release\app\CyberOperative\` and send the zip.
+3. They unzip it and run `CyberOperative.exe`. Nothing else needs to be installed, because the Java runtime is inside the folder.
+
 ## Co-op over Steam
 
 - Your Steam name is your callsign, and your Steam friends are the friends list.

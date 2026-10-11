@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.26.1 (versionCode 87) — 2026-10-11 · PC co-op by IP address
+### Added (owner: "send my friend an .exe and let them join via IP address")
+- **DIRECT IP CO-OP on PC when Steam isn't running.**
+  - One player presses HOST, and the screen shows their IP address and port (TCP 47615).
+  - The other types that address and presses JOIN. Both then land in the normal co-op lobby.
+- **How it connects:** a plain TCP connection, with no accounts or servers.
+  - Same network: it works as is.
+  - Over the internet: the host forwards TCP 47615, or both of you use a virtual LAN such as Tailscale, ZeroTier or Radmin VPN.
+- The desktop README explains how to zip the game folder and send it to a friend.
+### Technical
+- `lan/DirectIpCoopBackend`: messages are framed as type, length and payload. A writer thread sends, and a newer world snapshot replaces one not yet sent. A reader thread receives.
+- New `CoopBackend.directIp`, `hostDirect` and `joinDirect`. They do nothing on Android.
+- New desktop test `DirectIpCoopTest`: a real localhost socket carries the lobby, START, a 20KB snapshot, input and leaving.
+
 ## 0.26.0 (versionCode 86) — 2026-10-11 · Co-op shop
 ### Added (owner: "both players have a separate shop, and both teleport in and out of shop together")
 - **The shop now appears in co-op** (it was solo-only before). It is the same 1-in-20 side gate after a room is cleared.
