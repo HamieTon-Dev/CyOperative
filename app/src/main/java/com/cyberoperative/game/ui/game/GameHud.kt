@@ -1,6 +1,5 @@
 package com.cyberoperative.game.ui.game
 
-import com.cyberoperative.game.platform.AppInfo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -117,20 +116,14 @@ fun GameHud(
         modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
-            // PC: see-through, fading out downwards, so the arena shows through (no black bar).
-            .background(
-                if (AppInfo.desktop) Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.55f), HudNavy.copy(alpha = 0f)))
-                else Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.94f), HudNavy.copy(alpha = 0.78f)))
-            )
+.background(Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.94f), HudNavy.copy(alpha = 0.78f))))
             .drawBehind {
                 val y = size.height - 0.5.dp.toPx()
-                if (!AppInfo.desktop) drawLine(HudHairline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+                drawLine(HudHairline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
             }
             .windowInsetsPadding(HudInsets)
             .padding(top = 4.dp)
     ) {
-      // Landscape PC: the readouts sit in a centred column instead of stretching edge to edge.
-      Column(Modifier.align(Alignment.CenterHorizontally).then(if (AppInfo.desktop) Modifier.widthIn(max = HUD_MAX_WIDTH) else Modifier)) {
         if (collapsed) {
             CollapsedRow(h, paused, onPause)
         } else {
@@ -144,8 +137,7 @@ fun GameHud(
                     UpgradeBar(h, Modifier.fillMaxWidth())
                 }
                 val boss = h.bossName
-                // PC: the boss bar sits at the bottom of the screen (see GameScreen).
-                if (boss != null && !AppInfo.desktop) {
+                if (boss != null) {
                     Spacer(Modifier.height(4.dp))
                     BossHealthBar(h)
                 } else if (h.eventName != null) {
@@ -159,12 +151,8 @@ fun GameHud(
             }
         }
         PullHandle(collapsed, onToggleCollapsed, Modifier.align(Alignment.CenterHorizontally))
-      }
     }
 }
-
-/** Widest the HUD readouts grow on a landscape (PC) screen. */
-private val HUD_MAX_WIDTH = 900.dp
 
 private fun levelColor(h: HudSnapshot): Color = when (h.kind) {
     LevelKind.BOSS -> Palette.Red
@@ -410,3 +398,59 @@ private fun PullHandle(collapsed: Boolean, onToggle: () -> Unit, modifier: Modif
 
 /** Extra space under the HUD before hints and banners start. */
 val HUD_HINT_GAP: Dp = 8.dp
+
+/**
+ * PC (landscape) HUD: a strip *above* the arena, never over it (owner: "this is not a phone
+ * game"). Left: level, score, € and HP; middle: the boss bar, or the threat count / event;
+ * right: clock and pause. Buffs run along a second line.
+ */
+@Composable
+fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(HudNavy, Color(0xFF070C16))))
+            .drawBehind {
+                val y = size.height - 0.5.dp.toPx()
+                drawLine(Palette.Cyan.copy(alpha = 0.35f), Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+            }
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}",
+                        color = levelColor(h), style = mono(15.sp, FontWeight.Bold), maxLines = 1
+                    )
+                    Divider()
+                    Text("SCORE ${"%,d".format(h.score)}", color = Palette.TextPrimary, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                    Divider()
+                    Text("€ ${"%,d".format(h.euros)}", color = Palette.Euro, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                }
+                Spacer(Modifier.height(4.dp))
+                HpRow(h)
+                if (h.coop && !h.partnerGone) PartnerRow(h)
+            }
+            Spacer(Modifier.width(28.dp))
+            Column(Modifier.weight(1.35f)) {
+                if (h.bossName != null) BossHealthBar(h)
+                else {
+                    ProgressRow(h)
+                    if (h.eventName != null) Text(
+                        h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
+                        color = Color(h.eventAccent), style = mono(12.sp, FontWeight.Bold),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.width(20.dp))
+            HudClock()
+            PauseButton(paused, onPause)
+        }
+        if (h.owned.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            UpgradeBar(h, Modifier.fillMaxWidth())
+        }
+    }
+}

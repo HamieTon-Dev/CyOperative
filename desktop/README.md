@@ -47,7 +47,7 @@ The touchscreen and trackpads work as the mouse in menus.
 - PC rooms are 2160 units across (three phone rooms) and about one screen tall.
 - They are drawn zoomed out, so a whole room fits a 16:9 screen.
 - PC rooms hold 1.6× the threats (`ArenaShape.WIDE_CROWD`).
-- The HUD is a compact, see-through panel, and boss bars sit along the bottom edge.
+- The HUD is a strip above the arena (HP, boss bar, buffs) and never covers the play area.
 
 ## Steam store: ◇ packs (Steam Inventory)
 

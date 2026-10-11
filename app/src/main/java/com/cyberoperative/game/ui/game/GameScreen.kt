@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.layout.widthIn
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
@@ -155,7 +156,7 @@ fun GameScreen(
         // The arena starts right under the HUD as measured (it grows with the buff row and
         // the boss bar, shrinks when folded); before the first measure, a safe estimate.
         val hudHeightDp = with(density) { if (hudHeightPx > 0) hudHeightPx.toDp() else 96.dp }
-        // PC: the arena runs under the see-through HUD, edge to edge.
+        // PC: the canvas itself starts below the HUD strip, so no inset inside it.
         val topInsetPx = with(density) { if (GameKeys.active) 0f else (hudHeightDp + 4.dp).toPx() }
         val bottomInsetPx = with(density) { (if (GameKeys.active) 24.dp else 150.dp).toPx() }
         val restX = constraints.maxWidth / 2f
@@ -164,6 +165,8 @@ fun GameScreen(
         Canvas(
             Modifier
                 .fillMaxSize()
+                // PC: the arena lives below the HUD strip and never draws under it.
+                .then(if (GameKeys.active) Modifier.padding(top = hudHeightDp).clipToBounds() else Modifier)
                 // Steering thumbs near the side edges shouldn't trigger the system Back swipe.
                 // Android honours up to 200dp per edge, bottom-most first: where the stick lives.
                 .platformGestureExclusion()
@@ -369,16 +372,16 @@ fun GameScreen(
         // (upgrade pick, game over, briefing) cover it as before.
         val coveredByPanel = hud.phase == Phase.UPGRADE || hud.phase == Phase.DEAD || session.showTutorial
         if (session.paused || !coveredByPanel) {
-          // PC: the boss bar along the bottom edge, compact and see-through, clear of the boss.
-          if (GameKeys.active && hud.bossName != null) androidx.compose.runtime.CompositionLocalProvider(
+          // PC: a compact strip above the arena (never over it), everything at 75%.
+          if (GameKeys.active) androidx.compose.runtime.CompositionLocalProvider(
               LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
           ) {
-              Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp).widthIn(max = 900.dp).fillMaxWidth(0.6f)) { BossHealthBar(hud) }
-          }
-          // PC: the zoomed-out arena gets a compact HUD (everything, bars included, at 70%).
-          androidx.compose.runtime.CompositionLocalProvider(
-              LocalDensity provides if (GameKeys.active) androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale) else density
-          ) {
+            PcHudStrip(
+                hud, paused = session.paused,
+                onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
+                modifier = Modifier.onSizeChanged { hudHeightPx = it.height }
+            )
+          } else run {
             GameHud(
                 hud,
                 paused = session.paused,
@@ -393,7 +396,7 @@ fun GameScreen(
 }
 
 /** HUD scale on PC (compact bars over a zoomed-out arena). */
-private const val HUD_PC_SCALE = 0.7f
+private const val HUD_PC_SCALE = 0.75f
 
 @Composable
 private fun HintChip(text: String, color: Color) {
@@ -739,7 +742,7 @@ internal fun BossHealthBar(h: HudSnapshot) {
         Modifier
             .fillMaxWidth()
             .offset(x = shakeX.dp)
-            .background(Color(0xE6120208).copy(alpha = if (com.cyberoperative.game.platform.AppInfo.desktop) 0.4f else 0.9f), RoundedCornerShape(8.dp))
+            .background(Color(0xE6120208), RoundedCornerShape(8.dp))
             .border(2.dp, color.copy(alpha = 0.85f * flicker), RoundedCornerShape(8.dp))
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {

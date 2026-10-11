@@ -10,8 +10,12 @@
   - PC rooms are 2160 units wide (three phone rooms) and about one screen tall.
   - Every generated room, hand-made layout, the shop and a new wide boss stage are built for 16:9.
   - Rooms hold 1.6× the threats.
-- **PC HUD:** compact, about 70% scale, and see-through, with no black bar. The arena runs under
-  it, and boss bars sit along the bottom edge, clear of the boss.
+- **PC HUD: a strip above the arena, never over it.**
+  - Left: level, score, € and HP (and the co-op partner).
+  - Middle: the boss bar, or threats and the event.
+  - Right: clock and pause.
+  - Buffs run on a second line.
+  - The arena is drawn only below the strip.
 - **Landscape main menu, no scrolling:**
   - A small badge and wordmark, with every button underneath.
   - Your operative on a holo stage on the left.
