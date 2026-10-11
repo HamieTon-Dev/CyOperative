@@ -50,6 +50,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import com.cyberoperative.game.platform.GameKeys
 import com.cyberoperative.game.platform.platformGestureExclusion
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -168,6 +169,10 @@ fun GameScreen(
     var hudCollapsed by rememberSaveable { mutableStateOf(false) }
     var hudHeightPx by remember { mutableIntStateOf(0) }
     var shopHeld by remember { mutableStateOf<Int?>(null) }
+    /** The shop window is open (opened with OPEN SHOP at the counter, closed with X / back / walking off). */
+    var shopOpen by remember { mutableStateOf(false) }
+    // Back / Esc closes the shop first (registered after the pause handler, so it wins).
+    BackHandler(enabled = shopOpen) { shopOpen = false }
     var shopSwap by remember { mutableStateOf<Int?>(null) }
 
 
@@ -347,16 +352,23 @@ fun GameScreen(
                 Banner(hud, Modifier.padding(top = 6.dp))
             }
         }
-        // Upgrade shop: buy panel at the counter, and the terminal message when a shop appears.
-        if (hud.inShop && hud.atShopCounter) {
+        // Upgrade shop: at the counter an OPEN SHOP button; the shop is a small window in the
+        // middle of the screen with an X to close it (also back / Esc, or walking away).
+        val atCounter = hud.inShop && hud.atShopCounter
+        LaunchedEffect(atCounter) { if (!atCounter) shopOpen = false }
+        if (atCounter && !shopOpen) {
+            OpenShopButton(
+                onOpen = { shopOpen = true },
+                modifier = Modifier.align(Alignment.Center).padding(top = 160.dp)
+            )
+        }
+        if (atCounter && shopOpen) {
             ShopPanel(
                 hud.shopItems, hud.euros,
                 onBuy = { i -> if (session.shopNeedsSlot(i)) shopSwap = i else session.buyShopItem(i) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                onClose = { shopOpen = false },
+                // Above every other overlay (terminal message, pickup line, hints).
+                modifier = Modifier.zIndex(10f).padding(top = hudHeightDp),
                 onHold = { shopHeld = it },
                 slotsFull = { session.shopNeedsSlot(it) }
             )
@@ -441,7 +453,7 @@ fun GameScreen(
         }
         BossDossierCard(hud, Modifier.align(Alignment.Center).padding(horizontal = 12.dp))
         VictoryCard(hud, onSkip = { session.skipVictory() })
-        ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt)
+        ShopMessage(hud.shopMessageSerial, hud.shopGateRight, Modifier.align(Alignment.Center).padding(horizontal = 20.dp), hidden = hud.skipShopPrompt || shopOpen)
         val result = session.result
         if (hud.phase == Phase.DEAD && result != null) {
             GameOverOverlay(

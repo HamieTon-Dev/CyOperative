@@ -763,6 +763,38 @@ class ScreenshotPreviews {
         }
     }
 
+    private fun toShopCounter(s: GameSession) {
+        val g = s.engine
+        g.debugJumpToLevel(12)
+        clearToPortal(g)
+        g.offerShop()
+        var guard = 0
+        while (!g.inShop && guard++ < 1500) { g.setInput((g.shopGateX - g.px) / 200f, (g.shopGateY - g.py) / 200f); g.update(1f / 60f) }
+        g.debugGrantEuros(3000)
+        guard = 0
+        while (!g.atShopCounter && guard++ < 1200) { g.setInput((g.arena.width / 2f - g.px) / 100f, -1f); g.update(1f / 60f) }
+        g.setInput(0f, 0f)
+        repeat(30) { g.update(1f / 60f) }
+    }
+
+    private fun openShop() {
+        compose.onAllNodesWithText("X,.,.X  OPEN SHOP")[0].performClick()
+        compose.mainClock.advanceTimeBy(200)
+    }
+
+    /** The shop as a small window in the middle with an X (owner, 2026-10-11). */
+    @Test fun shopWindowPortrait() {
+        assumeTrue(enabled)
+        gameplay("shop_window_portrait", 0f, interact = { openShop() }) { s -> toShopCounter(s) }
+    }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun shopWindowLandscape() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("shop_window_landscape", 0f, interact = { openShop() }) { s -> toShopCounter(s) }
+        }
+    }
+
     @Test fun shopRoom() {
         assumeTrue(enabled)
         gameplay("upgrade_shop", 0f) { s ->

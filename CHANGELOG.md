@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.8 (versionCode 84) — 2026-10-11 · Shop window you can close
+### Changed (owner: "the shop screen is so large, players cannot close it")
+- At the vendor's counter an **OPEN SHOP** button appears. The shop no longer pops open by itself.
+- The shop is now a **small square window in the middle of the screen**.
+  - It is at most 90% of the width and 80% of the height, capped at 380dp, so it fits Android portrait, Android landscape and the Steam window.
+  - The item list scrolls inside it.
+- **✕ at the top right** closes it. So do Back (Android), Esc (PC) and walking away from the counter. Back and Esc close the shop before pausing.
+- The shop's "RECEIVING MESSAGE…" text and the pickup line no longer draw over the open window.
+### Technical
+- New renders: `shop_window_portrait`, `shop_window_landscape`. `upgrade_shop` now shows the OPEN SHOP button.
+
 ## 0.25.7 (versionCode 83) — 2026-10-11 · Room slide follows your direction; hint and pickup text separated
 ### Changed (owner)
 - **The room-change slide follows the door you walk through** (it used to always slide the same way):

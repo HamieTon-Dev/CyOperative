@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -89,72 +92,109 @@ fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidd
     }
 }
 
-/** Shown while the operative stands at the counter: buy GOLDEN / TITANIUM mods with run €. */
+/**
+ * The shop window (owner, 2026-10-11: "so large, players cannot close it"): a compact square in
+ * the middle of the screen, at most 90% of the width and 80% of the height (capped at 380dp), so it
+ * fits phones in portrait and landscape and the PC window alike. The list scrolls inside it and
+ * the X at the top right closes it.
+ */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-fun ShopPanel(items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false }) {
-    Column(
-        modifier
-            .background(Color(0xF0080A10), RoundedCornerShape(10.dp))
-            .border(1.5.dp, Palette.Gold, RoundedCornerShape(10.dp))
-            .padding(12.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("X,.,.X  UPGRADE SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text("€ $euros", color = Palette.Euro, style = MaterialTheme.typography.titleMedium)
-        }
-        Text("${com.cyberoperative.game.ui.common.tapWord} a mod to buy it with this run's € · hold for details.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
-        Spacer(Modifier.height(8.dp))
-        if (items.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
-        for ((i, it) in items.withIndex()) {
-            val col = Color(it.def.rarity.color)
-            val affordable = euros >= it.price
-            val shape = RoundedCornerShape(8.dp)
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 3.dp)
-                    .background(Palette.Surface, shape)
-                    .border(if (it.sold) 1.dp else 2.dp, if (it.sold) Palette.Divider else col, shape)
-                    .combinedClickable(enabled = !it.sold, onLongClick = { onHold(i) }, onLongClickLabel = "Details") { if (affordable) onBuy(i) }
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+fun ShopPanel(
+    items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, onClose: () -> Unit,
+    modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false }
+) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val side = minOf(maxWidth * 0.9f, maxHeight * 0.8f, 380.dp)
+        Column(
+            Modifier
+                .size(side)
+                .background(Color(0xF0080A10), RoundedCornerShape(10.dp))
+                .border(1.5.dp, Palette.Gold, RoundedCornerShape(10.dp))
+                // Swallow taps so they don't reach the arena underneath.
+                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {}
+                .padding(10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("X,.,.X  SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+                Text("€ $euros", color = Palette.Euro, style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier
-                        .size(38.dp)
-                        .background(col.copy(alpha = 0.14f), RoundedCornerShape(6.dp))
-                        .border(1.dp, col.copy(alpha = 0.7f), RoundedCornerShape(6.dp)),
+                        .size(30.dp)
+                        .background(Palette.Surface, RoundedCornerShape(6.dp))
+                        .border(1.dp, Palette.TextSecondary, RoundedCornerShape(6.dp))
+                        .clickable { onClose() },
                     contentAlignment = Alignment.Center
-                ) { Text(it.def.glyph, color = col, fontSize = 9.sp, textAlign = TextAlign.Center, maxLines = 1) }
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        it.def.rarity.label + (if (it.nextLevel > 1) " · LV ${it.nextLevel}" else "") + if (!it.sold && slotsFull(i)) " · WEAPON · SWAP" else "",
-                        color = col, style = MaterialTheme.typography.labelSmall
-                    )
-                    Text(it.def.name, color = if (it.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
-                    Text(it.def.effectAt(it.nextLevel), color = Palette.Green, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                ) { Text("✕", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall) }
+            }
+            Text("${com.cyberoperative.game.ui.common.tapWord} to buy · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Spacer(Modifier.height(6.dp))
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                if (items.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                for ((i, it) in items.withIndex()) {
+                    val col = Color(it.def.rarity.color)
+                    val affordable = euros >= it.price
+                    val shape = RoundedCornerShape(8.dp)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .background(Palette.Surface, shape)
+                            .border(if (it.sold) 1.dp else 2.dp, if (it.sold) Palette.Divider else col, shape)
+                            .combinedClickable(enabled = !it.sold, onLongClick = { onHold(i) }, onLongClickLabel = "Details") { if (affordable) onBuy(i) }
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier
+                                .size(32.dp)
+                                .background(col.copy(alpha = 0.14f), RoundedCornerShape(6.dp))
+                                .border(1.dp, col.copy(alpha = 0.7f), RoundedCornerShape(6.dp)),
+                            contentAlignment = Alignment.Center
+                        ) { Text(it.def.glyph, color = col, fontSize = 8.sp, textAlign = TextAlign.Center, maxLines = 1) }
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                it.def.rarity.label + (if (it.nextLevel > 1) " · LV ${it.nextLevel}" else "") + if (!it.sold && slotsFull(i)) " · SWAP" else "",
+                                color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1
+                            )
+                            Text(it.def.name, color = if (it.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            Text(it.def.effectAt(it.nextLevel), color = Palette.Green, style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            when {
+                                it.sold -> "SOLD"
+                                affordable -> "€${it.price}"
+                                else -> "€${it.price}\nNEED €${it.price - euros}"
+                            },
+                            color = when {
+                                it.sold -> Palette.TextMuted
+                                affordable -> Palette.Euro
+                                else -> Palette.Red
+                            },
+                            style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
+                        )
+                    }
                 }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    when {
-                        it.sold -> "SOLD"
-                        affordable -> "€${it.price}"
-                        else -> "€${it.price}\nNEED €${it.price - euros}"
-                    },
-                    color = when {
-                        it.sold -> Palette.TextMuted
-                        affordable -> Palette.Euro
-                        else -> Palette.Red
-                    },
-                    style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
-                )
             }
         }
-        Spacer(Modifier.height(4.dp))
-        Text("Exit through the gate at the top when you're done.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
     }
+}
+
+/** At the counter with the shop closed: the button that opens it. */
+@Composable
+fun OpenShopButton(onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        "X,.,.X  OPEN SHOP",
+        color = Palette.Gold, style = MaterialTheme.typography.titleSmall,
+        modifier = modifier
+            .background(Color(0xE6080A10), RoundedCornerShape(8.dp))
+            .border(1.5.dp, Palette.Gold, RoundedCornerShape(8.dp))
+            .clickable { onOpen() }
+            .padding(horizontal = 18.dp, vertical = 10.dp)
+    )
 }
 
 /** Shown when the player walks into the top gate while a shop is on offer. */
