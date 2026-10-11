@@ -22,6 +22,9 @@ val appGradle = rootProject.file("app/build.gradle.kts").readText()
 val versionCodeAndroid = Regex("""versionCode = (\d+)""").find(appGradle)!!.groupValues[1].toInt()
 val versionNameAndroid = Regex("""versionName = "([^"]+)"""").find(appGradle)!!.groupValues[1]
 
+/** -PdebugBuild: a PC test build (see compose.desktop below). */
+val debugBuild = project.hasProperty("debugBuild")
+
 val generatedSrc = layout.buildDirectory.dir("generated/buildinfo")
 val genBuildInfo = tasks.register("generateBuildInfo") {
     val out = generatedSrc
@@ -91,6 +94,9 @@ compose.desktop {
     application {
         mainClass = "com.cyberoperative.game.desktop.MainKt"
         jvmArgs += listOf("-Xmx1g", "-Dsun.java2d.uiScale.enabled=true")
+        // Debug test build (-PdebugBuild): free test ◇ in the store when Steam isn't running,
+        // a separate CyberOperative-Debug save, and [DEBUG] in the window title.
+        if (debugBuild) jvmArgs += "-Dcyberop.debug=true"
         nativeDistributions {
             // Steam ships the app folder (createReleaseDistributable); installers are optional.
             targetFormats(TargetFormat.Msi, TargetFormat.Deb)
@@ -107,6 +113,11 @@ compose.desktop {
         }
         buildTypes.release.proguard { isEnabled.set(false) }
     }
+}
+
+// The Steam upload must never be a debug build.
+tasks.matching { it.name == "createReleaseDistributable" || it.name.startsWith("packageRelease") }.configureEach {
+    doFirst { if (debugBuild) throw GradleException("-PdebugBuild is for test builds only: drop it to build the Steam release.") }
 }
 
 // Developer screenshots of the landscape layouts: gradlew :desktop:shots

@@ -59,11 +59,15 @@ class SaveRepository(private val dir: File = defaultDir()) {
             null
         }
 
-        /** %APPDATA%\CyberOperative on Windows, ~/.local/share/CyberOperative elsewhere. */
+        /**
+         * %APPDATA%\CyberOperative on Windows, ~/.local/share/CyberOperative elsewhere. A debug
+         * build (-PdebugBuild) keeps its own CyberOperative-Debug save so test ◇ never touch the real one.
+         */
         fun defaultDir(): File {
+            val name = if (com.cyberoperative.game.platform.AppInfo.debug) "CyberOperative-Debug" else "CyberOperative"
             val appData = System.getenv("APPDATA")
-            return if (appData != null) File(appData, "CyberOperative")
-            else File(System.getProperty("user.home"), ".local/share/CyberOperative")
+            return if (appData != null) File(appData, name)
+            else File(System.getProperty("user.home"), ".local/share/$name")
         }
     }
 }

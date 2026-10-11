@@ -20,6 +20,24 @@ co-op) has desktop versions under `desktop/src/main/kotlin`. Android is unaffect
 - Developer screenshots: `.\gradlew :desktop:shots` writes 1080p and Steam Deck PNGs to
   `desktop\build\shots\`.
 
+## Debug test build (before uploading to Steam)
+
+```
+.\gradlew :desktop:run -PdebugBuild                  # play a debug build straight away
+.\gradlew :desktop:createDistributable -PdebugBuild  # a debug app folder you can copy/zip
+```
+
+- The debug folder lands in `desktop\build\compose\binaries\main\app\CyberOperative\`. Run
+  `CyberOperative.exe` there. It is a separate folder from the release `main-release`.
+- The window title shows `[DEBUG <version>]`.
+- With Steam **closed**, the STORE's ◇ packs grant free test ◇, so skins, revives and backgrounds
+  can be tested. With Steam running, the real Steam checkout is used instead.
+- It keeps its own save in `%APPDATA%\CyberOperative-Debug`, so test ◇ and progress never touch
+  your real save. Delete that folder to start fresh.
+- To test Steam features (overlay, co-op invites), put `steam_appid.txt` containing `480` next to
+  `CyberOperative.exe` (or in the repo root for `run`), and keep Steam open.
+- `createReleaseDistributable` refuses `-PdebugBuild`, so a debug build can't end up on Steam.
+
 ## Steam Deck
 
 The Windows build runs on Steam Deck through Proton. In Steamworks, set the Steam Deck

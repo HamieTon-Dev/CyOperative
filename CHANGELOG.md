@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+### Added
+- **PC debug test build:** `.\gradlew :desktop:run -PdebugBuild`, or
+  `:desktop:createDistributable -PdebugBuild` for a folder.
+  - Test ◇ are free in the store while Steam is closed.
+  - It uses a separate `CyberOperative-Debug` save.
+  - The window title shows [DEBUG].
+  - The Steam release build refuses the flag.
+
 ## 0.25.2 (versionCode 78) — 2026-10-11 · Campaign and premium skins; PROXY SHOT removed
 ### Added (owner)
 - **PURPLE skin:** earned by beating World 15's boss, and unlocks for **every class**.

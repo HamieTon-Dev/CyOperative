@@ -59,7 +59,7 @@ fun main(args: Array<String>) {
                 SteamService.shutdown()
                 exitApplication()
             },
-            title = "Cyber Operative",
+            title = if (com.cyberoperative.game.platform.AppInfo.debug) "Cyber Operative [DEBUG ${com.cyberoperative.game.platform.AppInfo.versionName}]" else "Cyber Operative",
             state = state,
             onPreviewKeyEvent = { e ->
                 when {
