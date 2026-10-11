@@ -190,6 +190,8 @@ object GameKeys {
     fun takeHpCharge(): Boolean = false
     fun takePacketBomb(): Boolean = false
     fun takeDash(): Boolean = false
+    /** M / controller BACK: toggle the world map. */
+    fun takeMap(): Boolean = false
     fun takeSpell(slot: Int): Boolean = false
     /** A key's display name ("Q", "Space"). */
     fun keyName(code: Long): String = ""

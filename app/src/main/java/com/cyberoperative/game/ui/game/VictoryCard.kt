@@ -48,7 +48,7 @@ fun VictoryCard(h: HudSnapshot, onSkip: () -> Unit) {
     if (t < CARD_IN) return
     val interaction = remember { MutableInteractionSource() }
     // Campaign: tap anywhere to skip (the room is over). Endless keeps fighting, so only the card is tappable.
-    val tapAnywhere = h.mode != com.cyberoperative.game.engine.GameMode.ENDLESS
+    val tapAnywhere = true
     Box(
         if (tapAnywhere) Modifier.fillMaxSize().clickable(interaction, indication = null) { onSkip() } else Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center

@@ -196,6 +196,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** World 15's boss is down: the UI asks whether to carry on in Endless. */
     var campaignComplete = false
         private set
+    /** This run finished the whole campaign (records). */
+    var campaignFinished = false
+        private set
     /** Endless after the campaign (or chosen from the menu): the HUD hides where you are. */
     val worldUnknown: Boolean get() = !campaign
     /** True when the current room was already cleared when entered (no threats, doors open). */
@@ -1544,7 +1547,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     private fun inDoor(d: ExitDoor): Boolean = when (d.side) {
-        0 -> kotlin.math.abs(px - d.x) < GATE_HALF_WIDTH && py < arena.portalY + PORTAL_RADIUS
+        0 -> kotlin.math.abs(px - d.x) < (if (d.target == CampaignMap.BOSS_INDEX) 120f else GATE_HALF_WIDTH) && py < arena.portalY + PORTAL_RADIUS
         3 -> kotlin.math.abs(px - d.x) < GATE_HALF_WIDTH && py > arena.height - BOTTOM_DOOR_INSET - PORTAL_RADIUS
         1 -> px < playerRadius + 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
         else -> px > arena.width - playerRadius - 14f && kotlin.math.abs(py - d.y) < SHOP_GATE_HALF
@@ -2193,6 +2196,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         else -> "WORLD $world · ROOM ${room + 1}"
     }
 
+    /** Campaign: which wall the way onward is on, for the "door open" hint. */
+    fun forwardHint(): String {
+        if (!campaign || inShop) return ""
+        val d = exitDoors.firstOrNull { it.target == room + 1 || it.target == NEXT_WORLD } ?: return ""
+        val where = when (d.side) { 0 -> "▲ FAR WALL"; 1 -> "◀ LEFT WALL"; 2 -> "RIGHT WALL ▶"; else -> "▼ NEAR WALL" }
+        val to = when {
+            d.target == NEXT_WORLD -> "WORLD ${world + 1}"
+            d.target >= CampaignMap.BOSS_INDEX -> "BOSS ROOM"
+            else -> "ROOM ${d.target + 1}"
+        }
+        return "DOOR OPEN · $to · $where"
+    }
+
     /** Where a door on [side] sits in the current arena. */
     private fun doorAt(side: Int, target: Int): ExitDoor = when (side) {
         0 -> ExitDoor(arena.portalX, arena.portalY, 0, target)
@@ -2277,6 +2293,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (room < CampaignMap.BOSS_INDEX) return
         if (world >= CampaignMap.WORLDS) {
             campaignComplete = true
+            campaignFinished = true
             showBanner("CAMPAIGN COMPLETE", "ALL ${CampaignMap.WORLDS} SERVER WORLDS SECURED", 3f)
         } else {
             exitDoors += doorAt(0, NEXT_WORLD)
@@ -2303,7 +2320,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** Test hook: start the campaign at world [w] (room 1). */
-    internal fun debugEnterWorld(w: Int) {
+    fun debugEnterWorld(w: Int) {
         world = w
         worldMap = CampaignMap.generate(config.seed, w)
         clearedRooms.clear(); visitedRooms.clear()
@@ -2311,7 +2328,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     }
 
     /** Test hook: jump to room [r] of this world, entering from [side]. */
-    internal fun debugEnterRoom(r: Int, side: Int = 3) = enterRoom(r, side)
+    fun debugEnterRoom(r: Int, side: Int = 3) = enterRoom(r, side)
 
     // ======================================================================
     // PC consumables (owner, 2026-10-11): HP charge packets (Q) and Packet Bombs (E)
@@ -3638,7 +3655,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     private fun onBoltHit(p: Projectile, e: Enemy) {
         val s = stats
-        if (p.kind == ProjKind.BOLT && e.boss == null && s.instantDeleteChance > 0f && rng.nextFloat() < s.instantDeleteChance) {
+        // Never elites or bosses (owner, 2026-10-11: "they cannot be deleted").
+        if (p.kind == ProjKind.BOLT && e.boss == null && !e.isElite && s.instantDeleteChance > 0f && rng.nextFloat() < s.instantDeleteChance) {
             addText(e.x, e.y - e.radius - 10f, "DELETED", TextKind.CRIT)
             damageEnemy(e, e.hp / e.damageTakenMul + 9999f, true, p.kind)
         } else {

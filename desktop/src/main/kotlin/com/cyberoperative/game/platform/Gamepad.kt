@@ -67,6 +67,8 @@ object Gamepad {
             if (s.rbJustPressed) packetBomb = true
             // A = dash, X = class spell 1 (R), Y = class spell 2 (F).
             if (s.aJustPressed) dash = true
+            // BACK / VIEW toggles the world map.
+            if (s.backJustPressed) map = true
             if (s.xJustPressed) spell[0] = true
             if (s.yJustPressed) spell[1] = true
             // START / MENU = Esc (pause, or back out of a menu); B backs out of menus too.
@@ -85,6 +87,8 @@ object Gamepad {
     private var hpCharge = false
     private var packetBomb = false
     private var dash = false
+    private var map = false
+    fun takeMap(): Boolean = map.also { map = false }
     private val spell = BooleanArray(2)
     fun takeDash(): Boolean = dash.also { dash = false }
     fun takeSpell(slot: Int): Boolean = spell[slot].also { spell[slot] = false }

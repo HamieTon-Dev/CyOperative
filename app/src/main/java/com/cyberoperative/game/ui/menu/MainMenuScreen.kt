@@ -125,14 +125,14 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
             } else {
                 CyberButton(
                     "PLAY", primary = true, accent = Palette.Green,
-                    subtitle = "START OPERATION",
+                    subtitle = if (profile.bestWorld > 0) "CAMPAIGN · BEST: WORLD ${profile.bestWorld}" else "CAMPAIGN · 15 SERVER WORLDS",
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.PLAY) }
             }
             Spacer(Modifier.height(10.dp))
             CyberButton(
                 "ENDLESS MODE", accent = Palette.Purple,
-                subtitle = if (profile.endlessBestStage > 0) "BEST STAGE ${profile.endlessBestStage}" else "ONE ROOM · NEVER-ENDING THREATS",
+                subtitle = if (profile.endlessBestStage > 0) "BEST LEVEL ${profile.endlessBestStage}" else "NO MAP · DOORS ANYWHERE · NO END",
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.ENDLESS) }
             Spacer(Modifier.height(10.dp))

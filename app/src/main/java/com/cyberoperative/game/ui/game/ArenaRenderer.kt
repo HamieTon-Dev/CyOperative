@@ -94,7 +94,7 @@ class ArenaRenderer {
         scale = min(size.width / arena.width, size.height / MIN_VIEW_HEIGHT)
         camX = -((size.width / scale - arena.width) / 2f).coerceAtLeast(0f)
         val visibleH = size.height / scale
-        val top = -topInset / scale - WALL_HEIGHT
+        val top = -topInset / scale - wallHeight(g)
         val bottom = arena.height + bottomInset / scale
         val desired = g.py - visibleH * 0.58f
         camY = if (bottom - top <= visibleH) (top + bottom - visibleH) / 2f
@@ -629,24 +629,34 @@ class ArenaRenderer {
         }
     }
 
-    /** The far wall: racks along the top edge and the exit gate in the middle. */
+    /** The room whose far wall holds the boss door: that wall is taller and menacing. */
+    private fun bossWall(g: GameEngine) = g.campaign && g.exitDoors.any { it.side == 0 && it.target == com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX }
+
+    private fun wallHeight(g: GameEngine) = if (bossWall(g)) WALL_HEIGHT + BOSS_WALL_EXTRA else WALL_HEIGHT
+
+    /** The far wall: racks along the top edge and the exit gate(s). */
     private fun DrawScope.drawTopWall(g: GameEngine, time: Float) {
         val w = g.arena.width
-        val gateL = g.arena.portalX - GameEngine.GATE_HALF_WIDTH
-        val gateR = g.arena.portalX + GameEngine.GATE_HALF_WIDTH
+        // Campaign rooms only have their world-map doors (the shop keeps its own exit).
+        val mainGate = !g.campaign || g.inShop
+        val gateL = if (mainGate) g.arena.portalX - GameEngine.GATE_HALF_WIDTH else -1000f
+        val gateR = if (mainGate) g.arena.portalX + GameEngine.GATE_HALF_WIDTH else -1000f
         val boss = g.plan.kind == LevelKind.BOSS
-        // Wall front face, from y = -WALL_HEIGHT to y = 0.
+        val menace = bossWall(g)
+        val wallH = wallHeight(g)
+        // Wall front face, from y = -wallH to y = 0.
         val env = styleOf(g).env
-        val wallFace = if (boss) Color(0xFF0C1526) else mix(Color(env.wallTone), Color(0xFF0C1526), 0.6f)
-        drawRect(wallFace, Offset(-14f, -WALL_HEIGHT), Size(w + 28f, WALL_HEIGHT))
-        drawRect(if (boss) Color(0xFF16233A) else Color(env.wallTone), Offset(-14f, -WALL_HEIGHT - 12f), Size(w + 28f, 12f))
+        val wallFace = if (menace) Color(0xFF1A0508) else if (boss) Color(0xFF0C1526) else mix(Color(env.wallTone), Color(0xFF0C1526), 0.6f)
+        drawRect(wallFace, Offset(-14f, -wallH), Size(w + 28f, wallH))
+        drawRect(if (menace) Color(0xFF3A0A10) else if (boss) Color(0xFF16233A) else Color(env.wallTone), Offset(-14f, -wallH - 12f), Size(w + 28f, 12f))
+        if (menace) drawMenace(w, wallH, time)
         // Rack bays with blinking LEDs.
         var bx = 10f
         var i = 0
         while (bx < w - 50f) {
             if (bx + 60f > gateL && bx < gateR) { bx = gateR + 14f; continue }
-            val extra = g.exitDoors.firstOrNull { it.side == 0 && bx + 60f > it.x - GameEngine.GATE_HALF_WIDTH && bx < it.x + GameEngine.GATE_HALF_WIDTH }
-            if (extra != null) { bx = extra.x + GameEngine.GATE_HALF_WIDTH + 14f; continue }
+            val extra = g.exitDoors.firstOrNull { it.side == 0 && bx + 60f > it.x - doorHalf(it) && bx < it.x + doorHalf(it) }
+            if (extra != null) { bx = extra.x + doorHalf(extra) + 14f; continue }
             drawRoundRect(Color(0xFF111D33), Offset(bx, -WALL_HEIGHT + 10f), Size(60f, WALL_HEIGHT - 16f), CornerRadius(3f))
             for (k in 0 until 4) {
                 val on = sin(time * (2f + k * 0.7f) + i * 1.3f + k) > 0.1f
@@ -662,8 +672,12 @@ class ArenaRenderer {
         // Gates: the top-centre exit plus any extra far-wall exits (PC). Locked red after the
         // player declined to skip the shop.
         val open = g.portalOpen && !g.topGateLocked
-        drawFarGate(g.arena.portalX, open, time)
-        for (d in g.exitDoors) if (d.side == 0) drawFarGate(d.x, open, time)
+        if (mainGate) drawFarGate(g.arena.portalX, open, time)
+        for (d in g.exitDoors) if (d.side == 0) {
+            if (g.campaign && d.target == com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX) drawBossGate(d.x, wallH, open, time)
+            else drawFarGate(d.x, open, time)
+        }
+        for (d in g.exitDoors) if (d.side == 3) drawNearGate(d.x, g.arena.height, open, time)
         for (d in g.exitDoors) if (d.side != 0) {
             if (d.side == 2) withTransform({ scale(-1f, 1f, Offset(g.arena.width / 2f, 0f)) }) {
                 drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = true)
@@ -697,6 +711,108 @@ class ArenaRenderer {
                 shapePath.moveTo(cx - 22f, yy + 12f); shapePath.lineTo(cx, yy); shapePath.lineTo(cx + 22f, yy + 12f)
                 drawPath(shapePath, Palette.Green.copy(alpha = 0.7f), style = Stroke(4f))
             }
+        }
+    }
+
+    private fun doorHalf(d: com.cyberoperative.game.engine.ExitDoor) =
+        if (d.target == com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX) BOSS_GATE_HALF else GameEngine.GATE_HALF_WIDTH
+
+    /** The boss room's wall: spikes along the top, red seams pulsing through it. */
+    private fun DrawScope.drawMenace(w: Float, wallH: Float, time: Float) {
+        val p = 0.5f + 0.5f * sin(time * 2.2f)
+        var x = -14f
+        var k = 0
+        while (x < w + 14f) {
+            val h = if (k % 3 == 1) 34f else 22f
+            shapePath.reset()
+            shapePath.moveTo(x, -wallH - 12f); shapePath.lineTo(x + 14f, -wallH - 12f - h); shapePath.lineTo(x + 28f, -wallH - 12f)
+            shapePath.close()
+            drawPath(shapePath, Color(0xFF2A060B))
+            drawPath(shapePath, Color(0xFFFF2D55).copy(alpha = 0.35f + 0.25f * p), style = Stroke(1.5f))
+            x += 28f; k++
+        }
+        // Glowing seams.
+        for (i in 0 until 6) {
+            val sx = w * (i + 0.5f) / 6f
+            drawLine(Color(0xFFFF2D55).copy(alpha = 0.18f + 0.22f * p), Offset(sx, -wallH + 6f), Offset(sx + 18f, -10f), 2.5f)
+        }
+        drawRect(Brush.verticalGradient(listOf(Color(0x00FF2D55), Color(0xFFFF2D55).copy(alpha = 0.18f * p)), -wallH, 0f), Offset(-14f, -wallH), Size(w + 28f, wallH))
+    }
+
+    /** The boss door (campaign room 10): a big gate the full height of the wall with a skull on it. */
+    private fun DrawScope.drawBossGate(cx: Float, wallH: Float, open: Boolean, time: Float) {
+        val half = BOSS_GATE_HALF
+        val p = 0.5f + 0.5f * sin(time * 3f)
+        val red = Color(0xFFFF2D55)
+        // Heavy frame: dark pillars with red edges, a lintel.
+        drawRect(Color(0xFF05010A), Offset(cx - half, -wallH), Size(half * 2f, wallH))
+        drawRect(Color(0xFF2A060B), Offset(cx - half - 22f, -wallH - 18f), Size(22f, wallH + 18f))
+        drawRect(Color(0xFF2A060B), Offset(cx + half, -wallH - 18f), Size(22f, wallH + 18f))
+        drawRect(Color(0xFF2A060B), Offset(cx - half - 22f, -wallH - 34f), Size(half * 2f + 44f, 18f))
+        drawRect(red.copy(alpha = 0.9f), Offset(cx - half - 22f, -wallH - 34f), Size(half * 2f + 44f, 18f), style = Stroke(2f))
+        drawRect(red.copy(alpha = 0.8f), Offset(cx - half - 22f, -wallH - 18f), Size(22f, wallH + 18f), style = Stroke(2f))
+        drawRect(red.copy(alpha = 0.8f), Offset(cx + half, -wallH - 18f), Size(22f, wallH + 18f), style = Stroke(2f))
+        if (open) {
+            drawRect(Brush.verticalGradient(listOf(red.copy(alpha = 0.05f), red.copy(alpha = 0.35f + 0.15f * p)), -wallH, 0f), Offset(cx - half, -wallH), Size(half * 2f, wallH))
+            for (k in 0 until 3) {
+                val yy = 46f - ((time * 55f + k * 30f) % 92f)
+                shapePath.reset()
+                shapePath.moveTo(cx - 26f, yy + 14f); shapePath.lineTo(cx, yy); shapePath.lineTo(cx + 26f, yy + 14f)
+                drawPath(shapePath, red.copy(alpha = 0.7f), style = Stroke(4f))
+            }
+        } else {
+            for (k in 0 until 7) {
+                val yy = -wallH + 14f + k * (wallH - 20f) / 7f
+                drawLine(red.copy(alpha = 0.55f * (0.6f + 0.4f * sin(time * 20f + k))), Offset(cx - half, yy), Offset(cx + half, yy), 3f)
+            }
+        }
+        // The skull, glowing.
+        val sc = Offset(cx, -wallH * 0.55f)
+        drawCircle(red.copy(alpha = 0.25f + 0.2f * p), 46f, sc)
+        drawSkull(sc, 34f, Color(0xFFF2E8E8))
+        tagPaint.textSize = 16f
+        tagPaint.color = red.toArgb()
+        drawGameText("BOSS", cx, -wallH - 44f, tagPaint)
+    }
+
+    /** A skull icon (drawn, so it scales crisply): cranium, cheekbones, jaw, sockets, nose and teeth. */
+    private fun DrawScope.drawSkull(c: Offset, r: Float, bone: Color) {
+        val dark = Color(0xFF12030A)
+        drawCircle(bone, r, Offset(c.x, c.y - r * 0.15f))
+        drawRoundRect(bone, Offset(c.x - r * 0.62f, c.y + r * 0.35f), Size(r * 1.24f, r * 0.75f), CornerRadius(r * 0.22f))
+        // Eye sockets.
+        drawOval(dark, Offset(c.x - r * 0.62f, c.y - r * 0.25f), Size(r * 0.5f, r * 0.55f))
+        drawOval(dark, Offset(c.x + r * 0.12f, c.y - r * 0.25f), Size(r * 0.5f, r * 0.55f))
+        drawCircle(Color(0xFFFF2D55), r * 0.09f, Offset(c.x - r * 0.37f, c.y + r * 0.02f))
+        drawCircle(Color(0xFFFF2D55), r * 0.09f, Offset(c.x + r * 0.37f, c.y + r * 0.02f))
+        // Nose.
+        shapePath.reset()
+        shapePath.moveTo(c.x, c.y + r * 0.28f); shapePath.lineTo(c.x - r * 0.12f, c.y + r * 0.5f); shapePath.lineTo(c.x + r * 0.12f, c.y + r * 0.5f); shapePath.close()
+        drawPath(shapePath, dark)
+        // Teeth.
+        for (i in -2..2) drawLine(dark, Offset(c.x + i * r * 0.22f, c.y + r * 0.72f), Offset(c.x + i * r * 0.22f, c.y + r * 1.08f), r * 0.07f)
+        drawLine(dark, Offset(c.x - r * 0.55f, c.y + r * 0.72f), Offset(c.x + r * 0.55f, c.y + r * 0.72f), r * 0.06f)
+    }
+
+    /** A door in the near (bottom) wall: a doorway below the floor's edge, chevrons pointing out. */
+    private fun DrawScope.drawNearGate(cx: Float, h: Float, open: Boolean, time: Float) {
+        val half = GameEngine.GATE_HALF_WIDTH
+        val c = if (open) Palette.Green else Palette.Red
+        drawRect(Color(0xFF02050A), Offset(cx - half, h - 6f), Size(half * 2f, 40f))
+        drawRect(c.copy(alpha = 0.85f), Offset(cx - half - 6f, h - 10f), Size(6f, 46f))
+        drawRect(c.copy(alpha = 0.85f), Offset(cx + half, h - 10f), Size(6f, 46f))
+        if (open) {
+            val p = 0.5f + 0.5f * sin(time * 4f)
+            drawRect(c.copy(alpha = 0.18f + 0.12f * p), Offset(cx - half, h - 6f), Size(half * 2f, 40f))
+            for (k in 0 until 3) {
+                val yy = h - 60f + ((time * 50f + k * 26f) % 78f)
+                shapePath.reset()
+                shapePath.moveTo(cx - 22f, yy - 12f); shapePath.lineTo(cx, yy); shapePath.lineTo(cx + 22f, yy - 12f)
+                drawPath(shapePath, c.copy(alpha = 0.7f), style = Stroke(4f))
+            }
+        } else for (k in 0 until 3) {
+            val yy = h + k * 11f
+            drawLine(c.copy(alpha = 0.75f * (0.6f + 0.4f * sin(time * 20f + k))), Offset(cx - half, yy), Offset(cx + half, yy), 3f)
         }
     }
 
@@ -2514,6 +2630,9 @@ class ArenaRenderer {
         const val WALL_HEIGHT = 80f
         /** Least world height a view shows (see [draw]). */
         const val MIN_VIEW_HEIGHT = 640f
+        /** The boss door's wall is this much taller, and its gate this wide (half). */
+        const val BOSS_WALL_EXTRA = 90f
+        const val BOSS_GATE_HALF = 120f
         const val TILE = 60f
         const val FIGURE_SCALE = 1.3f
         const val BARRIER_HEIGHT = 58f

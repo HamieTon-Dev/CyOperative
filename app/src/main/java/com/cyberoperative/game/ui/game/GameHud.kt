@@ -171,7 +171,7 @@ private fun HeaderRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}",
+                    h.roomLabel,
                     color = levelColor(h), style = mono(big, FontWeight.Bold), maxLines = 1, softWrap = false
                 )
                 Divider()
@@ -318,13 +318,7 @@ private fun PartnerRow(h: HudSnapshot) {
 
 @Composable
 private fun ProgressRow(h: HudSnapshot) {
-    if (h.mode == GameMode.ENDLESS) {
-        StatRow(
-            label = "DATA ${h.runLevel}", labelColor = Palette.Green, fraction = h.xpPercent / 100f,
-            color = Palette.Green, overlay = 0f, value = "${h.xpPercent}%", extra = null,
-            description = "Data level ${h.runLevel}, ${h.xpPercent} percent"
-        )
-    } else if (h.kind != LevelKind.BOSS && h.kind != LevelKind.SHOP && h.timedSeconds < 0) {
+    if (h.kind != LevelKind.BOSS && h.kind != LevelKind.SHOP && h.timedSeconds < 0) {
         StatRow(
             label = "THREATS", labelColor = ThreatPink,
             fraction = h.levelKills / h.levelThreats.coerceAtLeast(1).toFloat(),
@@ -420,7 +414,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        if (h.mode == GameMode.ENDLESS) "STAGE ${h.level}" else "LVL ${h.level}",
+                        h.roomLabel,
                         color = levelColor(h), style = mono(15.sp, FontWeight.Bold), maxLines = 1
                     )
                     Divider()

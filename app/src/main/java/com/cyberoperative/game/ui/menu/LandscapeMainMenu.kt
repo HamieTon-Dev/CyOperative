@@ -115,12 +115,12 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
                 CyberButton("NEW OPERATION", accent = Palette.Cyan, subtitle = "START OVER", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.PLAY) }
             }
         } else {
-            CyberButton("PLAY", primary = true, accent = Palette.Green, subtitle = "START OPERATION", modifier = Modifier.fillMaxWidth()) { onSelect(MenuTarget.PLAY) }
+            CyberButton("PLAY", primary = true, accent = Palette.Green, subtitle = if (profile.bestWorld > 0) "CAMPAIGN · BEST: WORLD ${profile.bestWorld}" else "CAMPAIGN · 15 SERVER WORLDS", modifier = Modifier.fillMaxWidth()) { onSelect(MenuTarget.PLAY) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CyberButton(
                 "ENDLESS MODE", accent = Palette.Purple,
-                subtitle = if (profile.endlessBestStage > 0) "BEST STAGE ${profile.endlessBestStage}" else "NEVER-ENDING THREATS",
+                subtitle = if (profile.endlessBestStage > 0) "BEST LEVEL ${profile.endlessBestStage}" else "NO MAP · NO END",
                 modifier = Modifier.weight(1f)
             ) { onSelect(MenuTarget.ENDLESS) }
             CyberButton("CO-OP", accent = Palette.Magenta, subtitle = if (com.cyberoperative.game.platform.AppInfo.desktop) "PLAY WITH A STEAM FRIEND" else "PLAY WITH A FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
@@ -180,7 +180,8 @@ private fun InfoSide(profile: PlayerProfile, modifier: Modifier) {
         if (profile.highestLevel > 0) {
             InfoLine("BEST LEVEL", "${profile.highestLevel}")
             InfoLine("BEST SCORE", "%,d".format(profile.bestScore))
-            if (profile.endlessBestStage > 0) InfoLine("ENDLESS", "STAGE ${profile.endlessBestStage}")
+            if (profile.bestWorld > 0) InfoLine("CAMPAIGN", "WORLD ${profile.bestWorld}" + if (profile.campaignsCompleted > 0) " · ${profile.campaignsCompleted}× DONE" else "")
+            if (profile.endlessBestStage > 0) InfoLine("ENDLESS", "LEVEL ${profile.endlessBestStage}")
             Spacer(Modifier.height(14.dp))
         }
         if (!com.cyberoperative.game.platform.AppInfo.desktop) return@Column

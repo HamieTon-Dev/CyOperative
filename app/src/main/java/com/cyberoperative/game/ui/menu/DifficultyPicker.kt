@@ -70,7 +70,7 @@ fun DifficultyPicker(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                if (mode == GameMode.ENDLESS) "NEW ENDLESS RUN" else "NEW OPERATION",
+                if (mode == GameMode.ENDLESS) "NEW ENDLESS RUN" else "NEW CAMPAIGN",
                 color = Palette.Cyan, style = MaterialTheme.typography.titleLarge
             )
             Text("SELECT DIFFICULTY", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)

@@ -342,7 +342,7 @@ object Upgrades {
     )
     val EXPLOIT_CHANCE = UpgradeDef(
         "exploit_chance", "EXPLOIT CHANCE", "0d", Rarity.EPIC, UpgradeCategory.STAT, 2,
-        "Hits have a chance to delete a non-boss threat outright.", { "+3% instant delete" },
+        "Hits have a chance to delete a normal threat outright (never elites or bosses).", { "+3% instant delete (not elites or bosses)" },
         { s, l -> s.instantDeleteChance += 0.03f * l }
     )
     val THREAT_DETECTION = UpgradeDef(

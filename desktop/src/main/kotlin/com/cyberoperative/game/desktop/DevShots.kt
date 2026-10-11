@@ -82,6 +82,29 @@ fun main(args: Array<String>) {
         }
         shot("chips", frames = 20) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
     }
+    // Campaign: a fresh room (doors shut), the room before the boss (skull door), the map overlay.
+    run {
+        val c = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
+        shot("campaign_room1", frames = 60) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
+        val e = c.engine
+        repeat(60 * 40) {
+            for (x in e.enemies.items) if (x.active) e.killEnemy(x)
+            e.update(1f / 60f)
+            if (e.phase == com.cyberoperative.game.engine.Phase.PORTAL) return@repeat
+        }
+        shot("campaign_room1_clear", frames = 30) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
+        for (r in 1..8) e.clearedRooms += r
+        e.debugEnterRoom(9)
+        e.operatives[0].py = e.arena.height * 0.35f
+        shot("campaign_boss_door", frames = 40) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
+        e.visitedRooms.addAll(0..9)
+        shot("campaign_map", frames = 30) {
+            androidx.compose.foundation.layout.Box {
+                GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {})
+                com.cyberoperative.game.ui.game.WorldMapOverlay(c.hud, e.worldMap, 1f) {}
+            }
+        }
+    }
     shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio) {} }
     shot("store") { StoreScreen(save, audio, {}, {}) }
     run {

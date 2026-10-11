@@ -181,4 +181,15 @@ class ConsumablesTest {
         assertEquals("only once", p1.euros, com.cyberoperative.game.meta.StoreManager.migrate(p1).euros)
         assertTrue(com.cyberoperative.game.data.PermanentUpgrades.all.none { it.id == "rerolls" })
     }
+
+    @Test
+    fun elitesAndBossesAreNeverDeleted() {
+        val stats = RunStats().apply { instantDeleteChance = 1f; maxHp = 1e7f; fireRate = 6f; range = 900f }
+        val g = GameEngine(RunConfig(baseStats = stats, seed = 4L, powerGovernor = false))
+        for (x in g.enemies.items) x.active = false
+        val e = g.spawnEnemyAt(Enemies.MALWARE, EliteModifier.entries.first(), g.px, g.py - 200f, telegraph = false)!!
+        e.hp = 1e6f; e.maxHp = 1e6f
+        repeat(60 * 4) { g.update(1f / 60f); for (x in g.enemies.items) if (x !== e) x.active = false }
+        assertTrue("the elite was never deleted (active=${e.active} hp=${e.hp} phase=${g.phase})", e.active && e.hp < 1e6f)
+    }
 }

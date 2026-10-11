@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.25.0 (versionCode 76) — 2026-10-11 · The world-map CAMPAIGN; Endless is the old regular game
+### Added (owner: the campaign plan)
+- **PLAY is now the CAMPAIGN: 15 SERVER WORLDS.** Each world is 10 rooms, then a boss in room 11.
+  - You still pick the difficulty.
+  - Difficulty follows the old level curve: World *w* Room *r* is about level (w−1)×10 + r, so
+    World 15's boss is the old Level 150.
+- **Procedural maps.** Every world's map is generated from the run's seed when the run starts.
+  - Rooms are laid out on a grid as a winding path, so doors face north, south, east or west.
+  - You walk in on the side you came from.
+  - Every room keeps a doorway clear and walkable on all four walls.
+  - Doors stay shut until the room is clear.
+  - You can walk back into rooms you've cleared; they stay empty and their doors stay open.
+- **The boss door** (room 10, always the far wall):
+  - A big gate with a glowing skull, in a taller dark-red wall with spikes and pulsing seams.
+  - It's a hand-drawn vector skull, because CoreUI's free set has no skull icon.
+- **World bosses** drop at least 4 boosted upgrade chips. A gate to the next world then opens.
+- **The Nullshade Specter** never appears before World 12. It can be World 12, 13 or 14's boss
+  (30%) and is always World 15's.
+- **The shop:** the same 1-in-20 side door. Leaving it puts you back in the room you entered
+  from, at the shop's doorway, and you carry on along the map.
+- **CAMPAIGN COMPLETE after World 15:**
+  - Continue in ENDLESS: no map, WORLD ??? · ROOM ???, doors anywhere, from level 151.
+  - Or end the run as a win.
+- **[M] world map**, see-through, with the game still running underneath. Also on controller
+  BACK/VIEW and a see-through MAP button on Android.
+  - It shows the world's layout, cleared rooms, where you are (pulsing), the next room and the boss.
+  - MAP is rebindable.
+- **HUD and hints:**
+  - The HUD shows "WORLD 3 · ROOM 7" / "WORLD 3 · BOSS" (Endless: "WORLD ??? · ROOM ???").
+  - The door hint names the next room and its wall ("DOOR OPEN · ROOM 4 · RIGHT WALL ▶").
+  - Banners announce each world and room.
+### Changed
+- **ENDLESS is the old regular game** (levels forever, boss every 10, random exit doors). The old
+  "one room, nonstop" Endless is removed (code, data-XP picks and banners).
+- **Saves (format 2)** remember world, room, cleared and visited rooms.
+  - Old saved runs CONTINUE as Endless.
+  - Old one-room Endless saves are dropped.
+- **Records:**
+  - Highest level, best score and class-skin unlocks count in both modes.
+  - Endless keeps its own best level.
+  - The campaign tracks your best world and campaigns completed.
+- **Co-op** plays the campaign map too (wire v19 carries world/room).
+### Fixed (owner: "DELETED chance for elites should always be 0%")
+- **EXPLOIT CHANCE never deletes elites any more** (nor bosses, as before). The card says so.
+- New tests: `WorldMapCampaignTest` (9: maps, level curve, doors and revisits, shop return, boss
+  drops and the next world, Nullshade rules, campaign complete into Endless, CONTINUE, old saves)
+  and `ConsumablesTest.elitesAndBossesAreNeverDeleted`.
+
 ## 0.24.1 (versionCode 75) — 2026-10-11 · LEVEL-UP REROLLS retired and refunded
 ### Changed (owner: option 1)
 - **LEVEL-UP REROLLS** only redrew the card screen, which no longer exists. It's gone from the

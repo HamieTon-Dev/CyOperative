@@ -30,6 +30,7 @@ compatibility to use Proton. Controls on Deck and with any controller:
 | Left stick / D-pad | move |
 | Right stick (or right trigger) | aim and fire in that direction, while moving |
 | A | dash |
+| BACK / VIEW | world map |
 | X / Y | class spell R / F |
 | LB / RB | HP charge / Packet Bomb |
 | START / MENU | pause (the same as Esc) |
@@ -43,6 +44,7 @@ The touchscreen and trackpads work as the mouse in menus.
 - **WASD** or arrow keys move.
 - **Hold a mouse button** to fire at the cursor while moving. Standing still auto-targets, as
   on phones.
+- **M** opens the world map (campaign).
 - **Space** dashes; **R** / **F** cast your class's two spells.
 - **Q** drinks an HP charge (start with 3); **E** sets off a Packet Bomb (found as rare drops).
 - **Esc** pauses or goes back; **F11** toggles fullscreen.

@@ -79,6 +79,18 @@ data class HudSnapshot(
     val enemiesLeft: Int = 0,
     val offerSerial: Int = 0,
     val mode: GameMode = GameMode.CAMPAIGN,
+    /** "WORLD 3 · ROOM 7" / "WORLD 3 · BOSS" (campaign) or "WORLD ??? · ROOM ???" (endless). */
+    val roomLabel: String = "",
+    /** Campaign: the world map and where you are on it (map overlay). */
+    val world: Int = 1,
+    val room: Int = 0,
+    val clearedRooms: Set<Int> = emptySet(),
+    val visitedRooms: Set<Int> = emptySet(),
+    val campaign: Boolean = false,
+    /** Campaign: which way the way forward is ("ROOM 4 ▶ RIGHT WALL"); empty in Endless. */
+    val doorHint: String = "",
+    /** World 15's boss is down: ask about carrying on in Endless. */
+    val campaignComplete: Boolean = false,
     val levelKills: Int = 0,
     val levelThreats: Int = 0,
     val rewardBatchTotal: Int = 0,
@@ -275,8 +287,8 @@ class GameSession(
             // A save is used once: continuing consumes it (autosave re-creates it).
             save.update { it.copy(savedRun = null) }
         }
-        startBestLevel = if (this.mode == GameMode.CAMPAIGN) p.highestLevel else p.endlessBestStage
-        startBestScore = if (this.mode == GameMode.CAMPAIGN) p.bestScore else p.endlessBestScore
+        startBestLevel = p.highestLevel
+        startBestScore = p.bestScore
         updateMusic()
     }
 
@@ -479,6 +491,10 @@ class GameSession(
             enemiesLeft = g.aliveCount(),
             offerSerial = g.offerSerial,
             mode = g.mode,
+            roomLabel = g.roomLabel(),
+            doorHint = g.forwardHint(),
+            world = g.world, room = g.room, campaign = g.campaign, campaignComplete = g.campaignComplete,
+            clearedRooms = HashSet(g.clearedRooms), visitedRooms = HashSet(g.visitedRooms),
             levelKills = g.levelKills,
             levelThreats = g.levelThreats,
             rewardBatchTotal = g.rewardBatchTotal,
@@ -632,6 +648,9 @@ class GameSession(
 
     fun answerChipSwap(replace: String?) = engine.answerChipSwap(replace)
 
+    /** Campaign complete: carry on in Endless (true) or end the run here as a win. */
+    fun answerCampaignComplete(continueEndless: Boolean): Boolean = engine.answerCampaignComplete(continueEndless)
+
     fun reroll() {
         if (coop != null && !isHost && engine.mirror) {
             if (engine.rerollsLeft > 0) { rerollSerial++; sendTimer = 1f }
@@ -754,11 +773,14 @@ class GameSession(
                 euros = (p.euros + dEuros).coerceAtLeast(0),
                 diamonds = p.diamonds + dDiamonds,
                 operativeXp = p.operativeXp + xpGain,
-                // Endless keeps its own records so the campaign ladder stays meaningful.
-                highestLevel = if (mode == GameMode.CAMPAIGN) maxOf(p.highestLevel, s.levelReached) else p.highestLevel,
-                bestScore = if (mode == GameMode.CAMPAIGN) maxOf(p.bestScore, s.score) else p.bestScore,
-                endlessBestStage = if (mode == GameMode.ENDLESS) maxOf(p.endlessBestStage, s.levelReached) else p.endlessBestStage,
-                endlessBestScore = if (mode == GameMode.ENDLESS) maxOf(p.endlessBestScore, s.score) else p.endlessBestScore,
+                // Both modes climb the same level curve; Endless also keeps its own best, and the
+                // campaign its best world and completions.
+                highestLevel = maxOf(p.highestLevel, s.levelReached),
+                bestScore = maxOf(p.bestScore, s.score),
+                endlessBestStage = if (engine.mode == GameMode.ENDLESS) maxOf(p.endlessBestStage, s.levelReached) else p.endlessBestStage,
+                endlessBestScore = if (engine.mode == GameMode.ENDLESS) maxOf(p.endlessBestScore, s.score) else p.endlessBestScore,
+                bestWorld = if (mode == GameMode.CAMPAIGN) maxOf(p.bestWorld, engine.world) else p.bestWorld,
+                campaignsCompleted = p.campaignsCompleted + if (countRun && engine.campaignFinished) 1 else 0,
                 totalKills = p.totalKills + dKills,
                 totalBosses = p.totalBosses + dBosses,
                 totalEvents = p.totalEvents + dEvents,
@@ -767,9 +789,8 @@ class GameSession(
                 eventTypesCompleted = p.eventTypesCompleted + eventIds,
                 bossRecords = mergeBossRecords(p.bossRecords),
                 // Per-class best level per difficulty: unlocks the class skins (TITANIUM, PURPLE).
-                classRecords = if (mode == GameMode.CAMPAIGN) p.classRecords + (classId to
+                classRecords = p.classRecords + (classId to
                     (p.classRecords[classId] ?: com.cyberoperative.game.save.ClassRecord()).with(difficulty.name, s.levelReached))
-                else p.classRecords
             )
             val newly = Achievements.evaluate(updated, s)
             val className = Operatives.byId(classId).name

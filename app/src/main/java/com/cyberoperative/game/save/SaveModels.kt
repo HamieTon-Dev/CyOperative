@@ -31,6 +31,9 @@ data class PlayerProfile(
     val operativeBody: String = "agent",
     val endlessBestStage: Int = 0,
     val endlessBestScore: Long = 0,
+    /** World-map campaign: furthest server world reached, and full campaigns finished. */
+    val bestWorld: Int = 0,
+    val campaignsCompleted: Int = 0,
     /** Revive tokens bought with ◇ (revive packs). */
     val reviveTokens: Int = 0,
     val tutorialDone: Boolean = false,

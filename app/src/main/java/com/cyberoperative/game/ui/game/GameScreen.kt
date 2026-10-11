@@ -93,6 +93,8 @@ fun GameScreen(
     val mouse = remember { FloatArray(2) }
     var mouseDown by remember { mutableStateOf(false) }
     var keysMoving by remember { mutableStateOf(false) }
+    /** Campaign world map overlay ([M], controller BACK, MAP button). */
+    var showMap by remember { mutableStateOf(false) }
     val renderer = remember { ArenaRenderer() }
 
     // Frame loop: lives with the screen; leaving the composition stops it.
@@ -135,6 +137,7 @@ fun GameScreen(
                     val bombKey = GameKeys.takePacketBomb()
                     if (live && hpKey) session.useHpCharge()
                     if (live && bombKey) session.usePacketBomb()
+                    if (GameKeys.takeMap() && e.campaign) showMap = !showMap
                     val dashKey = GameKeys.takeDash()
                     val r = GameKeys.takeSpell(0)
                     val f = GameKeys.takeSpell(1)
@@ -166,6 +169,7 @@ fun GameScreen(
     var hudHeightPx by remember { mutableIntStateOf(0) }
     var shopHeld by remember { mutableStateOf<Int?>(null) }
     var shopSwap by remember { mutableStateOf<Int?>(null) }
+
 
     BoxWithConstraints(
         Modifier
@@ -314,7 +318,7 @@ fun GameScreen(
         ) {
             if (hud.phase == Phase.PORTAL) {
                 HintChip(
-                    if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else "▲ GATE OPEN — WALK THROUGH TO CONTINUE",
+                    if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else hud.doorHint.ifEmpty { "▲ GATE OPEN — WALK THROUGH TO CONTINUE" },
                     if (hud.topGateLocked) Palette.Red else Palette.Green
                 )
             }
@@ -373,6 +377,27 @@ fun GameScreen(
                 preview = { old -> session.previewLines(swapItem.def, old) },
                 onReplace = { old -> session.buyShopItem(idx, old); shopSwap = null },
                 onBack = { shopSwap = null }
+            )
+        }
+        // Android: a see-through MAP button under the HUD (campaign only).
+        if (hud.campaign && !GameKeys.active && !session.paused && hud.phase != Phase.DEAD) {
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + 8.dp, end = 10.dp)
+                    .graphicsLayer { alpha = 0.6f }
+                    .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
+                    .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
+                    .clickable { showMap = !showMap }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) { Text("MAP", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge) }
+        }
+        if (showMap && hud.campaign) {
+            WorldMapOverlay(hud, session.engine.worldMap, time) { showMap = false }
+        }
+        // World 15's boss is down: carry on in Endless, or end the run as a win.
+        if (hud.campaignComplete) {
+            CampaignCompleteDialog(
+                onEndless = { session.answerCampaignComplete(true) },
+                onFinish = { session.answerCampaignComplete(false); session.finish(); onExitToMenu() }
             )
         }
         // Upgrade chips: the line naming what was just picked up, under the HUD.
@@ -944,3 +969,24 @@ private fun PickupLine(name: String, rarity: com.cyberoperative.game.data.Rarity
 }
 
 private const val PICKUP_SECONDS = 2.8f
+
+/** After World 15: the campaign is done. Carry on in Endless (no map), or end the run here. */
+@Composable
+private fun CampaignCompleteDialog(onEndless: () -> Unit, onFinish: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Color(0xCC000000)), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.padding(24.dp).background(Palette.Surface, RoundedCornerShape(12.dp))
+                .border(2.dp, Palette.Gold, RoundedCornerShape(12.dp)).padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("CAMPAIGN COMPLETE", color = Palette.Gold, style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(6.dp))
+            Text("All ${com.cyberoperative.game.engine.CampaignMap.WORLDS} server worlds secured.", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
+            Text("Continue in ENDLESS? No map: WORLD ??? · ROOM ???, doors anywhere.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(14.dp))
+            com.cyberoperative.game.ui.common.CyberButton("CONTINUE IN ENDLESS", Modifier.fillMaxWidth(), accent = Palette.Purple, primary = true) { onEndless() }
+            Spacer(Modifier.height(8.dp))
+            com.cyberoperative.game.ui.common.CyberButton("END THE RUN", Modifier.fillMaxWidth(), accent = Palette.Gold) { onFinish() }
+        }
+    }
+}
