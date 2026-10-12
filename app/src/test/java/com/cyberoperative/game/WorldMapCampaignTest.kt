@@ -46,6 +46,33 @@ class WorldMapCampaignTest {
     }
 
     @Test
+    fun theShopAfterAWorldBossStillLeadsToTheNextWorld() {
+        // Owner, 2026-10-12: World 1 boss down, into the shop, back out: no way on to World 2.
+        val g = campaign()
+        g.debugEnterRoom(CampaignMap.BOSS_INDEX)
+        g.killEnemy(g.boss!!)
+        var guard = 0
+        while (g.phase != Phase.PORTAL && guard++ < 60 * 30) g.update(1f / 60f)
+        g.offerShop()
+        assertTrue(g.shopGateOpen)
+        val o = g.operatives[0]
+        guard = 0
+        while (!g.inShop && guard++ < 400) { o.px = g.shopGateX; o.py = g.shopGateY; g.update(1f / 60f) }
+        assertTrue(g.inShop)
+        repeat(30) { g.update(1f / 60f) }
+        // Out through the shop's exit.
+        guard = 0
+        while (g.inShop && guard++ < 400) { o.px = g.arena.portalX; o.py = g.arena.portalY; g.update(1f / 60f) }
+        repeat(90) { g.update(1f / 60f) }
+        assertFalse(g.inShop)
+        assertEquals(CampaignMap.BOSS_INDEX, g.room)
+        val gate = g.exitDoors.firstOrNull { it.target == GameEngine.NEXT_WORLD }
+        assertNotNull("the gate to World 2 is still there", gate)
+        walkThrough(g, gate!!)
+        assertEquals(2, g.world)
+    }
+
+    @Test
     fun roomSlideFollowsTheDoorYouWalkThrough() {
         // Walk the first several rooms: every room change slides along the door's wall.
         val g = campaign(seed = 21L)

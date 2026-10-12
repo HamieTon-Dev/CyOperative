@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.26.3 (versionCode 89) — 2026-10-12 · Fix: stuck after the shop in a boss room
+### Fixed (owner: "World 1 boss defeated, go to shop, after shop there is no way to move to the next world")
+- **Coming back from the shop into a beaten boss's room lost the gate to the next world**, so the run could not continue.
+  - The gate was only added at the moment the boss fell. Re-entering the room rebuilt its doors without it.
+  - The same happened when walking back into a cleared boss room from room 10.
+- The gate is now there whenever a beaten world boss's room is entered.
+- New test `WorldMapCampaignTest.theShopAfterAWorldBossStillLeadsToTheNextWorld`.
+
 ## 0.26.2 (versionCode 88) — 2026-10-12 · Slim Android landscape HUD
 ### Changed (owner's mock-up: "not a fan of the massive black box at the top; the boss health bar is still way too big")
 - **The Android landscape HUD is a slim strip**, about 12% of the screen height (was about 26%).

@@ -2297,6 +2297,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         startLevel(CampaignMap.levelFor(world, r), null, false, campaignPlan(world, r, revisit))
         exitDoors.clear()
         exitDoors += campaignDoors(r)
+        // A beaten world boss's room keeps its gate to the next world (back from the shop, or
+        // walking back in): it used to be added only when the boss fell, stranding the player.
+        if (revisit && r >= CampaignMap.BOSS_INDEX && world < CampaignMap.WORLDS) exitDoors += doorAt(0, NEXT_WORLD)
         var (ex, ey) = entryPoint(entrySide)
         if (atY >= 0f) ey = atY
         for (o in ops) {
