@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.26.2 (versionCode 88) — 2026-10-12 · Slim Android landscape HUD
+### Changed (owner's mock-up: "not a fan of the massive black box at the top; the boss health bar is still way too big")
+- **The Android landscape HUD is a slim strip**, about 12% of the screen height (was about 26%).
+  - Row 1: `WORLD 1 · BOSS | score | € …`.
+  - Row 2: `HP [bar] 292/292 FW 175`.
+  - Row 3: small upgrade chips (two-thirds size) and the build number.
+- **The boss bar** sits on the right: `NAME · PHASE · %` on one line over a thin bar with the phase marks.
+  - The big box, the subtitle and the boss tag are gone.
+  - The entrance animation and the status lines (shell, ring, shield) still show, in small text.
+- The threats bar sits in the same place in normal rooms.
+- The build number moved from the corner into the strip during landscape games.
+- The Steam/PC strip is unchanged; it keeps its key chips.
+### Technical
+- New renders: `landscape_hud_boss`, `landscape_hud_room`.
+
 ## 0.26.1 (versionCode 87) — 2026-10-11 · PC co-op by IP address
 ### Added (owner: "send my friend an .exe and let them join via IP address")
 - **DIRECT IP CO-OP on PC when Steam isn't running.**

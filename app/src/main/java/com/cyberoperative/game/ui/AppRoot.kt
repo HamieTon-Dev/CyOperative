@@ -204,6 +204,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
         }
     }
     // Build number, always visible (soft, bottom-right) so testers can say what they are on.
-    BuildStamp()
+    // Android landscape games show it in the HUD strip instead.
+    if (!(screen == Screen.Game && com.cyberoperative.game.ui.common.PlayMode.landscape && !com.cyberoperative.game.platform.AppInfo.desktop)) BuildStamp()
     }
 }

@@ -143,7 +143,7 @@ fun main(args: Array<String>) {
     System.exit(0)
 }
 
-private object ShotLifecycle : androidx.lifecycle.LifecycleOwner {
+internal object ShotLifecycle : androidx.lifecycle.LifecycleOwner {
     private val registry = androidx.lifecycle.LifecycleRegistry.createUnsafe(this).apply { currentState = androidx.lifecycle.Lifecycle.State.RESUMED }
     override val lifecycle: androidx.lifecycle.Lifecycle get() = registry
 }

@@ -121,6 +121,15 @@ tasks.matching { it.name == "createReleaseDistributable" || it.name.startsWith("
     doFirst { if (debugBuild) throw GradleException("-PdebugBuild is for test builds only: drop it to build the Steam release.") }
 }
 
+// Developer gameplay clips (PNG frames; ffmpeg makes the video): gradlew :desktop:clip
+tasks.register<JavaExec>("clip") {
+    group = "verification"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.cyberoperative.game.desktop.DevClipKt")
+    args(layout.buildDirectory.dir("clip").get().asFile.absolutePath)
+    jvmArgs("-Djava.awt.headless=true", "-Xmx3g")
+}
+
 // Developer screenshots of the landscape layouts: gradlew :desktop:shots
 tasks.register<JavaExec>("shots") {
     group = "verification"

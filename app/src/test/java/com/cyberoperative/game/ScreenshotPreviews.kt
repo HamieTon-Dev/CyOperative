@@ -795,6 +795,26 @@ class ScreenshotPreviews {
         }
     }
 
+    /** Android landscape HUD (owner's mock-up, 2026-10-12): slim strip, thin boss bar. */
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun landscapeHudBoss() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("landscape_hud_boss", 6f) { s ->
+                val g = s.engine
+                g.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
+                for (u in listOf(com.cyberoperative.game.data.Upgrades.MALWARE_MISSILES, com.cyberoperative.game.data.Upgrades.MULTISHOT, com.cyberoperative.game.data.Upgrades.PAYLOAD_BOOST, com.cyberoperative.game.data.Upgrades.FIREWALL, com.cyberoperative.game.data.Upgrades.PENETRATION))
+                    if (g.build.isEligible(u)) g.build.take(u)
+            }
+        }
+    }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun landscapeHudRoom() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("landscape_hud_room", 3f) { s -> s.engine.debugJumpToLevel(6) }
+        }
+    }
+
     @Test fun shopRoom() {
         assumeTrue(enabled)
         gameplay("upgrade_shop", 0f) { s ->

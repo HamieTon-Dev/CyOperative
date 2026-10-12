@@ -289,10 +289,11 @@ private fun PauseButton(paused: Boolean, onPause: () -> Unit) {
 }
 
 @Composable
-private fun HpRow(h: HudSnapshot) {
+private fun HpRow(h: HudSnapshot, label: String = "CORE HP", labelWidth: androidx.compose.ui.unit.Dp = 62.dp) {
     val f = h.hp / h.maxHp.coerceAtLeast(1).toFloat()
     StatRow(
-        label = "CORE HP",
+        labelWidth = labelWidth,
+        label = label,
         labelColor = Palette.Green,
         fraction = f,
         color = Palette.healthColor(f),
@@ -332,7 +333,7 @@ private fun ProgressRow(h: HudSnapshot) {
 @Composable
 private fun StatRow(
     label: String, labelColor: Color, fraction: Float, color: Color, overlay: Float,
-    value: String, extra: String?, description: String
+    value: String, extra: String?, description: String, labelWidth: androidx.compose.ui.unit.Dp = 62.dp
 ) {
     Row(
         Modifier
@@ -341,7 +342,7 @@ private fun StatRow(
             .semantics(mergeDescendants = true) { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = labelColor, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = 62.dp))
+        Text(label, color = labelColor, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = labelWidth))
         ThinBar(fraction, color, overlay, Modifier.weight(1f).height(8.dp))
         Text(value, color = Palette.TextPrimary, style = mono(10.sp, FontWeight.Medium), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 8.dp))
         if (extra != null) {
@@ -459,6 +460,66 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
             Spacer(Modifier.height(4.dp))
             UpgradeBar(h, Modifier.fillMaxWidth())
         }
+    }
+}
+
+/**
+ * Android landscape HUD (owner's mock-up, 2026-10-12): a slim strip with no big boxes.
+ * Left: "WORLD 1 · BOSS | 8,135 | € 919", the HP bar, then small upgrade chips and the build.
+ * Right: the boss's name, phase and % over a thin bar (or the threats bar). Clock and pause last.
+ */
+@Composable
+fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.92f), Color(0xE6070C16))))
+            .drawBehind {
+                val y = size.height - 0.5.dp.toPx()
+                drawLine(Palette.Cyan.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
+            }
+            .padding(start = 14.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(h.roomLabel, color = levelColor(h), style = mono(13.sp, FontWeight.Bold), maxLines = 1)
+                Divider()
+                Text("%,d".format(h.score), color = Palette.TextPrimary, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                Divider()
+                Text("€ ${"%,d".format(h.euros)}", color = Palette.Euro, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+            }
+            Spacer(Modifier.height(2.dp))
+            HpRow(h, label = "HP", labelWidth = 26.dp)
+            if (h.coop && !h.partnerGone) PartnerRow(h)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (h.owned.isNotEmpty()) {
+                    // The chips at two-thirds size.
+                    val d = androidx.compose.ui.platform.LocalDensity.current
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density * 0.66f, d.fontScale)
+                    ) { UpgradeBar(h, Modifier.weight(1f, fill = false)) }
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(com.cyberoperative.game.ui.common.buildStampText(), color = Color.White.copy(alpha = 0.45f), style = mono(9.sp), maxLines = 1)
+            }
+        }
+        Spacer(Modifier.width(24.dp))
+        Column(Modifier.weight(1.3f).align(Alignment.Top)) {
+            if (h.bossName != null) BossHealthBar(h, compact = true)
+            else {
+                Spacer(Modifier.height(4.dp))
+                ProgressRow(h)
+                if (h.eventName != null) Text(
+                    h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
+                    color = Color(h.eventAccent), style = mono(11.sp, FontWeight.Bold),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        HudClock()
+        PauseButton(paused, onPause)
     }
 }
 

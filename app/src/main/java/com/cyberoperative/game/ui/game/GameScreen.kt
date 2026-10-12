@@ -4,6 +4,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.widthIn
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
@@ -496,7 +497,12 @@ fun GameScreen(
           if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
               LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
           ) {
-            PcHudStrip(
+            // Android landscape gets the slim strip (owner, 2026-10-12); the PC keeps its key chips.
+            if (com.cyberoperative.game.platform.AppInfo.desktop) PcHudStrip(
+                hud, paused = session.paused,
+                onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
+                modifier = Modifier.onSizeChanged { hudHeightPx = it.height }
+            ) else CompactHudStrip(
                 hud, paused = session.paused,
                 onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
                 modifier = Modifier.onSizeChanged { hudHeightPx = it.height }
@@ -833,7 +839,7 @@ private const val GLITCH_CHARS = "#%&@!?01<>/\\=+*$"
  * a white trail drains behind each hit.
  */
 @Composable
-internal fun BossHealthBar(h: HudSnapshot) {
+internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
     val color = if (h.bossColor != 0L) Color(h.bossColor) else Palette.Red
     val intro = h.bossIntro
     val barEnd = com.cyberoperative.game.engine.BossBrain.INTRO_BAR_END
@@ -872,11 +878,24 @@ internal fun BossHealthBar(h: HudSnapshot) {
         Modifier
             .fillMaxWidth()
             .offset(x = shakeX.dp)
-            .background(Color(0xE6120208), RoundedCornerShape(8.dp))
-            .border(2.dp, color.copy(alpha = 0.85f * flicker), RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .then(
+                // Compact (Android landscape, owner 2026-10-12): no box, just name line and a thin bar.
+                if (compact) Modifier.padding(top = 2.dp)
+                else Modifier
+                    .background(Color(0xE6120208), RoundedCornerShape(8.dp))
+                    .border(2.dp, color.copy(alpha = 0.85f * flicker), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
+            )
     ) {
-        Row(verticalAlignment = Alignment.Bottom) {
+        if (compact) Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (shownName.isEmpty()) "!! WARNING !!" else shownName,
+                color = if (shownName.isEmpty()) color.copy(alpha = if ((intro * 6f).toInt() % 2 == 0) 1f else 0.4f) else Palette.TextPrimary.copy(alpha = flicker),
+                style = mono(14.sp, FontWeight.Bold), maxLines = 1, modifier = Modifier.weight(1f)
+            )
+            Text(if (introRunning) (if (intro >= growl) "ENGAGING…" else "") else h.bossPhase, color = color, style = mono(11.sp, FontWeight.Bold), maxLines = 1, modifier = Modifier.weight(1f))
+            if (!introRunning) Text("${h.bossPercent}%", color = color, style = mono(14.sp, FontWeight.Bold))
+        } else Row(verticalAlignment = Alignment.Bottom) {
             Text(if (shownName.isEmpty()) "" else h.bossTag, color = color.copy(alpha = flicker), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.width(8.dp))
             Text(
@@ -886,20 +905,20 @@ internal fun BossHealthBar(h: HudSnapshot) {
             )
             if (!introRunning) Text("${h.bossPercent}%", color = color, style = MaterialTheme.typography.titleLarge)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        if (!compact) Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (introRunning && intro < nameEnd) "" else h.bossTitle.uppercase(),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), maxLines = 1
             )
             Text(if (introRunning) (if (intro >= growl) "ENGAGING…" else "") else h.bossPhase, color = color, style = MaterialTheme.typography.labelMedium)
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
         androidx.compose.foundation.Canvas(
             Modifier
                 .fillMaxWidth()
-                .height(26.dp)
+                .height(if (compact) 11.dp else 26.dp)
         ) {
-            val r = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx())
+            val r = androidx.compose.ui.geometry.CornerRadius((if (compact) 3.dp else 6.dp).toPx())
             // During the entrance the frame itself grows out from the centre.
             val frameW = size.width * (if (introRunning) eased.coerceAtLeast(0.02f) else 1f)
             val left = (size.width - frameW) / 2f
@@ -930,8 +949,8 @@ internal fun BossHealthBar(h: HudSnapshot) {
             Text(
                 "❄ PERMAFROST SHELL ${h.bossIceShell}% — KEEP FIRING",
                 color = Color(0xFF9AE6FF),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
             )
         }
         if (h.bossRing >= 0) {
@@ -940,8 +959,8 @@ internal fun BossHealthBar(h: HudSnapshot) {
             Text(
                 if (up) "🔥 RING UP — FIRE THROUGH THE GAPS" else "💥 RING LAUNCHED — CORE EXPOSED",
                 color = if (up) Color(0xFFFF7A1A) else Color(0xFFFFD45A),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
             )
         }
         if (h.bossShield >= 0) {
@@ -950,8 +969,8 @@ internal fun BossHealthBar(h: HudSnapshot) {
             Text(
                 if (up) "🔒 ENCRYPTED — CAPTURE THE KEY ZONES" else "🔓 DECRYPTED — HIT HIM NOW",
                 color = if (up) Color(0xFFFFC233) else Color(0xFFFF3B3B),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
             )
         }
         if (h.bossLock >= 0) {
@@ -960,8 +979,8 @@ internal fun BossHealthBar(h: HudSnapshot) {
             Text(
                 if (open) "◉ EYES OPEN — LOCK ON" else "◌ IN THE SHADOWS — NO LOCK",
                 color = if (open) Color(0xFFFF2A3A) else Palette.TextMuted,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 4.dp)
+                style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
             )
         }
     }
