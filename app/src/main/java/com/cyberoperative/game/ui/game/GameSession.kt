@@ -138,6 +138,11 @@ data class HudSnapshot(
     val shopReadyCount: Int = 0,
     val shopReadyTotal: Int = 1,
     val meShopReady: Boolean = false,
+    /** World server: standing at it, and how many have pressed MOVE TO NEXT WORLD. */
+    val nearWorldServer: Boolean = false,
+    val worldReadyCount: Int = 0,
+    val worldReadyTotal: Int = 1,
+    val meWorldReady: Boolean = false,
     val shopGateRight: Boolean = false,
     val skipShopPrompt: Boolean = false,
     val topGateLocked: Boolean = false,
@@ -413,7 +418,7 @@ class GameSession(
                 CoopCodec.encodeInput(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
                         engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial,
-                        dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace)
+                        dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace, nextWorldSerial)
                 )
             )
         }
@@ -533,6 +538,7 @@ class GameSession(
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
             shopReadyCount = g.shopReadyCount, shopReadyTotal = g.shopReadyTotal, meShopReady = g.meShopReady,
+            nearWorldServer = g.nearWorldServer(), worldReadyCount = g.worldReadyCount, worldReadyTotal = g.worldReadyTotal, meWorldReady = g.meWorldReady,
             vaultReady = g.vaultReady,
             shopGateRight = g.shopGateRight,
             skipShopPrompt = g.skipShopPrompt,
@@ -662,6 +668,17 @@ class GameSession(
             return
         }
         engine.reroll()
+    }
+
+    private var nextWorldSerial = 0
+
+    /** MOVE TO NEXT WORLD at the world server (a co-op guest asks the host). */
+    fun pressNextWorld() {
+        if (guest) {
+            if (engine.nearWorldServer()) { nextWorldSerial++; sendTimer = 1f }
+            return
+        }
+        engine.pressNextWorld()
     }
 
     private var shopSerial = 0

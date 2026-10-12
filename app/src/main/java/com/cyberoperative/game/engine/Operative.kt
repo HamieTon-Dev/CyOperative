@@ -69,6 +69,8 @@ class Operative(val index: Int, baseStats: RunStats) {
     var shopItems: List<ShopItem> = emptyList()
     /** Co-op shop: standing in the exit gate, waiting for the partner to leave together. */
     var shopReady = false
+    /** At the world server and pressed MOVE TO NEXT WORLD (co-op: waiting for the partner). */
+    var worldReady = false
     var orbAngle = 0f
     var bladeAngle = 0f
     var orbBoltTimer = 0f

@@ -815,6 +815,23 @@ class ScreenshotPreviews {
         }
     }
 
+    /** The world server after a world boss, with the MOVE TO NEXT WORLD button (owner, 2026-10-12). */
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun worldServer() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("world_server", 0f) { s ->
+                val g = s.engine
+                g.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
+                g.killEnemy(g.boss!!)
+                var guard = 0
+                while (g.phase != com.cyberoperative.game.engine.Phase.PORTAL && guard++ < 60 * 30) g.update(1f / 60f)
+                g.loot.clear()
+                g.operatives[0].px = g.worldServerX - 60f; g.operatives[0].py = g.worldServerY + 80f
+                repeat(5) { g.update(1f / 60f) }
+            }
+        }
+    }
+
     @Test fun shopRoom() {
         assumeTrue(enabled)
         gameplay("upgrade_shop", 0f) { s ->

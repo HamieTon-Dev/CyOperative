@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.27.0 (versionCode 90) — 2026-10-12 · The world server
+### Changed (owner: "a server that glows in the center of the room after the boss is defeated")
+- **After a world boss falls (Worlds 1–14), a glowing server rises in the middle of the room.**
+  - It has blinking lights, a light beam, and a floor ring that spins faster as you get close.
+  - It replaces the old gate to the next world on the far wall.
+- **Walk up to it:** a **▶ MOVE TO NEXT WORLD** button appears.
+  - **Solo:** pressing it moves on to the next world.
+  - **Co-op:** pressing marks you ready, and both screens show **"1/2 PLAYERS READY TO MOVE TO NEXT WORLD"**. When both have pressed, you go together.
+  - **Walking away from the server, or going into the shop, cancels that player's ready** on both screens.
+- The server is there whenever you're in a beaten boss's room: right after the fight, back from the shop, after walking back in, and after loading a save.
+- The door hint reads "WORLD SECURED · WALK TO THE SERVER IN THE CENTRE FOR WORLD n".
+### Technical
+- Co-op VERSION 23. Both players need 0.27.0.
+- Tests:
+  - `WorldMapCampaignTest` uses the server, including after the shop.
+  - New `CoopWorldServerTest`: 1/2 ready, walking away cancels, both press and move on.
+  - New render `world_server`.
+
 ## 0.26.3 (versionCode 89) — 2026-10-12 · Fix: stuck after the shop in a boss room
 ### Fixed (owner: "World 1 boss defeated, go to shop, after shop there is no way to move to the next world")
 - **Coming back from the shop into a beaten boss's room lost the gate to the next world**, so the run could not continue.

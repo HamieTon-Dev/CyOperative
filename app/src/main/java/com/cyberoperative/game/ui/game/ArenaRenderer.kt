@@ -129,6 +129,7 @@ class ArenaRenderer {
             drawBarrierGhosts(g, time)
             drawPulses(g)
             drawShadows(g)
+            if (g.worldServerShown) drawWorldServer(g, time)
             if (g.loot.isNotEmpty()) with(LootSprites) { drawLoot(g, time) }
             drawEnemyMarkers(g, time)
             drawSorted(g, time, skin, body)
@@ -425,6 +426,43 @@ class ArenaRenderer {
     }
 
     /** After NO on "skip the shop?": a big gold arrow by the operative blinks toward the shop gate. */
+    /**
+     * The world server (owner, 2026-10-12): after a world boss falls, a glowing server stands in
+     * the middle of the room. Walk up to it and press MOVE TO NEXT WORLD.
+     */
+    private fun DrawScope.drawWorldServer(g: GameEngine, time: Float) {
+        val x = g.worldServerX
+        val y = g.worldServerY
+        val cyan = Color(0xFF3FF0FF)
+        val pulse = 0.75f + 0.25f * sin(time * 2.6f)
+        val near = g.nearWorldServer()
+        // Light pooled on the floor, and a ring that spins faster when you're close.
+        drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(cyan.copy(alpha = 0.32f * pulse), Color.Transparent), Offset(x, y + 30f), 190f),
+            Offset(x - 190f, y + 30f - 90f), Size(380f, 180f))
+        val spin = time * (if (near) 2.4f else 0.8f)
+        for (i in 0 until 3) {
+            val a0 = spin * 57.3f + i * 120f
+            drawArc(cyan.copy(alpha = 0.55f), a0, 70f, false, Offset(x - 110f, y + 30f - 44f), Size(220f, 88f), style = Stroke(3f))
+        }
+        // A beam of light up through the rack.
+        drawRect(Brush.verticalGradient(listOf(Color.Transparent, cyan.copy(alpha = 0.35f * pulse)), y - 320f, y - 60f), Offset(x - 22f, y - 320f), Size(44f, 260f))
+        // The rack: dark body, lit edges, rows of blinking lights.
+        val w = 78f
+        val h = 128f
+        val top = y - h + 24f
+        drawRoundRect(Color(0xFF071624), Offset(x - w / 2f, top), Size(w, h), CornerRadius(8f))
+        drawRoundRect(cyan.copy(alpha = 0.9f * pulse), Offset(x - w / 2f, top), Size(w, h), CornerRadius(8f), style = Stroke(3f))
+        for (row in 0 until 5) {
+            val ry = top + 16f + row * 21f
+            drawRect(Color(0xFF0E2C40), Offset(x - w / 2f + 10f, ry), Size(w - 20f, 13f))
+            for (k in 0 until 4) {
+                val on = ((time * 5f).toInt() + row * 3 + k * 7) % 5 != 0
+                drawCircle(if (on) cyan else cyan.copy(alpha = 0.2f), 2.6f, Offset(x - w / 2f + 18f + k * 13f, ry + 6.5f))
+            }
+        }
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color.White.copy(alpha = 0.9f * pulse), cyan.copy(alpha = 0f)), Offset(x, top - 6f), 26f), 26f, Offset(x, top - 6f))
+    }
+
     private fun DrawScope.drawShopArrow(g: GameEngine, time: Float) {
         if (((g.shopArrowFlash * 4f).toInt() % 2) == 1) return
         val tx = g.shopGateX

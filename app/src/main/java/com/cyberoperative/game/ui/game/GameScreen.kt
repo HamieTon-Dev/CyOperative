@@ -336,6 +336,10 @@ fun GameScreen(
                     if (hud.topGateLocked) Palette.Red else Palette.Green
                 )
             }
+            // World server: everyone ready to move on (co-op).
+            if (hud.coop && hud.worldReadyCount > 0) {
+                HintChip("${hud.worldReadyCount}/${hud.worldReadyTotal} PLAYERS READY TO MOVE TO NEXT WORLD", Palette.Cyan)
+            }
             // Co-op shop: both leave together through the exit gate.
             if (hud.inShop && hud.coop && hud.shopReadyCount > 0) {
                 HintChip(
@@ -363,6 +367,20 @@ fun GameScreen(
         }
         // Upgrade shop: at the counter an OPEN SHOP button; the shop is a small window in the
         // middle of the screen with an X to close it (also back / Esc, or walking away).
+        // World server: walk up to it after a world boss, press to move on.
+        if (hud.nearWorldServer && !hud.meWorldReady && hud.phase == Phase.PORTAL) {
+            Text(
+                "▶  MOVE TO NEXT WORLD",
+                color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 170.dp)
+                    .background(Color(0xE6040A14), RoundedCornerShape(8.dp))
+                    .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
+                    .clickable { session.pressNextWorld() }
+                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+        }
         val atCounter = hud.inShop && hud.atShopCounter
         LaunchedEffect(atCounter) { if (!atCounter) shopOpen = false }
         if (atCounter && !shopOpen) {

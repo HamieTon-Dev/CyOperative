@@ -73,3 +73,46 @@ class CoopShopTest {
         assertFalse(guest.inShop)
     }
 }
+
+/** Co-op world server (owner, 2026-10-12): 1/2 ready; walking away or the shop cancels; both → next world. */
+class CoopWorldServerTest {
+    private fun stats() = RunStats().apply { maxHp = 1e7f }
+    private fun put(o: Operative, x: Float, y: Float) { o.px = x; o.py = y; o.netX = x; o.netY = y; o.netMoving = false }
+
+    @Test fun bothPlayersPressToMoveOn() {
+        val cfg = RunConfig(baseStats = stats(), seed = 5L, mode = GameMode.CAMPAIGN, consumables = true, powerGovernor = false, ally = AllyConfig(stats()))
+        val host = GameEngine(cfg)
+        val guest = GameEngine(cfg).also { it.enterMirror(1) }
+        var seq = 0
+        fun sync() { guest.applyWorld(CoopCodec.decodeWorld(CoopCodec.encodeWorld(host.captureWorld(++seq, emptyList())))!!) }
+        val (a, b) = host.operatives
+        host.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
+        host.killEnemy(host.boss!!)
+        var guard = 0
+        while (host.phase != Phase.PORTAL && guard++ < 60 * 30) host.update(1f / 60f)
+        assertTrue(host.worldServerShown)
+        val sx = host.worldServerX; val sy = host.worldServerY + 70f
+
+        // Host presses: 1/2, and the guest sees it.
+        put(a, sx, sy); put(b, sx + 400f, sy)
+        host.update(1f / 60f)
+        assertTrue(host.pressNextWorld(0))
+        assertEquals(1, host.worldReadyCount)
+        assertEquals(1, host.world)
+        sync()
+        assertTrue(guest.worldServerShown)
+        assertEquals(1, guest.worldReadyCount)
+
+        // Walking away cancels.
+        repeat(5) { put(a, sx + 500f, sy); put(b, sx + 400f, sy); host.update(1f / 60f) }
+        assertEquals(0, host.worldReadyCount)
+
+        // Both press (the guest through its input): on to World 2.
+        repeat(3) { put(a, sx, sy); put(b, sx + 40f, sy); host.update(1f / 60f) }
+        assertTrue(host.pressNextWorld(0))
+        host.applyInput(1, CoopInput(seq = 1, x = sx + 40f, y = sy, level = host.level, nextWorldSerial = 1))
+        assertEquals(Phase.TRANSITION, host.phase)
+        repeat(120) { host.update(1f / 60f) }
+        assertEquals(2, host.world)
+    }
+}

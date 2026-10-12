@@ -93,6 +93,8 @@ class CoopWorld {
     /** Co-op shop (v22): in the shop (and its room seed and keeper), and the side gate to it. */
     var inShop = false; var shopSeed = 0L; var keeper = 0
     var shopGateOpen = false; var shopGateRight = false; var shopGateY = 0f; var shopMessageSerial = 0
+    /** World server (v23): up after a world boss falls, where it stands. */
+    var worldServerOn = false; var worldServerX = 0f; var worldServerY = 0f
 }
 
 class NetOp {
@@ -120,6 +122,8 @@ class NetOp {
     /** Own shop stock (v22): upgrade index, next level, price, sold (0/1); and ready to leave. */
     val shop = ArrayList<IntArray>(4)
     var shopReady = false
+    /** Pressed MOVE TO NEXT WORLD (v23). */
+    var worldReady = false
 }
 
 class NetEnemy {
@@ -176,7 +180,9 @@ data class CoopInput(
     /** Co-op shop (v22): bumped on every purchase; [shopIndex] in the guest's own stock, [shopReplace] weapon swapped out (Upgrades index or -1). */
     val shopSerial: Int = 0,
     val shopIndex: Int = 0,
-    val shopReplace: Int = -1
+    val shopReplace: Int = -1,
+    /** Bumped when the guest presses MOVE TO NEXT WORLD (v23). */
+    val nextWorldSerial: Int = 0
 )
 
 object CoopCodec {
@@ -255,6 +261,7 @@ object CoopCodec {
                 o.writeByte(p.shop.size)
                 for (s in p.shop) { o.var32(s[0]); o.writeByte(s[1].coerceIn(0, 255)); o.var32(s[2]); o.writeBoolean(s[3] != 0) }
                 o.writeBoolean(p.shopReady)
+                o.writeBoolean(p.worldReady)
             }
 
             o.var32(w.enemies.size)
@@ -335,6 +342,8 @@ object CoopCodec {
             o.writeBoolean(w.inShop)
             if (w.inShop) { o.writeLong(w.shopSeed); o.writeByte(w.keeper) }
             o.writeBoolean(w.shopGateOpen); o.writeBoolean(w.shopGateRight); o.pos(w.shopGateY); o.var32(w.shopMessageSerial)
+            o.writeBoolean(w.worldServerOn)
+            if (w.worldServerOn) { o.pos(w.worldServerX); o.pos(w.worldServerY) }
         }
         return bytes.toByteArray()
     }
@@ -374,6 +383,7 @@ object CoopCodec {
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
                 repeat(i.readUnsignedByte()) { p.shop += intArrayOf(i.var32(), i.readUnsignedByte(), i.var32(), if (i.readBoolean()) 1 else 0) }
                 p.shopReady = i.readBoolean()
+                p.worldReady = i.readBoolean()
                 w.ops += p
             }
 
@@ -458,6 +468,8 @@ object CoopCodec {
             w.inShop = i.readBoolean()
             if (w.inShop) { w.shopSeed = i.readLong(); w.keeper = i.readUnsignedByte() }
             w.shopGateOpen = i.readBoolean(); w.shopGateRight = i.readBoolean(); w.shopGateY = i.pos(); w.shopMessageSerial = i.var32()
+            w.worldServerOn = i.readBoolean()
+            if (w.worldServerOn) { w.worldServerX = i.pos(); w.worldServerY = i.pos() }
             w
         }
     } catch (_: Exception) {
@@ -472,7 +484,7 @@ object CoopCodec {
             o.var32(c.pickSerial); o.writeByte(c.pickIndex); o.var32(c.rerollSerial); o.var32(c.level); o.var32(c.replaceIndex + 1)
             o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY); o.var32(c.hpSerial); o.var32(c.bombSerial)
             o.var32(c.dashSerial); o.var32(c.spell1Serial); o.var32(c.spell2Serial)
-            o.var32(c.shopSerial); o.writeByte(c.shopIndex); o.var32(c.shopReplace + 1)
+            o.var32(c.shopSerial); o.writeByte(c.shopIndex); o.var32(c.shopReplace + 1); o.var32(c.nextWorldSerial)
         }
         return bytes.toByteArray()
     }
@@ -485,7 +497,7 @@ object CoopCodec {
                 pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1,
                 aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32(),
                 dashSerial = i.var32(), spell1Serial = i.var32(), spell2Serial = i.var32(),
-                shopSerial = i.var32(), shopIndex = i.readUnsignedByte(), shopReplace = i.var32() - 1
+                shopSerial = i.var32(), shopIndex = i.readUnsignedByte(), shopReplace = i.var32() - 1, nextWorldSerial = i.var32()
             )
         }
     } catch (_: Exception) {
@@ -493,5 +505,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 22
+    const val VERSION = 23
 }

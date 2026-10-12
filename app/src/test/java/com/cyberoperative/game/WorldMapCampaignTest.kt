@@ -66,9 +66,8 @@ class WorldMapCampaignTest {
         repeat(90) { g.update(1f / 60f) }
         assertFalse(g.inShop)
         assertEquals(CampaignMap.BOSS_INDEX, g.room)
-        val gate = g.exitDoors.firstOrNull { it.target == GameEngine.NEXT_WORLD }
-        assertNotNull("the gate to World 2 is still there", gate)
-        walkThrough(g, gate!!)
+        assertTrue("the world server is still there", g.worldServerShown)
+        useServer(g)
         assertEquals(2, g.world)
     }
 
@@ -99,6 +98,16 @@ class WorldMapCampaignTest {
         val w = g.captureWorld(1, emptyList())
         val back = com.cyberoperative.game.engine.CoopCodec.decodeWorld(com.cyberoperative.game.engine.CoopCodec.encodeWorld(w))!!
         assertEquals(g.slideSide, back.slideSide)
+    }
+
+    /** Walk up to the world server and press MOVE TO NEXT WORLD. */
+    private fun useServer(g: GameEngine) {
+        val o = g.operatives[0]
+        o.px = g.worldServerX; o.py = g.worldServerY + 70f
+        g.update(1f / 60f)
+        assertTrue(g.nearWorldServer())
+        assertTrue(g.pressNextWorld())
+        repeat(90) { g.update(1f / 60f) }
     }
 
     private fun forward(g: GameEngine): ExitDoor = g.exitDoors.first { it.target == g.room + 1 || it.target == GameEngine.NEXT_WORLD }
@@ -187,10 +196,14 @@ class WorldMapCampaignTest {
         var guard = 0
         while (g.phase != Phase.PORTAL && guard++ < 60 * 30) g.update(1f / 60f)
         assertTrue("4+ upgrade drops", g.loot.count { it.kind == LootKind.UPGRADE } >= GameEngine.CAMPAIGN_BOSS_PICKS)
-        val gate = g.exitDoors.first { it.target == GameEngine.NEXT_WORLD }
-        walkThrough(g, gate)
+        assertTrue(g.worldServerShown)
+        assertTrue("no wall gate any more", g.exitDoors.none { it.target == GameEngine.NEXT_WORLD })
+        // Not at the server: the button does nothing.
+        assertFalse(g.pressNextWorld())
+        useServer(g)
         assertEquals(2, g.world)
         assertEquals(0, g.room)
+        assertFalse(g.worldServerOn)
         assertTrue(g.clearedRooms.isEmpty())
     }
 
@@ -216,6 +229,7 @@ class WorldMapCampaignTest {
         while (!g.campaignComplete && guard++ < 60 * 30) g.update(1f / 60f)
         assertTrue(g.campaignComplete)
         assertTrue("no next-world gate", g.exitDoors.none { it.target == GameEngine.NEXT_WORLD })
+        assertFalse("no world server after World 15", g.worldServerOn)
         assertTrue(g.answerCampaignComplete(continueEndless = true))
         assertEquals(GameMode.ENDLESS, g.mode)
         assertEquals("WORLD ??? · ROOM ???", g.roomLabel())

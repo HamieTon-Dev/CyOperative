@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.26.3 (versionCode 89) |
+| Version | 0.27.0 (versionCode 90) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **World server (0.27.0)** replaces the next-world wall gate.
+  - `placeWorldServer()` runs on boss death (`campaignCleared`), on revisiting a beaten boss room (`enterRoom`), and on restoring a save.
+  - `pressNextWorld(index)` sets `Operative.worldReady`. The transition starts once every player still in the run is ready.
+  - Readiness clears in `update` (PORTAL) when a player is out of `WORLD_SERVER_REACH`, and on shop entry.
+  - Co-op v23 carries the server and each operative's `worldReady`; the guest presses through `CoopInput.nextWorldSerial`.
 - **Co-op shop (0.26.0)**:
   - Each Operative has its own `shopItems` and `shopReady`. `GameEngine.shopItems` is the current operative's stock.
   - The guest buys through `CoopInput.shopSerial/shopIndex/shopReplace`, applied on the host by `buyShopItemFor`.

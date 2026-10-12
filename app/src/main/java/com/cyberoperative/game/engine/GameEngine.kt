@@ -1147,7 +1147,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         when (phase) {
             Phase.COMBAT -> checkCleared()
             Phase.CLEARED -> if (phaseTimer >= CLEAR_BEAT) afterClear()
-            Phase.PORTAL -> forEachAlive { portalCheck() }
+            Phase.PORTAL -> {
+                forEachAlive { portalCheck() }
+                // Walking away from the world server cancels that player's "ready".
+                for (o in ops) if (o.worldReady && !nearWorldServer(o)) o.worldReady = false
+            }
             else -> {}
         }
     }
@@ -1224,7 +1228,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         victory = null
         shopGateOpen = false
         goingToShop = false
-        for (o in ops) { o.shopItems = emptyList(); o.shopReady = false }
+        for (o in ops) { o.shopItems = emptyList(); o.shopReady = false; o.worldReady = false }
+        worldServerOn = false
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
@@ -1762,6 +1767,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.px = arena.out[0]; o.py = arena.out[1]
             o.facing = -MathUtil.PI / 2f
             o.shopReady = false
+            o.worldReady = false
             cur = o
             try { o.shopItems = rollShopItems() } finally { cur = ops[primary] }
         }
@@ -2085,7 +2091,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             exitDoors.clear()
             exitDoors += campaignDoors(room)
             if (room >= CampaignMap.BOSS_INDEX && room in clearedRooms) {
-                if (world >= CampaignMap.WORLDS) campaignComplete = true else exitDoors += doorAt(0, NEXT_WORLD)
+                if (world >= CampaignMap.WORLDS) campaignComplete = true else placeWorldServer()
             }
         }
         invuln = 2f
@@ -2249,9 +2255,55 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         else -> "WORLD $world · ROOM ${room + 1}"
     }
 
+    // --- World server (owner, 2026-10-12) ------------------------------------------------
+    // After a world boss falls, a glowing server rises in the middle of the room. Walk up to it
+    // and press MOVE TO NEXT WORLD; in co-op everyone presses (1/2 READY), and walking away or
+    // going into the shop cancels it.
+    var worldServerOn = false
+        private set
+    var worldServerX = 0f
+        private set
+    var worldServerY = 0f
+        private set
+    /** The server is drawn and usable (not while the shop room is up). */
+    val worldServerShown: Boolean get() = worldServerOn && !inShop
+
+    private fun placeWorldServer() {
+        arena.pushOut(arena.width / 2f, arena.height / 2f, WORLD_SERVER_RADIUS)
+        worldServerX = arena.out[0]; worldServerY = arena.out[1]
+        worldServerOn = true
+        for (o in ops) o.worldReady = false
+    }
+
+    fun nearWorldServer(o: Operative = ops[primary]): Boolean =
+        worldServerShown && phase == Phase.PORTAL && o.alive && !o.gone && MathUtil.dist(o.px, o.py, worldServerX, worldServerY) < WORLD_SERVER_REACH
+
+    val worldReadyCount: Int get() = ops.count { !it.gone && it.worldReady }
+    val worldReadyTotal: Int get() = ops.count { !it.gone }
+    val meWorldReady: Boolean get() = ops[primary].worldReady
+
+    /** MOVE TO NEXT WORLD for operative [index]: solo goes now, co-op once everyone pressed. */
+    fun pressNextWorld(index: Int = primary): Boolean {
+        val o = ops.getOrNull(index) ?: return false
+        if (!nearWorldServer(o)) return false
+        o.worldReady = true
+        sound(GameSound.UI_CLICK)
+        if (ops.any { !it.gone && !it.worldReady }) return true
+        for (p in ops) p.worldReady = false
+        phase = Phase.TRANSITION
+        phaseTimer = 0f
+        goingToShop = false
+        pendingRoom = NEXT_WORLD
+        pendingEntry = 3
+        slideSide = 0
+        sound(GameSound.ACCESS_GRANTED)
+        return true
+    }
+
     /** Campaign: which wall the way onward is on, for the "door open" hint. */
     fun forwardHint(): String {
         if (!campaign || inShop) return ""
+        if (worldServerOn) return "WORLD SECURED · WALK TO THE SERVER IN THE CENTRE FOR WORLD ${world + 1}"
         val d = exitDoors.firstOrNull { it.target == room + 1 || it.target == NEXT_WORLD } ?: return ""
         val where = when (d.side) { 0 -> "▲ FAR WALL"; 1 -> "◀ LEFT WALL"; 2 -> "RIGHT WALL ▶"; else -> "▼ NEAR WALL" }
         val to = when {
@@ -2297,9 +2349,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         startLevel(CampaignMap.levelFor(world, r), null, false, campaignPlan(world, r, revisit))
         exitDoors.clear()
         exitDoors += campaignDoors(r)
-        // A beaten world boss's room keeps its gate to the next world (back from the shop, or
-        // walking back in): it used to be added only when the boss fell, stranding the player.
-        if (revisit && r >= CampaignMap.BOSS_INDEX && world < CampaignMap.WORLDS) exitDoors += doorAt(0, NEXT_WORLD)
+        // A beaten world boss's room keeps its world server (back from the shop, or walking
+        // back in): the way on used to appear only when the boss fell, stranding the player.
+        if (revisit && r >= CampaignMap.BOSS_INDEX && world < CampaignMap.WORLDS) placeWorldServer()
         var (ex, ey) = entryPoint(entrySide)
         if (atY >= 0f) ey = atY
         for (o in ops) {
@@ -2352,8 +2404,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             campaignFinished = true
             showBanner("CAMPAIGN COMPLETE", "ALL ${CampaignMap.WORLDS} SERVER WORLDS SECURED", 3f)
         } else {
-            exitDoors += doorAt(0, NEXT_WORLD)
-            showBanner("WORLD $world SECURED", "THE GATE TO WORLD ${world + 1} IS OPEN", 2.2f)
+            placeWorldServer()
+            showBanner("WORLD $world SECURED", "THE SERVER TO WORLD ${world + 1} IS ONLINE", 2.2f)
         }
     }
 
@@ -4372,6 +4424,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var lastSpell2Serial = 0
     private var lastRerollSerial = 0
     private var lastShopSerial = 0
+    private var lastNextWorldSerial = 0
 
     /** Host: the guest's latest movement and picks. */
     fun applyInput(index: Int, c: CoopInput) {
@@ -4395,6 +4448,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (c.pickSerial > lastPickSerial) {
             lastPickSerial = c.pickSerial
             chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
+        }
+        if (c.nextWorldSerial > lastNextWorldSerial) {
+            lastNextWorldSerial = c.nextWorldSerial
+            pressNextWorld(index)
         }
         if (c.shopSerial > lastShopSerial) {
             lastShopSerial = c.shopSerial
@@ -4440,6 +4497,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
             for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
             n.shopReady = o.shopReady
+            n.worldReady = o.worldReady
             w.ops += n
         }
         for (e in enemies.items) {
@@ -4507,6 +4565,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         w.inShop = inShop; w.shopSeed = shopSeed; w.keeper = keeperLook.ordinal
         w.shopGateOpen = shopGateOpen; w.shopGateRight = shopGateRight; w.shopGateY = shopGateY; w.shopMessageSerial = shopMessageSerial
+        w.worldServerOn = worldServerOn; w.worldServerX = worldServerX; w.worldServerY = worldServerY
         return w
     }
 
@@ -4532,6 +4591,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val newRoom = w.level != level || w.levelSeed != levelSeed || w.room != room || w.world != world ||
             w.inShop != inShop || (w.inShop && w.shopSeed != shopSeed)
         shopGateOpen = w.shopGateOpen; shopGateRight = w.shopGateRight; shopGateY = w.shopGateY; shopMessageSerial = w.shopMessageSerial
+        worldServerOn = w.worldServerOn; worldServerX = w.worldServerX; worldServerY = w.worldServerY
         if (newRoom && w.inShop) {
             level = w.level; levelSeed = w.levelSeed
             shopSeed = w.shopSeed
@@ -4610,6 +4670,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (offer.map { it.def.id to it.nextLevel } != o.offer.map { it.def.id to it.nextLevel }) o.offer = offer
             o.shopItems = n.shop.mapNotNull { s -> Upgrades.all.getOrNull(s[0])?.let { ShopItem(it, s[1], s[2], s[3] != 0) } }
             o.shopReady = n.shopReady
+            o.worldReady = n.worldReady
         }
 
         // Enemies by uid: keep the ones still alive (smoothly moved), add new, burst the vanished.
@@ -4877,6 +4938,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val GATE_HALF_WIDTH = 80f
         /** Campaign: a door that leads on to the next server world. */
         const val NEXT_WORLD = -10
+        const val WORLD_SERVER_RADIUS = 46f
+        const val WORLD_SERVER_REACH = 130f
         /** How far up from the bottom edge a near-wall (bottom) door's trigger sits. */
         const val BOTTOM_DOOR_INSET = 40f
         /** Least drops a world boss gives (the old "level 10" haul). */
