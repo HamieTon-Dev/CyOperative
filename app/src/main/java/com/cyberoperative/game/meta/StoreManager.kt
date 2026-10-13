@@ -35,6 +35,13 @@ object StoreManager {
         // Data Vault update (owner, 2026-10-13): € no longer buys upgrades. Everyone's € and the
         // upgrades bought with it are wiped once; the board now runs on Overclock points.
         if (!out.dataVaultWipe) out = out.copy(euros = 0, permanentUpgrades = emptyMap(), dataVaultWipe = true)
+        // 0.30.2 (owner): every level needs ×10 the XP. Scale what's banked once so each character
+        // keeps the level (and Overclock) it had already earned.
+        if (!out.xpScaled) out = out.copy(
+            operativeXp = out.operativeXp * com.cyberoperative.game.data.OpProgress.LEVEL_XP_MUL,
+            otherCharacters = out.otherCharacters.map { it.copy(operativeXp = it.operativeXp * com.cyberoperative.game.data.OpProgress.LEVEL_XP_MUL) },
+            xpScaled = true
+        )
         // The body always follows the class.
         val body = com.cyberoperative.game.data.Operatives.byId(out.selectedOperative).bodyId
         if (out.operativeBody != body) out = out.copy(operativeBody = body)

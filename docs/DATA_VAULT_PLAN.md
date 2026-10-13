@@ -14,7 +14,7 @@ upgrades screen) to a slow Diablo-style loot-and-level grind.
 
 ## Design
 
-**OP Level 1–60.** XP comes from all activities, mostly kills; elites and bosses give more.
+**OP Level 1–60.** XP comes from all activities, mostly kills; elites and bosses give more. Since 0.30.2 every level (and Overclock) needs ×10 the XP below (owner).
 - XP to the next level:
   - L 1–49: ⌊(L+9)² × 25⌋ (Diablo IV).
   - L 50–59: flat steps.

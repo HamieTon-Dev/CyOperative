@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.30.2 (versionCode 95) — 2026-10-13 · ×10 level XP
+### Changed (owner: "these XP numbers required to level up need to be multiplied by 10")
+- **Every OP level needs 10× the XP.** Level 1 → 2 is 25,000, 49 → 50 is 841,000, 59 → 60 is 1,620,000, and the whole 1–60 climb is 29,211,000 XP.
+- **OVERCLOCK costs ×10 as well** (OC 1 is 6,000,000), so it stays a longer grind than the last levels.
+- Kill and room XP are unchanged:
+  - normal kills give 25 + 6 × monster level;
+  - elites ×5 and bosses ×60;
+  - a cleared room gives 60 + 15 × monster level.
+- **Existing saves keep their level.** The OP XP already banked (on every character) is multiplied by 10 once.
+### Technical
+- `OpProgress.LEVEL_XP_MUL` (×10 on `xpToNext` and `overclockXp`). One-time `PlayerProfile.xpScaled` migration in `StoreManager.migrate`. `OpProgressTest` updated, plus the new `XpScaleMigrationTest`.
+
 ## 0.30.1 (versionCode 94) — 2026-10-13 · fixes
 ### Fixed
 - **The Android keyboard kept closing while typing a character name.**

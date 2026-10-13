@@ -14,14 +14,16 @@ import org.junit.Test
 /** OP Lv 1–60, OVERCLOCK 1–300, armor, the € wipe and kill XP (owner, 2026-10-13). */
 class OpProgressTest {
     @Test fun levelsFollowDiabloFour() {
-        assertEquals(2500L, OpProgress.xpToNext(1))                  // ⌊(1+9)² × 25⌋
-        assertEquals(84_100L, OpProgress.xpToNext(49))               // ⌊58² × 25⌋
+        // ×10 the Diablo IV numbers (owner, 2026-10-13).
+        assertEquals(25_000L, OpProgress.xpToNext(1))                // ⌊(1+9)² × 25⌋ × 10
+        assertEquals(841_000L, OpProgress.xpToNext(49))              // ⌊58² × 25⌋ × 10
+        assertEquals(1_620_000L, OpProgress.xpToNext(59))
         assertTrue(OpProgress.xpToNext(50) > OpProgress.xpToNext(49))
         for (l in 1 until 59) assertTrue(OpProgress.xpToNext(l + 1) >= OpProgress.xpToNext(l))
         val to60 = OpProgress.totalFor(60)
-        assertTrue("1–60 is a few million XP: $to60", to60 in 2_000_000L..4_000_000L)
+        assertEquals(29_211_000L, to60)
         assertEquals(1, OpProgress.of(0).level)
-        assertEquals(2, OpProgress.of(2500).level)
+        assertEquals(2, OpProgress.of(25_000).level)
         val s = OpProgress.of(to60)
         assertEquals(60, s.level)
         assertEquals(0, s.overclock)
@@ -79,5 +81,21 @@ class OpProgressTest {
         assertEquals(1, low)
         assertEquals(40, high)
         assertTrue(RunConfig(opLevel = 40).opHpMul > RunConfig(opLevel = 1).opHpMul * 3f)
+    }
+}
+
+/** 0.30.2: the ×10 level XP keeps every existing character's level. */
+class XpScaleMigrationTest {
+    @Test fun oldSavesKeepTheirLevel() {
+        val oldXp = 506_375L // OP Lv 31 under the old curve
+        val p = com.cyberoperative.game.meta.StoreManager.migrate(
+            com.cyberoperative.game.save.PlayerProfile(operativeXp = oldXp,
+                otherCharacters = listOf(com.cyberoperative.game.save.CharacterSave("c", "Alt", "phantom", operativeXp = oldXp)))
+        )
+        assertEquals(31, OpProgress.of(p.operativeXp).level)
+        assertEquals(31, OpProgress.of(p.otherCharacters[0].operativeXp).level)
+        assertTrue(p.xpScaled)
+        // Only once.
+        assertEquals(p.operativeXp, com.cyberoperative.game.meta.StoreManager.migrate(p).operativeXp)
     }
 }

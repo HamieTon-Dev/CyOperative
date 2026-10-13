@@ -52,6 +52,8 @@ data class PlayerProfile(
     val neonRefunded: Boolean = false,
     /** Data Vault update (2026-10-13): € and the € upgrades were wiped once. */
     val dataVaultWipe: Boolean = false,
+    /** 0.30.2: level XP became ×10; banked OP XP was scaled ×10 once so nobody lost a level. */
+    val xpScaled: Boolean = false,
     /** Highest INFERNO tier unlocked (0 = none; beating World 15 on Hard unlocks I). */
     val infernoUnlocked: Int = 0,
     /** BOSS CODEX: per boss id, what you've done against it. */
