@@ -311,7 +311,12 @@ class BossBrain(private val g: GameEngine) {
             val uid = st.headUid[k]
             if (uid < 0) continue
             val m = g.enemies.items.firstOrNull { it.active && it.uid == uid && it.def.id == "hydra_head" }
-            if (m == null || k >= n) { st.headUid[k] = -1; continue }
+            if (m == null || k >= n) {
+                st.headUid[k] = -1
+                // A head destroyed takes 10% of the hydra's max HP with it (owner, 2026-10-13: too strong).
+                if (m == null && headSevered(e)) return
+                continue
+            }
             mask = mask or (1 shl k)
             m.x = rig[k * 4 + 2]; m.y = rig[k * 4 + 3]
             // Invulnerable until the regrow-and-roar is over.
@@ -407,6 +412,23 @@ class BossBrain(private val g: GameEngine) {
             rig[k * 4] += ((bx + tx) / 2f - rig[k * 4]) * f * 0.8f
             rig[k * 4 + 1] += ((by + ty) / 2f - e.radius * 1.2f - rig[k * 4 + 1]) * f * 0.8f
         }
+    }
+
+    /**
+     * Circuit Hydra: a head was destroyed, so the body loses [HEAD_KILL_HP_SHARE] of its max HP.
+     * True if that finished the hydra off.
+     */
+    private fun headSevered(e: Enemy): Boolean {
+        val loss = e.maxHp * HEAD_KILL_HP_SHARE
+        g.addText(e.x, HydraRig.coreY(e.y, e.radius) - 30f, "-10% HEAD SEVERED", TextKind.BOSS)
+        g.fx.shake(5f, 0.25f)
+        if (e.hp - loss <= 0f) {
+            e.hp = 0f
+            g.killEnemy(e)
+            return true
+        }
+        e.hp -= loss
+        return false
     }
 
     /** Grows head [k] on its neck, with HP from the hydra's. */
@@ -1839,6 +1861,8 @@ class BossBrain(private val g: GameEngine) {
         const val EXPOSE_SECONDS = 6f
         /** Circuit Hydra: each head's HP as a share of the hydra's max HP. */
         const val HEAD_HP_SHARE = 0.06f
+        /** Circuit Hydra: max HP the body loses for every head destroyed (owner, 2026-10-13). */
+        const val HEAD_KILL_HP_SHARE = 0.10f
         /** Regrow-and-roar timings: heads grow, lean in, roar, settle back. */
         const val REGROW_GROW = 0.8f
         const val REGROW_LEAN = 0.4f

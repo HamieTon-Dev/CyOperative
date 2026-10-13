@@ -868,7 +868,8 @@ class ArenaRenderer {
             else drawFarGate(d.x, open, time)
         }
         for (d in g.exitDoors) if (d.side == 3) drawNearGate(d.x, g.arena.height, open, time)
-        for (d in g.exitDoors) if (d.side != 0) {
+        // Side walls only (a bottom door was also drawn here as a phantom left EXIT, owner 0.30.0).
+        for (d in g.exitDoors) if (d.side == 1 || d.side == 2) {
             if (d.side == 2) withTransform({ scale(-1f, 1f, Offset(g.arena.width / 2f, 0f)) }) {
                 drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = true)
             } else drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = false)

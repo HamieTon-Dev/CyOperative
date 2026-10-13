@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.30.4 (versionCode 97) — 2026-10-13 · phantom door, Circuit Hydra
+### Fixed
+- **A fake "EXIT" on the left wall.**
+  - Any room with a door in its bottom (near) wall also drew a second copy of that door on the left wall, near the bottom.
+  - Walking into it did nothing, and it only appeared in rooms with a bottom door.
+  - It's gone; only real doors (top, side walls, bottom) are drawn.
+### Changed
+- **Circuit Hydra is weaker** (owner: "way too overpowered"). Every head destroyed takes **10% of the Hydra's max HP** with it, with a "−10% HEAD SEVERED" callout. Clearing three heads is −30% before you even hit the core.
+### Technical
+- `ArenaRenderer` draws side doors for sides 1 and 2 only.
+- `BossBrain.headSevered`, with `HEAD_KILL_HP_SHARE = 0.10`.
+- New `CircuitHydraTest.eachHeadDestroyedCostsTenPercent`.
+
 ## 0.30.3 (versionCode 96) — 2026-10-13 · XP bar, room shape fix
 ### Added
 - **White XP bar** in the HUD, under CORE HP: "OP Lv 15" then a white bar filling toward the next level, with the % at the end. Past OP Lv 60 it fills toward the next Overclock level. It shows in the phone portrait HUD, the Android landscape strip and the Steam HUD.

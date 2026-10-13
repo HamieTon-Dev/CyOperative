@@ -1007,6 +1007,19 @@ class CircuitHydraTest : ExpansionBossHarness({ com.cyberoperative.game.data.Bos
         assertTrue("heads can be hit again", h.hp < before)
     }
 
+    @Test fun eachHeadDestroyedCostsTenPercent() {
+        val g = fight()
+        val b = g.boss!!
+        run(g, 1.5f)
+        val start = b.hp
+        g.damageEnemy(heads(g).first(), 1e6f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        run(g, 0.05f)
+        assertEquals("one head = −10% max HP", start - b.maxHp * BossBrain.HEAD_KILL_HP_SHARE, b.hp, b.maxHp * 0.001f)
+        g.damageEnemy(heads(g).first(), 1e6f, false, com.cyberoperative.game.engine.ProjKind.BOLT, quiet = true)
+        run(g, 0.05f)
+        assertEquals("two heads = −20%", start - b.maxHp * 2 * BossBrain.HEAD_KILL_HP_SHARE, b.hp, b.maxHp * 0.001f)
+    }
+
     @Test fun beamArcOneBeamPerLivingHead() {
         val g = fight()
         run(g, 1.5f)
