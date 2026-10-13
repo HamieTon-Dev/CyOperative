@@ -297,10 +297,10 @@ private fun HpRow(h: HudSnapshot, label: String = "CORE HP", labelWidth: android
         labelColor = Palette.Green,
         fraction = f,
         color = Palette.healthColor(f),
-        overlay = if (h.firewallMax > 0) h.firewall / h.firewallMax.toFloat() else 0f,
+        overlay = 0f,
         value = "${h.hp}/${h.maxHp}",
-        extra = if (h.firewallMax > 0) "FW ${h.firewall}" else null,
-        description = "Core health ${h.hp} of ${h.maxHp}" + if (h.firewallMax > 0) ", firewall ${h.firewall} of ${h.firewallMax}" else ""
+        extra = h.opLabel,
+        description = "Core health ${h.hp} of ${h.maxHp}, ${h.opLabel}"
     )
 }
 
@@ -346,7 +346,7 @@ private fun StatRow(
         ThinBar(fraction, color, overlay, Modifier.weight(1f).height(8.dp))
         Text(value, color = Palette.TextPrimary, style = mono(10.sp, FontWeight.Medium), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 8.dp))
         if (extra != null) {
-            Text(extra, color = Palette.Orange, style = mono(10.sp, FontWeight.Medium), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 6.dp))
+            Text(extra, color = Palette.Cyan, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 6.dp))
         }
     }
 }

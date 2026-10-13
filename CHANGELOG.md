@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.28.0 (versionCode 91) — 2026-10-13 · Data Vault update, phase 1: levels and difficulty
+Owner: "the game is too easy again… this needs to be a slow grind". The full plan is in `docs/DATA_VAULT_PLAN.md`.
+
+### Added
+- **OP Lv 1–60** on Diablo IV's curve.
+  - XP per level is ⌊(L+9)² × 25⌋ up to 49, then flat steps to 60; about 2.9M XP in all.
+  - XP comes from every kill (elites ×5, bosses ×60) and every cleared room.
+  - Each level adds +4% base HP and +3% damage.
+- **OP Lv shows in the game**, next to the HP bar ("OP Lv 24"; "OP Lv 60 · OC 12" past 60).
+- **OVERCLOCK 1–300** after OP Lv 60 (the Paragon equivalent).
+  - It's a slow climb, and each level costs 3% more from OC 200.
+  - The last level costs about 40× the whole 1–60 climb.
+- **The UPGRADES screen is now the OVERCLOCK board.**
+  - It unlocks at OP Lv 60.
+  - Every Overclock level is one point, and each upgrade level costs 1 point.
+- **Monster level:** your level (plus a quarter of Overclock), or how deep the run is, whichever is higher.
+  - Enemies gain +6% HP and +4.5% damage per level (was +2% and +1.2%).
+- **Armor uses Diablo 3's formula:** damage cut = Armor / (Armor + 50 × monster level).
+  - Armor equal to 50× the monster level cuts 50%; double that cuts 66.7%.
+  - Armor upgrades now give flat armor (Encryption Armor +60, Titanium Chassis +150, Juggernaut +100, board ARMOR +25 per level).
+### Removed
+- **Firewall**: the whole upgrade chain (Firewall, Reinforced, Adaptive, Zero Trust Fortress), the board's Firewall Strength, the Juggernaut's 60 Firewall, the dome and the FW readout. It's HP and potions only.
+- **€ wipe (one time):** everyone's € and the upgrades bought with € are reset. € is only spent in the in-run shop now.
+### Technical
+- Co-op VERSION 24 (the Firewall field is gone). Both players need 0.28.0.
+- New `OpProgressTest` covers:
+  - the curves, the 40× Overclock and chip slots 5→15;
+  - armor at 50% and 66.7%;
+  - the one-time wipe;
+  - kill XP and enemy scaling.
+- `NoRegenTest` updated.
+
 ## 0.27.0 (versionCode 90) — 2026-10-12 · The world server
 ### Changed (owner: "a server that glows in the center of the room after the boss is defeated")
 - **After a world boss falls (Worlds 1–14), a glowing server rises in the middle of the room.**

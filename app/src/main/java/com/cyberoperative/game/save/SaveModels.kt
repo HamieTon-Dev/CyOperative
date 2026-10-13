@@ -50,6 +50,8 @@ data class PlayerProfile(
     val classRecords: Map<String, ClassRecord> = emptyMap(),
     /** NEON OPERATIVE became the free TECHNICIAN class: its ◇ price was refunded once. */
     val neonRefunded: Boolean = false,
+    /** Data Vault update (2026-10-13): € and the € upgrades were wiped once. */
+    val dataVaultWipe: Boolean = false,
     /** BOSS CODEX: per boss id, what you've done against it. */
     val bossRecords: Map<String, BossRecord> = emptyMap(),
     val settings: GameSettings = GameSettings()

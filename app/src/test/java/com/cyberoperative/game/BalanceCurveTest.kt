@@ -164,7 +164,7 @@ class BalanceCurveTest {
 
     @Test fun nothingOneShotsAndThreatDamageIsHalved() {
         for ((d, cap) in listOf(Difficulty.MEDIUM to 0.25f, Difficulty.HARD to 0.34f, Difficulty.EASY to 0.25f)) {
-            val s = RunStats().apply { maxHp = 1000f; firewallMax = 0f }
+            val s = RunStats().apply { maxHp = 1000f }
             val g = GameEngine(RunConfig(baseStats = s, seed = 9L, freeRevives = 0, difficulty = d, powerGovernor = true))
             g.debugStartPlan(LevelPlanner.plan(211, Random(1), null, true))
             val before = g.hp

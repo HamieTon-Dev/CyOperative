@@ -172,7 +172,7 @@ class ConsumablesTest {
 
     @Test
     fun retiredRerollsAreRefundedOnce() {
-        val p0 = com.cyberoperative.game.save.PlayerProfile(euros = 100, permanentUpgrades = mapOf("rerolls" to 2, "attack_speed" to 3))
+        val p0 = com.cyberoperative.game.save.PlayerProfile(euros = 100, permanentUpgrades = mapOf("rerolls" to 2, "attack_speed" to 3), dataVaultWipe = true)
         val spent = com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.let { it.costFor(0) + it.costFor(1) }
         val p1 = com.cyberoperative.game.meta.StoreManager.migrate(p0)
         assertEquals(100 + spent, p1.euros)

@@ -1,5 +1,7 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.data.OpProgress
+
 import com.cyberoperative.game.core.MathUtil
 import com.cyberoperative.game.core.Scaling
 import com.cyberoperative.game.data.EliteModifier
@@ -83,14 +85,15 @@ data class RunConfig(
     val coopBossHpMul: Float get() = if (coop) COOP_BOSS_HP_MUL else 1f
 
     /**
-     * Threat HP from OP level: +2% per level up to OP 101 (×3), then it keeps
+     * Threat HP from OP level (owner, 2026-10-13: enemies scale to the player, much harder than
+     * before): +6% per level (damage +4.5%) up to OP 101, then it keeps
      * climbing on a log curve (×7 at OP 1,000, ×11 at OP 9,999), times the
      * square root of the damage mastery added: mastery always pays off, but only
      * half of it (in multiplier terms) turns into easier fights.
      */
-    val opHpMul: Float get() = opCurve(0.02f, 0.6f) * kotlin.math.sqrt(masteryDpsRatio)
+    val opHpMul: Float get() = opCurve(0.06f, 0.6f) * kotlin.math.sqrt(masteryDpsRatio)
     /** Threat damage from OP level: +1.2% per level up to ×2.2, then log (×4.2 at OP 1,000, ×6.2 at 9,999); × √ survival mastery. */
-    val opDamageMul: Float get() = opCurve(0.012f, 0.4f) * kotlin.math.sqrt(masterySurvivalRatio)
+    val opDamageMul: Float get() = opCurve(0.045f, 0.4f) * kotlin.math.sqrt(masterySurvivalRatio)
 
     private fun opCurve(perLevel: Float, late: Float): Float {
         val base = 1f + perLevel * (opLevel - 1).coerceIn(0, 100)
@@ -430,9 +433,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     var hp: Float
         get() = cur.hp
         private set(v) { cur.hp = v }
-    var firewall: Float
-        get() = cur.firewall
-        private set(v) { cur.firewall = v }
     var facing: Float
         get() = cur.facing
         private set(v) { cur.facing = v }
@@ -496,9 +496,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var sinceDamage: Float
         get() = cur.sinceDamage
         set(v) { cur.sinceDamage = v }
-    private var firewallWasUp: Boolean
-        get() = cur.firewallWasUp
-        set(v) { cur.firewallWasUp = v }
     private var orbBoltTimer: Float
         get() = cur.orbBoltTimer
         set(v) { cur.orbBoltTimer = v }
@@ -877,7 +874,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (o in ops) {
             o.build.recompute()
             o.hp = o.build.stats.maxHp
-            o.firewall = o.build.stats.firewallMax
         }
         if (restore != null) applySnapshot(restore)
         else if (campaign) enterRoom(0, 3)
@@ -1027,7 +1023,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         o.downed = false
         o.reviveProgress = 0f
         o.hp = o.build.stats.maxHp * 0.5f
-        o.firewall = o.build.stats.firewallMax
         o.invuln = 2f
         addPulse(o.px, o.py, 200f, 0.6f, 0xFF00FF9C)
         addText(o.px, o.py - 40f, "REVIVED", TextKind.HEAL)
@@ -1249,7 +1244,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 o.downed = false
                 o.reviveProgress = 0f
                 o.hp = o.build.stats.maxHp * 0.5f
-                o.firewall = o.build.stats.firewallMax
             }
         }
         phase = Phase.COMBAT
@@ -1410,8 +1404,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (plan.kind != LevelKind.BOSS) clearPicks()
         addText(px, py - 40f, "+$euros €", TextKind.INFO)
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
-        // Firewall fully restores between arenas.
-        for (o in ops) if (o.alive) o.firewall = o.build.stats.firewallMax
+        // OP XP for clearing the room.
+        if (!mirror) opXpEarned += OpProgress.roomXp(monsterLevel, stats.xpMul)
         showBanner(if (plan.kind == LevelKind.EVENT) "EVENT COMPLETE" else "THREATS ELIMINATED", "", 1.2f)
         sound(GameSound.LEVEL_COMPLETE)
         sound(GameSound.CURRENCY)
@@ -1520,12 +1514,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val gained = stats.maxHp - wasMaxHp
             if (gained > 0f) hp += gained
             hp = min(hp, stats.maxHp)
-            if (choice.def == Upgrades.FIREWALL || choice.def.evolvesFrom == Upgrades.FIREWALL.id ||
-                choice.def.id in FIREWALL_IDS
-            ) {
-                firewall = stats.firewallMax
-                sound(GameSound.FIREWALL_UP)
-            }
         }
         pendingUpgrades--
         rewardBatchTaken++
@@ -1868,18 +1856,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         weaponTimers.remove(id)
         if (id == Upgrades.PLASMA_BEAM.id) { beamActive = false; beamHeat = 0f; beamCooldown = 0f }
         hp = min(hp, stats.maxHp)
-        firewall = min(firewall, stats.firewallMax)
         sound(GameSound.UI_BACK)
     }
 
-    /** Applies an upgrade's immediate side effects (HP gained, firewall refilled). Used by the shop. */
+    /** Applies an upgrade's immediate side effects (HP gained). Used by the shop. */
     private fun applyUpgrade(def: com.cyberoperative.game.data.UpgradeDef) {
         val wasMaxHp = stats.maxHp
         build.take(def)
         val gained = stats.maxHp - wasMaxHp
         if (gained > 0f) hp += gained
         hp = min(hp, stats.maxHp)
-        if (def.id in FIREWALL_IDS) firewall = stats.firewallMax
     }
 
     private fun openPortal() {
@@ -1903,7 +1889,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val canRevive: Boolean get() = !coop && phase == Phase.DEAD && revivesLeft > 0
 
     /**
-     * Revive in place (§34): half HP, full firewall, a long grace period and
+     * Revive in place (§34): half HP, a long grace period and
      * every hostile projectile/hazard near the operative wiped. Limited per run.
      */
     fun revive(paid: Boolean = false): Boolean {
@@ -1914,7 +1900,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         revivesUsed++
         hp = stats.maxHp * 0.5f
-        firewall = stats.firewallMax
         invuln = 2.5f
         for (p in projectiles.items) if (p.active && !p.friendly) p.active = false
         for (h in hazards.items) h.active = false
@@ -1977,7 +1962,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             level = level, levelSeed = levelSeed, previousArenaId = previousArenaId, previousEvent = previousEvent,
             format = 2, world = world, room = room, clearedRooms = clearedRooms.toList(), visitedRooms = visitedRooms.toList(),
             phase = phase.name, phaseTimer = phaseTimer,
-            px = px, py = py, hp = hp, firewall = firewall, facing = facing,
+            px = px, py = py, hp = hp, facing = facing,
             upgrades = HashMap(build.owned()), runLevel = runLevel, xp = xp,
             pendingUpgrades = pendingUpgrades, rewardBatchTotal = rewardBatchTotal, rewardBatchTaken = rewardBatchTaken,
             offerLuck = offerLuck, offer = offer.map { it.def.id }, upgradeReturnsToCombat = upgradeReturnsToCombat,
@@ -2039,7 +2024,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         waveIndex = r.waveIndex; waveTimer = r.waveTimer; spawnTimer = r.spawnTimer; hazardTimer = r.hazardTimer
         px = r.px; py = r.py; facing = r.facing
         hp = r.hp.coerceIn(1f, stats.maxHp)
-        firewall = r.firewall.coerceIn(0f, stats.firewallMax)
         for (se in r.enemies) {
             val def = try { Enemies.byId(se.def) } catch (_: Exception) { continue }
             val e = enemies.obtain() ?: break
@@ -2116,8 +2100,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (hurtFlash > 0f) hurtFlash -= dt
         sinceDamage += dt
 
-        // No HP or Firewall regeneration over time (owner, 2026-10-11: "way too easy" with HP
-        // charges in the game). Firewall refills when a room is cleared and from kills (ADAPTIVE).
+        // No HP regeneration over time (owner, 2026-10-11: "way too easy" with HP charges in the
+        // game). Firewall is gone entirely (2026-10-13).
 
         tickAbilities(cur, dt)
         // Movement. A co-op guest moves its own operative and reports where it is.
@@ -2254,6 +2238,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         room >= CampaignMap.BOSS_INDEX -> "WORLD $world · BOSS"
         else -> "WORLD $world · ROOM ${room + 1}"
     }
+
+    // --- OP level (owner, 2026-10-13) --------------------------------------------------------
+    /** OP XP earned this run (banked into the profile by the session). */
+    var opXpEarned = 0L
+        private set
+
+    /**
+     * Monster level: the operative's level (OP Lv plus a quarter of Overclock), or how deep the
+     * run is (level ÷ 2.5: World 15's boss is 60, Endless keeps climbing) when that's higher.
+     */
+    val monsterLevel: Int get() = max(config.opLevel, kotlin.math.ceil(level / 2.5f).toInt()).coerceAtLeast(1)
 
     // --- World server (owner, 2026-10-12) ------------------------------------------------
     // After a world boss falls, a glowing server rises in the middle of the room. Walk up to it
@@ -2795,7 +2790,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
             com.cyberoperative.game.data.Spell.FORTIFY -> {
                 o.fortify = FORTIFY_SECONDS
-                if (s.firewallMax > 0f) o.firewall = s.firewallMax
                 addPulse(o.px, o.py, 90f, 0.5f, 0xFFFFC233)
                 sound(GameSound.FIREWALL_UP)
             }
@@ -3398,25 +3392,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             invuln = 0.2f
             return
         }
-        var dmg = amount * PowerGovernor.threatDamage(config.difficulty) * (1f - s.armor)
+        // Armor (Diablo 3's formula, owner 2026-10-13): armor / (armor + 50 × monster level).
+        var dmg = amount * PowerGovernor.threatDamage(config.difficulty) * (1f - Armor.reduction(s.armor, monsterLevel))
         if (cur.fortify > 0f) dmg *= 1f - FORTIFY_REDUCTION
-        // No single hit takes more than a set share of the full HP + Firewall pool: nothing one-shots.
-        dmg = min(dmg, PowerGovernor.hitCap(config.difficulty) * (s.maxHp + s.firewallMax))
+        // No single hit takes more than a set share of full HP: nothing one-shots.
+        dmg = min(dmg, PowerGovernor.hitCap(config.difficulty) * s.maxHp)
         sinceDamage = 0f
-        if (firewall > 0f) {
-            val absorbed = min(firewall, dmg)
-            firewall -= absorbed
-            dmg -= absorbed
-            addText(px, py - 30f, "-${absorbed.toInt()}", TextKind.SHIELD)
-            sound(GameSound.SHIELD_BLOCK)
-            if (firewall <= 0f) {
-                firewallWasUp = false
-                sound(GameSound.FIREWALL_BREAK)
-                if (s.firewallBreakPulse > 0f) {
-                    firePulseDamage(px, py, 200f, s.damage * s.firewallBreakPulse, clearsProjectiles = true)
-                }
-            }
-        }
         if (dmg > 0f) {
             hp -= dmg
             levelDamageTaken += dmg
@@ -3512,7 +3493,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         } else eurosEarned += euros
         score += (Scoring.kill(e.def.score, level, e.isElite, e.isChild) * difficultyReward).toLong()
         if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
-        if (s.firewallOnKill > 0f && s.firewallMax > 0f) firewall = min(s.firewallMax, firewall + s.firewallMax * s.firewallOnKill)
+        // OP XP (owner, 2026-10-13): every kill, more for elites and bosses.
+        if (!mirror) opXpEarned += OpProgress.killXp(monsterLevel, e.isElite, e.boss != null, s.xpMul)
         repeat(if (e.isElite) 18 else 10) { addParticle(e.x, e.y, e.def.color, 200f, 0.5f, 3f) }
         sound(if (e.isElite) GameSound.ELITE_DEATH else GameSound.ENEMY_DEATH)
 
@@ -4483,7 +4465,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.bossPhaseLabel = bossPhaseLabel; w.bossUid = boss?.uid ?: -1
         for (o in ops) {
             val n = NetOp()
-            n.x = o.px; n.y = o.py; n.hp = o.hp; n.firewall = o.firewall; n.facing = o.facing
+            n.x = o.px; n.y = o.py; n.hp = o.hp; n.facing = o.facing
             n.moving = o.moving; n.invuln = o.invuln; n.hurtFlash = o.hurtFlash
             n.rooted = o.rooted; n.encrypted = o.encrypted; n.encryptCharge = o.encryptCharge; n.burning = o.burning
             n.pulled = o.pulled; n.pullX = o.pullX; n.pullY = o.pullY; n.pullStrength = o.pullStrength
@@ -4653,7 +4635,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             // everything else comes from the host.
             val hostPlaces = !local || newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
             if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
-            o.hp = n.hp; o.firewall = n.firewall; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
+            o.hp = n.hp; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
             o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge; o.burning = n.burning
             o.pulled = n.pulled; o.pullX = n.pullX; o.pullY = n.pullY; o.pullStrength = n.pullStrength
             o.chill = n.chill; o.frozen = n.frozen
@@ -4997,7 +4979,6 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         const val BEAM_COOLDOWN = 3f
 
-        private val FIREWALL_IDS = setOf("firewall", "reinforced_firewall", "adaptive_firewall", "zero_trust")
 
         fun distToSegment(px: Float, py: Float, x0: Float, y0: Float, x1: Float, y1: Float): Float {
             val dx = x1 - x0

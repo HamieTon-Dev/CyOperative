@@ -27,7 +27,8 @@ data class RunSnapshot(
     val px: Float,
     val py: Float,
     val hp: Float,
-    val firewall: Float,
+    /** Firewall is gone (2026-10-13); kept so older saves still decode. */
+    val firewall: Float = 0f,
     val facing: Float,
     val upgrades: Map<String, Int>,
     val runLevel: Int,

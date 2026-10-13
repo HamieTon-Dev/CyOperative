@@ -36,8 +36,9 @@ data class HudSnapshot(
     val euros: Int = 0,
     val hp: Int = 100,
     val maxHp: Int = 100,
-    val firewall: Int = 0,
-    val firewallMax: Int = 0,
+    /** "OP Lv 24" / "OP Lv 60 · OC 12", and progress to the next level (owner, 2026-10-13). */
+    val opLabel: String = "OP Lv 1",
+    val opFraction: Float = 0f,
     val xpPercent: Int = 0,
     val runLevel: Int = 1,
     val phase: Phase = Phase.COMBAT,
@@ -218,6 +219,7 @@ class GameSession(
         private set
 
     private var committedEuros = 0
+    private var committedOpXp = 0L
     private var committedKills = 0
     private var committedBosses = 0
     private var committedEvents = 0
@@ -235,6 +237,8 @@ class GameSession(
     val background = LivingBackground.byId(save.current.selectedBackground)
     val body = BodyStyle.byId(Operatives.byId(classId).bodyId)
 
+    /** OP XP before this run (the HUD adds what the run has earned). */
+    private val startOpXp: Long = save.current.operativeXp
     private val startBestLevel: Int
     private val startBestScore: Long
 
@@ -265,14 +269,14 @@ class GameSession(
             // Both devices build the exact same run from the room: host = operative 0, guest = 1.
             val host = link.state.host ?: error("Room has no host")
             val guest = link.state.guest ?: error("Room has no guest")
-            val hostCfg = Operatives.buildConfig(Operatives.byBody(host.body).id, host.permanent, link.state.seed)
-            val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed)
+            val hostCfg = Operatives.buildConfig(Operatives.byBody(host.body).id, host.permanent, link.state.seed, host.opLevel)
+            val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed, guest.opLevel)
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
                 ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots, guestCfg.classId)
             )
         } else {
-            Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime())
+            Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime(), com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level)
                 .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         }
         // Every run (solo and co-op, every platform) uses the drop rules: chips, weapon cards,
@@ -457,14 +461,15 @@ class GameSession(
         val g = engine
         val b = g.boss
         val ev = g.plan.event
+        val opNow = com.cyberoperative.game.data.OpProgress.of(startOpXp + g.opXpEarned)
         return HudSnapshot(
             level = g.level,
             score = g.score,
             euros = g.eurosEarned,
             hp = kotlin.math.ceil(g.hp).toInt().coerceAtLeast(0),
             maxHp = g.stats.maxHp.toInt(),
-            firewall = g.firewall.toInt(),
-            firewallMax = g.stats.firewallMax.toInt(),
+            opLabel = opNow.label,
+            opFraction = opNow.fraction,
             xpPercent = (g.xpFraction * 100).toInt(),
             runLevel = g.runLevel,
             phase = g.phase,
@@ -805,7 +810,9 @@ class GameSession(
         val eventIds = if (engine.eventsCompleted > 0) engine.completedEventIds else emptySet()
         var unlocked: List<String> = emptyList()
         save.update { p ->
-            val xpGain = Scoring.operativeXp(if (countRun) s.levelReached else 0, dKills, dBosses)
+            // OP XP (owner, 2026-10-13): what the run earned from kills and rooms since the last bank.
+            val xpGain = engine.opXpEarned - committedOpXp
+            committedOpXp = engine.opXpEarned
             val updated = p.copy(
                 // Shop purchases spend run € (a negative delta); never below zero.
                 euros = (p.euros + dEuros).coerceAtLeast(0),

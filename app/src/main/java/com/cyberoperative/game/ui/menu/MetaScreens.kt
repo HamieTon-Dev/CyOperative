@@ -55,61 +55,62 @@ import com.cyberoperative.game.ui.common.TerminalCard
 import com.cyberoperative.game.ui.theme.Palette
 
 // ---------------------------------------------------------------------------
-// UPGRADES — permanent € progression (§31)
+// OVERCLOCK — the board past OP Lv 60 (owner, 2026-10-13; was the € UPGRADES screen)
 // ---------------------------------------------------------------------------
 
 @Composable
 fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
     val profile by save.profile.collectAsState()
-    val opLevel = operativeLevel(profile.operativeXp)
-    ScreenScaffold("UPGRADES", onBack, trailing = { CurrencyChip("€", profile.euros, Palette.Euro) }) {
+    val op = com.cyberoperative.game.data.OpProgress.of(profile.operativeXp)
+    val spent = boardSpent(profile.permanentUpgrades)
+    val points = com.cyberoperative.game.data.OpProgress.boardPoints(op, spent)
+    val unlocked = op.level >= com.cyberoperative.game.data.OpProgress.MAX_LEVEL
+    ScreenScaffold("OVERCLOCK", onBack, trailing = { CurrencyChip("PTS", points.toLong(), Palette.Cyan) }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
-                Text(
-                    "Past each upgrade's max, MASTERY levels keep going (up to ${"%,d".format(com.cyberoperative.game.data.PermanentUpgradeDef.MAX_LEVEL)}). " +
-                        "Each mastery level needs one OP level and gives a little less than the last. Threats grow with your mastery too.",
-                    color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall
-                )
+                TerminalCard(accent = if (unlocked) Palette.Cyan else Palette.Divider) {
+                    Column {
+                        Text(op.label.uppercase(), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(4.dp))
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { op.fraction }, modifier = Modifier.fillMaxWidth().height(6.dp),
+                            color = Palette.Cyan, trackColor = Palette.Divider
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (unlocked) "Every OVERCLOCK level is one point to spend below. $points to spend · $spent spent."
+                            else "The Overclock board unlocks at OP Lv ${com.cyberoperative.game.data.OpProgress.MAX_LEVEL}. Earn XP from every kill; elites and bosses give more.",
+                            color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
-            items(PermanentUpgrades.all, key = { it.id }) { def ->
+            items(PermanentUpgrades.all.filter { it.id != com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.id }, key = { it.id }) { def ->
                 val level = profile.permanentUpgrades[def.id] ?: 0
                 val maxed = level >= def.levelCap
-                val cost = def.costFor(level)
-                // Locked until the OP level the next level needs (WEAPON SLOTS: OP 10/20/30/50/80).
-                val needOp = if (def.levelUnlocks != null) def.unlockFor(level) else if (level < def.maxLevel) def.unlockAt else level - def.maxLevel + 1
-                val locked = !maxed && (opLevel < def.unlockAt || level >= def.capAt(opLevel))
-                val mastered = level >= def.maxLevel
-                val affordable = profile.euros >= cost
-                TerminalCard(accent = if (mastered) Palette.Gold else Palette.Divider) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(if (locked && level == 0) 0.55f else 1f)) {
+                TerminalCard(accent = if (level > 0) Palette.Cyan else Palette.Divider) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(if (!unlocked) 0.55f else 1f)) {
                         Column(Modifier.weight(1f)) {
                             Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                             Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                             Text(
-                                (if (level > def.maxLevel) "LV ${"%,d".format(level)} · MASTERY ${"%,d".format(level - def.maxLevel)}" else "LV $level/${def.maxLevel}") +
-                                    (if (level > 0) "  ·  ${def.effectAt(level)}" else "") +
-                                    (if (level > def.maxLevel && def.mastery == com.cyberoperative.game.data.Mastery.SOFT) "  ·  soft cap" else ""),
+                                "LV $level" + (if (level > 0) "  ·  ${def.effectAt(level)}" else ""),
                                 color = Palette.Green, style = MaterialTheme.typography.labelSmall
                             )
                         }
                         Spacer(Modifier.width(8.dp))
                         when {
                             maxed -> Text("MAX", color = Palette.Gold, style = MaterialTheme.typography.titleMedium)
-                            locked -> LockedBadge(needOp)
-                            else -> CyberButton("€ ${"%,d".format(cost)}", enabled = affordable, accent = Palette.Euro) {
+                            !unlocked -> LockedBadge(com.cyberoperative.game.data.OpProgress.MAX_LEVEL)
+                            else -> CyberButton("+1 · 1 PT", enabled = points > 0, accent = Palette.Cyan) {
                                 var bought = false
                                 save.update { p ->
+                                    val now = com.cyberoperative.game.data.OpProgress.of(p.operativeXp)
                                     val cur = p.permanentUpgrades[def.id] ?: 0
-                                    val c = def.costFor(cur)
-                                    if (cur >= def.capAt(operativeLevel(p.operativeXp)) || p.euros < c) p
+                                    if (cur >= def.levelCap || com.cyberoperative.game.data.OpProgress.boardPoints(now, boardSpent(p.permanentUpgrades)) <= 0) p
                                     else {
                                         bought = true
-                                        val next = p.copy(euros = p.euros - c, permanentUpgrades = p.permanentUpgrades + (def.id to cur + 1))
-                                        val ach = Achievements.evaluateProfileOnly(next)
-                                        next.copy(
-                                            achievements = next.achievements + ach.map { it.id },
-                                            euros = next.euros + ach.sumOf { it.rewardEuros.toLong() }
-                                        )
+                                        p.copy(permanentUpgrades = p.permanentUpgrades + (def.id to cur + 1))
                                     }
                                 }
                                 audio.play(if (bought) GameSound.UPGRADE_SELECTED else GameSound.UI_BACK)
@@ -122,6 +123,9 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
         }
     }
 }
+
+/** Overclock points spent on the board: one per upgrade level. */
+fun boardSpent(levels: Map<String, Int>): Int = levels.values.sum()
 
 // ---------------------------------------------------------------------------
 // OPERATIVE — account level and records (§39)

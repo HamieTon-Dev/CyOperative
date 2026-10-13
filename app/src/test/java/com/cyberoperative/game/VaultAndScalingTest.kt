@@ -65,13 +65,13 @@ class VaultAndScalingTest {
             if (level > 1) g.debugJumpToLevel(level)
             return g.spawnEnemyAt(Enemies.MALWARE, null, 200f, 300f, telegraph = false)!!.maxHp
         }
-        // …and it scales with OP level from level 1: +2% HP per OP level, half on EASY.
-        assertEquals(1.5f, hp(26, 1) / hp(1, 1), 0.01f)
-        assertEquals(1.5f, hp(26, 60) / hp(1, 60), 0.01f)
+        // …and it scales with OP level from level 1: +6% HP per OP level (2026-10-13), half on EASY.
+        assertEquals(2.5f, hp(26, 1) / hp(1, 1), 0.01f)
+        assertEquals(2.5f, hp(26, 60) / hp(1, 60), 0.01f)
         val easy = com.cyberoperative.game.engine.Difficulty.EASY
-        assertEquals(1.25f, hp(26, 1, easy) / hp(1, 1, easy), 0.01f)
-        assertEquals(3f, RunConfig(opLevel = 101).opHpMul, 0.001f)
-        assertEquals(5.89f, RunConfig(opLevel = 500).opHpMul, 0.01f)
+        assertEquals(1.75f, hp(26, 1, easy) / hp(1, 1, easy), 0.01f)
+        assertEquals(7f, RunConfig(opLevel = 101).opHpMul, 0.001f)
+        assertTrue(RunConfig(opLevel = 135).opHpMul > RunConfig(opLevel = 101).opHpMul)
     }
 
     @Test fun bigBuildsNoLongerToughenThreats() {

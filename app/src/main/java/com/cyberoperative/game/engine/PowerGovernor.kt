@@ -63,7 +63,7 @@ object PowerGovernor {
 
     /** Rough staying power: HP and firewall through armor, boosted by healing. */
     fun survival(s: RunStats): Float =
-        (s.maxHp + s.firewallMax) / (1f - s.armor).coerceAtLeast(0.1f) * (0.75f + 0.25f * s.healMul) / (1f - s.dodge).coerceAtLeast(0.5f)
+        s.maxHp / (1f - Armor.reduction(s.armor, Armor.NOMINAL_ML)).coerceAtLeast(0.1f) * (0.75f + 0.25f * s.healMul) / (1f - s.dodge).coerceAtLeast(0.5f)
 
     /**
      * HP lift for regular threats: how far [teamDps] outpaces a basic threat whose HP

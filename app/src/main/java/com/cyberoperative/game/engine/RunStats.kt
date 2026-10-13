@@ -10,13 +10,11 @@ package com.cyberoperative.game.engine
 class RunStats {
     // Survivability
     var maxHp = 100f
-    var armor = 0f              // fraction of incoming damage removed, 0..0.6
+    /** Armor (owner, 2026-10-13): damage cut = armor / (armor + 50 × monster level), see [Armor]. */
+    var armor = 0f
     var dodge = 0f              // chance to ignore a hit, 0..0.4
     var healOnKill = 0f         // flat HP per kill
     var healMul = 1f
-    var firewallMax = 0f        // absorb shield
-    var firewallOnKill = 0f     // fraction restored per kill (adaptive firewall)
-    var firewallBreakPulse = 0f // damage of the shockwave when the firewall breaks
     var counterRing = 0         // projectiles released when hit
 
     // Primary weapon (fires only while stationary)
@@ -75,8 +73,7 @@ class RunStats {
 
     fun copyFrom(o: RunStats) {
         maxHp = o.maxHp; armor = o.armor; dodge = o.dodge
-        healOnKill = o.healOnKill; healMul = o.healMul; firewallMax = o.firewallMax
-        firewallOnKill = o.firewallOnKill; firewallBreakPulse = o.firewallBreakPulse
+        healOnKill = o.healOnKill; healMul = o.healMul
         counterRing = o.counterRing
         damage = o.damage; fireRate = o.fireRate; projectileSpeed = o.projectileSpeed
         range = o.range; critChance = o.critChance; critMul = o.critMul
@@ -98,7 +95,7 @@ class RunStats {
 
     /** Clamp the stats that would break the game if stacked without limit. */
     fun clampLimits() {
-        armor = armor.coerceIn(0f, 0.6f)
+        armor = armor.coerceAtLeast(0f)
         dodge = dodge.coerceIn(0f, 0.4f)
         critChance = critChance.coerceIn(0f, 0.85f)
         instantDeleteChance = instantDeleteChance.coerceIn(0f, 0.15f)

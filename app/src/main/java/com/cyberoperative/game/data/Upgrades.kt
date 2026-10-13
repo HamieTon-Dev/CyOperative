@@ -125,7 +125,6 @@ object Upgrades {
         s.orbDamage *= masteryCurve(orbit)
         s.bladeDamage *= masteryCurve(orbit)
         s.maxHp *= masteryCurve(defense)
-        if (s.firewallMax > 0f) s.firewallMax *= masteryCurve(defense)
         s.euroMul += MASTERY_UTILITY * utility
         s.xpMul += MASTERY_UTILITY * utility
     }
@@ -167,33 +166,6 @@ object Upgrades {
     )
 
     // --- Defense: Firewall evolution chain ----------------------------------
-    val FIREWALL = UpgradeDef(
-        "firewall", "FIREWALL", "[#]", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,
-        "A barrier that absorbs damage before your HP. Refills when a room is cleared.",
-        { "+25 Firewall" },
-        { s, l -> s.firewallMax += 25f * l }
-    )
-    val REINFORCED_FIREWALL = UpgradeDef(
-        "reinforced_firewall", "REINFORCED FIREWALL", "[##]", Rarity.RARE, UpgradeCategory.DEFENSE, 1,
-        "EVOLUTION. Thicker rules.",
-        { "Firewall +50%" },
-        { s, _ -> s.firewallMax *= 1.5f },
-        evolvesFrom = "firewall"
-    )
-    val ADAPTIVE_FIREWALL = UpgradeDef(
-        "adaptive_firewall", "ADAPTIVE FIREWALL", "[#~]", Rarity.EPIC, UpgradeCategory.DEFENSE, 1,
-        "EVOLUTION. Learns from every threat: kills restore Firewall.",
-        { "Each kill restores 8% Firewall" },
-        { s, _ -> s.firewallOnKill += 0.08f },
-        evolvesFrom = "reinforced_firewall"
-    )
-    val ZERO_TRUST = UpgradeDef(
-        "zero_trust", "ZERO TRUST FORTRESS", "[ZT]", Rarity.LEGENDARY, UpgradeCategory.DEFENSE, 1,
-        "FINAL EVOLUTION. Never trust, always verify: a broken Firewall detonates outward.",
-        { "Firewall x2, breaking it releases a blast" },
-        { s, _ -> s.firewallMax *= 2f; s.firewallBreakPulse = 3.5f },
-        evolvesFrom = "adaptive_firewall"
-    )
 
     // --- Weapons -------------------------------------------------------------
     val PACKET_SCATTER = UpgradeDef(
@@ -297,8 +269,8 @@ object Upgrades {
     val TITANIUM_CHASSIS = UpgradeDef(
         "titanium_chassis", "TITANIUM CHASSIS", "[TI]", Rarity.TITANIUM, UpgradeCategory.DEFENSE, 1,
         "A titanium-plated frame. Shrugs off what would shred anyone else.",
-        { "+60% max HP, +12% armor, +60 Firewall" },
-        { s, _ -> s.maxHp *= 1.6f; s.armor += 0.12f; s.firewallMax += 60f }
+        { "+60% max HP, +150 armor" },
+        { s, _ -> s.maxHp *= 1.6f; s.armor += 150f }
     )
     val OMEGA_OVERCLOCK = UpgradeDef(
         "omega_overclock", "OMEGA OVERCLOCK", "<<!>>", Rarity.TITANIUM, UpgradeCategory.STAT, 1,
@@ -361,8 +333,8 @@ object Upgrades {
     )
     val ENCRYPTION_ARMOR = UpgradeDef(
         "encryption_armor", "ENCRYPTION ARMOR", "[+]", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 4,
-        "Reduces all incoming damage.", { "-8% damage taken" },
-        { s, l -> s.armor += 0.08f * l }
+        "Hardened plating: armor cuts the damage you take.", { "+60 armor" },
+        { s, l -> s.armor += 60f * l }
     )
     val PACKET_EVASION = UpgradeDef(
         "packet_evasion", "PACKET EVASION", "~", Rarity.UNCOMMON, UpgradeCategory.DEFENSE, 3,
@@ -403,7 +375,6 @@ object Upgrades {
 
     val all: List<UpgradeDef> = listOf(
         PACKET_NODES, ENHANCED_NODES, SENTINEL_NODES, AUTONOMOUS_NODE, NODE_OVERCLOCK,
-        FIREWALL, REINFORCED_FIREWALL, ADAPTIVE_FIREWALL, ZERO_TRUST,
         PACKET_SCATTER, EXPLOIT_LANCE, PLASMA_BEAM, ENCRYPTION_BLADES, EMP_BURST, BOTNET_CHAIN,
         PACKET_SPLIT, MULTISHOT, DIAGONAL_ROUTING, PENETRATION, PACKET_BOUNCE,
         KERNEL_OVERCLOCK, PAYLOAD_BOOST, CRITICAL_INJECTION, ZERO_DAY_STRIKE, EXPLOIT_CHANCE,

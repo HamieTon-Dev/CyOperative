@@ -122,10 +122,8 @@ object PermanentUpgrades {
             { l -> p(1.5f * l) + " crit chance" }, { s, l -> s.critChance += 0.015f * l }, mastery = Mastery.SOFT, softExtra = 20),
         PermanentUpgradeDef("crit_damage", "CRITICAL DAMAGE", "Exploit weaknesses harder.", 10, 90, 3,
             { l -> p(8f * l) + " crit damage" }, { s, l -> s.critMul += 0.08f * l }),
-        PermanentUpgradeDef("armor", "ENEMY DAMAGE REDUCTION", "Hardened chassis.", 10, 100, 3,
-            { l -> "-${n(2f * l)}% damage taken" }, { s, l -> s.armor += 0.02f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("firewall", "FIREWALL STRENGTH", "Start every run with a firewall (refills when a room is cleared).", 10, 110, 4,
-            { l -> "+${n(10f * l)} firewall" }, { s, l -> s.firewallMax += 10f * l }),
+        PermanentUpgradeDef("armor", "ARMOR", "Hardened chassis: armor cuts the damage you take.", 10, 100, 3,
+            { l -> "+${n(25f * l)} armor" }, { s, l -> s.armor += 25f * l }, mastery = Mastery.SOFT, softExtra = 10),
         PermanentUpgradeDef("orb_damage", "ORB DAMAGE", "Packet Nodes hit harder.", 15, 70, 2,
             { l -> p(8f * l) + " node damage" }, { s, l -> s.orbDamage *= 1f + 0.08f * l }),
         PermanentUpgradeDef("starting_orbs", "STARTING ORB COUNT", "Begin each run with extra Packet Nodes.", 2, 900, 6,
@@ -186,10 +184,10 @@ object Operatives {
     )
     val JUGGERNAUT = OperativeDef(
         "juggernaut", "JUGGERNAUT", "Armoured breacher. Soaks the hits nobody else can and answers with a slam.",
-        "BRUTE FORCE: a slow, crushing slam. ×2 HP, 60 Firewall, −10% speed.", bodyId = "mech",
-        traits = listOf("×2 max HP", "Starts with 60 Firewall", "−10% move speed", "Built-in: BRUTE FORCE (slow, heavy slam)"),
+        "BRUTE FORCE: a slow, crushing slam. ×2 HP, +100 armor, −10% speed.", bodyId = "mech",
+        traits = listOf("×2 max HP", "+100 armor", "−10% move speed", "Built-in: BRUTE FORCE (slow, heavy slam)"),
         modify = { s ->
-            s.maxHp *= 2f; s.firewallMax += 60f; s.moveSpeed *= 0.9f
+            s.maxHp *= 2f; s.armor += 100f; s.moveSpeed *= 0.9f
             s.weapons[com.cyberoperative.game.data.Weapons.BRUTE_FORCE.id] = 1
         }
     )
@@ -211,8 +209,11 @@ object Operatives {
     fun byBody(bodyId: String) = all.firstOrNull { it.bodyId == bodyId } ?: CYBER_OPERATIVE
 
     /** Build a run's starting configuration from the operative + permanent upgrades. */
-    fun buildConfig(operativeId: String, permanent: Map<String, Int>, seed: Long): RunConfig {
+    fun buildConfig(operativeId: String, permanent: Map<String, Int>, seed: Long, opLevel: Int = 1): RunConfig {
         val (stats, config) = build(operativeId, permanent, seed, coreOnly = false)
+        // OP level (owner, 2026-10-13): each level adds a little base HP and damage. Gear is
+        // what really makes an operative stronger.
+        OpProgress.applyLevel(stats, opLevel)
         // Mastery (levels past the designed range) is answered by tougher threats:
         // the same stats with mastery stripped give how much stronger mastery made the operative.
         val (core, _) = build(operativeId, permanent, seed, coreOnly = true)
@@ -245,5 +246,5 @@ object Operatives {
 
     /** Rough staying power: HP and firewall through armor, boosted by healing. */
     private fun survival(s: RunStats): Float =
-        (s.maxHp + s.firewallMax) / (1f - s.armor).coerceAtLeast(0.1f) * (0.75f + 0.25f * s.healMul)
+        s.maxHp / (1f - com.cyberoperative.game.engine.Armor.reduction(s.armor, com.cyberoperative.game.engine.Armor.NOMINAL_ML)).coerceAtLeast(0.1f) * (0.75f + 0.25f * s.healMul)
 }

@@ -761,8 +761,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseBuildTab(
         "CRIT" to "${(s.critChance * 100).toInt()}%",
         "RANGE" to "%.0f".format(s.range),
         "MAX HP" to "%.0f".format(s.maxHp),
-        "ARMOR" to "${(s.armor * 100).toInt()}%",
-        "FIREWALL" to "%.0f".format(s.firewallMax),
+        "ARMOR" to "%.0f".format(s.armor),
         "DODGE" to "${(s.dodge * 100).toInt()}%",
         "MOVE" to "%.0f".format(s.moveSpeed)
     )

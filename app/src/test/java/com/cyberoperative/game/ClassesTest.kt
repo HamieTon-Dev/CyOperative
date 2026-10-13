@@ -45,7 +45,7 @@ class ClassesTest {
 
         val j = stats("juggernaut")
         assertEquals(base.maxHp * 2f, j.maxHp, 0.01f)
-        assertEquals(60f, j.firewallMax, 0.01f)
+        assertEquals(100f, j.armor, 0.01f)
         assertEquals(base.moveSpeed * 0.9f, j.moveSpeed, 0.01f)
         assertEquals(1, j.weapons[Weapons.BRUTE_FORCE.id])
 

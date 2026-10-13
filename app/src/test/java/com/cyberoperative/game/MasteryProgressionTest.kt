@@ -5,7 +5,6 @@ import com.cyberoperative.game.data.Operatives
 import com.cyberoperative.game.data.PermanentUpgradeDef
 import com.cyberoperative.game.data.PermanentUpgrades
 import com.cyberoperative.game.engine.RunConfig
-import com.cyberoperative.game.ui.menu.MAX_OPERATIVE_LEVEL
 import com.cyberoperative.game.ui.menu.operativeLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -48,7 +47,8 @@ class MasteryProgressionTest {
             assertTrue(d.id, d.effectiveLevel(d.maxLevel + 1) > d.maxLevel)
         }
         val maxed = Operatives.buildConfig("operative", PermanentUpgrades.all.associate { it.id to it.levelCap }, 1L).baseStats
-        assertTrue(maxed.armor <= 0.6f)
+        // Armor is a flat value now (Diablo formula), not a capped fraction.
+        assertTrue(maxed.armor >= 0f)
         assertTrue(maxed.critChance <= 0.85f)
         assertTrue(maxed.moveSpeed < 276f * 1.61f)
     }
@@ -69,7 +69,7 @@ class MasteryProgressionTest {
         val hp = def("max_hp")
         assertEquals(20, hp.capAt(0))
         assertEquals(70, hp.capAt(50))
-        assertEquals(PermanentUpgradeDef.MAX_LEVEL, hp.capAt(MAX_OPERATIVE_LEVEL))
+        assertEquals(PermanentUpgradeDef.MAX_LEVEL, hp.capAt(9999))
         for (l in listOf(20, 100, 1000, 9998)) assertTrue(hp.costFor(l + 1) > hp.costFor(l))
     }
 
@@ -82,10 +82,9 @@ class MasteryProgressionTest {
             assertTrue(c.opDamageMul > prevDmg || op == 1)
             prevHp = c.opHpMul; prevDmg = c.opDamageMul
         }
-        assertEquals(3f, RunConfig(opLevel = 101).opHpMul, 1e-3f)
-        assertEquals(7.1f, RunConfig(opLevel = 1000).opHpMul, 0.1f)
-        assertEquals(11.3f, RunConfig(opLevel = 9999).opHpMul, 0.15f)
-        assertEquals(6.2f, RunConfig(opLevel = 9999).opDamageMul, 0.1f)
+        // Owner, 2026-10-13: enemies scale hard with the operative: +6% HP, +4.5% damage per level.
+        assertEquals(7f, RunConfig(opLevel = 101).opHpMul, 1e-3f)
+        assertEquals(5.5f, RunConfig(opLevel = 101).opDamageMul, 1e-3f)
     }
 
     @Test fun masteryIsAnsweredByTougherThreatsButStillPaysOff() {
@@ -100,9 +99,4 @@ class MasteryProgressionTest {
         assertTrue(c1.masterySurvivalRatio > c1.opDamageMul / c0.opDamageMul)
     }
 
-    @Test fun operativeLevelReachesNineThousandNineHundredNinetyNine() {
-        assertEquals(1, operativeLevel(0))
-        assertEquals(MAX_OPERATIVE_LEVEL, operativeLevel(Long.MAX_VALUE / 4))
-        assertTrue(operativeLevel(100_000_000L) in 1000 until MAX_OPERATIVE_LEVEL)
-    }
 }

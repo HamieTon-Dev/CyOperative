@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.27.0 (versionCode 90) |
+| Version | 0.28.0 (versionCode 91) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,15 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Data Vault update, in progress** (see `docs/DATA_VAULT_PLAN.md`). Phase 1 shipped in 0.28.0:
+  - `data/OpProgress` has the OP Lv 1–60 and Overclock 1–300 curves.
+  - `engine/Armor` applies the Diablo 3 formula.
+  - Monster level is `GameEngine.monsterLevel`.
+  - Run XP is `opXpEarned`, banked by `GameSession`.
+  - Firewall is removed.
+  - The € wipe migrates via `PlayerProfile.dataVaultWipe`.
+  - The UPGRADES screen is now the OVERCLOCK board, bought with points.
+  - Next: Phase 2 (loot core).
 - **World server (0.27.0)** replaces the next-world wall gate.
   - `placeWorldServer()` runs on boss death (`campaignCleared`), on revisiting a beaten boss room (`enterRoom`), and on restoring a save.
   - `pressNextWorld(index)` sets `Operative.worldReady`. The transition starts once every player still in the run is ready.

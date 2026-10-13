@@ -32,6 +32,9 @@ object StoreManager {
                 permanentUpgrades = out.permanentUpgrades - com.cyberoperative.game.data.PermanentUpgrades.RETIRED_REROLLS.id
             )
         }
+        // Data Vault update (owner, 2026-10-13): € no longer buys upgrades. Everyone's € and the
+        // upgrades bought with it are wiped once; the board now runs on Overclock points.
+        if (!out.dataVaultWipe) out = out.copy(euros = 0, permanentUpgrades = emptyMap(), dataVaultWipe = true)
         // The body always follows the class.
         val body = com.cyberoperative.game.data.Operatives.byId(out.selectedOperative).bodyId
         if (out.operativeBody != body) out = out.copy(operativeBody = body)

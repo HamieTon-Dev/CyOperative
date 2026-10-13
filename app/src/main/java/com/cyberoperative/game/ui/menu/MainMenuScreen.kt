@@ -44,7 +44,7 @@ import com.cyberoperative.game.ui.theme.Palette
 import kotlin.math.sin
 
 enum class MenuTarget(val label: String) {
-    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("OPERATIVE"), UPGRADES("UPGRADES"), ARMORY("ARMORY"), CODEX("BOSS CODEX"),
+    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("OPERATIVE"), UPGRADES("OVERCLOCK"), ARMORY("ARMORY"), CODEX("BOSS CODEX"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
     SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE")
 }
@@ -83,7 +83,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("OP LVL ${operativeLevel(profile.operativeXp)}", color = Palette.Green, style = MaterialTheme.typography.labelLarge)
+                Text(operativeLabel(profile.operativeXp), color = Palette.Green, style = MaterialTheme.typography.labelLarge)
                 Row {
                     CurrencyChip("€", profile.euros, Palette.Euro)
                     Spacer(Modifier.width(8.dp))
@@ -160,17 +160,11 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
 }
 
 /** Highest operative level (owner, 2026-10-08). */
-const val MAX_OPERATIVE_LEVEL = 9999
+/**
+ * The level that drives monster level and unlocks (owner, 2026-10-13): OP Lv 1–60 plus a quarter
+ * of OVERCLOCK. See [com.cyberoperative.game.data.OpProgress].
+ */
+fun operativeLevel(xp: Long): Int = com.cyberoperative.game.data.OpProgress.of(xp).effective
 
-/** Account level from Operative XP (§39): each level needs a little more. */
-fun operativeLevel(xp: Long): Int {
-    var level = 1
-    var need = 200L
-    var rest = xp
-    while (rest >= need && level < MAX_OPERATIVE_LEVEL) {
-        rest -= need
-        level++
-        need = 200L + (level - 1) * 60L
-    }
-    return level
-}
+/** "OP LV 24" / "OP LV 60 · OC 12" for menus. */
+fun operativeLabel(xp: Long): String = com.cyberoperative.game.data.OpProgress.of(xp).label.uppercase()

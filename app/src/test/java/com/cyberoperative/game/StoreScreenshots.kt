@@ -119,7 +119,7 @@ class StoreScreenshots {
     @Test fun s5_combatMech() {
         assumeTrue(enabled)
         shoot("05_sentinel_mech", 5f, profile = { strong(it).copy(operativeBody = "mech", selectedSkin = "zero_day_hunter") }, setup = { s ->
-            s.engine.build.take(Upgrades.PACKET_SCATTER); s.engine.build.take(Upgrades.FIREWALL)
+            s.engine.build.take(Upgrades.PACKET_SCATTER); s.engine.build.take(Upgrades.ENCRYPTION_ARMOR)
             s.engine.debugStartPlan(LevelPlanner.plan(15, Random(77), null, true))
         })
     }

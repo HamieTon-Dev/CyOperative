@@ -1647,12 +1647,6 @@ class ArenaRenderer {
             }
         }
         val blink = g.invuln > 0f && ((time * 20f).toInt() % 2 == 0)
-        // Firewall dome.
-        if (g.firewall > 0f) {
-            val f = g.firewall / max(1f, g.stats.firewallMax)
-            drawOval(Palette.Orange.copy(alpha = 0.10f + 0.12f * f), Offset(g.px - r * 1.8f, g.py - r * 2.6f), Size(r * 3.6f, r * 3.4f))
-            drawOval(Palette.Orange.copy(alpha = 0.35f + 0.4f * f), Offset(g.px - r * 1.8f, g.py - r * 2.6f), Size(r * 3.6f, r * 3.4f), style = Stroke(2f))
-        }
         // Firing ring on the floor.
         if (!g.moving && g.targetUid >= 0) {
             drawOval(Palette.Green.copy(alpha = 0.55f), Offset(g.px - r * 1.4f, g.py), Size(r * 2.8f, r * 1.1f), style = Stroke(2f))

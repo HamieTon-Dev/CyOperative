@@ -65,7 +65,7 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
             val centreW = if (compact) (maxWidth * 0.68f).coerceIn(560.dp, 720.dp) else (maxWidth * 0.56f).coerceIn(600.dp, 780.dp)
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("OP LVL ${operativeLevel(profile.operativeXp)}", color = Palette.Green, style = MaterialTheme.typography.labelLarge)
+                    Text(operativeLabel(profile.operativeXp), color = Palette.Green, style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.weight(1f))
                     CurrencyChip("€", profile.euros, Palette.Euro)
                     Spacer(Modifier.width(8.dp))

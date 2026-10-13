@@ -433,7 +433,7 @@ class ScreenshotPreviews {
 
     private fun manyBuffs(s: GameSession) {
         val U = com.cyberoperative.game.data.Upgrades
-        for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
+        for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.ENCRYPTION_ARMOR, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
     }
 
     private class FakeCoop(registered: Boolean) : com.cyberoperative.game.net.CoopBackend {
@@ -604,7 +604,7 @@ class ScreenshotPreviews {
         assumeTrue(enabled)
         gameplay("hud_upgrade_bar", 3f) { s ->
             val U = com.cyberoperative.game.data.Upgrades
-            for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
+            for (d in listOf(U.PAYLOAD_BOOST, U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.ENCRYPTION_ARMOR, U.QUANTUM_RAILGUN, U.ORBITAL_STRIKE, U.PLASMA_BEAM)) s.engine.build.take(d)
         }
     }
 
@@ -703,7 +703,7 @@ class ScreenshotPreviews {
         assumeTrue(enabled)
         gameplay("hud_upgrade_bar_boss", 5f) { s ->
             val U = com.cyberoperative.game.data.Upgrades
-            for (d in listOf(U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.FIREWALL, U.PLASMA_BEAM)) s.engine.build.take(d)
+            for (d in listOf(U.PAYLOAD_BOOST, U.PACKET_NODES, U.MALWARE_MISSILES, U.LOGIC_BOMBS, U.ARC_DISCHARGE, U.ENCRYPTION_ARMOR, U.PLASMA_BEAM)) s.engine.build.take(d)
             s.engine.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(10, kotlin.random.Random(1)))
         }
     }
@@ -802,7 +802,7 @@ class ScreenshotPreviews {
             gameplay("landscape_hud_boss", 6f) { s ->
                 val g = s.engine
                 g.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
-                for (u in listOf(com.cyberoperative.game.data.Upgrades.MALWARE_MISSILES, com.cyberoperative.game.data.Upgrades.MULTISHOT, com.cyberoperative.game.data.Upgrades.PAYLOAD_BOOST, com.cyberoperative.game.data.Upgrades.FIREWALL, com.cyberoperative.game.data.Upgrades.PENETRATION))
+                for (u in listOf(com.cyberoperative.game.data.Upgrades.MALWARE_MISSILES, com.cyberoperative.game.data.Upgrades.MULTISHOT, com.cyberoperative.game.data.Upgrades.PAYLOAD_BOOST, com.cyberoperative.game.data.Upgrades.ENCRYPTION_ARMOR, com.cyberoperative.game.data.Upgrades.PENETRATION))
                     if (g.build.isEligible(u)) g.build.take(u)
             }
         }
