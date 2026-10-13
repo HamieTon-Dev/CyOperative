@@ -88,6 +88,12 @@ class RunBuild(private val base: RunStats) {
         return false
     }
 
+    /** Gear changed mid-run (solo INVENTORY): new base stats, the same picks. */
+    fun replaceBase(next: RunStats) {
+        base.copyFrom(next)
+        recompute()
+    }
+
     fun recompute() {
         stats.copyFrom(base)
         for ((id, lvl) in levels) Upgrades.byId(id).applyLevel(stats, lvl)

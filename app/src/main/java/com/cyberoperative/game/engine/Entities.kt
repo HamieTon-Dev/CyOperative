@@ -132,7 +132,7 @@ class Zap {
 }
 
 /** PC consumables lying on the floor (owner, 2026-10-11). */
-enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH, UPGRADE }
+enum class LootKind { HP_CHARGE, PACKET_BOMB, CASH, UPGRADE, GEAR }
 
 /**
  * A pickup on the floor; [amount] is the € in a [LootKind.CASH] bag, [upgradeId] the
@@ -148,6 +148,8 @@ class Loot(val kind: LootKind, var x: Float, var y: Float, val amount: Int = 0, 
     val flying: Boolean get() = vx * vx + vy * vy > 30f * 30f
     /** A weapon chip the operative just declined to swap for: ignored until they step off it. */
     var declined = false
+    /** [LootKind.GEAR]: the item (on a co-op guest, a look-alike built from the snapshot). */
+    var gear: com.cyberoperative.game.data.GearItem? = null
 }
 
 /**

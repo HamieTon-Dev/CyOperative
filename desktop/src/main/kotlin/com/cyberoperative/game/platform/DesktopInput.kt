@@ -23,6 +23,8 @@ object DesktopInput {
     private var dash = false
     private var map = false
     fun takeMap(): Boolean = map.also { map = false }
+    private var inventory = false
+    fun takeInventory(): Boolean = inventory.also { inventory = false }
     private val spell = BooleanArray(2)
     /** Settings is waiting for a key to bind. */
     private var capture: ((Long?) -> Unit)? = null
@@ -58,6 +60,7 @@ object DesktopInput {
                     KeyBinds.code(KeyAction.PACKET_BOMB) -> packetBomb = true
                     KeyBinds.code(KeyAction.DASH) -> dash = true
                     KeyBinds.code(KeyAction.MAP) -> map = true
+                    KeyBinds.code(KeyAction.INVENTORY) -> inventory = true
                     KeyBinds.code(KeyAction.SPELL_1) -> spell[0] = true
                     KeyBinds.code(KeyAction.SPELL_2) -> spell[1] = true
                     KeyBinds.code(KeyAction.PAUSE) -> DesktopBack.dispatch()
@@ -108,6 +111,7 @@ object GameKeys {
     fun takePacketBomb(): Boolean = Gamepad.takePacketBomb() or DesktopInput.takePacketBomb()
     fun takeDash(): Boolean = Gamepad.takeDash() or DesktopInput.takeDash()
     fun takeMap(): Boolean = Gamepad.takeMap() or DesktopInput.takeMap()
+    fun takeInventory(): Boolean = DesktopInput.takeInventory()
     fun takeSpell(slot: Int): Boolean = Gamepad.takeSpell(slot) or DesktopInput.takeSpell(slot)
     fun keyName(code: Long): String = DesktopInput.keyName(code)
     fun captureKey(onKey: (Long?) -> Unit) = DesktopInput.captureKey(onKey)

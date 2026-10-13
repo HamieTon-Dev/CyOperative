@@ -34,6 +34,10 @@ object LootSprites {
         // Beams first so every chip body sits on top of every beam.
         // Co-op: a partner's drops are theirs alone, so they show only as a faint colour glow.
         for (l in g.loot) if (isMine(g, l) && l.kind == LootKind.UPGRADE) beam(l, time)
+        // Gear stands in a beam of its rarity colour (every rarity; brighter and taller as it climbs).
+        for (l in g.loot) if (isMine(g, l) && l.kind == LootKind.GEAR) l.gear?.let { gear ->
+            with(com.cyberoperative.game.ui.common.GearIcons) { drawLootBeam(gear.rarity, l.x, l.y + 8f, time + l.x * 0.01f, 1.3f) }
+        }
         for (l in g.loot) if (isMine(g, l)) drawOne(l, time) else ghost(l, time)
     }
 
@@ -44,6 +48,7 @@ object LootSprites {
         LootKind.PACKET_BOMB -> Color(0xFF7DF9FF)
         LootKind.CASH -> Color(0xFFFFC23D)
         LootKind.UPGRADE -> Color(rarityOf(l).color)
+        LootKind.GEAR -> Color(l.gear?.rarity?.color ?: 0xFFB8C4D6)
     }
 
     /** Someone else's drop: just a soft pulse of its colour, no icon, beam or prompt. */
@@ -88,6 +93,13 @@ object LootSprites {
         val bob = sin(time * 3.2f + l.x * 0.05f) * 2.5f
         val x = l.x
         val y = l.y + bob
+        if (l.kind == LootKind.GEAR) {
+            // The owner's item art, life-sized enough to recognise, bobbing in its beam.
+            val gear = l.gear ?: return
+            drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - 22f, l.y + 18f), Size(44f, 10f))
+            with(com.cyberoperative.game.ui.common.GearIcons) { drawGear(gear, x, y - 6f, 58f * pop) }
+            return
+        }
         // Drawn larger than life so they read at the zoomed-out PC view.
         scale(SCALE, Offset(x, l.y)) {
             drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - 10f, l.y + 9f), Size(20f, 6f))

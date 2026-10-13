@@ -56,7 +56,42 @@ data class PlayerProfile(
     val infernoUnlocked: Int = 0,
     /** BOSS CODEX: per boss id, what you've done against it. */
     val bossRecords: Map<String, BossRecord> = emptyMap(),
-    val settings: GameSettings = GameSettings()
+    val settings: GameSettings = GameSettings(),
+    // --- Characters and gear (Data Vault update, owner 2026-10-13) -----------------------
+    // The ACTIVE character lives in the top-level fields (operativeXp, permanentUpgrades,
+    // selectedOperative, savedRun and the gear below); the others wait in [otherCharacters].
+    // See meta/Characters.kt.
+    /** Active character's id and name ("" until the first character is made). */
+    val characterId: String = "",
+    val characterName: String = "",
+    val look: CharacterLook = CharacterLook(),
+    /** Gear: equipped per slot, the backpack (60) and the Data Vault (1,500). */
+    val equipped: Map<com.cyberoperative.game.data.GearSlot, com.cyberoperative.game.data.GearItem> = emptyMap(),
+    val backpack: List<com.cyberoperative.game.data.GearItem> = emptyList(),
+    val vault: List<com.cyberoperative.game.data.GearItem> = emptyList(),
+    /** Next gear id (unique across every character). */
+    val gearSeq: Long = 1,
+    val otherCharacters: List<CharacterSave> = emptyList()
+)
+
+/** Appearance picks on the character creator: HEAD, FACE, BODY, LEGS (three options each). */
+@Serializable
+data class CharacterLook(val head: Int = 0, val face: Int = 0, val body: Int = 0, val legs: Int = 0)
+
+/** A character that isn't the active one: everything that belongs to it alone. */
+@Serializable
+data class CharacterSave(
+    val id: String,
+    val name: String,
+    val classId: String,
+    val look: CharacterLook = CharacterLook(),
+    val operativeXp: Long = 0,
+    val permanentUpgrades: Map<String, Int> = emptyMap(),
+    val equipped: Map<com.cyberoperative.game.data.GearSlot, com.cyberoperative.game.data.GearItem> = emptyMap(),
+    val backpack: List<com.cyberoperative.game.data.GearItem> = emptyList(),
+    val vault: List<com.cyberoperative.game.data.GearItem> = emptyList(),
+    val savedRun: String? = null,
+    val lastDifficulty: String = "MEDIUM"
 )
 
 @Serializable

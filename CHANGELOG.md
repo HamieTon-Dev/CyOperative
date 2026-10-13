@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.30.0 (versionCode 93) — 2026-10-13 · Data Vault update, phase 2: gear loot and characters
+### Added (owner: loot sheets, character creator, character / gear / Data Vault mock-ups)
+- **Gear loot from elites and bosses, drawn with the owner's art.**
+  - 1,030 icons were cut from the owner's 13 sprite sheets: rifles, pistols, two helmet sets, chests, gloves, two boot sets, implants and cores.
+  - Each slot has its own atlas in `resources/gear/`, sorted by rarity.
+  - **Slots:** PRIMARY (rifles), SECONDARY (pistols), HELMET, CHEST, GLOVES, BOOTS, IMPLANT, CORE.
+  - **Rarities:**
+    - COMMON, UNCOMMON, RARE, EPIC and LEGENDARY use their own art.
+    - **ENCRYPTED** (orange, Inferno I+), **INFERNAL** (red, Inferno IV+) and **CRYPTO** (neon blue, Inferno VII+) reuse the golden art recoloured, with their own names and better stats. CRYPTO is close to 0%.
+  - **Item level** is your OP level ±2, never above 60.
+  - **Drops:**
+    - Elites drop gear 25% of the time (+2% per Inferno tier).
+    - A world boss drops 3 pieces per player (+1 every 3 Inferno tiers), with better odds.
+    - Bosses after World 12 or Endless level 120 roll better again.
+    - In co-op each player gets their own drops.
+  - **Every drop stands in a light beam** in its rarity colour (taller and brighter as rarity climbs, with motes from EPIC up). Drops above BLUE play a **sheen**, and GOLDEN and up a bigger chime.
+  - A HUD line names each pickup in its rarity colour.
+  - **Names:** a rarity prefix plus a slot noun, for example "Solar Railgun" or "Aegis Helmet". The same art at a higher rarity gets a new name.
+  - **Stats:**
+    - Weapons set your damage. Each rifle's art has its own attack style: Pulse, Burst, Scattergun, Railgun, SMG, Arc, Ricochet or Twin.
+    - **One rifle in five is a class weapon** only that class can equip: Tactical Carbine (Field Agent), Signal Rifle (Technician), Siege Cannon (Juggernaut), Ghost Rifle (Phantom) and Hex Caster (Packet Mage).
+    - Pistols carry one of the existing arsenal weapons at a level set by the item.
+    - Armor pieces roll armor, which works through the Diablo 3 formula. Cores add max HP and implants add crit.
+    - Each piece also has 0–6 rolled affixes.
+- **CHARACTER screen** (replaces OPERATIVE), with **OVERVIEW / GEAR / SKILLS / DATA VAULT** tabs as in the mock-ups:
+  - **OVERVIEW:** name, class, level and XP bar; class traits (Juggernaut shows +100 armor, not the old Firewall); stats with gear; APPEARANCE with EDIT APPEARANCE; CHANGE CHARACTER and DEPLOY.
+  - **GEAR:**
+    - The operative stands between its 8 gear slots, next to the BACKPACK (60, sortable) and the item card.
+    - The item card shows the main stat "vs equipped", the affixes and the attack style, with EQUIP / UNEQUIP, STORE IN VAULT, a lock and DISCARD.
+    - **Drag to equip:** drag an item onto its slot (hold, then drag, on phones). You can also drag between the backpack and the vault.
+  - **DATA VAULT:**
+    - 1,500 slots with a fill bar and search.
+    - Filters: ALL / WEAPONS / ARMOR / IMPLANTS / CORES.
+    - Sort by rarity, newest, level or slot.
+    - The backpack sits beside the grid, with DEPOSIT ALL and BACK TO GEAR.
+  - **SKILLS:** class spells, dash, and the Overclock board.
+  - Layouts for Steam / landscape and for phone portrait.
+- **CREATE CHARACTER:**
+  - Class list, a turning preview, and a name of 2–16 characters.
+  - **HEAD / FACE / BODY / LEGS**, three options each:
+    - head: class default, antenna or crest;
+    - face: >_<, digital bars or hunter eyes;
+    - body: default, chest reactor or chevron plating;
+    - legs: default, knee lights or jet boots.
+  - RANDOMIZE, then CREATE. The look shows on your operative in runs.
+- **Named characters (up to 8):**
+  - Each keeps its own level, Overclock, board, gear, backpack, Data Vault and saved run.
+  - First launch asks for a name, and that first character keeps the progress you already had.
+  - **CHANGE CHARACTER** switches between them, creates new ones and deletes old ones.
+  - Co-op pairing shows the **character name** (works on Steam, direct IP and offline).
+- **INVENTORY in game:**
+  - A button at the **top left** under the HUD (PC: **I**) opens the CHARACTER screen over the run. Solo runs pause while it's open.
+  - Gear swaps apply at once in solo. In co-op they apply on your next run.
+### Technical
+- Models:
+  - `data/Gear.kt`: `GearItem`, `GearRarity`, `GearSlot`, `GunStyle`, `GearArt` and the `Gear` rolls, odds and apply.
+  - `data/Appearance.kt`.
+  - `meta/Characters.kt`: `Characters` and `GearBank`.
+- Saves: `PlayerProfile` has the active character (`characterId/Name`, `look`, `equipped`, `backpack`, `vault`, `gearSeq`), with `otherCharacters` holding the rest.
+- Engine:
+  - `LootKind.GEAR` carries the item; drops are rolled per operative from `gearLevel`, using its own `gearRng`.
+  - `Operative.gearFound` is banked by `GameSession` every 2 s.
+  - `GameEngine.reequip`; `RunBuild.replaceBase`.
+- Co-op: codec **v25**. Gear drops send their look, and the guest's finds travel in `guestGear`. `RoomPlayer.gear` is carried by all three backends.
+- Rendering:
+  - Icons: `ui/common/GearIcons.kt` (atlas loader via `loadImageResource` on both platforms, hue-rotated INFERNO rarities, `drawLootBeam`).
+  - Character parts: `ClassFigures.accessories` with per-class anchors.
+- Sounds: `GameSound.GEAR_SHEEN` and `GEAR_LEGENDARY`.
+- Tests and renders:
+  - New `GearTest` (12 tests). `StartRunFlowTest` now goes through the creator.
+  - New renders: `character_gear_wide/portrait`, `character_overview_wide`, `data_vault_wide/portrait`, `create_character_wide/portrait`, `gear_floor_drops`.
+
 ## 0.29.0 (versionCode 92) — 2026-10-13 · INFERNO I–X
 ### Added (owner: "10 new difficulty levels after hard")
 - **Ten INFERNO difficulties past Hard.**

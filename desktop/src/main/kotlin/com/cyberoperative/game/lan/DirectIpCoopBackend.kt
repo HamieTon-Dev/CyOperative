@@ -265,7 +265,7 @@ class DirectIpCoopBackend : CoopBackend {
 
     private fun encode(p: RoomPlayer): String = buildJsonObject {
         put("uid", p.uid); put("name", p.name); put("opLevel", p.opLevel)
-        put("body", p.body); put("skin", p.skin); put("ready", p.ready)
+        put("body", p.body); put("skin", p.skin); put("ready", p.ready); put("gear", p.gear)
         putJsonObject("permanent") { for ((k, v) in p.permanent) put(k, v) }
     }.toString()
 
@@ -280,7 +280,8 @@ class DirectIpCoopBackend : CoopBackend {
                 opLevel = o["opLevel"]?.jsonPrimitive?.int ?: 1,
                 body = o["body"]?.jsonPrimitive?.content ?: "agent",
                 skin = o["skin"]?.jsonPrimitive?.content ?: "default",
-                ready = o["ready"]?.jsonPrimitive?.content == "true"
+                ready = o["ready"]?.jsonPrimitive?.content == "true",
+                gear = o["gear"]?.jsonPrimitive?.content ?: ""
             )
         } catch (_: Exception) {
             null

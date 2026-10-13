@@ -43,9 +43,19 @@ upgrades screen) to a slow Diablo-style loot-and-level grind.
    - € and upgrades wipe, and the Overclock board bought with points.
    - Monster level scaling and the armor formula.
    - Firewall removed.
-2. **Loot core:** the item model (slots, rarities, stats, item level), drops from elites and bosses with the late-world boost, the sheen sound, and saving the backpack and vault.
-3. **Equipment and Data Vault screens:** drag-to-equip, stats from equipped gear, and compare.
+2. ✅ (0.30.0) **Loot core:** the item model (slots, rarities, stats, item level), drops from elites and bosses with the late-world boost, the sheen sound, and saving the backpack and vault.
+3. ✅ (0.30.0) **Equipment and Data Vault screens:** drag-to-equip, stats from equipped gear, and compare.
 4. **Chips as loot:**
    - Chip slots 5→15, and the in-run chip/card system retired.
    - Weapons come from gear, rarity tints the weapon, and each weapon keeps its own attack.
 5. **Balance pass and tests** for the slow grind.
+
+## Shipped in 0.30.0
+- **Rarity ladder:** COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, then ENCRYPTED (orange, Inferno I+), INFERNAL (red, Inferno IV+) and CRYPTO (neon blue, Inferno VII+, close to 0%). The last three reuse the golden art, recoloured and renamed.
+- **Drops:**
+  - Elites drop gear 25% of the time (+2% per Inferno tier).
+  - A world boss drops 3 pieces per player (+1 every 3 Inferno tiers).
+  - Late bosses (after World 12 / Endless 120) get better odds.
+  - Item level is OP level ±2, never above 60.
+- **Weapons:** rifles have 8 attack styles plus 5 class-only weapons; pistols carry the existing arsenal weapons.
+- **Characters:** a creator, up to 8 named characters, each with its own progress and storage. Co-op shows the character name.

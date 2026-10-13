@@ -107,6 +107,18 @@ object SoundBank {
         GameSound.UI_CLICK to Recipe(0.07f, listOf(v(Q, 880f, 1180f, 0.35f, 34f)), 0.45f),
         GameSound.UI_BACK to Recipe(0.08f, listOf(v(Q, 900f, 600f, 0.35f, 30f)), 0.4f),
         GameSound.BOOT_TICK to Recipe(0.03f, listOf(v(Q, 2400f, amp = 0.2f, decay = 80f)), 0.12f),
+        // Gear drop sheen: a bright rising shimmer (EPIC); GOLDEN and up add a low bell under it.
+        GameSound.GEAR_SHEEN to Recipe(0.9f, listOf(
+            v(S, 1568f, amp = 0.28f, decay = 5f), v(S, 2093f, amp = 0.24f, decay = 5f, delay = 0.06f),
+            v(S, 2637f, amp = 0.22f, decay = 4.5f, delay = 0.12f), v(S, 3136f, amp = 0.2f, decay = 4f, delay = 0.18f),
+            v(N, 1f, 1f, 0.05f, 6f, attack = 0.08f)
+        ), 0.45f),
+        GameSound.GEAR_LEGENDARY to Recipe(1.4f, listOf(
+            v(S, 523f, amp = 0.35f, decay = 2.2f), v(T, 1046f, amp = 0.18f, decay = 2.6f),
+            v(S, 1568f, amp = 0.26f, decay = 4f, delay = 0.08f), v(S, 2093f, amp = 0.24f, decay = 4f, delay = 0.14f),
+            v(S, 2637f, amp = 0.22f, decay = 3.5f, delay = 0.2f), v(S, 3520f, amp = 0.2f, decay = 3f, delay = 0.26f),
+            v(N, 1f, 1f, 0.06f, 4f, attack = 0.1f)
+        ), 0.55f),
         GameSound.ACCESS_GRANTED to Recipe(0.8f, listOf(
             v(T, 523f, amp = 0.4f, decay = 4f), v(T, 784f, amp = 0.4f, decay = 4f, delay = 0.12f),
             v(T, 1046f, amp = 0.4f, decay = 3f, delay = 0.24f)

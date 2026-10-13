@@ -77,7 +77,9 @@ data class RunConfig(
     /** PC consumables (HP charges on Q, Packet Bombs on E, floor drops). On for the landscape PC build. */
     val consumables: Boolean = com.cyberoperative.game.data.ArenaShape.pcRules,
     /** This player's class (its PC spells). */
-    val classId: String = "operative"
+    val classId: String = "operative",
+    /** This player's own OP level for gear drops (co-op runs scale threats to the higher one); 0 = [opLevel]. */
+    val gearLevel: Int = 0
 ) {
     val coop: Boolean get() = ally != null
     /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
@@ -180,6 +182,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (config.consumables) for (o in this) o.hpCharges = START_HP_CHARGES
         this[0].classId = config.classId
         config.ally?.let { a -> getOrNull(1)?.classId = a.classId }
+        this[0].gearLevel = if (config.gearLevel > 0) config.gearLevel else config.opLevel
+        config.ally?.let { a -> getOrNull(1)?.gearLevel = a.opLevel }
     }
     val operatives: List<Operative> get() = ops
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
@@ -2451,7 +2455,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Onto the floor, or (a boss dying) into the queue it sprays out of. */
     private fun placeLoot(l: Loot) {
-        if (spewing) spewQueue += l else loot += l
+        if (spewing) spewQueue += l else { loot += l; gearLanded(l) }
     }
 
     private fun updateSpew(dt: Float) {
@@ -2468,6 +2472,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         l.vy = sin(a) * dist * SPEW_DRAG
         l.age = 0f
         loot += l
+        gearLanded(l)
         addParticle(spewX, spewY, 0xFFFFD426, 160f, 0.35f, 3f)
         sound(GameSound.CURRENCY)
     }
@@ -2475,7 +2480,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private fun full(o: Operative, l: Loot): Boolean = when (l.kind) {
         LootKind.HP_CHARGE -> o.hpCharges >= MAX_HP_CHARGES
         LootKind.PACKET_BOMB -> o.packetBombs >= MAX_PACKET_BOMBS
-        LootKind.CASH -> false
+        LootKind.CASH, LootKind.GEAR -> false
         // A new weapon with every slot taken waits for the swap prompt (or is walked over).
         LootKind.UPGRADE -> l.declined || chipDef(l)?.let { o.build.needsSlot(it) } != false
     }
@@ -2492,6 +2497,46 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             arena.pushOut(x + (o.index * 2 - (ops.size - 1)) * 26f, y, 14f)
             placeLoot(Loot(LootKind.UPGRADE, arena.out[0], arena.out[1], upgradeId = pick.def.id).also { it.owner = o.index })
         }
+    }
+
+    // --- Gear (Data Vault update, owner 2026-10-13) ------------------------------------
+    /** Gear swapped in the INVENTORY mid-run: operative [index] gets new base stats (HP keeps its share). */
+    fun reequip(index: Int, base: RunStats) {
+        val o = ops.getOrNull(index) ?: return
+        val frac = (o.hp / o.build.stats.maxHp.coerceAtLeast(1f)).coerceIn(0f, 1f)
+        o.build.replaceBase(base)
+        o.hp = (frac * o.build.stats.maxHp).coerceAtLeast(if (o.alive) 1f else 0f)
+    }
+
+    /** Own random so gear never shifts the other drops a seed produces. */
+    private val gearRng = kotlin.random.Random(config.seed xor 0x6EA2L)
+    private var gearSerial = 0L
+
+    /**
+     * Elites (sometimes) and bosses (always, several) drop gear. Personal loot: each player rolls
+     * their own pieces at their own OP level. Bosses after World 12 / Endless level 120 roll better.
+     */
+    private fun dropGear(x: Float, y: Float, boss: Boolean, count: Int) {
+        if (!config.consumables || mirror || count <= 0) return
+        val inferno = config.difficulty.inferno
+        val late = boss && (if (campaign) world > 12 else level >= 120)
+        val luck = (config.difficulty.luck * 0.3f).coerceAtLeast(0f)
+        for (o in ops) {
+            if (o.gone) continue
+            for (k in 0 until count) {
+                val rarity = com.cyberoperative.game.data.Gear.rollRarity(gearRng, boss, inferno, luck, late)
+                val item = com.cyberoperative.game.data.Gear.roll(gearRng, ++gearSerial, com.cyberoperative.game.data.Gear.itemLevel(o.gearLevel, gearRng), rarity)
+                arena.pushOut(x + (o.index * 2 - (ops.size - 1)) * 30f + (k - (count - 1) / 2f) * 24f, y + 10f, 14f)
+                placeLoot(Loot(LootKind.GEAR, arena.out[0], arena.out[1]).also { it.owner = o.index; it.gear = item })
+            }
+        }
+    }
+
+    /** The drop sound: a sheen above BLUE, a bigger one for GOLDEN and up. */
+    private fun gearLanded(l: Loot) {
+        val r = l.gear?.rarity ?: return
+        if (r >= com.cyberoperative.game.data.GearRarity.LEGENDARY) sound(GameSound.GEAR_LEGENDARY)
+        else if (r.sheen) sound(GameSound.GEAR_SHEEN)
     }
 
     /** Applies a chip's power-up to [o] (swapping out [replace] when its weapon slots are full). */
@@ -2549,12 +2594,18 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             LootKind.PACKET_BOMB -> o.packetBombs++
             LootKind.CASH -> eurosEarned += l.amount
             LootKind.UPGRADE -> { chipDef(l)?.let { applyChip(o, it) }; return }
+            LootKind.GEAR -> {
+                val g = l.gear ?: return
+                o.gearFound += g
+                addPulse(l.x, l.y, 50f, 0.35f, g.rarity.color)
+                return
+            }
         }
         if (!quiet) addText(l.x, l.y - 26f, when (l.kind) {
             LootKind.HP_CHARGE -> "+1 HP CHARGE"
             LootKind.PACKET_BOMB -> "+1 PACKET BOMB"
             LootKind.CASH -> "+€${l.amount}"
-            LootKind.UPGRADE -> ""
+            LootKind.UPGRADE, LootKind.GEAR -> ""
         }, TextKind.INFO)
     }
 
@@ -2609,7 +2660,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 collect(o, l, quiet = l.kind == LootKind.CASH && vacuum)
                 chime = true
                 it.remove()
-            } else if ((vacuum && l.kind != LootKind.UPGRADE) || bestD < LOOT_MAGNET) {
+            } else if ((vacuum && l.kind != LootKind.UPGRADE && (l.kind != LootKind.GEAR || l.age > GEAR_SHOWCASE)) || bestD < LOOT_MAGNET) {
                 // Room clear: everything streams in, faster the longer it flies.
                 val speed = if (vacuum) 520f + 900f * min(1f, l.age * 0.5f) else 260f
                 val k = min(1f, speed * dt / bestD)
@@ -3470,6 +3521,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (e.isElite) {
             elitesDefeated++
             dropLoot(e.x, e.y, ELITE_HP_DROP, ELITE_BOMB_DROP)
+            if (!mirror && gearRng.nextFloat() < ELITE_GEAR_CHANCE + 0.02f * config.difficulty.inferno) dropGear(e.x, e.y, boss = false, count = 1)
         }
         lastKillX = e.x; lastKillY = e.y
         if (chipRules && !mirror && chipBudget > 0 && phase == Phase.COMBAT) {
@@ -4330,6 +4382,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         spewTimer = 0.1f
         spewing = true
         dropLoot(spewX, spewY, BOSS_HP_DROP, BOSS_BOMB_DROP)
+        // Gear (owner, 2026-10-13): a world boss drops three pieces per player, more on INFERNO.
+        dropGear(spewX, spewY, boss = true, count = (if (campaign) BOSS_GEAR_DROPS else BOSS_GEAR_DROPS - 1) + config.difficulty.inferno / 3)
         lastKillX = spewX; lastKillY = spewY
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         eurosEarned += paid
@@ -4516,7 +4570,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.timer = h.timer; n.duration = h.duration; n.windup = h.windup; n.color = h.color
             w.hazards += n
         }
-        for (l in loot) w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, (l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1).toFloat(), l.owner.toFloat())
+        for (l in loot) {
+            val extra = l.gear?.let { g -> gearLook(g) } ?: l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1
+            w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, extra.toFloat(), l.owner.toFloat())
+        }
+        // The guest's newest finds (they bank them on their own device; repeats are merged by id).
+        ops.getOrNull(1)?.let { g -> w.guestGear = if (g.gearFound.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(g.gearFound.takeLast(GUEST_GEAR_SENT)) }
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
             if (!z.active) continue
@@ -4700,7 +4759,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             p.life = n.life; p.owner = n.owner; p.returning = false; p.splash = 0f
         }
         loot.clear()
-        for (l in w.loot) loot += Loot(LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id).also { it.owner = l.getOrElse(4) { -1f }.toInt() }
+        for (l in w.loot) {
+            val kind = LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }
+            loot += if (kind == LootKind.GEAR) Loot(kind, l[1], l[2]).also { it.owner = l.getOrElse(4) { -1f }.toInt(); it.gear = gearFromLook(l[3].toInt()) }
+            else Loot(kind, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id).also { it.owner = l.getOrElse(4) { -1f }.toInt() }
+        }
+        if (w.guestGear.isNotEmpty()) ops.getOrNull(1)?.let { g ->
+            for (item in com.cyberoperative.game.data.Gear.decode(w.guestGear)) if (g.gearFound.none { it.uid == item.uid }) g.gearFound += item
+        }
         exitDoors.clear()
         for (d in w.exitDoors) exitDoors += ExitDoor(d[0], d[1], d[2].toInt())
         for (h in hazards.items) h.active = false
@@ -4943,6 +5009,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val PACKET_BOMB_DAMAGE = 30f
         const val CONSUMABLE_COOLDOWN = 1f
         const val ELITE_HP_DROP = 0.08f
+        /** Gear (owner, 2026-10-13): chance an elite drops a piece (+2% per INFERNO tier), pieces per world boss. */
+        const val ELITE_GEAR_CHANCE = 0.25f
+        const val BOSS_GEAR_DROPS = 3
+        /** A gear drop stays put this long after a room clears before it's pulled in (its beam is seen). */
+        const val GEAR_SHOWCASE = 1.2f
+        const val GUEST_GEAR_SENT = 6
+
+        /** Packs a drop's look into one int for the co-op snapshot: rarity, slot, art. */
+        fun gearLook(g: com.cyberoperative.game.data.GearItem): Int = ((g.rarity.ordinal * 8 + g.slot.ordinal) shl 8) or (g.art and 0xFF)
+        fun gearFromLook(v: Int): com.cyberoperative.game.data.GearItem {
+            val rs = (v shr 8).coerceAtLeast(0)
+            return com.cyberoperative.game.data.GearItem(
+                0L, com.cyberoperative.game.data.GearSlot.entries[rs % 8],
+                com.cyberoperative.game.data.GearRarity.entries.getOrElse(rs / 8) { com.cyberoperative.game.data.GearRarity.COMMON },
+                v and 0xFF, 1, 0f
+            )
+        }
         const val ELITE_BOMB_DROP = 0.02f
         const val BOSS_HP_DROP = 0.5f
         const val BOSS_BOMB_DROP = 0.25f

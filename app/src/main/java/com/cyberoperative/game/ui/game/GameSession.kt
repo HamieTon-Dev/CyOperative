@@ -120,6 +120,13 @@ data class HudSnapshot(
     val pickupRarity: com.cyberoperative.game.data.Rarity = com.cyberoperative.game.data.Rarity.COMMON,
     val pickupSerial: Int = 0,
     val swapChipId: String? = null,
+    /** Gear (Data Vault update): the last piece picked up, for its own HUD line. */
+    val gearName: String = "",
+    val gearColor: Long = 0,
+    val gearTier: Int = 0,
+    val gearSerial: Int = 0,
+    /** Gear found this run (INVENTORY button badge). */
+    val gearFound: Int = 0,
     /** PC abilities: dash and the two class spells, with seconds of cooldown left. */
     val dashCd: Float = 0f,
     val spell1: com.cyberoperative.game.data.Spell? = null,
@@ -225,6 +232,12 @@ class GameSession(
     private var committedEvents = 0
     private var committedDiamonds = 0
     private var committedRun = false
+    /** Gear: how many of this player's finds are already in the backpack / vault. */
+    private var bankedGear = 0
+    private var gearBankTimer = 0f
+    private var gearToast: com.cyberoperative.game.data.GearItem? = null
+    private var gearToastSerial = 0
+    private var gearSeen = 0
     private var lastPhase = Phase.COMBAT
     // Declared before init {} (which calls updateMusic).
     private var musicRoundLevel = -1
@@ -236,6 +249,8 @@ class GameSession(
     val skin = com.cyberoperative.game.meta.StoreManager.effectiveSkin(save.current, classId)
     val background = LivingBackground.byId(save.current.selectedBackground)
     val body = BodyStyle.byId(Operatives.byId(classId).bodyId)
+    /** The character's creator parts (drawn on this player's operative). */
+    val look: com.cyberoperative.game.save.CharacterLook = save.current.look
 
     /** OP XP before this run (the HUD adds what the run has earned). */
     private val startOpXp: Long = save.current.operativeXp
@@ -263,20 +278,21 @@ class GameSession(
     private fun partnerPlayer() = coop?.let { if (it.room.isHost) it.state.guest else it.state.host }
 
     init {
+        com.cyberoperative.game.ui.common.GearIcons.preload()
         val p = save.current
         val link = coop
         val config = if (link != null) {
             // Both devices build the exact same run from the room: host = operative 0, guest = 1.
             val host = link.state.host ?: error("Room has no host")
             val guest = link.state.guest ?: error("Room has no guest")
-            val hostCfg = Operatives.buildConfig(Operatives.byBody(host.body).id, host.permanent, link.state.seed, host.opLevel)
-            val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed, guest.opLevel)
+            val hostCfg = Operatives.buildConfig(Operatives.byBody(host.body).id, host.permanent, link.state.seed, host.opLevel, com.cyberoperative.game.data.Gear.decode(host.gear))
+            val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed, guest.opLevel, com.cyberoperative.game.data.Gear.decode(guest.gear))
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
                 ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots, guestCfg.classId)
             )
         } else {
-            Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime(), com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level)
+            Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime(), com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level, p.equipped.values)
                 .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
         }
         // Every run (solo and co-op, every platform) uses the drop rules: chips, weapon cards,
@@ -359,6 +375,7 @@ class GameSession(
             lastPhase = engine.phase
         }
         trackBosses()
+        trackGear(delta)
         updateMusic()
         val next = buildHud()
         if (next != hud) hud = next
@@ -530,6 +547,10 @@ class GameSession(
             packetBombs = g.operatives.getOrNull(g.primary)?.packetBombs ?: 0,
             pickupName = g.pickupName, pickupRarity = g.pickupRarity, pickupSerial = g.pickupSerial,
             swapChipId = g.swapChip?.upgradeId,
+            gearName = gearToast?.let { "◆ " + it.name + " · " + it.rarity.label } ?: "",
+            gearColor = gearToast?.rarity?.color ?: 0, gearTier = gearToast?.let { (it.rarity.ordinal - 2).coerceAtLeast(0) } ?: 0,
+            gearSerial = gearToastSerial,
+            gearFound = g.operatives.getOrNull(g.primary)?.gearFound?.size ?: 0,
             dashCd = g.operatives.getOrNull(g.primary)?.dashCooldown ?: 0f,
             spell1 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 0) },
             spell2 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 1) },
@@ -793,7 +814,51 @@ class GameSession(
         return out
     }
 
+    /** Gear pickups: the HUD line for the newest, and banking every couple of seconds. */
+    private fun trackGear(delta: Float) {
+        val found = engine.operatives.getOrNull(engine.primary)?.gearFound ?: return
+        if (found.size > gearSeen) {
+            gearSeen = found.size
+            gearToast = found.last()
+            gearToastSerial++
+        }
+        gearBankTimer += delta
+        if (gearBankTimer >= 2f && found.size > bankedGear) bankGear()
+    }
+
+    /** The save, for the in-run INVENTORY (CHARACTER screen). */
+    val saveRepo: SaveRepository get() = save
+
+    /** INVENTORY opened mid-run: bank what's been found so it shows in the backpack. */
+    fun openInventory() {
+        bankGear()
+        if (!isCoop) paused = true
+    }
+
+    /**
+     * Gear changed in the INVENTORY: solo runs re-equip at once (same picks, new base stats);
+     * co-op keeps the stats the run started with (both devices must agree) until the next run.
+     */
+    fun applyGear() {
+        if (isCoop) return
+        val p = save.current
+        val level = com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level
+        val cfg = Operatives.buildConfig(classId, p.permanentUpgrades, engine.config.seed, level, p.equipped.values)
+        engine.reequip(engine.primary, cfg.baseStats)
+    }
+
+    /** Banks the gear found so far into the backpack (then the Data Vault). */
+    fun bankGear() {
+        gearBankTimer = 0f
+        val found = engine.operatives.getOrNull(engine.primary)?.gearFound ?: return
+        if (found.size <= bankedGear) return
+        val fresh = found.subList(bankedGear, found.size).toList()
+        bankedGear = found.size
+        save.update { p -> com.cyberoperative.game.meta.GearBank.bank(p, fresh).first }
+    }
+
     private fun commitProgress(final: Boolean): List<String> {
+        bankGear()
         val s = engine.summary()
         val dEuros = s.euros - committedEuros
         val dKills = s.kills - committedKills

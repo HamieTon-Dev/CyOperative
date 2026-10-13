@@ -247,7 +247,7 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
 
 internal fun RoomPlayer.toMap(): Map<String, Any> = mapOf(
     "uid" to uid, "name" to name, "permanent" to permanent, "opLevel" to opLevel,
-    "body" to body, "skin" to skin, "ready" to ready
+    "body" to body, "skin" to skin, "ready" to ready, "gear" to gear
 )
 
 internal fun DataSnapshot.toRoomPlayer(): RoomPlayer? {
@@ -261,7 +261,8 @@ internal fun DataSnapshot.toRoomPlayer(): RoomPlayer? {
         opLevel = (child("opLevel").getValue(Long::class.java) ?: 1L).toInt(),
         body = child("body").getValue(String::class.java) ?: "agent",
         skin = child("skin").getValue(String::class.java) ?: "default",
-        ready = child("ready").getValue(Boolean::class.java) == true
+        ready = child("ready").getValue(Boolean::class.java) == true,
+        gear = child("gear").getValue(String::class.java) ?: ""
     )
 }
 

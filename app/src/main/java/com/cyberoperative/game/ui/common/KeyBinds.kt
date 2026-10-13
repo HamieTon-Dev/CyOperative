@@ -14,7 +14,8 @@ enum class KeyAction(val label: String, val default: Key) {
     SPELL_1("CLASS SPELL 1", Key.R),
     SPELL_2("CLASS SPELL 2", Key.F),
     PAUSE("PAUSE", Key.P),
-    MAP("MAP", Key.M)
+    MAP("MAP", Key.M),
+    INVENTORY("INVENTORY", Key.I)
 }
 
 /** The live key map (key codes by action name), loaded from the save's settings. */

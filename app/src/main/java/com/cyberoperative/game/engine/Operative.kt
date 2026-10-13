@@ -40,6 +40,10 @@ class Operative(val index: Int, baseStats: RunStats) {
     var inputY = 0f
     /** PC consumables: HP charge packets (Q) and Packet Bombs (E). */
     var hpCharges = 0
+    /** Gear picked up this run (banked into the backpack by the session). */
+    val gearFound = ArrayList<com.cyberoperative.game.data.GearItem>()
+    /** OP level of this player: drops roll their item level from it. */
+    var gearLevel = 1
     var packetBombs = 0
     var consumableCooldown = 0f
     /** PC abilities: class (for its spells), Space dash, R/F spell cooldowns and spell timers. */

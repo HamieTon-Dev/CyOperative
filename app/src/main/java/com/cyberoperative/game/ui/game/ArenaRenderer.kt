@@ -68,6 +68,9 @@ class ArenaRenderer {
     private val sortKey = FloatArray(MAX_ITEMS)
     private var sortCount = 0
 
+    /** This player's character look (creator parts); the co-op partner draws in the class default. */
+    var playerLook: com.cyberoperative.game.save.CharacterLook? = null
+
     var scale = 1f
         private set
     var camY = 0f
@@ -1791,7 +1794,7 @@ class ArenaRenderer {
                 val f = (me.reviveProgress / GameEngine.REVIVE_SECONDS).coerceIn(0f, 1f)
                 drawCircle(Palette.Red.copy(alpha = 0.25f + 0.2f * sin(time * 6f)), GameEngine.REVIVE_RADIUS, Offset(g.px, g.py), style = Stroke(2f))
                 drawArc(Palette.Green, -90f, 360f * f, false, Offset(g.px - r * 1.6f, g.py - r * 3.4f), Size(r * 3.2f, r * 3.2f), style = Stroke(5f))
-                drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, false, time, alpha = 0.35f, bigGun = false)
+                drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, false, time, alpha = 0.35f, bigGun = false, look = if (partner) null else playerLook)
                 return
             }
         }
@@ -1811,10 +1814,10 @@ class ArenaRenderer {
             // PHANTOM cloak: a faint shimmering ghost of the figure (threats can't see it).
             val shimmer = 0.22f + 0.08f * sin(time * 9f)
             drawOval(Color(0xFF8FA7FF).copy(alpha = 0.18f), Offset(g.px - r * 1.3f, g.py + r * 0.1f), Size(r * 2.6f, r * 0.9f), style = Stroke(1.5f))
-            drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = shimmer, bigGun = g.stats.beamLevel > 0)
+            drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = shimmer, bigGun = g.stats.beamLevel > 0, look = if (partner) null else playerLook)
             return
         }
-        drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = if (blink) 0.35f else 1f, bigGun = g.stats.beamLevel > 0)
+        drawFigure(body, skin, g.px, foot, FIGURE_SCALE, g.facing, g.moving, time, alpha = if (blink) 0.35f else 1f, bigGun = g.stats.beamLevel > 0, look = if (partner) null else playerLook)
     }
 
     private fun orbPos(g: GameEngine, i: Int, out: FloatArray) {

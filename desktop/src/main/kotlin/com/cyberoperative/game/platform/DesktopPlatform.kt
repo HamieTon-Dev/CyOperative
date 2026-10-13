@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalDensity
@@ -126,6 +127,14 @@ fun bannerPainter(): Painter {
         stream.use { loadXmlImageVector(InputSource(it), density) }
     }
     return rememberVectorPainter(vec)
+}
+
+/** A bundled image (gear atlases), decoded by Skia; null if missing. */
+fun loadImageResource(path: String): androidx.compose.ui.graphics.ImageBitmap? {
+    val bytes = Thread.currentThread().contextClassLoader?.getResourceAsStream(path)?.use { it.readBytes() }
+        ?: AppInfo::class.java.classLoader?.getResourceAsStream(path)?.use { it.readBytes() }
+        ?: return null
+    return org.jetbrains.skia.Image.makeFromEncoded(bytes).toComposeImageBitmap()
 }
 
 /** PC has no share sheet: put the text on the clipboard. */

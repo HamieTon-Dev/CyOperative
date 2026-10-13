@@ -70,9 +70,11 @@ object OperativeFigures {
      */
     fun DrawScope.drawFigure(
         style: BodyStyle, skin: OperativeSkin, x: Float, footY: Float, u: Float,
-        facing: Float, moving: Boolean, time: Float, alpha: Float = 1f, bigGun: Boolean = false
+        facing: Float, moving: Boolean, time: Float, alpha: Float = 1f, bigGun: Boolean = false,
+        look: com.cyberoperative.game.save.CharacterLook? = null
     ) {
         heavy = bigGun
+        ClassFigures.part = look ?: com.cyberoperative.game.save.CharacterLook()
         // Class bodies traced from the owner's concept sheet (0.17.1); the TECHNICIAN keeps the icon hero.
         when (style) {
             BodyStyle.AGENT -> with(ClassFigures) { fieldAgent(skin, x, footY, u, facing, moving, time, alpha) }
@@ -80,7 +82,9 @@ object OperativeFigures {
             BodyStyle.RUNNER -> with(ClassFigures) { phantom(skin, x, footY, u, facing, moving, time, alpha) }
             BodyStyle.MAGE -> with(ClassFigures) { packetMage(skin, x, footY, u, facing, moving, time, alpha) }
             // The icon look; a colour skin re-tints the hood, trim and face.
-            BodyStyle.NEON -> neonOperative(x, footY, u, facing, moving, time, alpha, palette = HeroPalette.forSkin(skin))
+            BodyStyle.NEON -> neonOperative(x, footY, u, facing, moving, time, alpha, palette = HeroPalette.forSkin(skin)) {
+                with(ClassFigures) { accessories(TECH_PARTS, look(skin, time), 0.8f + 0.2f * sin(time * 2.2f), 0f, 0f, time) }
+            }
         }
     }
 
@@ -152,7 +156,8 @@ object OperativeFigures {
      */
     private fun DrawScope.neonOperative(
         x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float,
-        keeper: Boolean = false, palette: HeroPalette = HeroPalette.ICON
+        keeper: Boolean = false, palette: HeroPalette = HeroPalette.ICON,
+        extra: (DrawScope.() -> Unit)? = null
     ) {
         val breathe = 0.7f + 0.3f * sin(time * 2.2f)
         val dir = if (keeper) 1f else if (cos(facing) < 0f) -1f else 1f
@@ -176,6 +181,7 @@ object OperativeFigures {
             translate(-52f, -118f)
         }) {
             drawHeroFigure(palette, if (keeper) HeroFace.KEEPER else HeroFace.ICON, time, walk)
+            extra?.invoke(this)
         }
         if (layer) drawContext.canvas.restore()
         // Blaster on the facing side, at the icon's right shoulder.
@@ -185,7 +191,10 @@ object OperativeFigures {
 
 /** Animated preview of a body design (operative screen, design board). */
 @androidx.compose.runtime.Composable
-fun FigurePreview(style: BodyStyle, skin: OperativeSkin, modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier, moving: Boolean = false) {
+fun FigurePreview(
+    style: BodyStyle, skin: OperativeSkin, modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier, moving: Boolean = false,
+    look: com.cyberoperative.game.save.CharacterLook? = null, turn: Float = 0f
+) {
     var time by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     androidx.compose.runtime.LaunchedEffect(style, skin.id) {
         val start = androidx.compose.runtime.withFrameNanos { it }
@@ -193,6 +202,8 @@ fun FigurePreview(style: BodyStyle, skin: OperativeSkin, modifier: androidx.comp
     }
     androidx.compose.foundation.Canvas(modifier) {
         val u = size.height / 80f
-        with(OperativeFigures) { drawFigure(style, skin, size.width / 2f, size.height * 0.9f, u, -0.4f, moving, time) }
+        // Fits the taller of width / height (wide boxes no longer clip the figure).
+        val uu = minOf(u, size.width / 60f)
+        with(OperativeFigures) { drawFigure(style, skin, size.width / 2f, size.height * 0.9f, uu, -0.4f + turn, moving, time, look = look) }
     }
 }

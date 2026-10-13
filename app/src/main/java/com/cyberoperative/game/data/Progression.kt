@@ -209,24 +209,27 @@ object Operatives {
     fun byBody(bodyId: String) = all.firstOrNull { it.bodyId == bodyId } ?: CYBER_OPERATIVE
 
     /** Build a run's starting configuration from the operative + permanent upgrades. */
-    fun buildConfig(operativeId: String, permanent: Map<String, Int>, seed: Long, opLevel: Int = 1): RunConfig {
-        val (stats, config) = build(operativeId, permanent, seed, coreOnly = false)
+    fun buildConfig(operativeId: String, permanent: Map<String, Int>, seed: Long, opLevel: Int = 1, gear: Collection<GearItem> = emptyList()): RunConfig {
+        val (stats, config) = build(operativeId, permanent, seed, coreOnly = false, gear = gear)
         // OP level (owner, 2026-10-13): each level adds a little base HP and damage. Gear is
         // what really makes an operative stronger.
         OpProgress.applyLevel(stats, opLevel)
         // Mastery (levels past the designed range) is answered by tougher threats:
         // the same stats with mastery stripped give how much stronger mastery made the operative.
-        val (core, _) = build(operativeId, permanent, seed, coreOnly = true)
+        val (core, _) = build(operativeId, permanent, seed, coreOnly = true, gear = gear)
         return config.copy(
             classId = byId(operativeId).id,
+            gearLevel = opLevel,
             masteryDpsRatio = (dps(stats) / dps(core)).coerceAtLeast(1f),
             masterySurvivalRatio = (survival(stats) / survival(core)).coerceAtLeast(1f)
         )
     }
 
-    private fun build(operativeId: String, permanent: Map<String, Int>, seed: Long, coreOnly: Boolean): Pair<RunStats, RunConfig> {
+    private fun build(operativeId: String, permanent: Map<String, Int>, seed: Long, coreOnly: Boolean, gear: Collection<GearItem> = emptyList()): Pair<RunStats, RunConfig> {
         val stats = RunStats()
         byId(operativeId).modify(stats)
+        // Equipped gear (Data Vault update): weapons, armor, implant, core and their affixes.
+        Gear.apply(stats, gear, byId(operativeId).id)
         var config = RunConfig(baseStats = stats, seed = seed)
         for (def in PermanentUpgrades.all) {
             val raw = (permanent[def.id] ?: 0).coerceIn(0, def.levelCap)

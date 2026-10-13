@@ -74,6 +74,99 @@ internal object ClassFigures {
         )
     }
 
+
+    // --- Character creator parts (owner, 2026-10-13) --------------------------------
+
+    /** Appearance of the figure being drawn (set by OperativeFigures.drawFigure; A = class default). */
+    var part: com.cyberoperative.game.save.CharacterLook = com.cyberoperative.game.save.CharacterLook()
+
+    /** Where a body's head, visor, chest, knees and feet are, in its design grid. */
+    class Anchors(
+        val head: Offset, val face: Offset, val faceW: Float, val faceH: Float, val chest: Offset,
+        val kneeL: Offset, val kneeR: Offset, val footL: Offset, val footR: Offset
+    )
+
+    val AGENT_PARTS = Anchors(Offset(48.5f, 34f), Offset(52.7f, 57f), 19f, 12f, Offset(52f, 80f), Offset(35f, 104f), Offset(69f, 102f), Offset(36f, 117f), Offset(71f, 117f))
+    val JUGGERNAUT_PARTS = Anchors(Offset(52f, 30f), Offset(52f, 45f), 22f, 12f, Offset(52f, 66f), Offset(38f, 100f), Offset(64f, 100f), Offset(38f, 117f), Offset(64f, 117f))
+    val PHANTOM_PARTS = Anchors(Offset(54f, 24f), Offset(54f, 40f), 18f, 13f, Offset(52f, 66f), Offset(42f, 98f), Offset(68f, 94f), Offset(48f, 112f), Offset(65f, 110f))
+    val MAGE_PARTS = Anchors(Offset(50f, 26f), Offset(52f, 52f), 15f, 10.5f, Offset(52f, 74f), Offset(40f, 110f), Offset(64f, 110f), Offset(40f, 117f), Offset(64f, 117f))
+    /** The TECHNICIAN is the icon hero (emblem units). */
+    val TECH_PARTS = Anchors(Offset(49f, 13f), Offset(55f, 46f), 26f, 17f, Offset(53f, 88f), Offset(43f, 108f), Offset(61f, 108f), Offset(43f, 117f), Offset(61f, 117f))
+
+    /** Draws the B/C appearance pieces over a body ([bob]: the torso's lift, [legBob]: the legs'). */
+    fun DrawScope.accessories(a: Anchors, l: Look, pulse: Float, bob: Float, legBob: Float, time: Float, look: com.cyberoperative.game.save.CharacterLook = part) {
+        if (look.head == 0 && look.face == 0 && look.body == 0 && look.legs == 0) return
+        withTransform({ translate(0f, -bob) }) {
+            val h = a.head
+            when (look.head) {
+                1 -> { // Antenna with a blinking tip.
+                    drawLine(l.plateDark, h + Offset(5f, 2f), h + Offset(9f, -11f), 2.2f, StrokeCap.Round)
+                    drawLine(l.plateLight, h + Offset(5f, 2f), h + Offset(9f, -11f), 1.1f, StrokeCap.Round)
+                    val blink = 0.6f + 0.4f * sin(time * 5f)
+                    drawCircle(l.trim.copy(alpha = 0.3f * blink), 4f, h + Offset(9f, -12f))
+                    drawCircle(l.trim, 1.9f, h + Offset(9f, -12f))
+                }
+                2 -> { // Crest fins.
+                    fillStroke(poly(h.x - 7f, h.y + 4f, h.x - 12f, h.y - 9f, h.x - 2f, h.y + 1f), l.plateLight, l.trim, 0.8f)
+                    fillStroke(poly(h.x + 7f, h.y + 4f, h.x + 12f, h.y - 9f, h.x + 2f, h.y + 1f), l.plateLight, l.trim, 0.8f)
+                    neon(h + Offset(-9f, -4f), h + Offset(-4f, 1f), l.trim, 0.8f, pulse)
+                    neon(h + Offset(9f, -4f), h + Offset(4f, 1f), l.trim, 0.8f, pulse)
+                }
+            }
+            if (look.face > 0) {
+                val c = a.face
+                val w = a.faceW
+                val hh = a.faceH
+                drawRoundRect(l.visor, Offset(c.x - w / 2f, c.y - hh / 2f), Size(w, hh), CornerRadius(hh * 0.35f))
+                drawRoundRect(l.trim.copy(alpha = 0.55f), Offset(c.x - w / 2f, c.y - hh / 2f), Size(w, hh), CornerRadius(hh * 0.35f), style = Stroke(0.8f))
+                val s = hh * 0.22f
+                if (look.face == 1) { // Digital: two upright bars.
+                    for (sx in listOf(-w * 0.2f, w * 0.2f)) {
+                        drawRect(l.face.copy(alpha = 0.25f * pulse), Offset(c.x + sx - s * 1.1f, c.y - hh * 0.32f), Size(s * 2.2f, hh * 0.64f))
+                        drawRect(l.face, Offset(c.x + sx - s * 0.55f, c.y - hh * 0.26f), Size(s * 1.1f, hh * 0.52f))
+                    }
+                } else { // Hunter: narrowed, angled eyes.
+                    for (side in listOf(-1f, 1f)) {
+                        val ex = c.x + side * w * 0.21f
+                        drawLine(l.face.copy(alpha = 0.25f * pulse), Offset(ex - side * s * 1.6f, c.y - s * 1.1f), Offset(ex + side * s * 1.4f, c.y + s * 0.4f), s * 2f, StrokeCap.Round)
+                        drawLine(l.face, Offset(ex - side * s * 1.6f, c.y - s * 1.1f), Offset(ex + side * s * 1.4f, c.y + s * 0.4f), s * 0.8f, StrokeCap.Round)
+                    }
+                    drawLine(l.face, Offset(c.x - s, c.y + hh * 0.28f), Offset(c.x + s, c.y + hh * 0.28f), s * 0.6f, StrokeCap.Round)
+                }
+            }
+            val ch = a.chest
+            when (look.body) {
+                1 -> { // Chest reactor.
+                    drawCircle(l.trim.copy(alpha = 0.25f * pulse), 7f, ch)
+                    drawCircle(l.plateDark, 4.4f, ch)
+                    drawCircle(l.trim, 4.4f, ch, style = Stroke(1.1f))
+                    drawCircle(Color.White.copy(alpha = 0.85f * pulse), 1.8f, ch)
+                }
+                2 -> { // Plating: twin chevrons.
+                    for (k in 0..1) {
+                        val y = ch.y - 3f + k * 4.5f
+                        path.reset(); path.moveTo(ch.x - 8f, y); path.lineTo(ch.x, y + 4f); path.lineTo(ch.x + 8f, y)
+                        neonPath(path, l.trim, 1.1f, pulse)
+                    }
+                }
+            }
+        }
+        withTransform({ translate(0f, -legBob) }) {
+            when (look.legs) {
+                1 -> for (k in listOf(a.kneeL, a.kneeR)) { // Knee lights.
+                    drawCircle(l.trim.copy(alpha = 0.3f * pulse), 4f, k)
+                    drawCircle(l.trim, 1.9f, k)
+                }
+                2 -> for (f in listOf(a.footL, a.footR)) { // Jet boots.
+                    val flick = 0.7f + 0.3f * sin(time * 30f + f.x)
+                    drawOval(l.trim.copy(alpha = 0.35f * flick), Offset(f.x - 7f, f.y - 1f), Size(14f, 6f))
+                    drawPath(poly(f.x - 3.5f, f.y + 1f, f.x + 3.5f, f.y + 1f, f.x, f.y + 6f * flick), l.trim.copy(alpha = 0.8f))
+                    drawPath(poly(f.x - 1.6f, f.y + 1f, f.x + 1.6f, f.y + 1f, f.x, f.y + 3.5f * flick), Color.White.copy(alpha = 0.8f))
+                }
+            }
+        }
+    }
+
     // --- helpers (all in design units) ---------------------------------------------
 
     private fun poly(vararg p: Float): Path {
@@ -221,6 +314,7 @@ internal object ClassFigures {
                 drawCircle(l.plateMid, 2.8f, Offset(74f, 86f))
                 drawCircle(l.trim, 2.8f, Offset(74f, 86f), style = Stroke(0.7f))
             }
+            accessories(AGENT_PARTS, l, pulse, bob, bob, time)
         }
     }
 
@@ -289,6 +383,7 @@ internal object ClassFigures {
                 neon(Offset(86f, 58f), Offset(86f, 96f), l.trim, 1.6f, pulse)
                 drawRoundRect(l.plateLight, Offset(78f, 70f), Size(5f, 14f), CornerRadius(1.5f))
             }
+            accessories(JUGGERNAUT_PARTS, l, pulse, bob, 0f, time)
         }
     }
 
@@ -360,6 +455,7 @@ internal object ClassFigures {
                 drawPath(poly(sx, sy - s * 1.6f, sx + s, sy, sx, sy + s * 1.6f, sx - s, sy), l.trim.copy(alpha = 0.25f))
                 drawPath(poly(sx, sy - s * 1.6f, sx + s, sy, sx, sy + s * 1.6f, sx - s, sy), l.trim, style = Stroke(0.8f, join = StrokeJoin.Round))
             }
+            accessories(PHANTOM_PARTS, l, pulse, hover, hover, time)
         }
     }
 
@@ -473,6 +569,7 @@ internal object ClassFigures {
                     52f + ow - ok, oy + oh, 52f - ow + ok, oy + oh, 52f - ow, oy + oh - ok, 52f - ow, oy - oh + ok), Color(0xFF020306))
                 visorFace(52f, 49f, 18f, 13f, l, pulse)
             }
+            accessories(MAGE_PARTS, l, pulse, bob, bob, time)
         }
     }
 }

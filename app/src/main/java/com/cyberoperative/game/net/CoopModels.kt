@@ -19,7 +19,9 @@ data class RoomPlayer(
     val opLevel: Int = 1,
     val body: String = "agent",
     val skin: String = "default",
-    val ready: Boolean = false
+    val ready: Boolean = false,
+    /** Equipped gear ([com.cyberoperative.game.data.Gear.encode]); the host builds both operatives from it. */
+    val gear: String = ""
 )
 
 enum class RoomStatus { LOBBY, PLAYING, ENDED }

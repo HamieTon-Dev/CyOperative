@@ -51,6 +51,8 @@ sealed interface Screen {
     data object Menu : Screen
     data object Game : Screen
     data class Sub(val target: MenuTarget) : Screen
+    /** Character creator ([editing]: EDIT APPEARANCE of the active character; [first]: no way back). */
+    data class Create(val editing: Boolean, val first: Boolean = false) : Screen
     data object CoopLobby : Screen
 }
 
@@ -101,7 +103,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
         when (screen) {
             Screen.DevSplash -> {}
             Screen.Boot -> audio.playBootChime()
-            Screen.Menu, is Screen.Sub, Screen.CoopLobby -> audio.setMusic(MusicState.MENU)
+            Screen.Menu, is Screen.Sub, Screen.CoopLobby, is Screen.Create -> audio.setMusic(MusicState.MENU)
             Screen.Game -> {}
         }
     }
@@ -109,7 +111,10 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
     Box(Modifier.fillMaxSize()) {
     when (val s = screen) {
         Screen.DevSplash -> DeveloperSplash { screen = Screen.Boot }
-        Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) { screen = Screen.Menu }
+        // First launch with characters (0.30.0): name your character before the menu (old saves keep their progress).
+        Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) {
+            screen = if (com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) Screen.Menu else Screen.Create(editing = false, first = true)
+        }
         Screen.Menu -> {
             MainMenuScreen(profile) { target ->
                 click()
@@ -161,7 +166,15 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
             BackHandler { back() }
             when (s.target) {
                 MenuTarget.UPGRADES -> PermanentUpgradesScreen(save, audio, ::back)
-                MenuTarget.OPERATIVE -> OperativeScreen(save, ::back)
+                MenuTarget.OPERATIVE -> if (!com.cyberoperative.game.meta.Characters.hasCharacter(profile)) {
+                    LaunchedEffect(Unit) { screen = Screen.Create(editing = false) }
+                } else com.cyberoperative.game.ui.menu.CharacterScreen(
+                    save, ::back,
+                    onDeploy = { click(); screen = Screen.Menu; picking = GameMode.CAMPAIGN },
+                    onOverclock = { click(); screen = Screen.Sub(MenuTarget.UPGRADES) },
+                    onEditLook = { click(); screen = Screen.Create(editing = true) },
+                    onNewCharacter = { click(); screen = Screen.Create(editing = false) }
+                )
                 MenuTarget.ARMORY -> ArmoryScreen(::back)
                 MenuTarget.CODEX -> com.cyberoperative.game.ui.menu.BossCodexScreen(profile, ::back)
                 MenuTarget.ACHIEVEMENTS -> AchievementsScreen(profile, ::back)
@@ -177,6 +190,15 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 }
                 MenuTarget.PLAY, MenuTarget.ENDLESS, MenuTarget.CONTINUE -> LaunchedEffect(Unit) { screen = Screen.Menu }
             }
+        }
+        is Screen.Create -> {
+            val toCharacter = { screen = if (s.first) Screen.Menu else Screen.Sub(MenuTarget.OPERATIVE) }
+            if (!s.first) BackHandler { audio.play(GameSound.UI_BACK); toCharacter() }
+            com.cyberoperative.game.ui.menu.CharacterCreateScreen(
+                save, editing = s.editing,
+                onBack = if (s.first) null else ({ audio.play(GameSound.UI_BACK); toCharacter() }),
+                onDone = { click(); toCharacter() }
+            )
         }
         Screen.CoopLobby -> {
             val room = coopRoom

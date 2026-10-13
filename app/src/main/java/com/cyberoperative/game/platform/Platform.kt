@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.painter.Painter
@@ -102,6 +103,13 @@ fun KeepScreenOn() {
 @Composable
 fun bannerPainter(): Painter = painterResource(R.drawable.hamieton_banner)
 
+/** A bundled image (gear atlases, Java resources in the APK); null if missing. */
+fun loadImageResource(path: String): androidx.compose.ui.graphics.ImageBitmap? {
+    val stream = AppInfo::class.java.classLoader?.getResourceAsStream(path) ?: return null
+    val bmp = stream.use { android.graphics.BitmapFactory.decodeStream(it) } ?: return null
+    return bmp.asImageBitmap()
+}
+
 /** Share text through the system share sheet (co-op room codes); PC copies to the clipboard. */
 @Composable
 fun rememberShareText(): (title: String, text: String) -> Unit {
@@ -192,6 +200,8 @@ object GameKeys {
     fun takeDash(): Boolean = false
     /** M / controller BACK: toggle the world map. */
     fun takeMap(): Boolean = false
+    /** I: open the INVENTORY (PC). */
+    fun takeInventory(): Boolean = false
     fun takeSpell(slot: Int): Boolean = false
     /** A key's display name ("Q", "Space"). */
     fun keyName(code: Long): String = ""

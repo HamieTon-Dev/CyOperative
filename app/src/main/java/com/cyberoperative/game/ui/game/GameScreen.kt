@@ -97,7 +97,11 @@ fun GameScreen(
     var keysMoving by remember { mutableStateOf(false) }
     /** Campaign world map overlay ([M], controller BACK, MAP button). */
     var showMap by remember { mutableStateOf(false) }
-    val renderer = remember { ArenaRenderer() }
+    /** INVENTORY (CHARACTER screen over the run; owner, 2026-10-13: button top left). */
+    var showInventory by remember { mutableStateOf(false) }
+    fun openInventory() { session.openInventory(); showInventory = true }
+    fun closeInventory() { showInventory = false; if (!session.isCoop) session.paused = false }
+    val renderer = remember { ArenaRenderer().also { it.playerLook = session.look } }
 
     // Frame loop: lives with the screen; leaving the composition stops it.
     var time by remember { mutableFloatStateOf(0f) }
@@ -140,6 +144,7 @@ fun GameScreen(
                     if (live && hpKey) session.useHpCharge()
                     if (live && bombKey) session.usePacketBomb()
                     if (GameKeys.takeMap() && e.campaign) showMap = !showMap
+                    if (GameKeys.takeInventory() && e.phase != Phase.DEAD) { if (showInventory) closeInventory() else openInventory() }
                     val dashKey = GameKeys.takeDash()
                     val r = GameKeys.takeSpell(0)
                     val f = GameKeys.takeSpell(1)
@@ -174,6 +179,7 @@ fun GameScreen(
     var shopOpen by remember { mutableStateOf(false) }
     // Back / Esc closes the shop first (registered after the pause handler, so it wins).
     BackHandler(enabled = shopOpen) { shopOpen = false }
+    BackHandler(enabled = showInventory) { closeInventory() }
     var shopSwap by remember { mutableStateOf<Int?>(null) }
 
 
@@ -318,13 +324,15 @@ fun GameScreen(
         // Measured so the pickup line can sit below them (owner: they overlapped).
         var hintsHeightPx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
         val mapButtonShown = hud.campaign && !GameKeys.active && !session.paused && hud.phase != Phase.DEAD
+        val invButtonShown = !session.paused && hud.phase != Phase.DEAD && !showInventory
+        val sideClear = if (invButtonShown) 120.dp else if (mapButtonShown) 84.dp else 12.dp
         Column(
             Modifier
                 .align(Alignment.TopCenter)
                 // Clear of the MAP button on both sides (stays centred) while it shows.
                 .padding(
                     top = hudHeightDp + HUD_HINT_GAP,
-                    start = if (mapButtonShown) 84.dp else 12.dp, end = if (mapButtonShown) 84.dp else 12.dp
+                    start = sideClear, end = sideClear
                 )
                 .onSizeChanged { hintsHeightPx = it.height },
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -437,6 +445,19 @@ fun GameScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) { Text("MAP", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge) }
         }
+        // INVENTORY: top left, under the HUD, on every platform (I on PC).
+        if (invButtonShown) {
+            Box(
+                Modifier.align(Alignment.TopStart).padding(top = hudHeightDp + 8.dp, start = 10.dp)
+                    .graphicsLayer { alpha = 0.75f }
+                    .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
+                    .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
+                    .clickable { openInventory() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text("▦ INVENTORY" + if (hud.gearFound > 0) " +${hud.gearFound}" else "", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            }
+        }
         if (showMap && hud.campaign) {
             WorldMapOverlay(hud, session.engine.worldMap, time) { showMap = false }
         }
@@ -449,11 +470,21 @@ fun GameScreen(
         }
         // Upgrade chips: the line naming what was just picked up, under the HUD.
         PickupLine(
-            hud.pickupName, hud.pickupRarity, hud.pickupSerial,
+            hud.pickupName, hud.pickupRarity.color, hud.pickupRarity.highTier, hud.pickupSerial,
             // Just under the HUD, below any hint chips ("NEXT ROOM ▶ …"), and under the level
             // banner while one is up.
             Modifier.align(Alignment.TopCenter).padding(
                 top = hudHeightDp + maxOf(
+                    if (hud.bannerVisible && hud.banner.isNotEmpty()) 120.dp else 8.dp,
+                    if (hintsHeightPx > 0) HUD_HINT_GAP + with(density) { hintsHeightPx.toDp() } + 10.dp else 0.dp
+                )
+            )
+        )
+        // Gear pickups get their own line, just under the chip line.
+        PickupLine(
+            hud.gearName, hud.gearColor, hud.gearTier, hud.gearSerial,
+            Modifier.align(Alignment.TopCenter).padding(
+                top = hudHeightDp + 34.dp + maxOf(
                     if (hud.bannerVisible && hud.banner.isNotEmpty()) 120.dp else 8.dp,
                     if (hintsHeightPx > 0) HUD_HINT_GAP + with(density) { hintsHeightPx.toDp() } + 10.dp else 0.dp
                 )
@@ -491,7 +522,7 @@ fun GameScreen(
                 onNew = { session.finish(); onNewOperation() }
             )
         }
-        if (session.paused && hud.phase != Phase.DEAD) {
+        if (session.paused && hud.phase != Phase.DEAD && !showInventory) {
             PauseOverlay(
                 session = session,
                 owned = hud.owned,
@@ -510,7 +541,15 @@ fun GameScreen(
         // Drawn last so it stays readable over the pause menu; full-screen panels
         // (upgrade pick, game over, briefing) cover it as before.
         val coveredByPanel = hud.phase == Phase.UPGRADE || hud.phase == Phase.DEAD || session.showTutorial
-        if (session.paused || !coveredByPanel) {
+        // The INVENTORY covers everything (the CHARACTER screen over the run).
+        if (showInventory) {
+            com.cyberoperative.game.ui.menu.CharacterScreen(
+                session.saveRepo, onBack = { closeInventory() },
+                startTab = com.cyberoperative.game.ui.menu.CharTab.GEAR, inRun = true, coopRun = session.isCoop,
+                onGearChanged = { session.applyGear() }
+            )
+        }
+        if (!showInventory && (session.paused || !coveredByPanel)) {
           // PC: a compact strip above the arena (never over it), everything at 75%.
           if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
               LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
@@ -1009,7 +1048,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
  * (a tight dark outline keeps it legible over any floor).
  */
 @Composable
-private fun PickupLine(name: String, rarity: com.cyberoperative.game.data.Rarity, serial: Int, modifier: Modifier) {
+private fun PickupLine(name: String, color: Long, tier: Int, serial: Int, modifier: Modifier) {
     if (serial == 0 || name.isEmpty()) return
     var t by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(serial) {
@@ -1019,8 +1058,7 @@ private fun PickupLine(name: String, rarity: com.cyberoperative.game.data.Rarity
     }
     if (t >= PICKUP_SECONDS) return
     val alpha = (if (t < 0.15f) t / 0.15f else ((PICKUP_SECONDS - t) / 0.6f)).coerceIn(0f, 1f)
-    val c = Color(rarity.color)
-    val tier = rarity.highTier
+    val c = Color(color)
     val base = MaterialTheme.typography.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, letterSpacing = 1.5.sp)
     Box(modifier.graphicsLayer { this.alpha = alpha }, contentAlignment = Alignment.Center) {
         // Glow (PURPLE and up), then the readable line with a dark outline shadow on top.

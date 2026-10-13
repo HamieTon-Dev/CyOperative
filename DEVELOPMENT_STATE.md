@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.29.0 (versionCode 92) |
+| Version | 0.30.0 (versionCode 93) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,22 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **Gear and characters (0.30.0, Data Vault phase 2–3):**
+  - Data:
+    - `data/Gear.kt` has the item model, odds, rolls and `Gear.apply` (used in `Operatives.buildConfig(…, gear)`).
+    - Art comes from the `resources/gear/<slot>.webp` atlases (96 px cells, 16 columns, tiers in order). `GearArt` has the counts per tier; regenerate both together if the sheets change.
+  - Characters:
+    - The active character lives in the profile's top-level fields; `Characters.switchTo` swaps it with one in `otherCharacters`.
+    - First boot without a character goes to `Screen.Create(first = true)`.
+  - Engine and co-op:
+    - Drops use `gearRng`, so existing seeds and balance are unchanged.
+    - Co-op v25 sends a gear drop's look in the loot float (`gearLook`), plus the guest's last 6 finds (`guestGear`), merged by uid.
+    - In-run equips re-base solo only (`GameSession.applyGear`).
+  - Not done yet (Phases 4–5):
+    - chips as loot (5→15 slots) and retiring the in-run chip/card system;
+    - rarity tint on the operative's held weapon;
+    - the partner's look in co-op;
+    - a balance pass for the grind.
 - **INFERNO I–X (0.29.0)** are `Difficulty.INFERNO_1..10` (`inferno` tier).
   - `PlayerProfile.infernoUnlocked` is raised in `GameSession` when `campaignFinished`, via `unlocksInferno`.
   - The look is renderer-only, so co-op stays in sync:

@@ -63,6 +63,7 @@ The touchscreen and trackpads work as the mouse in menus.
 - **Hold a mouse button** to fire at the cursor while moving. Standing still auto-targets, as
   on phones.
 - **M** opens the world map (campaign).
+- **I** opens the INVENTORY (gear, backpack, Data Vault; also the button at the top left).
 - **Space** dashes; **R** / **F** cast your class's two spells.
 - **Q** drinks an HP charge (start with 3); **E** sets off a Packet Bomb (found as rare drops).
 - **Esc** pauses or goes back; **F11** toggles fullscreen.

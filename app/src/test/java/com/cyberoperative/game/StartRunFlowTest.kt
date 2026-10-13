@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.audio.AudioManager
 import com.cyberoperative.game.save.SaveRepository
@@ -30,8 +31,13 @@ class StartRunFlowTest {
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { AppRoot(repo, AudioManager(ctx)) } }
         try {
-            // Splash and boot terminal.
+            // Splash and boot terminal, then the first-launch CREATE CHARACTER screen (0.30.0).
             var guard = 0
+            while (compose.onAllNodesWithText("CREATE »").fetchSemanticsNodes().isEmpty() && guard++ < 1200) compose.mainClock.advanceTimeBy(50)
+            compose.onAllNodesWithText("CREATE »")[0].performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+            repeat(10) { compose.mainClock.advanceTimeBy(50) }
+            assert(com.cyberoperative.game.meta.Characters.hasCharacter(repo.current))
+            guard = 0
             while (compose.onAllNodesWithText(menuLabel).fetchSemanticsNodes().isEmpty() && guard++ < 1200) compose.mainClock.advanceTimeBy(50)
             compose.onAllNodesWithText(menuLabel)[0].performClick()
             repeat(20) { compose.mainClock.advanceTimeBy(50) }

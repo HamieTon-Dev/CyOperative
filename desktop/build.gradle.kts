@@ -74,6 +74,8 @@ kotlin {
             "com/cyberoperative/game/net/FirebaseCoopBackend.kt"
         )
         resources.srcDir(copyAssets)
+        // Gear icon atlases (Data Vault update) live in the shared Java resources.
+        resources.srcDir(rootProject.file("app/src/main/resources"))
     }
 }
 
