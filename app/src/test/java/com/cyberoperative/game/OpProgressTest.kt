@@ -28,6 +28,9 @@ class OpProgressTest {
         assertEquals(60, s.level)
         assertEquals(0, s.overclock)
         assertEquals("OP Lv 60 · OC 0", s.label)
+        // The XP bar's label switches to Overclock at 60.
+        assertEquals("OC Lv 0", s.barLabel)
+        assertEquals("OP Lv 1", OpProgress.of(0).barLabel)
     }
 
     @Test fun overclockIsTheLongGrind() {

@@ -487,7 +487,7 @@ class GameSession(
             euros = g.eurosEarned,
             hp = kotlin.math.ceil(g.hp).toInt().coerceAtLeast(0),
             maxHp = kotlin.math.ceil(g.stats.maxHp).toInt(),
-            opLabel = opNow.label,
+            opLabel = opNow.barLabel,
             opFraction = opNow.fraction,
             xpPercent = (g.xpFraction * 100).toInt(),
             runLevel = g.runLevel,

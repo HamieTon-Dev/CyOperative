@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.5 (versionCode 98) — 2026-10-13 · OC Lv on the XP bar
+### Changed
+- After OP Lv 60, the label beside the white XP bar reads **OC Lv N** (Overclock level), and the bar fills toward the next Overclock level. Below 60 it still reads "OP Lv N".
+### Technical
+- `OpProgress.State.barLabel`, used for the HUD's `opLabel`. `State.label` is unchanged everywhere else.
+
 ## 0.30.4 (versionCode 97) — 2026-10-13 · phantom door, Circuit Hydra
 ### Fixed
 - **A fake "EXIT" on the left wall.**
