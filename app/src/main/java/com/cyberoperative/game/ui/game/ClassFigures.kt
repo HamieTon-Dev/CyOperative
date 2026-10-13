@@ -89,7 +89,8 @@ internal object ClassFigures {
     val AGENT_PARTS = Anchors(Offset(48.5f, 34f), Offset(52.7f, 57f), 19f, 12f, Offset(52f, 80f), Offset(35f, 104f), Offset(69f, 102f), Offset(36f, 117f), Offset(71f, 117f))
     val JUGGERNAUT_PARTS = Anchors(Offset(52f, 30f), Offset(52f, 45f), 22f, 12f, Offset(52f, 66f), Offset(38f, 100f), Offset(64f, 100f), Offset(38f, 117f), Offset(64f, 117f))
     val PHANTOM_PARTS = Anchors(Offset(54f, 24f), Offset(54f, 40f), 18f, 13f, Offset(52f, 66f), Offset(42f, 98f), Offset(68f, 94f), Offset(48f, 112f), Offset(65f, 110f))
-    val MAGE_PARTS = Anchors(Offset(50f, 26f), Offset(52f, 52f), 15f, 10.5f, Offset(52f, 74f), Offset(40f, 110f), Offset(64f, 110f), Offset(40f, 117f), Offset(64f, 117f))
+    // Visor at (52, 49), 18 × 13 (outside the hood's 80% scale); the hood dome tops out near (54, 22).
+    val MAGE_PARTS = Anchors(Offset(54f, 24f), Offset(52f, 49f), 18f, 13f, Offset(52f, 90f), Offset(40f, 110f), Offset(64f, 110f), Offset(40f, 117f), Offset(64f, 117f))
     /** The TECHNICIAN is the icon hero (emblem units). */
     val TECH_PARTS = Anchors(Offset(49f, 13f), Offset(55f, 46f), 26f, 17f, Offset(53f, 88f), Offset(43f, 108f), Offset(61f, 108f), Offset(43f, 117f), Offset(61f, 117f))
 

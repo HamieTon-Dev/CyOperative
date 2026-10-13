@@ -56,6 +56,10 @@ class MainActivity : ComponentActivity() {
      * they hide again by themselves.
      */
     private fun hideSystemBars() {
+        // Never while the keyboard is up (typing a character name): hiding the bars then made
+        // Android close the keyboard again straight away, over and over (owner, 0.30.0).
+        val insets = androidx.core.view.ViewCompat.getRootWindowInsets(window.decorView)
+        if (insets?.isVisible(WindowInsetsCompat.Type.ime()) == true || com.cyberoperative.game.ui.common.TextEntry.focused) return
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())

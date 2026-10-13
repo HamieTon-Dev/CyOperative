@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -155,7 +157,7 @@ fun CharacterScreen(
 
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         LivingBackground(Modifier.fillMaxSize(), intensity = 0.35f)
-        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
             val wide = maxWidth >= 760.dp
             Column(Modifier.fillMaxSize()) {
                 Header(p, tab, wide, inRun, onBack) { tab = it; selected = null }
@@ -627,7 +629,7 @@ private fun VaultTab(
                         query, { query = it.take(24) }, singleLine = true,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(color = Palette.TextPrimary),
                         cursorBrush = SolidColor(Palette.Cyan),
-                        modifier = Modifier.weight(1f).background(Palette.SurfaceSunken, RoundedCornerShape(6.dp)).border(1.dp, Palette.Divider, RoundedCornerShape(6.dp)).padding(8.dp),
+                        modifier = Modifier.weight(1f).typingGuard().background(Palette.SurfaceSunken, RoundedCornerShape(6.dp)).border(1.dp, Palette.Divider, RoundedCornerShape(6.dp)).padding(8.dp),
                         decorationBox = { inner -> if (query.isEmpty()) Text("⌕ Search gear…", color = Palette.TextMuted, style = MaterialTheme.typography.bodyMedium); inner() }
                     )
                     Spacer(Modifier.width(6.dp))
@@ -816,7 +818,7 @@ fun CharacterCreateScreen(save: SaveRepository, editing: Boolean, onBack: (() ->
     }
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         LivingBackground(Modifier.fillMaxSize(), intensity = 0.35f)
-        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 6.dp)) {
             val wide = maxWidth >= 760.dp
             val classes: @Composable (Boolean) -> Unit = { vertical ->
                 val list = if (editing) listOf(cls) else Operatives.all
@@ -861,7 +863,7 @@ fun CharacterCreateScreen(save: SaveRepository, editing: Boolean, onBack: (() ->
                         name, { name = it.take(Characters.NAME_MAX) }, singleLine = true,
                         textStyle = MaterialTheme.typography.titleMedium.copy(color = Palette.TextPrimary),
                         cursorBrush = SolidColor(Palette.Cyan),
-                        modifier = Modifier.fillMaxWidth().background(Palette.SurfaceSunken, RoundedCornerShape(6.dp))
+                        modifier = Modifier.fillMaxWidth().typingGuard().background(Palette.SurfaceSunken, RoundedCornerShape(6.dp))
                             .border(1.dp, if (valid) Palette.Divider else Palette.Red, RoundedCornerShape(6.dp)).padding(10.dp),
                         decorationBox = { inner -> Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.weight(1f)) { inner() }; Text("✎", color = Palette.Cyan) } }
                     )
@@ -956,4 +958,14 @@ private fun SmallButton(text: String, modifier: Modifier = Modifier, accent: Col
         Text(text, color = if (filled) Palette.Background else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge,
             maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
     }
+}
+
+/**
+ * Marks a text field as being typed in, so the immersive-mode re-hide of the system bars leaves
+ * the keyboard alone (0.30.1: the keyboard kept closing itself on the character name).
+ */
+@Composable
+private fun Modifier.typingGuard(): Modifier {
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { com.cyberoperative.game.ui.common.TextEntry.focused = false } }
+    return this.onFocusChanged { com.cyberoperative.game.ui.common.TextEntry.focused = it.isFocused }
 }

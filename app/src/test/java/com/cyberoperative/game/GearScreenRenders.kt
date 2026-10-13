@@ -93,6 +93,17 @@ class GearScreenRendersWide : GearRenderBase() {
     @Test fun gear() = show("character_gear_wide", CharTab.GEAR)
     @Test fun vault() = show("data_vault_wide", CharTab.VAULT)
     @Test fun create() = creator("create_character_wide")
+
+    /** Packet Mage wearing the B / C parts: the visor overlay must sit in the hood opening. */
+    @Test fun mageParts() {
+        assumeTrue(enabled)
+        val r = repo()
+        r.update { Characters.setLook(it.copy(selectedOperative = "packet_mage"), CharacterLook(1, 1, 1, 1)) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { CharacterCreateScreen(r, editing = true, onBack = {}, onDone = {}) } }
+        compose.mainClock.advanceTimeBy(800)
+        save("create_character_mage")
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)

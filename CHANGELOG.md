@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.30.1 (versionCode 94) — 2026-10-13 · fixes
+### Fixed
+- **The Android keyboard kept closing while typing a character name.**
+  - Cause: the app re-hides the status and navigation bars whenever the window focus changes, and opening the keyboard set that off, so Android shut the keyboard again.
+  - Fix: the bars are left alone while the keyboard is up or a text field has focus.
+  - The creator and the Data Vault search now also move up above the keyboard.
+- **Packet Mage faces lined up wrong.** The Digital and Hunter faces, the antenna or crest, and the chest reactor now sit on the mage's hood opening and robe.
+### Technical
+- `MainActivity.hideSystemBars` skips while the IME is visible or `TextEntry.focused` is set, which the text fields set through `typingGuard`.
+- `ClassFigures.MAGE_PARTS` anchors corrected.
+- New render: `create_character_mage`.
+
 ## 0.30.0 (versionCode 93) — 2026-10-13 · Data Vault update, phase 2: gear loot and characters
 ### Added (owner: loot sheets, character creator, character / gear / Data Vault mock-ups)
 - **Gear loot from elites and bosses, drawn with the owner's art.**
