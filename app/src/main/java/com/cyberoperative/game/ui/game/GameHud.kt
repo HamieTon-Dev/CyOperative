@@ -130,6 +130,7 @@ fun GameHud(
             HeaderRow(h, paused, onPause)
             Column(Modifier.padding(horizontal = 12.dp)) {
                 HpRow(h)
+                XpRow(h)
                 if (h.coop && !h.partnerGone) PartnerRow(h)
                 ProgressRow(h)
                 if (h.owned.isNotEmpty()) {
@@ -299,8 +300,27 @@ private fun HpRow(h: HudSnapshot, label: String = "CORE HP", labelWidth: android
         color = Palette.healthColor(f),
         overlay = 0f,
         value = "${h.hp}/${h.maxHp}",
-        extra = h.opLabel,
-        description = "Core health ${h.hp} of ${h.maxHp}, ${h.opLabel}"
+        extra = null,
+        description = "Core health ${h.hp} of ${h.maxHp}"
+    )
+}
+
+/**
+ * OP level and a white XP bar filling toward the next level (owner, 2026-10-13:
+ * "OP Lv XX ====" with the bar to the right of the label). Past OP Lv 60 it fills toward the next Overclock level.
+ */
+@Composable
+private fun XpRow(h: HudSnapshot, labelWidth: androidx.compose.ui.unit.Dp = 62.dp) {
+    StatRow(
+        labelWidth = labelWidth,
+        label = h.opLabel,
+        labelColor = Color.White,
+        fraction = h.opFraction,
+        color = Color.White,
+        overlay = 0f,
+        value = "${(h.opFraction * 100f).toInt()}%",
+        extra = null,
+        description = "${h.opLabel}, ${(h.opFraction * 100f).toInt()} percent to the next level"
     )
 }
 
@@ -425,6 +445,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 }
                 Spacer(Modifier.height(4.dp))
                 HpRow(h)
+                XpRow(h)
                 if (h.coop && !h.partnerGone) PartnerRow(h)
             }
             Spacer(Modifier.width(28.dp))
@@ -491,6 +512,7 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
             }
             Spacer(Modifier.height(2.dp))
             HpRow(h, label = "HP", labelWidth = 26.dp)
+            XpRow(h, labelWidth = 26.dp)
             if (h.coop && !h.partnerGone) PartnerRow(h)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (h.owned.isNotEmpty()) {

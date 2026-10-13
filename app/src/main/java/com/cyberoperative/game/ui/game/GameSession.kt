@@ -363,6 +363,8 @@ class GameSession(
     fun skipVictory() = engine.skipVictory()
 
     fun onFrame(delta: Float) {
+        // Android solo: the next room is built for how the screen is held now (the SCREEN setting).
+        if (coop == null && !com.cyberoperative.game.platform.AppInfo.desktop) engine.nextRoomWide = com.cyberoperative.game.ui.common.PlayMode.landscape
         if (coop != null) coopFrame(delta)
         else if (!paused && !showTutorial) engine.update(delta)
         for (s in engine.sounds) {
@@ -484,7 +486,7 @@ class GameSession(
             score = g.score,
             euros = g.eurosEarned,
             hp = kotlin.math.ceil(g.hp).toInt().coerceAtLeast(0),
-            maxHp = g.stats.maxHp.toInt(),
+            maxHp = kotlin.math.ceil(g.stats.maxHp).toInt(),
             opLabel = opNow.label,
             opFraction = opNow.fraction,
             xpPercent = (g.xpFraction * 100).toInt(),

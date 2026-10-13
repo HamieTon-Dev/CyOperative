@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.30.3 (versionCode 96) — 2026-10-13 · XP bar, room shape fix
+### Added
+- **White XP bar** in the HUD, under CORE HP: "OP Lv 15" then a white bar filling toward the next level, with the % at the end. Past OP Lv 60 it fills toward the next Overclock level. It shows in the phone portrait HUD, the Android landscape strip and the Steam HUD.
+### Fixed
+- **Wide landscape rooms (the boss room too) in portrait.**
+  - A run keeps the room shape it started with. A run started in landscape (or a saved landscape run continued in portrait) kept building wide rooms, which were tiny on a portrait screen.
+  - On Android, every new room now follows the current screen setting (solo runs; co-op keeps one shape for both players).
+- The HP readout could show more than the maximum (222/221); both numbers now round the same way.
+### Technical
+- `GameEngine.nextRoomWide` is applied before a room is planned (`startLevel`, `enterRoom`); `GameSession.onFrame` sets it from `PlayMode.landscape`.
+- New `RoomShapeTest`.
+- `XpRow` in `GameHud`. The OP label moved out of `HpRow`.
+
 ## 0.30.2 (versionCode 95) — 2026-10-13 · ×10 level XP
 ### Changed (owner: "these XP numbers required to level up need to be multiplied by 10")
 - **Every OP level needs 10× the XP.** Level 1 → 2 is 25,000, 49 → 50 is 841,000, 59 → 60 is 1,620,000, and the whole 1–60 climb is 29,211,000 XP.

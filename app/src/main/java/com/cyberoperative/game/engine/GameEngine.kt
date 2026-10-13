@@ -1204,7 +1204,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     // Level lifecycle
     // ======================================================================
 
+    /**
+     * Room shape for the NEXT room (wide landscape or tall portrait), or null to keep the run's.
+     * Android solo runs follow the screen setting (0.30.3, owner: a run started in landscape kept
+     * wide rooms, the boss room included, after switching to portrait, too small to read).
+     */
+    var nextRoomWide: Boolean? = null
+
+    private fun applyRoomShape() { nextRoomWide?.let { com.cyberoperative.game.data.ArenaShape.wide = it } }
+
     private fun startLevel(newLevel: Int, previousArena: String?, previousEvent: Boolean, forced: LevelPlan? = null) {
+        applyRoomShape()
         level = newLevel
         fx.clear()
         if (!mirror) sweepLoot() else loot.clear()
@@ -2345,6 +2355,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         room = r
         revisit = r in clearedRooms
         visitedRooms += r
+        // The campaign plan builds the room's layout, so the shape must be set before it.
+        applyRoomShape()
         startLevel(CampaignMap.levelFor(world, r), null, false, campaignPlan(world, r, revisit))
         exitDoors.clear()
         exitDoors += campaignDoors(r)
