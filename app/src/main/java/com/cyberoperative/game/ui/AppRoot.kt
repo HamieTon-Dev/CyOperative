@@ -129,6 +129,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                     savedRunLabel = RunSnapshot.decodeOrNull(profile.savedRun)?.label,
                     opLevel = com.cyberoperative.game.ui.menu.operativeLevel(profile.operativeXp),
                     permanent = profile.permanentUpgrades,
+                    infernoUnlocked = profile.infernoUnlocked,
                     onStart = { d -> click(); picking = null; startRun(mode, d) },
                     onCancel = { audio.play(GameSound.UI_BACK); picking = null }
                 )
@@ -192,6 +193,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 CoopLobbyScreen(
                     room = room,
                     initialDifficulty = lastDifficulty,
+                    infernoUnlocked = profile.infernoUnlocked,
                     onStart = { st ->
                         if (st.host != null && st.guest != null) {
                             session = GameSession(save, audio, coop = CoopLink(room, st, appScope))

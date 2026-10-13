@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.29.0 (versionCode 92) — 2026-10-13 · INFERNO I–X
+### Added (owner: "10 new difficulty levels after hard")
+- **Ten INFERNO difficulties past Hard.**
+  - **Inferno I** unlocks by beating World 15's boss on **Hard**. Each next tier unlocks by beating World 15's boss on the tier before.
+  - The picker shows your unlocked tiers, plus the next one locked with what unlocks it. The co-op lobby offers the host's unlocked tiers.
+  - Each tier gives ×1.5 threat HP and ×1.25 damage over the last, with higher rewards and better loot luck. Inferno X is ×124 HP and ×13 damage over Normal-level threats.
+  - Inferno runs count as Hard for records and class skins.
+- **The hell look in Inferno runs:**
+  - **Hell themes** (Blood Servers, Hellfire Forge, Crimson Cathedral, Void Abyss, Crypto Hell, Ash & Ember) in reds, crimson, hellfire orange (Encrypted), void purple and neon blue (Crypto).
+  - Rooms are darker, with a red-edged vignette, and every server light, pylon and fixture burns in the room's hell colour.
+  - About 1 room in 8 keeps a normal look.
+  - **Claw marks** gouged into the floor, **broken server towers** (tilted, smashed glass, sparking), and **fire licking up the walls**.
+  - **Meaner monsters:** bosses are darkened toward blood red with a flickering flame aura and rising embers, and every threat is dragged toward red.
+### Technical
+- New `InfernoTest`. New renders: `inferno_room`, `inferno_boss`.
+
 ## 0.28.0 (versionCode 91) — 2026-10-13 · Data Vault update, phase 1: levels and difficulty
 Owner: "the game is too easy again… this needs to be a slow grind". The full plan is in `docs/DATA_VAULT_PLAN.md`.
 

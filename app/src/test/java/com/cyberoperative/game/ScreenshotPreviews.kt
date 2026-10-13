@@ -285,12 +285,13 @@ class ScreenshotPreviews {
         name: String, simulateSeconds: Float,
         profileSetup: (com.cyberoperative.game.save.PlayerProfile) -> com.cyberoperative.game.save.PlayerProfile = { it },
         interact: () -> Unit = {},
+        difficulty: com.cyberoperative.game.engine.Difficulty = com.cyberoperative.game.engine.Difficulty.MEDIUM,
         setup: (GameSession) -> Unit = {}
     ) {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
         repo.update { profileSetup(it.copy(tutorialDone = true)) }
-        val session = GameSession(repo, AudioManager(ctx))
+        val session = GameSession(repo, AudioManager(ctx), com.cyberoperative.game.engine.GameMode.CAMPAIGN, difficulty)
         setup(session)
         val bot = Bot(session.engine, dodge = true)
         var t = 0f
@@ -481,7 +482,7 @@ class ScreenshotPreviews {
             hostOnline = true, guestOnline = true
         )
         val (room, _) = LoopbackRoom.pair(st)
-        coopShot("coop_lobby") { com.cyberoperative.game.ui.menu.CoopLobbyScreen(room, com.cyberoperative.game.engine.Difficulty.MEDIUM, {}, {}) }
+        coopShot("coop_lobby") { com.cyberoperative.game.ui.menu.CoopLobbyScreen(room, com.cyberoperative.game.engine.Difficulty.MEDIUM, onStart = {}, onLeave = {}) }
     }
 
     @Test fun coopFight() {
@@ -828,6 +829,23 @@ class ScreenshotPreviews {
                 g.loot.clear()
                 g.operatives[0].px = g.worldServerX - 60f; g.operatives[0].py = g.worldServerY + 80f
                 repeat(5) { g.update(1f / 60f) }
+            }
+        }
+    }
+
+    /** INFERNO look (owner, 2026-10-13): hell rooms, broken towers, claw marks, wall fire, meaner monsters. */
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun infernoRoom() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("inferno_room", 2.5f, difficulty = com.cyberoperative.game.engine.Difficulty.INFERNO_3) { s -> s.engine.debugEnterRoom(2) }
+        }
+    }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun infernoBoss() {
+        assumeTrue(enabled)
+        pcMode(landscape = true) {
+            gameplay("inferno_boss", 5f, difficulty = com.cyberoperative.game.engine.Difficulty.INFERNO_7) { s ->
+                s.engine.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
             }
         }
     }

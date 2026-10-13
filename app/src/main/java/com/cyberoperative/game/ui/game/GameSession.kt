@@ -826,6 +826,8 @@ class GameSession(
                 endlessBestScore = if (engine.mode == GameMode.ENDLESS) maxOf(p.endlessBestScore, s.score) else p.endlessBestScore,
                 bestWorld = if (mode == GameMode.CAMPAIGN) maxOf(p.bestWorld, engine.world) else p.bestWorld,
                 campaignsCompleted = p.campaignsCompleted + if (countRun && engine.campaignFinished) 1 else 0,
+                // Beating World 15's boss on Hard unlocks Inferno I, on Inferno I unlocks II, and so on.
+                infernoUnlocked = if (engine.campaignFinished) maxOf(p.infernoUnlocked, difficulty.unlocksInferno) else p.infernoUnlocked,
                 totalKills = p.totalKills + dKills,
                 totalBosses = p.totalBosses + dBosses,
                 totalEvents = p.totalEvents + dEvents,

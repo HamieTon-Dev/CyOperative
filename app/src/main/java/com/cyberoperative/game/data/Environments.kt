@@ -79,6 +79,30 @@ object Environments {
             0xFF19143E, 0xFF8C80FF, listOf(FloorPattern.CIRCUIT, FloorPattern.DIAMOND, FloorPattern.HEX))
     )
 
+    /**
+     * INFERNO themes (owner, 2026-10-13): hell-like and dimmer, every server light burning red,
+     * crimson, hellfire orange (Encrypted), void purple or abyss neon blue (Crypto).
+     */
+    val inferno: List<Environment> = listOf(
+        Environment("hell_blood", "BLOOD SERVERS", 0xFF0B0202, 0xFF1A0606, 0xFF140404, 0x22FF4A4A, 0xFFFF2A2A, 0xFFFF7A1A, 0xFFFF2A2A,
+            0xFF210808, 0xFFFF3A3A, listOf(FloorPattern.PLATES, FloorPattern.GRID, FloorPattern.BRICK)),
+        Environment("hell_forge", "HELLFIRE FORGE", 0xFF0E0401, 0xFF1F0B03, 0xFF180802, 0x22FF8A3D, 0xFFFF6A00, 0xFFFF2A2A, 0xFFFF5A10,
+            0xFF261006, 0xFFFF7A1A, listOf(FloorPattern.BRICK, FloorPattern.GROOVES, FloorPattern.PLATES)),
+        Environment("hell_crimson", "CRIMSON CATHEDRAL", 0xFF0C0206, 0xFF1C0610, 0xFF16040C, 0x22FF4A8A, 0xFFD0103A, 0xFFFF2BD6, 0xFFE0184A,
+            0xFF220A14, 0xFFFF2A5A, listOf(FloorPattern.DIAMOND, FloorPattern.HEX, FloorPattern.BRICK)),
+        Environment("hell_void", "VOID ABYSS", 0xFF07020E, 0xFF140820, 0xFF10061A, 0x228A4AFF, 0xFF9B30FF, 0xFFFF2A55, 0xFF8A2AFF,
+            0xFF1A0A2A, 0xFFB04AFF, listOf(FloorPattern.HEX, FloorPattern.CIRCUIT, FloorPattern.DIAMOND)),
+        Environment("hell_crypto", "CRYPTO HELL", 0xFF02070C, 0xFF06141E, 0xFF051019, 0x2200C8FF, 0xFF00C8FF, 0xFFFF2A2A, 0xFF00AEEA,
+            0xFF0A1C28, 0xFF2ED8FF, listOf(FloorPattern.CIRCUIT, FloorPattern.GRID, FloorPattern.DOTS)),
+        Environment("hell_ash", "ASH & EMBER", 0xFF0A0605, 0xFF19100C, 0xFF140C09, 0x22FFB04A, 0xFFFF3A1A, 0xFFFFC233, 0xFFFF4A20,
+            0xFF201410, 0xFFFF5A2A, listOf(FloorPattern.GROOVES, FloorPattern.PLATES, FloorPattern.DOTS))
+    )
+
+    /** Share of INFERNO rooms that keep a normal look. */
+    const val INFERNO_NORMAL_CHANCE = 0.12f
+
+    fun isInferno(env: Environment): Boolean = env in inferno
+
     /** Theme for a level: changes every 3 levels, in an order shuffled per run by [runSeed]. */
     fun forLevel(level: Int, runSeed: Long): Environment {
         val block = (level - 1).coerceAtLeast(0) / 3
@@ -90,8 +114,16 @@ object Environments {
     fun isNewTheme(level: Int): Boolean = (level - 1) % 3 == 0
 
     /** The level's own variation inside its theme. */
-    fun styleFor(level: Int, runSeed: Long): FloorStyle {
-        val env = forLevel(level, runSeed)
+    fun styleFor(level: Int, runSeed: Long, infernoTier: Int = 0): FloorStyle {
+        var env = forLevel(level, runSeed)
+        if (infernoTier > 0) {
+            // A hell theme, changing every 3 levels like the normal ones; now and then a normal room.
+            val h = kotlin.random.Random(runSeed * 131 + level * 104_729L + 77)
+            if (h.nextFloat() >= INFERNO_NORMAL_CHANCE) {
+                val order = inferno.indices.shuffled(kotlin.random.Random(runSeed + 991))
+                env = inferno[order[((level - 1).coerceAtLeast(0) / 3) % inferno.size]]
+            }
+        }
         val r = kotlin.random.Random(runSeed * 31 + level * 7919L)
         return FloorStyle(
             env = env,

@@ -30,6 +30,9 @@ import kotlin.math.sqrt
  * then an orbiting spark, then a moving metallic sheen; KERNEL-MODE cycles the spectrum.
  */
 internal object EnemySprites {
+    /** INFERNO difficulty: threats look meaner (set by the renderer each frame). */
+    var hell = false
+
 
     enum class Form { CRAWLER, GRUB, NANITE, LEECH, BUG, LOCUST, BLOCK, HUSK, GOLEM, TURRET, TWIN, FAN, MORTAR, GATLING,
         SENTRY, HORN, LANCE, BULL, SCOPE, STALKER, BEACON, SPIRE, BLINKER, WRAITH, GLITCH, DRONE, WORM }
@@ -127,6 +130,8 @@ internal object EnemySprites {
             lk.spectrum -> Color.hsv((time * 90f + uid * 31f) % 360f, 0.75f, 1f)
             else -> lk.color
         }
+        // INFERNO: every threat drags toward blood red (set by the renderer each frame).
+        if (hell && !glitch) trim = Color(trim.red + (0.62f - trim.red) * 0.5f, trim.green * 0.45f, trim.blue * 0.35f, trim.alpha)
         if (winding && ((time * 16f).toInt() % 2 == 0)) trim = Color.White
         val form = if (glitch) glitchForms[((time * 4f).toInt() + uid) % glitchForms.size] else lk.form
         val c = Offset(cx, cy)

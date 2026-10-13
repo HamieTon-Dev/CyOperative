@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -379,6 +380,7 @@ private fun FriendRow(f: Friend, onInvite: () -> Unit, onRemove: (() -> Unit)?) 
 fun CoopLobbyScreen(
     room: CoopRoom,
     initialDifficulty: Difficulty,
+    infernoUnlocked: Int = 0,
     onStart: (RoomState) -> Unit,
     onLeave: () -> Unit
 ) {
@@ -407,10 +409,11 @@ fun CoopLobbyScreen(
             )
             if (room.isHost) {
                 Text("DIFFICULTY", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (d in Difficulty.entries) {
+                // The host's unlocked tiers (INFERNO ones scroll sideways).
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (d in Difficulty.available(infernoUnlocked)) {
                         CyberButton(
-                            d.name, Modifier.weight(1f), accent = if (d == difficulty) Color(d.color) else Palette.Divider,
+                            d.label, Modifier.width(132.dp), accent = if (d == difficulty) Color(d.color) else Palette.Divider,
                             subtitle = if (d == difficulty) "● SELECTED" else " "
                         ) { difficulty = d }
                     }

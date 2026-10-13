@@ -3,6 +3,7 @@ package com.cyberoperative.game.ui.game
 import com.cyberoperative.game.platform.drawGameText
 import com.cyberoperative.game.ui.common.GameTextPaint
 import com.cyberoperative.game.ui.common.argb
+import com.cyberoperative.game.ui.common.SafeBrush
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
@@ -123,7 +125,9 @@ class ArenaRenderer {
         }) {
             drawFloor(g, time)
             drawLivingBackground(background, arena.width, arena.height, time, (g.aliveCount() / 16f).coerceIn(0f, 1f), g.px, g.py)
+            EnemySprites.hell = g.config.difficulty.inferno > 0
             drawDecor(g, time)
+            if (infernoRoom(g)) drawInfernoDecor(g, time)
             drawTopWall(g, time)
             drawHazardsUnder(g, time)
             drawBarrierGhosts(g, time)
@@ -148,6 +152,7 @@ class ArenaRenderer {
             drawZaps(g, time)
             drawHazardsOver(g, time)
             drawParticles(g)
+            if (infernoRoom(g)) drawInfernoVignette(g)
             if (showNumbers) drawTexts(g)
         }
         if (g.plan.kind == LevelKind.EVENT) drawSpectrumBorder(time)
@@ -227,13 +232,144 @@ class ArenaRenderer {
     private var styleKey = Long.MIN_VALUE
     private var cachedStyle: FloorStyle? = null
 
+    // --- INFERNO look (owner, 2026-10-13) -----------------------------------------------------
+
+    /** This room wears a hell theme (Inferno difficulty; about one room in eight stays normal). */
+    private fun infernoRoom(g: GameEngine): Boolean =
+        g.config.difficulty.inferno > 0 && Environments.isInferno(styleOf(g).env) && !g.inShop
+
+    private val hellRed = Color(0xFF9A0010)
+
+    private fun lerpC(a: Color, b: Color, t: Float) = Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, a.alpha)
+
+    private fun hellTint(c: Color, amount: Float): Color = Color(
+        c.red + (hellRed.red - c.red) * amount, c.green + (hellRed.green - c.green) * amount,
+        c.blue + (hellRed.blue - c.blue) * amount, c.alpha
+    )
+
+    /** A light's colour: the room's hell colour in an Inferno room, otherwise [normal]. */
+    private fun hellLight(g: GameEngine, normal: Color): Color = if (infernoRoom(g)) Color(styleOf(g).env.accent) else normal
+
+    /** Flickering flame tongues and embers around an Inferno boss. */
+    private fun DrawScope.drawHellAura(x: Float, y: Float, r: Float, time: Float, uid: Int) {
+        drawCircle(SafeBrush.radialGradient(listOf(Color(0xFFFF3A10).copy(alpha = 0.35f), Color(0xFF7A0008).copy(alpha = 0.18f), Color.Transparent), Offset(x, y), r * 2.4f), r * 2.4f, Offset(x, y))
+        val n = 14
+        for (i in 0 until n) {
+            val a = i * MathUtil.TWO_PI / n + time * 0.6f
+            val flick = 0.6f + 0.4f * sin(time * 9f + i * 1.7f + uid)
+            val base = Offset(x + cos(a) * r * 1.05f, y + sin(a) * r * 0.9f)
+            val tip = Offset(base.x + cos(a) * r * 0.35f * flick, base.y + sin(a) * r * 0.3f * flick - r * 0.45f * flick)
+            drawLine(Color(0xFFFF6A10).copy(alpha = 0.55f * flick), base, tip, r * 0.16f, cap = StrokeCap.Round)
+            drawLine(Color(0xFFFFD040).copy(alpha = 0.5f * flick), base, Offset((base.x + tip.x) / 2f, (base.y + tip.y) / 2f), r * 0.07f, cap = StrokeCap.Round)
+        }
+        for (k in 0 until 6) {
+            val p = ((time * 0.5f + k * 0.17f + uid * 0.01f) % 1f)
+            drawCircle(Color(0xFFFF5A1A).copy(alpha = (1f - p) * 0.8f), 3f, Offset(x + sin(k * 2.3f + time) * r * 0.9f, y - p * r * 2.2f))
+        }
+    }
+
+    /** Darker edges and a faint red cast over a hell room. */
+    private fun DrawScope.drawInfernoVignette(g: GameEngine) {
+        val w = g.arena.width
+        val h = g.arena.height
+        val c = Offset(g.px, g.py)
+        val rad = maxOf(w, h) * 0.75f
+        drawRect(SafeBrush.radialGradient(listOf(Color.Transparent, Color(0xFF1A0000).copy(alpha = 0.55f)), c, rad), Offset(-200f, -400f), Size(w + 400f, h + 800f))
+        drawRect(Color(0xFFFF0000).copy(alpha = 0.04f), Offset(-200f, -400f), Size(w + 400f, h + 800f))
+    }
+
+    private class HellDecor(val kind: Int, val x: Float, val y: Float, val a: Float, val s: Float, val seed: Int)
+    private var hellKey = Long.MIN_VALUE
+    private var hellDecor: List<HellDecor> = emptyList()
+
+    /** Claw marks in the floor, broken server towers and fire on the walls, the same for both co-op players. */
+    private fun hellDecorFor(g: GameEngine): List<HellDecor> {
+        val key = (g.level.toLong() * 7_919L + g.config.seed) * 31 + g.arena.template.id.hashCode()
+        if (key == hellKey) return hellDecor
+        hellKey = key
+        val r = kotlin.random.Random(key)
+        val a = g.arena
+        val out = ArrayList<HellDecor>()
+        fun spot(rad: Float): Offset? {
+            repeat(30) {
+                val x = 80f + r.nextFloat() * (a.width - 160f)
+                val y = 140f + r.nextFloat() * (a.height - 260f)
+                if (a.isFree(x, y, rad)) return Offset(x, y)
+            }
+            return null
+        }
+        repeat(2 + r.nextInt(3)) { spot(60f)?.let { out += HellDecor(0, it.x, it.y, r.nextFloat() * MathUtil.TWO_PI, 0.8f + r.nextFloat() * 0.6f, r.nextInt()) } }
+        repeat(1 + r.nextInt(3)) { spot(50f)?.let { out += HellDecor(1, it.x, it.y, (r.nextFloat() - 0.5f) * 0.9f, 0.9f + r.nextFloat() * 0.3f, r.nextInt()) } }
+        // Fire along the far wall and down the side walls.
+        repeat(4 + r.nextInt(4)) { out += HellDecor(2, 60f + r.nextFloat() * (a.width - 120f), 6f, 0f, 0.8f + r.nextFloat() * 0.6f, r.nextInt()) }
+        repeat(2 + r.nextInt(3)) { out += HellDecor(3, if (r.nextBoolean()) 10f else a.width - 10f, 200f + r.nextFloat() * (a.height - 400f), 0f, 0.8f + r.nextFloat() * 0.5f, r.nextInt()) }
+        hellDecor = out
+        return out
+    }
+
+    private fun DrawScope.drawInfernoDecor(g: GameEngine, time: Float) {
+        for (d in hellDecorFor(g)) when (d.kind) {
+            0 -> {
+                // Claw marks: three curved gashes torn through the plates, glowing inside.
+                for (k in -1..1) {
+                    val ox = cos(d.a + MathUtil.PI / 2f) * k * 18f * d.s
+                    val oy = sin(d.a + MathUtil.PI / 2f) * k * 18f * d.s
+                    val len = 90f * d.s * (1f - 0.12f * kotlin.math.abs(k))
+                    val sx = d.x + ox - cos(d.a) * len / 2f
+                    val sy = d.y + oy - sin(d.a) * len / 2f
+                    val ex = d.x + ox + cos(d.a) * len / 2f
+                    val ey = d.y + oy + sin(d.a) * len / 2f
+                    shapePath.reset()
+                    shapePath.moveTo(sx, sy)
+                    shapePath.quadraticTo(d.x + ox + 10f * k, d.y + oy - 12f, ex, ey)
+                    drawPath(shapePath, Color(0xFF050101), style = Stroke(9f * d.s, cap = StrokeCap.Round))
+                    drawPath(shapePath, Color(0xFFFF2A10).copy(alpha = 0.55f + 0.2f * sin(time * 3f + d.seed + k)), style = Stroke(3f * d.s, cap = StrokeCap.Round))
+                }
+            }
+            1 -> {
+                // A broken server tower, knocked askew, glass smashed, sparking.
+                rotate(d.a * 57.3f, Offset(d.x, d.y)) {
+                    val w = 52f * d.s
+                    val h = 96f * d.s
+                    drawRect(Color(0xFF0A0606), Offset(d.x - w / 2f, d.y - h), Size(w, h))
+                    drawRect(Color(0xFF5A1010), Offset(d.x - w / 2f, d.y - h), Size(w, h), style = Stroke(2f))
+                    for (row in 0 until 4) {
+                        val on = (time * 3f + row + d.seed).toInt() % 4 == 0
+                        drawRect(if (on) Color(0xFFFF2A2A) else Color(0xFF2A0606), Offset(d.x - w / 2f + 8f, d.y - h + 12f + row * 20f), Size(w - 16f, 8f))
+                    }
+                    // Cracks across the front.
+                    drawLine(Color(0xFFFFB0A0).copy(alpha = 0.5f), Offset(d.x - w * 0.3f, d.y - h * 0.8f), Offset(d.x + w * 0.1f, d.y - h * 0.45f), 1.5f)
+                    drawLine(Color(0xFFFFB0A0).copy(alpha = 0.5f), Offset(d.x + w * 0.1f, d.y - h * 0.45f), Offset(d.x - w * 0.15f, d.y - h * 0.2f), 1.5f)
+                }
+                if ((time * 4f + d.seed).toInt() % 7 == 0) {
+                    for (k in 0 until 4) drawLine(Color(0xFFFFD040), Offset(d.x, d.y - 40f * d.s), Offset(d.x + (k - 1.5f) * 12f, d.y - 40f * d.s - 14f + k * 6f), 1.5f)
+                }
+            }
+            else -> {
+                // Fire licking up a wall: flickering tongues.
+                val up = d.kind == 2
+                for (k in 0 until 5) {
+                    val f = 0.55f + 0.45f * sin(time * 8f + k * 1.9f + d.seed)
+                    val bx = if (up) d.x + (k - 2) * 12f * d.s else d.x
+                    val by = if (up) d.y + 30f else d.y + (k - 2) * 14f * d.s
+                    val tipX = if (up) bx + sin(time * 5f + k) * 6f else bx + (if (d.x < g.arena.width / 2f) 1f else -1f) * 40f * d.s * f
+                    val tipY = if (up) by + 50f * d.s * f else by - 14f * f
+                    drawLine(Color(0xFFFF4A10).copy(alpha = 0.6f * f), Offset(bx, by), Offset(tipX, tipY), 12f * d.s, cap = StrokeCap.Round)
+                    drawLine(Color(0xFFFFC040).copy(alpha = 0.55f * f), Offset(bx, by), Offset((bx + tipX) / 2f, (by + tipY) / 2f), 5f * d.s, cap = StrokeCap.Round)
+                }
+                drawCircle(SafeBrush.radialGradient(listOf(Color(0xFFFF3A10).copy(alpha = 0.25f), Color.Transparent), Offset(d.x, d.y + 30f), 90f * d.s), 90f * d.s, Offset(d.x, d.y + 30f))
+            }
+        }
+    }
+
     /** This level's theme and floor variation (cached; rebuilt when the level changes). */
     private fun styleOf(g: GameEngine): FloorStyle {
-        val key = g.level.toLong() * 1_000_003L + g.config.seed
+        val tier = g.config.difficulty.inferno
+        val key = (g.level.toLong() * 1_000_003L + g.config.seed) * 31 + tier
         val c = cachedStyle
         if (c != null && key == styleKey) return c
         styleKey = key
-        return Environments.styleFor(g.level, g.config.seed).also { cachedStyle = it }
+        return Environments.styleFor(g.level, g.config.seed, tier).also { cachedStyle = it }
     }
 
     private fun shadeOf(c: Long, shade: Float): Color {
@@ -585,9 +721,9 @@ class ArenaRenderer {
                     drawCircle(blue.copy(alpha = 0.12f + 0.08f * sin(time * 9f + d.seed)), d.w * 0.7f, Offset(d.x + d.w / 2f, d.y + d.h / 2f))
                 }
                 DecorKind.BEACON -> {
-                    // 12 Light beacon: a pylon throwing a pool of cyan light on the floor.
+                    // 12 Light beacon: a pylon throwing a pool of cyan light on the floor (hell-coloured in Inferno).
                     val c = Offset(d.x + d.w / 2f, d.y + d.h / 2f)
-                    val cyan = Color(0xFF3FF0FF)
+                    val cyan = hellLight(g, Color(0xFF3FF0FF))
                     val p = 0.85f + 0.15f * sin(time * 2f + d.seed)
                     drawOval(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(cyan.copy(alpha = 0.22f * p), cyan.copy(alpha = 0f)), center = c, radius = 150f), Offset(c.x - 150f, c.y - 80f), Size(300f, 160f))
                     drawRect(Color(0xFF0C1A2A), Offset(c.x - 9f, c.y - 50f), Size(18f, 50f))
@@ -1008,6 +1144,13 @@ class ArenaRenderer {
 
     /** Walls pick up the theme: bodies lean toward its tone; racks, crates and bulkheads take its trim. */
     private fun themed(look: Look, kind: ObstacleKind, g: GameEngine): Look {
+        if (infernoRoom(g)) {
+            // INFERNO: every light on every wall burns in the room's hell colour.
+            val env = styleOf(g).env
+            val trim = Color(env.wallTrim)
+            return if (kind == ObstacleKind.HOLO_WALL) Look(trim.copy(alpha = 0.2f), trim.copy(alpha = 0.13f), trim)
+            else Look(lerpC(look.top, Color(env.wallTone), 0.6f), lerpC(look.front, Color(env.wallTone), 0.6f), trim)
+        }
         if (g.plan.kind == LevelKind.BOSS) return look
         val env = styleOf(g).env
         val tone = Color(env.wallTone)
@@ -1113,13 +1256,14 @@ class ArenaRenderer {
             ObstacleKind.DATA_PILLAR -> {
                 // 06 Relay pillar: a glowing square frame on top and lit corner strips.
                 val ins = min(r.width, r.height) * 0.2f
-                drawRect(Palette.Cyan.copy(alpha = 0.18f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f))
-                drawRect(Palette.Cyan.copy(alpha = 0.9f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f), style = Stroke(2.5f))
-                drawLine(Palette.Cyan.copy(alpha = 0.55f), Offset(r.left + 2f, frontTop + 4f), Offset(r.left + 2f, r.bottom - 4f), 2.5f)
-                drawLine(Palette.Cyan.copy(alpha = 0.55f), Offset(r.right - 2f, frontTop + 4f), Offset(r.right - 2f, r.bottom - 4f), 2.5f)
+                val pillarLit = hellLight(g, Palette.Cyan)
+                drawRect(pillarLit.copy(alpha = 0.18f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f))
+                drawRect(pillarLit.copy(alpha = 0.9f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f), style = Stroke(2.5f))
+                drawLine(pillarLit.copy(alpha = 0.55f), Offset(r.left + 2f, frontTop + 4f), Offset(r.left + 2f, r.bottom - 4f), 2.5f)
+                drawLine(pillarLit.copy(alpha = 0.55f), Offset(r.right - 2f, frontTop + 4f), Offset(r.right - 2f, r.bottom - 4f), 2.5f)
                 val f = (time * 0.6f + index * 0.3f) % 1f
-                drawLine(Palette.Cyan.copy(alpha = 0.7f * (1f - f)), Offset(r.left + 4f, r.bottom - f * h), Offset(r.right - 4f, r.bottom - f * h), 3f)
-                drawCircle(Palette.Cyan.copy(alpha = 0.35f), min(r.width, r.height) * 0.25f, Offset(r.centerX, topY + r.height / 2f))
+                drawLine(pillarLit.copy(alpha = 0.7f * (1f - f)), Offset(r.left + 4f, r.bottom - f * h), Offset(r.right - 4f, r.bottom - f * h), 3f)
+                drawCircle(pillarLit.copy(alpha = 0.35f), min(r.width, r.height) * 0.25f, Offset(r.centerX, topY + r.height / 2f))
             }
             ObstacleKind.COOLING_UNIT -> {
                 val c = Offset(r.centerX, topY + r.height / 2f)
@@ -1359,8 +1503,9 @@ class ArenaRenderer {
                 val lx = r.centerX - lw / 2f; val ly = frontTop + min(sh, h) * 0.3f
                 val on = sin(time * 3f + index * 1.7f) > 0f
                 drawRect(Color(0xFF05070D), Offset(lx - 1f, ly - 1f), Size(lw + 2f, 10f))
-                drawRect(Palette.Cyan.copy(alpha = if (on) 0.85f else 0.3f), Offset(lx, ly), Size(lw, 8f))
-                if (on) drawRect(Palette.Cyan.copy(alpha = 0.18f), Offset(lx - 3f, ly - 3f), Size(lw + 6f, 14f))
+                val lockLit = hellLight(g, Palette.Cyan)
+                drawRect(lockLit.copy(alpha = if (on) 0.85f else 0.3f), Offset(lx, ly), Size(lw, 8f))
+                if (on) drawRect(lockLit.copy(alpha = 0.18f), Offset(lx - 3f, ly - 3f), Size(lw + 6f, 14f))
                 drawCircle(Color(0xFF05070D), 1.6f, Offset(r.centerX, ly + 4f))
             }
         }
@@ -1371,7 +1516,11 @@ class ArenaRenderer {
     internal fun DrawScope.drawEnemy(g: GameEngine, e: Enemy, time: Float) {
         // *GLITCHED*: colour cycles and the body snaps between shapes.
         val glitch = e.def.glitched || e.boss?.glitched == true
-        val base = if (glitch) Color.hsv((time * 220f + e.uid * 47f) % 360f, 0.85f, 1f) else Color(e.def.color)
+        val base0 = if (glitch) Color.hsv((time * 220f + e.uid * 47f) % 360f, 0.85f, 1f) else Color(e.def.color)
+        // INFERNO (owner, 2026-10-13): meaner monsters, colours dragged toward blood red.
+        val hell = g.config.difficulty.inferno > 0
+        val base = if (hell && !glitch) hellTint(base0, if (e.boss != null) 0.6f else 0.45f) else base0
+        if (hell && e.boss != null && e.state != AiState.HIDDEN) drawHellAura(e.x, e.y - 18f, e.radius, time, e.uid)
         val shape = if (glitch) GLITCH_SHAPES[((time * 5f).toInt() + e.uid) % GLITCH_SHAPES.size] else e.def.shape
         if (e.state == AiState.SPAWNING) {
             val p = 0.5f + 0.5f * sin(time * 18f)

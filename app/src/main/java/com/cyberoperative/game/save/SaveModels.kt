@@ -52,6 +52,8 @@ data class PlayerProfile(
     val neonRefunded: Boolean = false,
     /** Data Vault update (2026-10-13): € and the € upgrades were wiped once. */
     val dataVaultWipe: Boolean = false,
+    /** Highest INFERNO tier unlocked (0 = none; beating World 15 on Hard unlocks I). */
+    val infernoUnlocked: Int = 0,
     /** BOSS CODEX: per boss id, what you've done against it. */
     val bossRecords: Map<String, BossRecord> = emptyMap(),
     val settings: GameSettings = GameSettings()
@@ -85,14 +87,17 @@ data class ClassRecord(
     fun best(difficulty: String): Int = when (difficulty) {
         "EASY" -> bestEasy
         "HARD" -> bestHard
-        else -> bestNormal
+        // Inferno tiers count as Hard for records and skins.
+        else -> if (difficulty.startsWith("INFERNO")) bestHard else bestNormal
     }
+
 
     fun with(difficulty: String, level: Int): ClassRecord = when (difficulty) {
         "EASY" -> copy(bestEasy = maxOf(bestEasy, level))
         "HARD" -> copy(bestHard = maxOf(bestHard, level))
-        else -> copy(bestNormal = maxOf(bestNormal, level))
+        else -> if (difficulty.startsWith("INFERNO")) copy(bestHard = maxOf(bestHard, level)) else copy(bestNormal = maxOf(bestNormal, level))
     }
+
 }
 
 /** BOSS CODEX entry: times met and defeated, and the fastest kill (seconds, 0 = none yet). */

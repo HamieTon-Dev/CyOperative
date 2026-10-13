@@ -47,6 +47,8 @@ fun DifficultyPicker(
     savedRunLabel: String?,
     opLevel: Int = 1,
     permanent: Map<String, Int> = emptyMap(),
+    /** Highest INFERNO tier unlocked (0 = none). */
+    infernoUnlocked: Int = 0,
     onStart: (Difficulty) -> Unit,
     onCancel: () -> Unit
 ) {
@@ -84,8 +86,11 @@ fun DifficultyPicker(
                 )
             }
             Spacer(Modifier.height(14.dp))
-            for (d in Difficulty.entries) {
-                val c = Color(d.color)
+            // Easy/Normal/Hard, every unlocked INFERNO tier, and the next one shown locked.
+            val nextLocked = Difficulty.inferno(infernoUnlocked + 1)
+            for (d in Difficulty.available(infernoUnlocked) + listOfNotNull(nextLocked)) {
+                val locked = d == nextLocked
+                val c = if (locked) Palette.TextMuted else Color(d.color)
                 val selected = d == picked
                 val shape = RoundedCornerShape(8.dp)
                 Row(
@@ -93,7 +98,7 @@ fun DifficultyPicker(
                         .fillMaxWidth()
                         .background(if (selected) c.copy(alpha = 0.14f) else Palette.Background, shape)
                         .border(if (selected) 2.dp else 1.dp, if (selected) c else c.copy(alpha = 0.35f), shape)
-                        .clickable { picked = d }
+                        .clickable(enabled = !locked) { picked = d }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -106,8 +111,12 @@ fun DifficultyPicker(
                     )
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(d.label, color = c, style = MaterialTheme.typography.titleMedium)
-                        Text(d.blurb, color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Text((if (locked) "🔒 " else "") + d.label, color = c, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (locked) "Beat World 15's boss on ${if (d.inferno == 1) "HARD" else Difficulty.inferno(d.inferno - 1)?.label} to unlock"
+                            else d.blurb,
+                            color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
+                        )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
