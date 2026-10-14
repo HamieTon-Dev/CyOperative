@@ -41,14 +41,38 @@ class GearTest {
         val normal = Gear.odds(boss = true, inferno = 0)
         for (r in GearRarity.entries) if (r.minInferno > 0) assertEquals(0f, normal[r.ordinal], 0f)
         val i1 = Gear.odds(boss = true, inferno = 1)
-        assertTrue(i1[GearRarity.ENCRYPTED.ordinal] > 0f)
-        assertEquals(0f, i1[GearRarity.INFERNAL.ordinal], 0f)
+        assertTrue(i1[GearRarity.FORGED.ordinal] > 0f)
+        assertEquals(0f, i1[GearRarity.VOLTAIC.ordinal], 0f)
         val i10 = Gear.odds(boss = true, inferno = 10)
-        assertTrue(i10[GearRarity.CRYPTO.ordinal] > 0f)
-        // The top stays close to zero and every step is rarer.
-        assertTrue(i10[GearRarity.CRYPTO.ordinal] < 1f)
-        for (i in 4 until i10.size - 1) assertTrue(i10[i] > i10[i + 1])
+        assertTrue(i10[GearRarity.ABYSSAL.ordinal] > 0f)
+        for (i in GearRarity.FORGED.ordinal until i10.size - 1) assertTrue(i10[i] > i10[i + 1])
         assertEquals(100f, i10.sum(), 0.01f)
+    }
+
+    /** Owner, 0.33.0: base × INFERNO level (boss 0.8 / 0.7 / 0.5 / 0.4 %, elites a quarter). */
+    @Test fun infernoRaritiesScaleWithTheInfernoLevel() {
+        val i10 = Gear.odds(boss = true, inferno = 10)
+        assertEquals(8f, i10[GearRarity.FORGED.ordinal], 0.001f)
+        assertEquals(7f, i10[GearRarity.VOLTAIC.ordinal], 0.001f)
+        assertEquals(5f, i10[GearRarity.CELESTIAL.ordinal], 0.001f)
+        assertEquals(4f, i10[GearRarity.ABYSSAL.ordinal], 0.001f)
+        assertEquals(1.6f, Gear.odds(boss = true, inferno = 2)[GearRarity.FORGED.ordinal], 0.001f)
+        assertEquals(1f, Gear.odds(boss = false, inferno = 10)[GearRarity.ABYSSAL.ordinal], 0.001f)
+        // Deep INFERNO levels saturate at the cap instead of crowding everything else out.
+        val deep = Gear.odds(boss = true, inferno = 500)
+        val high = GearRarity.entries.filter { it.inferno }.sumOf { deep[it.ordinal].toDouble() }
+        assertEquals(Gear.INFERNO_CAP.toDouble(), high, 0.01)
+        assertEquals(100f, deep.sum(), 0.01f)
+    }
+
+    @Test fun oldInfernoRaritiesLoadAsTheNewOnes() {
+        val item = Gear.roll(Random(2), 1, 30, GearRarity.LEGENDARY, GearSlot.CORE)
+        val text = Gear.encode(listOf(item))
+        for ((old, now) in listOf("ENCRYPTED" to GearRarity.FORGED, "INFERNAL" to GearRarity.VOLTAIC, "CRYPTO" to GearRarity.CELESTIAL)) {
+            assertEquals(now, Gear.decode(text.replace("\"LEGENDARY\"", "\"$old\""))[0].rarity)
+        }
+        val abyss = item.copy(rarity = GearRarity.ABYSSAL)
+        assertEquals(abyss, Gear.decode(Gear.encode(listOf(abyss)))[0])
     }
 
     @Test fun bossesAndLateWorldsRollBetter() {
@@ -74,9 +98,10 @@ class GearTest {
 
     @Test fun sameArtHigherRarityGetsANewName() {
         val a = Gear.roll(Random(9), 1, 40, GearRarity.LEGENDARY, GearSlot.HELMET)
-        val b = a.copy(rarity = GearRarity.CRYPTO)
+        val b = a.copy(rarity = GearRarity.CELESTIAL)
         assertFalse(a.name == b.name)
-        assertEquals(GearArt.cell(a.slot, a.rarity.artTier, a.art), GearArt.cell(b.slot, b.rarity.artTier, b.art))
+        // The INFERNO rarities have their own art (0.33.0).
+        assertFalse(GearArt.cell(a.slot, a.rarity.artTier, a.art) == GearArt.cell(b.slot, b.rarity.artTier, b.art))
     }
 
     @Test fun classWeaponsExistForEveryClassAndOnlyFitTheirClass() {
@@ -174,7 +199,7 @@ class GearTest {
     }
 
     @Test fun coopSnapshotCarriesGearLookAndGuestFinds() {
-        val item = Gear.roll(Random(6), 7, 20, GearRarity.INFERNAL, GearSlot.GLOVES)
+        val item = Gear.roll(Random(6), 7, 20, GearRarity.VOLTAIC, GearSlot.GLOVES)
         val look = GameEngine.gearFromLook(GameEngine.gearLook(item))
         assertEquals(item.slot, look.slot); assertEquals(item.rarity, look.rarity); assertEquals(item.art, look.art)
         val w = CoopWorld()

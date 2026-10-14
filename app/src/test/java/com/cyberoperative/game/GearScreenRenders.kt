@@ -3,6 +3,8 @@ package com.cyberoperative.game
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.cyberoperative.game.data.Gear
@@ -38,7 +40,7 @@ abstract class GearRenderBase {
         val view = compose.activity.window.decorView
         val bmp = Bitmap.createBitmap(view.width.coerceAtLeast(1), view.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         compose.runOnUiThread { view.draw(Canvas(bmp)) }
-        File(outDir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        File(outDir, "$name.png").also { it.parentFile?.mkdirs() }.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     /** A Technician "Relay" at OP Lv 24 with a full kit, a filled backpack and some vault. */
@@ -94,6 +96,40 @@ class GearScreenRendersWide : GearRenderBase() {
     @Test fun vault() = show("data_vault_wide", CharTab.VAULT)
     @Test fun create() = creator("create_character_wide")
 
+    /** 0.33.0: the four INFERNO rarities' animated cards, as frame sequences (data vault, one selected each). */
+    @Test fun infernoCards() {
+        assumeTrue(enabled)
+        val r = repo()
+        val rng = Random(21)
+        val picks = HashMap<GearRarity, Long>()
+        r.update { p0 ->
+            var p = p0
+            val extra = GearRarity.entries.filter { it.inferno }.flatMap { rar ->
+                GearSlot.entries.map { s -> Gear.roll(rng, 900_000L + rar.ordinal * 10 + s.ordinal, 30, rar, s) }
+            }
+            p = p.copy(vault = extra + p.vault)
+            for (rar in GearRarity.entries.filter { it.inferno }) picks[rar] = extra.first { it.rarity == rar && it.slot == GearSlot.CHEST }.uid
+            p
+        }
+        var sel by androidx.compose.runtime.mutableStateOf(picks.getValue(GearRarity.FORGED))
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            CyberOperativeTheme {
+                androidx.compose.runtime.key(sel) {
+                    CharacterScreen(r, onBack = {}, startTab = CharTab.VAULT, onDeploy = {}, onEditLook = {}, onNewCharacter = {}, initialSelected = sel)
+                }
+            }
+        }
+        for (rar in GearRarity.entries.filter { it.inferno }) {
+            sel = picks.getValue(rar)
+            compose.mainClock.advanceTimeBy(500)
+            for (f in 0 until 30) {
+                compose.mainClock.advanceTimeBy(120)
+                save("anim/${rar.name.lowercase()}_%02d".format(f))
+            }
+        }
+    }
+
     /** Packet Mage wearing the B / C parts: the visor overlay must sit in the hood opening. */
     @Test fun mageParts() {
         assumeTrue(enabled)
@@ -124,7 +160,7 @@ class GearScreenRendersPortrait : GearRenderBase() {
         g.purgeHostiles()
         val rng = Random(3)
         for ((i, rar) in GearRarity.entries.withIndex()) {
-            val a = i * 0.785f
+            val a = i * 6.2832f / GearRarity.entries.size
             val item = Gear.roll(rng, i.toLong(), 20, rar)
             g.loot += com.cyberoperative.game.engine.Loot(com.cyberoperative.game.engine.LootKind.GEAR, g.px + kotlin.math.cos(a) * 170f, g.py - 60f + kotlin.math.sin(a) * 150f)
                 .also { it.gear = item; it.age = 0.5f; it.owner = 0 }
@@ -133,6 +169,10 @@ class GearScreenRendersPortrait : GearRenderBase() {
         compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.game.GameScreen(session, true, {}, {}) } }
         compose.mainClock.advanceTimeBy(300)
         save("gear_floor_drops")
+        for (f in 0 until 24) {
+            compose.mainClock.advanceTimeBy(100)
+            save("anim/floor_%02d".format(f))
+        }
     }
 
     /** The 0.32.0 shop: 4 buffs and 4 pieces of equipment. */
@@ -141,7 +181,7 @@ class GearScreenRendersPortrait : GearRenderBase() {
         val rng = Random(11)
         val buffs = com.cyberoperative.game.data.Upgrades.all.filter { it.rarity >= com.cyberoperative.game.data.Rarity.LEGENDARY && !it.instant }.take(4)
             .map { com.cyberoperative.game.engine.ShopItem(it, 1, com.cyberoperative.game.engine.GameEngine.shopPrice(it.rarity, 20), sold = false) }
-        val gear = listOf(GearRarity.EPIC, GearRarity.LEGENDARY, GearRarity.EPIC, GearRarity.ENCRYPTED).mapIndexed { k, r ->
+        val gear = listOf(GearRarity.EPIC, GearRarity.LEGENDARY, GearRarity.EPIC, GearRarity.FORGED).mapIndexed { k, r ->
             val item = Gear.roll(rng, k.toLong(), 24, r)
             com.cyberoperative.game.engine.GearShopItem(item, Gear.shopPrice(item), sold = k == 2)
         }

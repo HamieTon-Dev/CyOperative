@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.33.0 (versionCode 101) — 2026-10-14 · four new INFERNO equipment rarities
+### Added (owner-approved names: Forged, Voltaic, Celestial, Abyssal)
+- **Four INFERNO-only rarities, each with the owner's own art** (5 designs per slot):
+  - **FORGED** (orange), from INFERNO I;
+  - **VOLTAIC** (yellow), from INFERNO III;
+  - **CELESTIAL** (platinum), from INFERNO V;
+  - **ABYSSAL** (inferno red, the top tier), from INFERNO VII.
+  - They replace the recoloured ENCRYPTED / INFERNAL / CRYPTO tiers. Items you already have convert to FORGED / VOLTAIC / CELESTIAL.
+- **Drop chance = base × INFERNO level** (owner). Boss bases per piece: FORGED 0.8%, VOLTAIC 0.7%, CELESTIAL 0.5%, ABYSSAL 0.4%. Elites drop them at a quarter of that.
+  - Example, a boss on INFERNO X: 8% / 7% / 5% / 4% per piece.
+  - Together the four never take more than 60%, so deep INFERNO levels still drop the rest.
+- **Animated cards** in GEAR, DATA VAULT, the backpack and the shop:
+  - Forged, Voltaic and Celestial: a subtle holographic sheen in the tier colour.
+  - Abyssal: low flames, rising embers and a flickering red border.
+- **Their own drop auras:**
+  - Forged: anvil sparks;
+  - Voltaic: lightning crawling up the beam;
+  - Celestial: a halo and star glints;
+  - Abyssal: flames and embers.
+- Shop prices: Forged €9,000, Voltaic €18,000, Celestial €35,000, Abyssal €70,000 (+3% per item level).
+### Pending (owner)
+- The drop sound for the new tiers: pick A–D on the sound page. Until then they use the existing golden sheen sound.
+### Technical
+- `GearRarity` is `@Serializable`. Old names are kept on disk through `@SerialName`, and `hue` / colour filters are gone.
+- `infernoBase`, `inferno` flag, `Gear.ELITE_SHARE` and `Gear.INFERNO_CAP`.
+- Atlases have 4 more art tiers (5 cells each, appended).
+- New `ui/common/RarityFx.kt` (`Modifier.rarityCard`). `GearIcons.drawLootBeam` gains a per-tier extra.
+- New tests: `GearTest.infernoRaritiesScaleWithTheInfernoLevel` and `oldInfernoRaritiesLoadAsTheNewOnes`. New render: `GearScreenRendersWide.infernoCards` (frame sequence).
+
 ## 0.32.0 (versionCode 100) — 2026-10-14 · € carries over, equipment in the shop, INFERNO music
 ### Changed (owner: "€ needs to be persistent and your total be present in every run")
 - **€ carries over between runs.** A run starts with every € you have banked. Whatever you earn or spend in the shop is banked as you go, so €11.5k at the end of one run means €11.5k at the start of the next. Co-op runs still start their shared wallet at €0; what you earn is banked to each player as before.

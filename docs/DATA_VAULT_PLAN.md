@@ -51,7 +51,7 @@ upgrades screen) to a slow Diablo-style loot-and-level grind.
 5. **Balance pass and tests** for the slow grind.
 
 ## Shipped in 0.30.0
-- **Rarity ladder:** COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, then ENCRYPTED (orange, Inferno I+), INFERNAL (red, Inferno IV+) and CRYPTO (neon blue, Inferno VII+, close to 0%). The last three reuse the golden art, recoloured and renamed.
+- **Rarity ladder:** COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, then (0.33.0) FORGED (orange, Inferno I+), VOLTAIC (yellow, Inferno III+), CELESTIAL (platinum, Inferno V+) and ABYSSAL (inferno red, Inferno VII+), each with its own art. They drop at base × INFERNO level and replaced the recoloured ENCRYPTED / INFERNAL / CRYPTO tiers.
 - **Drops:**
   - Elites drop gear 25% of the time (+2% per Inferno tier).
   - A world boss drops 3 pieces per player (+1 every 3 Inferno tiers).

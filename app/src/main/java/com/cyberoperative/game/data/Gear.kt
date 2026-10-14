@@ -13,8 +13,7 @@ import kotlin.random.Random
  * pieces (HELMET, CHEST, GLOVES, BOOTS), an IMPLANT and a CORE. Every piece has a rarity, an item
  * level (the finder's OP level ±2, never above 60), a base value and 0–6 rolled affixes.
  * The art is the owner's sprite sheets (resources/gear/<slot>.webp, see [GearArt]); the four
- * rarities above LEGENDARY reuse the golden art recoloured, with their own names and better stats,
- * and only drop on INFERNO.
+ * rarities above LEGENDARY have their own art and only drop on INFERNO.
  */
 
 enum class GearSlot(val label: String, val sheet: String) {
@@ -32,33 +31,39 @@ enum class GearSlot(val label: String, val sheet: String) {
 }
 
 /**
- * Gear rarities, lowest first. [artTier] is the art pool (0 grey … 4 gold); [hue] recolours the
- * golden art for the INFERNO-only rarities. [mul] scales base values and affixes.
+ * Gear rarities, lowest first. [artTier] is the art pool in the atlases (0 grey … 4 gold, then the
+ * four INFERNO sheets). [mul] scales base values and affixes.
+ *
+ * INFERNO rarities (owner, 0.33.0): FORGED (orange), VOLTAIC (yellow), CELESTIAL (platinum) and
+ * ABYSSAL (inferno red, the top), each with its own art. They replace the recoloured ENCRYPTED /
+ * INFERNAL / CRYPTO tiers; old saves keep those names on disk ([SerialName]) and load as the new ones.
  */
+@Serializable
 enum class GearRarity(
     val label: String,
     val color: Long,
     val artTier: Int,
-    val hue: Float,
     val mul: Float,
     val affixes: Int,
     /** Lowest INFERNO tier it can drop on (0 = any difficulty). */
-    val minInferno: Int = 0
+    val minInferno: Int = 0,
+    /** Boss drop chance per piece (percent) at INFERNO I; multiplied by the INFERNO level. */
+    val infernoBase: Float = 0f
 ) {
-    COMMON("COMMON", 0xFFB8C4D6, 0, 0f, 1.0f, 0),
-    UNCOMMON("UNCOMMON", 0xFF3CFF6E, 1, 0f, 1.1f, 1),
-    RARE("RARE", 0xFF2E9BFF, 2, 0f, 1.22f, 2),
-    EPIC("EPIC", 0xFFB45CFF, 3, 0f, 1.36f, 3),
-    LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 0f, 1.52f, 4),
-    /** Orange. */
-    ENCRYPTED("ENCRYPTED", 0xFFFF8A1F, 4, -18f, 1.7f, 4, minInferno = 1),
-    /** Hell red. */
-    INFERNAL("INFERNAL", 0xFFFF2B3A, 4, -46f, 1.9f, 5, minInferno = 4),
-    /** Neon blue: the top of the ladder, close to 0%. */
-    CRYPTO("CRYPTO", 0xFF00F0FF, 4, 148f, 2.15f, 6, minInferno = 7);
+    COMMON("COMMON", 0xFFB8C4D6, 0, 1.0f, 0),
+    UNCOMMON("UNCOMMON", 0xFF3CFF6E, 1, 1.1f, 1),
+    RARE("RARE", 0xFF2E9BFF, 2, 1.22f, 2),
+    EPIC("EPIC", 0xFFB45CFF, 3, 1.36f, 3),
+    LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 1.52f, 4),
+    @SerialName("ENCRYPTED") FORGED("FORGED", 0xFFFF8A1F, 5, 1.7f, 4, minInferno = 1, infernoBase = 0.8f),
+    @SerialName("INFERNAL") VOLTAIC("VOLTAIC", 0xFFFFF04D, 6, 1.9f, 5, minInferno = 3, infernoBase = 0.7f),
+    @SerialName("CRYPTO") CELESTIAL("CELESTIAL", 0xFFDDE8FF, 7, 2.15f, 6, minInferno = 5, infernoBase = 0.5f),
+    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.45f, 6, minInferno = 7, infernoBase = 0.4f);
 
     /** Above BLUE: the drop gets a light beam and the sheen sound. */
     val sheen: Boolean get() = ordinal > RARE.ordinal
+    /** The four INFERNO rarities: animated cards (holographic sheen; flames for ABYSSAL). */
+    val inferno: Boolean get() = minInferno > 0
 }
 
 /** Stats an affix can roll. Values are stored in display units (percent as 0–100). */
@@ -177,14 +182,14 @@ object GearArt {
     const val COLS = 16
     const val CELL = 96
     private val counts: Map<GearSlot, IntArray> = mapOf(
-        GearSlot.PRIMARY to intArrayOf(21, 19, 15, 17, 28),
-        GearSlot.SECONDARY to intArrayOf(20, 20, 19, 21, 20),
-        GearSlot.HELMET to intArrayOf(44, 44, 44, 42, 46),
-        GearSlot.CHEST to intArrayOf(23, 17, 17, 17, 26),
-        GearSlot.GLOVES to intArrayOf(20, 19, 17, 21, 23),
-        GearSlot.BOOTS to intArrayOf(44, 44, 36, 38, 48),
-        GearSlot.IMPLANT to intArrayOf(20, 20, 19, 20, 21),
-        GearSlot.CORE to intArrayOf(20, 20, 20, 20, 20)
+        GearSlot.PRIMARY to intArrayOf(21, 19, 15, 17, 28, 5, 5, 5, 5),
+        GearSlot.SECONDARY to intArrayOf(20, 20, 19, 21, 20, 5, 5, 5, 5),
+        GearSlot.HELMET to intArrayOf(44, 44, 44, 42, 46, 5, 5, 5, 5),
+        GearSlot.CHEST to intArrayOf(23, 17, 17, 17, 26, 5, 5, 5, 5),
+        GearSlot.GLOVES to intArrayOf(20, 19, 17, 21, 23, 5, 5, 5, 5),
+        GearSlot.BOOTS to intArrayOf(44, 44, 36, 38, 48, 5, 5, 5, 5),
+        GearSlot.IMPLANT to intArrayOf(20, 20, 19, 20, 21, 5, 5, 5, 5),
+        GearSlot.CORE to intArrayOf(20, 20, 20, 20, 20, 5, 5, 5, 5)
     )
 
     fun count(slot: GearSlot, tier: Int): Int = counts.getValue(slot)[tier]
@@ -205,9 +210,10 @@ object GearNames {
         GearRarity.RARE to listOf("Cobalt", "Vector", "Sapphire", "Ion", "Cipher", "Glacier", "Tidal", "Pulse", "Proxy", "Static"),
         GearRarity.EPIC to listOf("Void", "Phantom", "Nebula", "Hex", "Wraith", "Astral", "Umbra", "Rift", "Spectral", "Nightfall"),
         GearRarity.LEGENDARY to listOf("Solar", "Aegis", "Zenith", "Helios", "Sovereign", "Gilded", "Radiant", "Aurum", "Paragon", "Midas"),
-        GearRarity.ENCRYPTED to listOf("Encrypted", "Keystone", "Hashfire", "Lockbreaker", "Amber", "Blackbox", "Backdoor", "Zero-Day", "Cipherforged", "Ember"),
-        GearRarity.INFERNAL to listOf("Infernal", "Hellfire", "Brimstone", "Cinder", "Doom", "Scorched", "Demon", "Molten", "Abyssal", "Pyre"),
-        GearRarity.CRYPTO to listOf("Crypto", "Quantum", "Ledger", "Genesis", "Singularity", "Prism", "Mainnet", "Hashrate", "Neon", "Overclocked")
+        GearRarity.FORGED to listOf("Forged", "Molten", "Ember", "Smelted", "Crucible", "Anvil", "Slag", "Kiln", "Tempered", "Foundry"),
+        GearRarity.VOLTAIC to listOf("Voltaic", "Arc", "Surge", "Thunder", "Live-Wire", "Tesla", "Storm", "Overcharge", "Lightning", "Galvanic"),
+        GearRarity.CELESTIAL to listOf("Celestial", "Platinum", "Starlit", "Halo", "Seraph", "Orbital", "Eclipse", "Nova", "Aether", "Zenith"),
+        GearRarity.ABYSSAL to listOf("Abyssal", "Hellfire", "Brimstone", "Inferno", "Cinder", "Doom", "Pyre", "Demon", "Hellforged", "Infernal")
     )
     private val nouns: Map<GearSlot, List<String>> = mapOf(
         GearSlot.HELMET to listOf("Helmet", "Visor", "Hood", "Cowl", "Faceguard", "Helm", "Mask"),
@@ -256,22 +262,37 @@ object Gear {
     }
 
     /**
-     * Rarity odds (percent) for one drop. [boss] drops are better; INFERNO adds the four high
-     * rarities and pushes the odds up; bosses after World 12 / Endless level 120 get a little more.
+     * Rarity odds (percent) for one drop. [boss] drops are better; bosses after World 12 / Endless
+     * level 120 get a little more.
+     *
+     * INFERNO (owner, 0.33.0): each of the four INFERNO rarities drops at its base chance
+     * multiplied by the INFERNO level, P = base × I (bosses: FORGED 0.8%, VOLTAIC 0.7%, CELESTIAL
+     * 0.5%, ABYSSAL 0.4%; elites a quarter of that), from its own INFERNO tier up. Luck adds on top
+     * (P × (1 + luck)). Together they never take more than [INFERNO_CAP]; COMMON … LEGENDARY share
+     * what is left in their usual proportions (tilted toward the rare end by INFERNO and luck).
      */
     fun odds(boss: Boolean, inferno: Int, luck: Float = 0f, lateBoost: Boolean = false): FloatArray {
-        val base = if (boss) floatArrayOf(18f, 34f, 30f, 13f, 5f, 0.8f, 0.2f, 0.035f)
-        else floatArrayOf(52f, 30f, 13f, 3.8f, 1.1f, 0.25f, 0.06f, 0.01f)
-        // Every step of luck tilts the table toward the rare end.
-        val tilt = 1f + 0.08f * inferno + luck + (if (lateBoost) 0.15f else 0f)
-        val w = FloatArray(base.size) { i ->
-            val r = GearRarity.entries[i]
-            if (r.minInferno > inferno || (r.minInferno > 0 && inferno == 0)) 0f else base[i] * tilt.pow(i.toFloat())
+        val base = if (boss) floatArrayOf(18f, 34f, 30f, 13f, 4.2f) else floatArrayOf(52f, 30f, 13f, 3.8f, 0.95f)
+        val w = FloatArray(GearRarity.entries.size)
+        val bonus = 1f + luck + (if (lateBoost) 0.15f else 0f)
+        var high = 0f
+        for (r in GearRarity.entries) if (r.inferno && inferno >= r.minInferno) {
+            w[r.ordinal] = r.infernoBase * (if (boss) 1f else ELITE_SHARE) * inferno * bonus
+            high += w[r.ordinal]
         }
-        val sum = w.sum()
-        for (i in w.indices) w[i] = w[i] / sum * 100f
+        if (high > INFERNO_CAP) { for (i in w.indices) w[i] *= INFERNO_CAP / high; high = INFERNO_CAP }
+        // Every step of luck tilts the usual five toward the rare end.
+        val tilt = 1f + 0.08f * inferno.coerceAtMost(10) + luck + (if (lateBoost) 0.15f else 0f)
+        val low = FloatArray(base.size) { i -> base[i] * tilt.pow(i.toFloat()) }
+        val lowSum = low.sum()
+        for (i in low.indices) w[i] = low[i] / lowSum * (100f - high)
         return w
     }
+
+    /** Elites drop the INFERNO rarities at this share of the boss chance. */
+    const val ELITE_SHARE = 0.25f
+    /** The four INFERNO rarities together never take more than this (percent). */
+    const val INFERNO_CAP = 60f
 
     fun rollRarity(rng: Random, boss: Boolean, inferno: Int, luck: Float = 0f, lateBoost: Boolean = false): GearRarity {
         val o = odds(boss, inferno, luck, lateBoost)
@@ -302,9 +323,10 @@ object Gear {
             GearRarity.RARE -> 900
             GearRarity.EPIC -> 1500
             GearRarity.LEGENDARY -> 4000
-            GearRarity.ENCRYPTED -> 9000
-            GearRarity.INFERNAL -> 18000
-            GearRarity.CRYPTO -> 35000
+            GearRarity.FORGED -> 9000
+            GearRarity.VOLTAIC -> 18000
+            GearRarity.CELESTIAL -> 35000
+            GearRarity.ABYSSAL -> 70000
         }
         return (base * (1f + 0.03f * item.level)).toInt() / 10 * 10
     }

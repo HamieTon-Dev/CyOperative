@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.32.0 (versionCode 100) |
+| Version | 0.33.0 (versionCode 101) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **INFERNO rarities (0.33.0):**
+  - FORGED / VOLTAIC / CELESTIAL / ABYSSAL replaced ENCRYPTED / INFERNAL / CRYPTO; the old names stay valid on disk via `@SerialName`.
+  - Odds: `Gear.odds` uses base × INFERNO level for those four (capped at 60% together), then COMMON…LEGENDARY share the rest.
+  - Waiting on the owner:
+    - the drop sound choice (A–D);
+    - the 500-level INFERNO plan (today `Difficulty` has INFERNO I–X as enum entries; 500 levels needs a level number instead and a difficulty curve).
 - **Gear and characters (0.30.0, Data Vault phase 2–3):**
   - Data:
     - `data/Gear.kt` has the item model, odds, rolls and `Gear.apply` (used in `Operatives.buildConfig(…, gear)`).

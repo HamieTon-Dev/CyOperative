@@ -75,6 +75,7 @@ import com.cyberoperative.game.save.PlayerProfile
 import com.cyberoperative.game.save.SaveRepository
 import com.cyberoperative.game.ui.common.CyberButton
 import com.cyberoperative.game.ui.common.GearIconView
+import com.cyberoperative.game.ui.common.rarityCard
 import com.cyberoperative.game.ui.common.LivingBackground
 import com.cyberoperative.game.ui.theme.Palette
 
@@ -332,10 +333,11 @@ private fun StatLine(k: String, v: String) {
 }
 
 @Composable
-private fun Panel(modifier: Modifier = Modifier, accent: Color = Palette.Divider, content: @Composable () -> Unit) {
+private fun Panel(modifier: Modifier = Modifier, accent: Color = Palette.Divider, rarity: com.cyberoperative.game.data.GearRarity? = null, content: @Composable () -> Unit) {
     Box(
         modifier.fillMaxWidth()
             .background(Palette.Surface.copy(alpha = 0.92f), RoundedCornerShape(10.dp))
+            .rarityCard(rarity, corner = 10.dp, over = false)
             .border(1.dp, accent, RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) { content() }
@@ -510,7 +512,7 @@ internal var currentClass: String = "operative"
 @Composable
 private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, actions: GearActions) {
     currentClass = p.selectedOperative
-    Panel(modifier, accent = item?.let { Color(it.rarity.color).copy(alpha = 0.7f) } ?: Palette.Divider) {
+    Panel(modifier, accent = item?.let { Color(it.rarity.color).copy(alpha = 0.7f) } ?: Palette.Divider, rarity = item?.rarity) {
         if (item == null) {
             Column {
                 Text("SELECT AN ITEM", color = Palette.TextSecondary, style = MaterialTheme.typography.titleMedium)
