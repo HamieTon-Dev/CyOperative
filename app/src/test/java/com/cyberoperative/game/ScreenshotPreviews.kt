@@ -837,14 +837,14 @@ class ScreenshotPreviews {
     @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun infernoRoom() {
         assumeTrue(enabled)
         pcMode(landscape = true) {
-            gameplay("inferno_room", 2.5f, difficulty = com.cyberoperative.game.engine.Difficulty.INFERNO_3) { s -> s.engine.debugEnterRoom(2) }
+            gameplay("inferno_room", 2.5f, difficulty = com.cyberoperative.game.engine.Difficulty.inferno(3)!!) { s -> s.engine.debugEnterRoom(2) }
         }
     }
 
     @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun infernoBoss() {
         assumeTrue(enabled)
         pcMode(landscape = true) {
-            gameplay("inferno_boss", 5f, difficulty = com.cyberoperative.game.engine.Difficulty.INFERNO_7) { s ->
+            gameplay("inferno_boss", 5f, difficulty = com.cyberoperative.game.engine.Difficulty.inferno(7)!!) { s ->
                 s.engine.debugEnterRoom(com.cyberoperative.game.engine.CampaignMap.BOSS_INDEX)
             }
         }

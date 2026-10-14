@@ -167,10 +167,11 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
             BackHandler { back() }
             when (s.target) {
                 MenuTarget.UPGRADES -> PermanentUpgradesScreen(save, audio, ::back)
-                MenuTarget.OPERATIVE -> if (!com.cyberoperative.game.meta.Characters.hasCharacter(profile)) {
+                MenuTarget.OPERATIVE, MenuTarget.VAULT -> if (!com.cyberoperative.game.meta.Characters.hasCharacter(profile)) {
                     LaunchedEffect(Unit) { screen = Screen.Create(editing = false) }
                 } else com.cyberoperative.game.ui.menu.CharacterScreen(
                     save, ::back,
+                    startTab = if (s.target == MenuTarget.VAULT) com.cyberoperative.game.ui.menu.CharTab.VAULT else com.cyberoperative.game.ui.menu.CharTab.OVERVIEW,
                     onDeploy = { click(); screen = Screen.Menu; picking = GameMode.CAMPAIGN },
                     onOverclock = { click(); screen = Screen.Sub(MenuTarget.UPGRADES) },
                     onEditLook = { click(); screen = Screen.Create(editing = true) },

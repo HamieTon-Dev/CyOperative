@@ -88,7 +88,9 @@ fun DifficultyPicker(
             Spacer(Modifier.height(14.dp))
             // Easy/Normal/Hard, every unlocked INFERNO tier, and the next one shown locked.
             val nextLocked = Difficulty.inferno(infernoUnlocked + 1)
-            for (d in Difficulty.available(infernoUnlocked) + listOfNotNull(nextLocked)) {
+            // INFERNO is one row: the picked level (the highest unlocked by default), set with the stepper.
+            val infernoRow = if (picked.inferno > 0) picked else Difficulty.inferno(infernoUnlocked)
+            for (d in Difficulty.entries + listOfNotNull(infernoRow, nextLocked)) {
                 val locked = d == nextLocked
                 val c = if (locked) Palette.TextMuted else Color(d.color)
                 val selected = d == picked
@@ -119,6 +121,10 @@ fun DifficultyPicker(
                         )
                     }
                 }
+                if (d == picked && d.inferno > 0 && !locked) {
+                    Spacer(Modifier.height(6.dp))
+                    InfernoStepper(d.inferno, infernoUnlocked) { lv -> Difficulty.inferno(lv)?.let { picked = it } }
+                }
                 Spacer(Modifier.height(8.dp))
             }
             if (savedRunLabel != null) {
@@ -133,6 +139,21 @@ fun DifficultyPicker(
             CyberButton("START", Modifier.fillMaxWidth(), accent = Color(picked.color), primary = true) { onStart(picked) }
             Spacer(Modifier.height(8.dp))
             CyberButton("CANCEL", Modifier.fillMaxWidth(), accent = Palette.TextSecondary) { onCancel() }
+        }
+    }
+}
+
+/** INFERNO level stepper (owner, 0.34.0: levels 1–500): −10 / −1 / LEVEL n of max / +1 / +10. */
+@Composable
+fun InfernoStepper(level: Int, max: Int, onLevel: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)) {
+        for ((label, step) in listOf("−10" to -10, "−1" to -1)) {
+            CyberButton(label, Modifier.weight(1f), accent = Palette.TextSecondary, enabled = level > 1) { onLevel((level + step).coerceIn(1, max)) }
+        }
+        Text("LV $level / $max", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center, modifier = Modifier.weight(1.4f))
+        for ((label, step) in listOf("+1" to 1, "+10" to 10)) {
+            CyberButton(label, Modifier.weight(1f), accent = Palette.TextSecondary, enabled = level < max) { onLevel((level + step).coerceIn(1, max)) }
         }
     }
 }

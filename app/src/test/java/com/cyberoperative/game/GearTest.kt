@@ -207,4 +207,22 @@ class GearTest {
         val back = CoopCodec.decodeWorld(CoopCodec.encodeWorld(w))!!
         assertEquals(listOf(item), Gear.decode(back.guestGear))
     }
+
+    /** Owner, 0.34.0: about 1 shop in 100 shows an ABYSSAL piece. */
+    @Test fun shopShowsAbyssalAboutOnceInAHundred() {
+        val o = Gear.shopOdds(10)
+        assertEquals(100f, o.sum(), 0.01f)
+        val perShop = 1.0 - Math.pow(1.0 - o[GearRarity.ABYSSAL.ordinal] / 100.0, Gear.SHOP_GEAR_PIECES.toDouble())
+        assertEquals(0.01, perShop, 0.0005)
+        assertEquals(0f, Gear.shopOdds(6)[GearRarity.ABYSSAL.ordinal], 0f)
+    }
+
+    /** Owner, 0.34.0: one Data Vault for every character. */
+    @Test fun vaultIsSharedByEveryCharacter() {
+        val item = Gear.roll(Random(3), 1, 10, GearRarity.RARE, GearSlot.CORE)
+        var p = com.cyberoperative.game.meta.Characters.create(com.cyberoperative.game.save.PlayerProfile(), "One", "operative", com.cyberoperative.game.save.CharacterLook())
+        p = p.copy(vault = listOf(item))
+        p = com.cyberoperative.game.meta.Characters.create(p, "Two", "technician", com.cyberoperative.game.save.CharacterLook())
+        assertEquals(listOf(item), p.vault)
+    }
 }

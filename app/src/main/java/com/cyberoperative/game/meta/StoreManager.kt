@@ -42,6 +42,11 @@ object StoreManager {
             otherCharacters = out.otherCharacters.map { it.copy(operativeXp = it.operativeXp * com.cyberoperative.game.data.OpProgress.LEVEL_XP_MUL) },
             xpScaled = true
         )
+        // 0.34.0 (owner): one Data Vault shared by every character. Old per-character vaults merge in.
+        if (out.otherCharacters.any { it.vault.isNotEmpty() }) out = out.copy(
+            vault = out.vault + out.otherCharacters.flatMap { it.vault },
+            otherCharacters = out.otherCharacters.map { it.copy(vault = emptyList()) }
+        )
         // The body always follows the class.
         val body = com.cyberoperative.game.data.Operatives.byId(out.selectedOperative).bodyId
         if (out.operativeBody != body) out = out.copy(operativeBody = body)

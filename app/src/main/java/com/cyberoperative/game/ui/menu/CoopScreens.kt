@@ -413,13 +413,14 @@ fun CoopLobbyScreen(
                 Text("DIFFICULTY", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
                 // The host's unlocked tiers (INFERNO ones scroll sideways).
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (d in Difficulty.available(infernoUnlocked)) {
+                    for (d in Difficulty.entries + listOfNotNull(if (difficulty.inferno > 0) difficulty else Difficulty.inferno(infernoUnlocked))) {
                         CyberButton(
                             d.label, Modifier.width(132.dp), accent = if (d == difficulty) Color(d.color) else Palette.Divider,
                             subtitle = if (d == difficulty) "● SELECTED" else " "
                         ) { difficulty = d }
                     }
                 }
+                if (difficulty.inferno > 0) InfernoStepper(difficulty.inferno, infernoUnlocked) { lv -> Difficulty.inferno(lv)?.let { difficulty = it } }
                 CyberButton(
                     "START OPERATION", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true,
                     enabled = partnerHere && state.status == RoomStatus.LOBBY,

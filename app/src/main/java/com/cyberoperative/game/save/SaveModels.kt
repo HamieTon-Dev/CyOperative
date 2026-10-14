@@ -67,7 +67,7 @@ data class PlayerProfile(
     val characterId: String = "",
     val characterName: String = "",
     val look: CharacterLook = CharacterLook(),
-    /** Gear: equipped per slot, the backpack (60) and the Data Vault (1,500). */
+    /** Gear: equipped per slot and the backpack (60) per character; the Data Vault (1,500) is shared by all of them. */
     val equipped: Map<com.cyberoperative.game.data.GearSlot, com.cyberoperative.game.data.GearItem> = emptyMap(),
     val backpack: List<com.cyberoperative.game.data.GearItem> = emptyList(),
     val vault: List<com.cyberoperative.game.data.GearItem> = emptyList(),

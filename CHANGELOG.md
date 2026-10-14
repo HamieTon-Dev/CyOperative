@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.34.0 (versionCode 102) — 2026-10-14 · INFERNO 1–500, one shared Data Vault
+### Changed
+- **INFERNO now has levels 1–500 (owner, curve A).** Each level is a little harder than the last:
+  - threat HP ×2.175 at level 1, +1.2% per level compounding (×2.4 at 10, ×7.1 at 100, ×837 at 500);
+  - damage on the same curve at half the rate (+0.6% per level);
+  - rewards +0.02× per level; loot luck grows slowly.
+  - Pick any unlocked level with the new −10 / −1 / +1 / +10 stepper (solo and the co-op lobby).
+  - Beating World 15's boss on a level unlocks the next one.
+  - Saves on INFERNO I–X keep their level number, now on the gentler curve.
+- **ABYSSAL in the shop: about 1 shop in 100** (owner). That's 0.251% per equipment piece, from INFERNO 7.
+- Deep INFERNO levels no longer add more boss pieces or elite drop chance past level 10 (3 + 3 pieces; elites 45%).
+### Added
+- **One Data Vault shared by every character** (owner). Characters keep their own equipped gear and backpack.
+  - Existing per-character vaults merge into the shared vault once.
+  - A **DATA VAULT** button on the main menu opens it directly.
+### Technical
+- `Difficulty` is now a class: `EASY/MEDIUM/HARD` plus `Difficulty.inferno(level)`. Its name is `INFERNO_n`, and `byName` still reads old saves.
+- `Gear.shopOdds`, `SHOP_ABYSSAL` and `SHOP_GEAR_PIECES`. `InfernoStepper`, `MenuTarget.VAULT`.
+- The `CharacterSave.vault` field is kept only so old saves load.
+
 ## 0.33.0 (versionCode 101) — 2026-10-14 · four new INFERNO equipment rarities
 ### Added (owner-approved names: Forged, Voltaic, Celestial, Abyssal)
 - **Four INFERNO-only rarities, each with the owner's own art** (5 designs per slot):

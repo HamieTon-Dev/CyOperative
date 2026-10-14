@@ -26,11 +26,11 @@ object Characters {
         return n.takeIf { it.length >= 2 }
     }
 
-    /** The active character as a stored record. */
+    /** The active character as a stored record. The Data Vault is shared (0.34.0), so it stays on the profile. */
     fun active(p: PlayerProfile): CharacterSave = CharacterSave(
         id = p.characterId, name = p.characterName, classId = p.selectedOperative, look = p.look,
         operativeXp = p.operativeXp, permanentUpgrades = p.permanentUpgrades,
-        equipped = p.equipped, backpack = p.backpack, vault = p.vault, savedRun = p.savedRun,
+        equipped = p.equipped, backpack = p.backpack, savedRun = p.savedRun,
         lastDifficulty = p.lastDifficulty
     )
 
@@ -41,7 +41,7 @@ object Characters {
         characterId = c.id, characterName = c.name, look = c.look,
         selectedOperative = Operatives.byId(c.classId).id, operativeBody = Operatives.byId(c.classId).bodyId,
         operativeXp = c.operativeXp, permanentUpgrades = c.permanentUpgrades,
-        equipped = c.equipped, backpack = c.backpack, vault = c.vault, savedRun = c.savedRun,
+        equipped = c.equipped, backpack = c.backpack, savedRun = c.savedRun,
         lastDifficulty = c.lastDifficulty
     )
 

@@ -77,8 +77,8 @@ android {
         applicationId = "com.cyberoperative.game"
         minSdk = 24
         targetSdk = 36
-        versionCode = 101
-        versionName = "0.33.0"
+        versionCode = 102
+        versionName = "0.34.0"
     }
 
     signingConfigs {

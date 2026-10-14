@@ -8,27 +8,19 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** INFERNO I–X (owner, 2026-10-13). */
+/** INFERNO 1–500 (owner, 0.34.0: curve A). */
 class InfernoTest {
-    @Test fun tenTiersEachHarderThanTheLast() {
-        val tiers = (1..10).map { Difficulty.inferno(it)!! }
-        assertEquals("INFERNO I", tiers.first().label)
-        assertEquals("INFERNO X", tiers.last().label)
-        var prev = Difficulty.HARD
-        for (t in tiers) {
-            assertTrue(t.enemyHp > prev.enemyHp && t.enemyDamage > prev.enemyDamage && t.rewardMul > prev.rewardMul && t.luck > prev.luck)
-            prev = t
-        }
-        assertNull(Difficulty.inferno(11))
-    }
-
-    @Test fun eachTierIsUnlockedByBeatingWorldFifteenOnTheOneBefore() {
-        assertEquals(1, Difficulty.HARD.unlocksInferno)
-        assertEquals(0, Difficulty.MEDIUM.unlocksInferno)
-        for (k in 1..9) assertEquals(k + 1, Difficulty.inferno(k)!!.unlocksInferno)
-        assertEquals(0, Difficulty.INFERNO_10.unlocksInferno)
-        assertEquals(listOf(Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD), Difficulty.available(0))
-        assertEquals(Difficulty.INFERNO_3, Difficulty.available(3).last())
+    @Test fun fiveHundredLevelsOnCurveA() {
+        val one = Difficulty.inferno(1)!!; val top = Difficulty.inferno(500)!!
+        assertEquals(2.175f, one.enemyHp, 0.001f)
+        assertEquals(836.6f, top.enemyHp, 1f)
+        assertTrue(Difficulty.inferno(2)!!.enemyHp > one.enemyHp && top.enemyDamage > one.enemyDamage)
+        assertNull(Difficulty.inferno(501))
+        assertEquals(one, Difficulty.byName("INFERNO_1"))
+        assertEquals(Difficulty.inferno(37), Difficulty.byName("INFERNO_37"))
+        assertEquals(2, Difficulty.inferno(1)!!.unlocksInferno)
+        assertEquals(0, top.unlocksInferno)
+        assertEquals(Difficulty.inferno(3), Difficulty.available(3).last())
     }
 
     @Test fun infernoRoomsAreMostlyHellAndSometimesNormal() {

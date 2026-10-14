@@ -617,7 +617,7 @@ private fun VaultTab(
         Panel(m.onGloballyPositioned { drag.targets["vault"] = it.boundsInRoot() }, accent = if (drag.item != null) Palette.Cyan else Palette.Divider) {
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("STORED ITEMS", color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
+                    Text("STORED ITEMS · ALL CHARACTERS", color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.width(8.dp))
                     Text("${"%,d".format(p.vault.size)} / ${"%,d".format(Gear.VAULT_SIZE)}", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.width(8.dp))

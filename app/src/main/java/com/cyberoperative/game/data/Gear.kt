@@ -303,15 +303,32 @@ object Gear {
 
     /**
      * The in-run shop's equipment (owner, 0.32.0): PURPLE and up only, rolled on the boss table
-     * (the rarest the least likely to be on the counter).
+     * (the rarest the least likely to be on the counter). ABYSSAL is pinned (owner, 0.34.0) so a
+     * 4-piece counter shows one about 1 time in 100 ([SHOP_ABYSSAL] per piece) from INFERNO VII on.
      */
-    fun rollShopRarity(rng: Random, inferno: Int): GearRarity {
+    fun rollShopRarity(rng: Random, inferno: Int): GearRarity = pick(rng, shopOdds(inferno))
+
+    /** Per-piece shop odds (percent) by rarity: EPIC and up, ABYSSAL fixed at [SHOP_ABYSSAL]. */
+    fun shopOdds(inferno: Int): FloatArray {
         val o = odds(boss = true, inferno = inferno)
-        val from = GearRarity.EPIC.ordinal
-        var total = 0f
-        for (i in from until o.size) total += o[i]
-        var x = rng.nextFloat() * total
-        for (i in from until o.size) { x -= o[i]; if (x <= 0f) return GearRarity.entries[i] }
+        val w = FloatArray(o.size)
+        val top = GearRarity.ABYSSAL.ordinal
+        val abyss = if (inferno >= GearRarity.ABYSSAL.minInferno) SHOP_ABYSSAL else 0f
+        var rest = 0f
+        for (i in GearRarity.EPIC.ordinal until top) rest += o[i]
+        for (i in GearRarity.EPIC.ordinal until top) w[i] = o[i] / rest * (100f - abyss)
+        w[top] = abyss
+        return w
+    }
+
+    /** Equipment pieces on a shop counter (GameEngine.SHOP_GEAR). */
+    const val SHOP_GEAR_PIECES = 4
+    /** ABYSSAL per shop piece (percent): 1 − 0.99^(1/4), so 1% per 4-piece counter. */
+    const val SHOP_ABYSSAL = 0.2510f
+
+    private fun pick(rng: Random, o: FloatArray): GearRarity {
+        var x = rng.nextFloat() * o.sum()
+        for (i in o.indices) { x -= o[i]; if (x <= 0f && o[i] > 0f) return GearRarity.entries[i] }
         return GearRarity.EPIC
     }
 

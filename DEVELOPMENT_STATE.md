@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.33.0 (versionCode 101) |
+| Version | 0.34.0 (versionCode 102) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -17,9 +17,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 - **INFERNO rarities (0.33.0):**
   - FORGED / VOLTAIC / CELESTIAL / ABYSSAL replaced ENCRYPTED / INFERNAL / CRYPTO; the old names stay valid on disk via `@SerialName`.
   - Odds: `Gear.odds` uses base × INFERNO level for those four (capped at 60% together), then COMMON…LEGENDARY share the rest.
-  - Waiting on the owner:
-    - the drop sound choice (A–D);
-    - the 500-level INFERNO plan (today `Difficulty` has INFERNO I–X as enum entries; 500 levels needs a level number instead and a difficulty curve).
+  - Waiting on the owner: the drop sound choice (A–D).
+- **INFERNO 1–500 (0.34.0):**
+  - `Difficulty` is a class, with levels made by `Difficulty.inferno(n)` (cached).
+  - Curve A: HP 2.175·1.012^(n−1), damage 1.75·1.006^(n−1).
+  - Loot extras are capped at level 10; the four INFERNO rarities saturate at the 60% cap by about level 25.
+- **Shared Data Vault (0.34.0):** `p.vault` is account-wide. `Characters.active/load` no longer swap it, and `StoreManager` merges old per-character vaults.
 - **Gear and characters (0.30.0, Data Vault phase 2–3):**
   - Data:
     - `data/Gear.kt` has the item model, odds, rolls and `Gear.apply` (used in `Operatives.buildConfig(…, gear)`).
@@ -36,7 +39,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
     - rarity tint on the operative's held weapon;
     - the partner's look in co-op;
     - a balance pass for the grind.
-- **INFERNO I–X (0.29.0)** are `Difficulty.INFERNO_1..10` (`inferno` tier).
+- **INFERNO (0.29.0, 1–500 since 0.34.0)**: `Difficulty.inferno(n)` (`inferno` level).
   - `PlayerProfile.infernoUnlocked` is raised in `GameSession` when `campaignFinished`, via `unlocksInferno`.
   - The look is renderer-only, so co-op stays in sync:
     - `Environments.inferno` themes, picked by `styleFor(…, infernoTier)`; 12% of rooms stay normal.

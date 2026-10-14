@@ -3576,7 +3576,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (e.isElite) {
             elitesDefeated++
             dropLoot(e.x, e.y, ELITE_HP_DROP, ELITE_BOMB_DROP)
-            if (!mirror && gearRng.nextFloat() < ELITE_GEAR_CHANCE + 0.02f * config.difficulty.inferno) dropGear(e.x, e.y, boss = false, count = 1)
+            if (!mirror && gearRng.nextFloat() < ELITE_GEAR_CHANCE + 0.02f * config.difficulty.inferno.coerceAtMost(10)) dropGear(e.x, e.y, boss = false, count = 1)
         }
         lastKillX = e.x; lastKillY = e.y
         if (chipRules && !mirror && chipBudget > 0 && phase == Phase.COMBAT) {
@@ -4438,7 +4438,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         spewing = true
         dropLoot(spewX, spewY, BOSS_HP_DROP, BOSS_BOMB_DROP)
         // Gear (owner, 2026-10-13): a world boss drops three pieces per player, more on INFERNO.
-        dropGear(spewX, spewY, boss = true, count = (if (campaign) BOSS_GEAR_DROPS else BOSS_GEAR_DROPS - 1) + config.difficulty.inferno / 3)
+        dropGear(spewX, spewY, boss = true, count = (if (campaign) BOSS_GEAR_DROPS else BOSS_GEAR_DROPS - 1) + config.difficulty.inferno.coerceAtMost(10) / 3)
         lastKillX = spewX; lastKillY = spewY
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         eurosEarned += paid
@@ -5092,7 +5092,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val CONSUMABLE_COOLDOWN = 1f
         const val ELITE_HP_DROP = 0.08f
         /** The shop's equipment pieces, and the co-op input index they start at. */
-        const val SHOP_GEAR = 4
+        const val SHOP_GEAR = com.cyberoperative.game.data.Gear.SHOP_GEAR_PIECES
         const val SHOP_GEAR_INDEX = 100
         /** Co-op smoothing: a partner further than this from where it should be jumps there. */
         const val NET_SNAP = 260f
