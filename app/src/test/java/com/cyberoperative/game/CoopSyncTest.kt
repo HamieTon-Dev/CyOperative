@@ -52,6 +52,30 @@ class CoopSyncTest {
         }
     }
 
+    @Test fun xpIsSharedWithTheGuest() {
+        val l = Link(5L)
+        repeat(600) { l.frame { 0f to 0f } }
+        assertTrue("host earned XP", l.host.opXpEarned > 0)
+        assertEquals("guest banks the same XP", l.host.opXpEarned.toDouble(), l.guest.opXpEarned.toDouble(), l.host.opXpEarned * 0.2)
+    }
+
+    @Test fun partnerGlidesInsteadOfJumping() {
+        val l = Link(6L)
+        repeat(60) { l.frame { 0f to 0f } }
+        // The host walks right; on the guest its operative moves every frame, not only on snapshots.
+        val p = l.guest.operatives[0]
+        val xs = ArrayList<Float>()
+        val hostOp = l.host.operatives[0]
+        repeat(30) {
+            hostOp.px = (hostOp.px + 6f).coerceAtMost(l.host.arena.width - 80f)
+            if (hostOp.px >= l.host.arena.width - 80f) hostOp.px = 120f
+            l.frame { 0f to 0f }
+            xs += p.px
+        }
+        val stepsThatMoved = xs.zipWithNext().count { (a, b) -> kotlin.math.abs(b - a) > 0.5f }
+        assertTrue("moved on most frames, not just every 3rd ($stepsThatMoved/29)", stepsThatMoved > 20)
+    }
+
     @Test fun inputRoundTrips() {
         val c = CoopInput(7, 123.5f, 456f, 1.25f, true, 3, 2, 1)
         val d = CoopCodec.decodeInput(CoopCodec.encodeInput(c))

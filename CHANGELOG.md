@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.31.0 (versionCode 99) — 2026-10-14 · co-op shared XP and smoother partners; PC HUD
+### Added / changed
+- **Shared XP in co-op (100%).**
+  - Before, only the host banked OP level XP and the guest earned none.
+  - Now every kill and cleared room, by either player, gives both players the full XP.
+- **Smoother co-op partners.**
+  - Both players' screens predict the partner's movement between network updates and glide them there, instead of jumping on every packet.
+  - PC co-op (Steam and direct IP) also sends updates twice as often: 20 per second from the host, 30 from the guest. Phone co-op keeps its lighter rate.
+- **PC: EXIT TO DESKTOP** on the main menu.
+- **PC: top HUD text twice as big**, and a little bigger again on very wide windows.
+- **PC: big ability bar** along the bottom of the screen: DASH, both class spells, HP charges and Packet Bombs. Each tile shows its key, a dark sweep that shrinks as it recharges, and the seconds left in large numbers.
+- **PC: KEYBINDS** in the in-game pause menu → SETTINGS.
+### Not added
+- **AMD FSR 3 / Intel XeSS frame generation** can't be built into this game. Those need a DirectX 12 / Vulkan game engine, and the game draws through Compose/Skia. AMD players can turn on **AMD Fluid Motion Frames** in the Radeon driver (Adrenalin → Gaming → AFMF), which works without game support. Intel has no driver-level equivalent.
+### Technical
+- Co-op codec **v26**: `CoopWorld.opXp`.
+- Partner smoothing: `Operative.netReport/netPredict*` (velocity plus lead), `NET_FOLLOW`, `NET_SNAP`. Applied on the host (the guest's operative) and on the guest (the host's operative).
+- New: `AppExit`, `PcAbilityBar`. `KeybindsCard` is now shared.
+- New tests: `CoopSyncTest.xpIsSharedWithTheGuest` and `partnerGlidesInsteadOfJumping`.
+
 ## 0.30.5 (versionCode 98) — 2026-10-13 · OC Lv on the XP bar
 ### Changed
 - After OP Lv 60, the label beside the white XP bar reads **OC Lv N** (Overclock level), and the bar fills toward the next Overclock level. Below 60 it still reads "OP Lv N".

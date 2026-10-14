@@ -461,8 +461,9 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 }
             }
             Spacer(Modifier.width(20.dp))
-            // PC keys only: on Android the on-screen buttons show all of this.
-            if (h.consumables && com.cyberoperative.game.platform.GameKeys.active) {
+            // PC keys only, and not on Steam (its big ability bar sits along the bottom instead);
+            // on Android the on-screen buttons show all of this.
+            if (h.consumables && com.cyberoperative.game.platform.GameKeys.active && !com.cyberoperative.game.platform.AppInfo.desktop) {
                 AbilityChip(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, Palette.Cyan)
                 Spacer(Modifier.width(6.dp))
                 h.spell1?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, Palette.Purple) }
@@ -559,6 +560,60 @@ private fun ConsumableChip(action: com.cyberoperative.game.ui.common.KeyAction, 
         Text("[$key]", color = Palette.TextSecondary, style = mono(11.sp, FontWeight.Bold))
         Spacer(Modifier.width(6.dp))
         Text("$icon $count", color = c, style = mono(14.sp, FontWeight.Bold))
+    }
+}
+
+/**
+ * Steam ability bar (owner, 0.31.0: "larger icons for abilities… readable… see the cooldown"):
+ * big tiles for DASH, both class spells, HP charges and Packet Bombs, each with its key, a dark
+ * sweep that shrinks as it recharges, and the seconds left in large digits.
+ */
+@Composable
+fun PcAbilityBar(h: HudSnapshot, scale: Float, modifier: Modifier = Modifier) {
+    val tile = 76.dp * scale
+    Row(modifier, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp * scale), verticalAlignment = Alignment.Bottom) {
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, com.cyberoperative.game.engine.GameEngine.DASH_COOLDOWN, Palette.Cyan, tile)
+        h.spell1?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, it.cooldown, Palette.Purple, tile) }
+        h.spell2?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_2, it.icon, it.label, h.spell2Cd, it.cooldown, Palette.Magenta, tile) }
+        Spacer(Modifier.width(10.dp * scale))
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", "HP", 0f, 1f, Palette.Green, tile, count = h.hpCharges)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", "BOMB", 0f, 1f, Palette.Cyan, tile, count = h.packetBombs)
+    }
+}
+
+@Composable
+private fun AbilityTile(
+    action: com.cyberoperative.game.ui.common.KeyAction, icon: String, label: String,
+    cooldown: Float, maxCooldown: Float, color: Color, size: androidx.compose.ui.unit.Dp, count: Int = -1
+) {
+    val key = com.cyberoperative.game.platform.GameKeys.keyName(com.cyberoperative.game.ui.common.KeyBinds.code(action)).uppercase().take(5)
+    val ready = cooldown <= 0f && count != 0
+    val c = if (ready) color else Palette.TextMuted
+    val k = size / 76.dp
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.matchParentSize()) {
+                val r = CornerRadius(size.toPx() * 0.16f)
+                drawRoundRect(Color(0xE6070C16), cornerRadius = r)
+                drawRoundRect(c.copy(alpha = if (ready) 0.22f else 0.08f), cornerRadius = r)
+                if (cooldown > 0f && maxCooldown > 0f) {
+                    // Dark sweep over the part still recharging (clockwise from the top).
+                    val f = (cooldown / maxCooldown).coerceIn(0f, 1f)
+                    drawArc(Color(0xCC000000), -90f, 360f * f, true, Offset(-this.size.width * 0.25f, -this.size.height * 0.25f),
+                        Size(this.size.width * 1.5f, this.size.height * 1.5f))
+                }
+                drawRoundRect(c.copy(alpha = if (ready) 0.95f else 0.5f), cornerRadius = r, style = Stroke((if (ready) 3f else 2f) * k))
+            }
+            Text(icon, color = c, style = mono(30.sp * k, FontWeight.Bold))
+            if (cooldown > 0f) Text(
+                if (cooldown >= 10f) "${cooldown.toInt()}" else "%.1f".format(cooldown),
+                color = Color.White, style = mono(24.sp * k, FontWeight.Bold).copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Black, Offset(0f, 2f), 6f))
+            )
+            Text("[$key]", color = Palette.TextSecondary, style = mono(11.sp * k, FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart).padding(5.dp * k))
+            if (count >= 0) Text("$count", color = if (count > 0) Color.White else Palette.Red, style = mono(16.sp * k, FontWeight.Bold), modifier = Modifier.align(Alignment.BottomEnd).padding(5.dp * k))
+        }
+        Spacer(Modifier.height(3.dp))
+        Text(label, color = c, style = mono(11.sp * k, FontWeight.Bold), maxLines = 1)
     }
 }
 

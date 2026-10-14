@@ -191,6 +191,8 @@ fun GameScreen(
         // The arena starts right under the HUD as measured (it grows with the buff row and
         // the boss bar, shrinks when folded); before the first measure, a safe estimate.
         val hudHeightDp = with(density) { if (hudHeightPx > 0) hudHeightPx.toDp() else 96.dp }
+        /** PC: extra size for wide windows (1 at 1600 dp, up to 1.5). */
+        val pcWide = (maxWidth / 1600.dp).coerceIn(1f, 1.5f)
         // PC: the canvas itself starts below the HUD strip, so no inset inside it.
         val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
         val topInsetPx = with(density) { if (landscape) 0f else (hudHeightDp + 4.dp).toPx() }
@@ -549,10 +551,17 @@ fun GameScreen(
                 onGearChanged = { session.applyGear() }
             )
         }
+        // Steam: big ability tiles along the bottom (owner, 0.31.0: readable, cooldown visible).
+        if (com.cyberoperative.game.platform.AppInfo.desktop && hud.consumables && !showInventory && !coveredByPanel && !session.paused) {
+            PcAbilityBar(hud, pcWide, Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp))
+        }
         if (!showInventory && (session.paused || !coveredByPanel)) {
-          // PC: a compact strip above the arena (never over it), everything at 75%.
+          // PC: a strip above the arena (never over it). Android landscape: everything at 75%.
+          // Steam (owner, 0.31.0: "text at the top is really small on a large screen"): 2× that,
+          // and a little more on very wide windows.
+          val hudScale = if (com.cyberoperative.game.platform.AppInfo.desktop) HUD_PC_SCALE * 2f * pcWide else HUD_PC_SCALE
           if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
-              LocalDensity provides androidx.compose.ui.unit.Density(density.density * HUD_PC_SCALE, density.fontScale)
+              LocalDensity provides androidx.compose.ui.unit.Density(density.density * hudScale, density.fontScale)
           ) {
             // Android landscape gets the slim strip (owner, 2026-10-12); the PC keeps its key chips.
             if (com.cyberoperative.game.platform.AppInfo.desktop) PcHudStrip(
@@ -867,6 +876,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseSettingsTab(sess
         PauseToggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
         PauseToggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
         PauseToggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+        // PC: rebind keys without leaving the run (owner, 0.31.0).
+        if (com.cyberoperative.game.platform.GameKeys.active) {
+            Spacer(Modifier.height(10.dp))
+            com.cyberoperative.game.ui.menu.KeybindsCard(s.keyBinds) { next ->
+                com.cyberoperative.game.ui.common.KeyBinds.map = next
+                set(s.copy(keyBinds = next))
+                session.audio.play(com.cyberoperative.game.engine.GameSound.UI_CLICK)
+            }
+        }
     }
     Spacer(Modifier.height(12.dp))
     com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }

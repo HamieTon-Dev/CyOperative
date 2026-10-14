@@ -107,6 +107,7 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
                     repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+            ExitButton()
             return@Column
         }
         if (saved != null) {
@@ -131,7 +132,15 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
                 repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
+        ExitButton()
     }
+}
+
+/** PC: EXIT TO DESKTOP (owner, 0.31.0). Saves are written as they happen, so it just closes. */
+@Composable
+private fun ExitButton() {
+    val exit = com.cyberoperative.game.ui.common.AppExit.onExit ?: return
+    CyberButton("EXIT TO DESKTOP", accent = Palette.Red, modifier = Modifier.fillMaxWidth()) { exit() }
 }
 
 @Composable

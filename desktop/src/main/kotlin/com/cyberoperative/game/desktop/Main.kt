@@ -49,6 +49,11 @@ fun main(args: Array<String>) {
     val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else com.cyberoperative.game.lan.DirectIpCoopBackend()
 
     application {
+        // Main menu → EXIT TO DESKTOP.
+        com.cyberoperative.game.ui.common.AppExit.onExit = {
+            SteamService.shutdown()
+            exitApplication()
+        }
         // Landscape 16:9 at 80% of the screen; F11 for fullscreen.
         val screen = java.awt.Toolkit.getDefaultToolkit().screenSize
         val w = (screen.width * 0.8f).coerceIn(1024f, 2560f)

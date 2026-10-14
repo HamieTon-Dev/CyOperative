@@ -504,7 +504,7 @@ private fun LockedBadge(opLevel: Int) {
 
 /** PC: rebind the game's keys. Click an action, then press the new key (Esc cancels). */
 @Composable
-private fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit) {
+fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit) {
     val keys = com.cyberoperative.game.platform.GameKeys
     var waiting by remember { mutableStateOf<com.cyberoperative.game.ui.common.KeyAction?>(null) }
     TerminalCard {

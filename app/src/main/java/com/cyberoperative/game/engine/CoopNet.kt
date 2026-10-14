@@ -62,6 +62,8 @@ class CoopWorld {
     val loot = ArrayList<FloatArray>(8)
     /** The guest's latest gear finds, as [com.cyberoperative.game.data.Gear.encode] text (v25). */
     var guestGear = ""
+    /** OP XP the run has earned (v26): shared 100% with the guest. */
+    var opXp = 0L
     /** Extra exit doors (PC): x, y, side (v16). */
     val exitDoors = ArrayList<FloatArray>(3)
     val zaps = ArrayList<NetZap>(40)
@@ -347,6 +349,7 @@ object CoopCodec {
             o.writeBoolean(w.worldServerOn)
             if (w.worldServerOn) { o.pos(w.worldServerX); o.pos(w.worldServerY) }
             o.writeUTF(w.guestGear)
+            o.writeLong(w.opXp)
         }
         return bytes.toByteArray()
     }
@@ -474,6 +477,7 @@ object CoopCodec {
             w.worldServerOn = i.readBoolean()
             if (w.worldServerOn) { w.worldServerX = i.pos(); w.worldServerY = i.pos() }
             w.guestGear = i.readUTF()
+            w.opXp = i.readLong()
             w
         }
     } catch (_: Exception) {
@@ -509,5 +513,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 25
+    const val VERSION = 26
 }

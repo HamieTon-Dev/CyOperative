@@ -1085,6 +1085,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         var remaining = fx.tick(delta.coerceIn(0f, MAX_FRAME))
         while (remaining > 0f) {
             val dt = min(STEP, remaining)
+            netClock += dt
             step(dt)
             remaining -= dt
         }
@@ -2126,7 +2127,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             // SEIZED: the guest's reported position is ignored until it breaks free.
             stillTime += dt
         } else if (cur.remote) {
-            arena.pushOut(cur.netX, cur.netY, playerRadius)
+            // Glide toward where the guest should be by now (its reports arrive in steps).
+            cur.netAge += dt
+            val tx = if (cur.netValid) cur.netPredictX() else cur.netX
+            val ty = if (cur.netValid) cur.netPredictY() else cur.netY
+            val far = (tx - px) * (tx - px) + (ty - py) * (ty - py) > NET_SNAP * NET_SNAP
+            val k = if (far) 1f else 1f - kotlin.math.exp(-Operative.NET_FOLLOW * dt)
+            arena.pushOut(px + (tx - px) * k, py + (ty - py) * k, playerRadius)
             px = arena.out[0]
             py = arena.out[1]
             if (moving) {
@@ -4480,12 +4487,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (o.gone) return
         o.remote = true
         if (o.alive && c.level == level && phase != Phase.TRANSITION && slideIn <= 0f) {
-            o.netX = c.x; o.netY = c.y; o.netFacing = c.facing; o.netMoving = c.moving
+            o.netReport(c.x, c.y, netClock); o.netFacing = c.facing; o.netMoving = c.moving
             o.aiming = c.aiming; o.aimX = c.aimX; o.aimY = c.aimY
         } else {
             o.aiming = false
             // Still in the previous room on the guest's side: hold the spawn spot.
-            o.netX = o.px; o.netY = o.py; o.netMoving = false
+            o.netX = o.px; o.netY = o.py; o.netMoving = false; o.netValid = false; o.netVX = 0f; o.netVY = 0f
         }
         // PC consumables used by the guest (serials so a lost packet never double-uses one).
         if (c.hpSerial > lastHpSerial) { lastHpSerial = c.hpSerial; useHpCharge(index) }
@@ -4587,6 +4594,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, extra.toFloat(), l.owner.toFloat())
         }
         // The guest's newest finds (they bank them on their own device; repeats are merged by id).
+        // Shared XP (owner, 0.31.0): the guest banks the same OP XP the host earns, 100%.
+        w.opXp = opXpEarned
         ops.getOrNull(1)?.let { g -> w.guestGear = if (g.gearFound.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(g.gearFound.takeLast(GUEST_GEAR_SENT)) }
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
@@ -4635,6 +4644,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var mirrorSeq = -1
     /** Where each mirrored enemy should be (smoothed toward between snapshots). */
     private val netTargets = HashMap<Int, FloatArray>()
+    /** Co-op clock for partner smoothing (seconds this engine has run). */
+    private var netClock = 0f
 
     /** Guest: apply one host snapshot. Older or duplicate snapshots are ignored. */
     fun applyWorld(w: CoopWorld) {
@@ -4694,6 +4705,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         bossesDefeated = w.bosses; elitesDefeated = w.elites; eventsCompleted = w.events
         levelKills = w.levelKills; levelSpawned = w.levelSpawned; waveIndex = w.waveIndex
         runLevel = w.runLevel; xp = w.xp; runSeconds = w.runSeconds; timedRemaining = w.timedRemaining
+        // Shared XP: every kill and room either player makes counts in full for both.
+        opXpEarned = maxOf(opXpEarned, w.opXp)
         portalOpen = w.portalOpen
         if (w.banner != banner || w.bannerTimer > bannerTimer + 0.2f) { banner = w.banner; bannerSub = w.bannerSub }
         bannerTimer = w.bannerTimer
@@ -4704,8 +4717,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val local = i == primary
             // The guest drives its own position (except on a new room, while down, or between rooms);
             // everything else comes from the host.
-            val hostPlaces = !local || newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
-            if (hostPlaces) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
+            val snap = newRoom || n.downed || n.gone || w.phase == Phase.TRANSITION || w.slideIn > 0f
+            if (!local) {
+                // The partner glides between snapshots (mirrorTick) instead of jumping to each.
+                if (snap || !o.netValid) { o.px = n.x; o.py = n.y; o.netVX = 0f; o.netVY = 0f; o.netValid = false }
+                o.netReport(n.x, n.y, netClock)
+                o.facing = n.facing; o.moving = n.moving
+            } else if (snap) { o.px = n.x; o.py = n.y; o.facing = n.facing; o.moving = n.moving }
             o.hp = n.hp; o.invuln = n.invuln; o.hurtFlash = n.hurtFlash
             o.rooted = n.rooted; o.encrypted = n.encrypted; o.encryptCharge = n.encryptCharge; o.burning = n.burning
             o.pulled = n.pulled; o.pullX = n.pullX; o.pullY = n.pullY; o.pullStrength = n.pullStrength
@@ -4846,6 +4864,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             tickAbilities(me, dt)
             if (me.dashTime > 0f) dashStep(me, dt)
         } else me.moving = false
+        // The partner: glide toward where it should be by now.
+        netClock += dt
+        for (o in ops) {
+            if (o === me || !o.netValid || o.gone) continue
+            o.netAge += dt
+            val tx = o.netPredictX(); val ty = o.netPredictY()
+            val far = (tx - o.px) * (tx - o.px) + (ty - o.py) * (ty - o.py) > NET_SNAP * NET_SNAP
+            val k = if (far) 1f else 1f - kotlin.math.exp(-Operative.NET_FOLLOW * dt)
+            o.px += (tx - o.px) * k; o.py += (ty - o.py) * k
+        }
         me.orbAngle = (me.orbAngle + stats.orbAngularSpeed * dt) % MathUtil.TWO_PI
         me.bladeAngle = (me.bladeAngle - 3.4f * dt) % MathUtil.TWO_PI
         val k = min(1f, dt * 14f)
@@ -5021,6 +5049,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val PACKET_BOMB_DAMAGE = 30f
         const val CONSUMABLE_COOLDOWN = 1f
         const val ELITE_HP_DROP = 0.08f
+        /** Co-op smoothing: a partner further than this from where it should be jumps there. */
+        const val NET_SNAP = 260f
         /** Gear (owner, 2026-10-13): chance an elite drops a piece (+2% per INFERNO tier), pieces per world boss. */
         const val ELITE_GEAR_CHANCE = 0.25f
         const val BOSS_GEAR_DROPS = 3

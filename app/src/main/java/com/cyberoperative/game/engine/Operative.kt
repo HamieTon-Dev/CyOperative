@@ -120,6 +120,35 @@ class Operative(val index: Int, baseStats: RunStats) {
     var netY = 0f
     var netFacing = 0f
     var netMoving = false
+    /**
+     * Co-op smoothing (0.31.0, owner: "laggy on the other player's position"): the partner's
+     * velocity from its last two reports and the seconds since the newest. The drawn position
+     * glides toward where it should be by now instead of jumping on every packet.
+     */
+    var netVX = 0f
+    var netVY = 0f
+    var netAge = 0f
+    var netStamp = -1f
+    /** The partner has a target to glide to (false = snap to the next report). */
+    var netValid = false
+
+    /** Takes a position report at engine clock [now]; the velocity comes from the previous one. */
+    fun netReport(x: Float, y: Float, now: Float) {
+        if (netValid && netStamp >= 0f) {
+            val dt = now - netStamp
+            if (dt > 0.005f) {
+                val vx = (x - netX) / dt
+                val vy = (y - netY) / dt
+                // Ignore teleports (doors, dashes across a room): they would fling the prediction.
+                if (vx * vx + vy * vy < 1600f * 1600f) { netVX = netVX * 0.3f + vx * 0.7f; netVY = netVY * 0.3f + vy * 0.7f } else { netVX = 0f; netVY = 0f }
+            }
+        }
+        netX = x; netY = y; netStamp = now; netAge = 0f; netValid = true
+    }
+
+    /** Where the partner should be drawn now: the last report, carried forward a little by its velocity. */
+    fun netPredictX(): Float = netX + netVX * netAge.coerceAtMost(NET_LEAD_MAX)
+    fun netPredictY(): Float = netY + netVY * netAge.coerceAtMost(NET_LEAD_MAX)
 
     // --- PHANTOM cloak ---------------------------------------------------------------
     /** Seconds into the cloak cycle. */
@@ -131,4 +160,11 @@ class Operative(val index: Int, baseStats: RunStats) {
     var cloakY = 0f
 
     val alive: Boolean get() = !downed && !gone
+
+    companion object {
+        /** Co-op smoothing: the longest a partner's movement is carried forward past its last report (s). */
+        const val NET_LEAD_MAX = 0.2f
+        /** Co-op smoothing: how fast the drawn partner closes on its predicted spot (per second). */
+        const val NET_FOLLOW = 16f
+    }
 }

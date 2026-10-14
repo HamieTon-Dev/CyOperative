@@ -67,6 +67,8 @@ The touchscreen and trackpads work as the mouse in menus.
 - **Space** dashes; **R** / **F** cast your class's two spells.
 - **Q** drinks an HP charge (start with 3); **E** sets off a Packet Bomb (found as rare drops).
 - **Esc** pauses or goes back; **F11** toggles fullscreen.
+- Abilities sit in a big bar along the bottom of the screen, with their keys and cooldowns.
+- Main menu → **EXIT TO DESKTOP** closes the game. Keys can be rebound mid-run too (pause → SETTINGS).
 - Every key can be rebound in Settings → KEYBINDS.
 
 ## Landscape view

@@ -262,6 +262,12 @@ class GameSession(
     private var worldSeq = 0
     private var inputSeq = 0
     private var sendTimer = 0f
+    /**
+     * Snapshot / input rates. PC co-op (Steam or direct IP, 0.31.0) sends twice as often for
+     * smoother partners; phone co-op over Firebase keeps the lighter rates (data and cost).
+     */
+    private val hostSendInterval = if (com.cyberoperative.game.platform.AppInfo.desktop) 1f / 20f else 0.1f
+    private val guestSendInterval = if (com.cyberoperative.game.platform.AppInfo.desktop) 1f / 30f else 1f / 15f
     /** Seconds since the partner was last heard from (starts with a grace period). */
     private var silence = -8f
     private var partnerLeft = false
@@ -430,12 +436,12 @@ class GameSession(
         if (silence > PARTNER_TIMEOUT) { partnerDropped(); return }
         sendTimer += delta
         if (isHost) {
-            if (sendTimer >= 0.1f) {
+            if (sendTimer >= hostSendInterval) {
                 sendTimer = 0f
                 link.room.sendWorld(CoopCodec.encodeWorld(engine.captureWorld(++worldSeq, netSounds)))
                 netSounds.clear()
             }
-        } else if (sendTimer >= 1f / 15f) {
+        } else if (sendTimer >= guestSendInterval) {
             sendTimer = 0f
             link.room.sendInput(
                 CoopCodec.encodeInput(
