@@ -61,7 +61,7 @@ fun MusicPlayerPanel(audio: AudioManager, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.size(8.dp))
         LazyColumn(Modifier.heightIn(max = 220.dp)) {
-            items(MusicLibrary.all, key = { it.id }) { t ->
+            items(MusicLibrary.listed, key = { it.id }) { t ->
                 val playing = audio.currentTrack?.id == t.id
                 Row(
                     Modifier

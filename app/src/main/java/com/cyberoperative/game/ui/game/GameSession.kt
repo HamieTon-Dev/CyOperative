@@ -142,6 +142,8 @@ data class HudSnapshot(
     val inShop: Boolean = false,
     val atShopCounter: Boolean = false,
     val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
+    /** The counter's equipment (0.32.0). */
+    val shopGear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList(),
     /** Co-op shop: players standing in the exit gate, of how many; and whether that includes me. */
     val shopReadyCount: Int = 0,
     val shopReadyTotal: Int = 1,
@@ -299,7 +301,11 @@ class GameSession(
             )
         } else {
             Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime(), com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level, p.equipped.values)
-                .copy(mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp))
+                .copy(
+                    mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp),
+                    // € carries over between runs (owner, 0.32.0). A continued run already banked what it earned.
+                    startEuros = (p.euros - (restore?.euros ?: 0)).coerceIn(0L, Int.MAX_VALUE.toLong() / 2).toInt()
+                )
         }
         // Every run (solo and co-op, every platform) uses the drop rules: chips, weapon cards,
         // cash bags, HP charges, Packet Bombs, dash, spells, exit doors. Room shape: wide on
@@ -466,8 +472,10 @@ class GameSession(
         val st = engine.boss?.boss
         val fought = st?.def ?: engine.plan.boss?.takeIf { engine.plan.kind == LevelKind.BOSS }
         if (st != null) musicBossPhase = st.phaseIndex else if (fought == null) musicBossPhase = 0
+        // INFERNO runs (owner, 0.32.0): their own soundtrack, and every boss on the Inferno pair, not sped up.
+        com.cyberoperative.game.audio.MusicLibrary.inferno = difficulty.inferno > 0
         audio.setBossMusic(
-            fought?.let { com.cyberoperative.game.audio.BossMusicProfiles.forBoss(it) },
+            fought?.let { if (difficulty.inferno > 0) com.cyberoperative.game.audio.BossMusicProfiles.inferno(it) else com.cyberoperative.game.audio.BossMusicProfiles.forBoss(it) },
             musicBossPhase,
             st?.glitched ?: engine.plan.glitchedBoss
         )
@@ -490,7 +498,7 @@ class GameSession(
         return HudSnapshot(
             level = g.level,
             score = g.score,
-            euros = g.eurosEarned,
+            euros = g.wallet,
             hp = kotlin.math.ceil(g.hp).toInt().coerceAtLeast(0),
             maxHp = kotlin.math.ceil(g.stats.maxHp).toInt(),
             opLabel = opNow.barLabel,
@@ -571,6 +579,7 @@ class GameSession(
             inShop = g.inShop,
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
+            shopGear = g.operatives.getOrNull(g.primary)?.shopGear ?: emptyList(),
             shopReadyCount = g.shopReadyCount, shopReadyTotal = g.shopReadyTotal, meShopReady = g.meShopReady,
             nearWorldServer = g.nearWorldServer(), worldReadyCount = g.worldReadyCount, worldReadyTotal = g.worldReadyTotal, meWorldReady = g.meWorldReady,
             vaultReady = g.vaultReady,
@@ -723,7 +732,7 @@ class GameSession(
     fun buyShopItem(i: Int, replace: String? = null) {
         if (guest) {
             val item = engine.shopItems.getOrNull(i) ?: return
-            if (item.sold || engine.eurosEarned < item.price) return
+            if (item.sold || engine.wallet < item.price) return
             shopIndex = i
             shopReplace = replace?.let { id -> com.cyberoperative.game.data.Upgrades.all.indexOfFirst { it.id == id } } ?: -1
             shopSerial++
@@ -731,6 +740,20 @@ class GameSession(
             return
         }
         engine.buyShopItem(i, replace)
+    }
+
+    /** Buy equipment from my own counter (co-op guests ask the host). */
+    fun buyShopGear(i: Int) {
+        if (guest) {
+            val g = engine.operatives.getOrNull(engine.primary)?.shopGear?.getOrNull(i) ?: return
+            if (g.sold || engine.wallet < g.price) return
+            shopIndex = com.cyberoperative.game.engine.GameEngine.SHOP_GEAR_INDEX + i
+            shopReplace = -1
+            shopSerial++
+            sendTimer = 1f
+            return
+        }
+        engine.buyShopGear(i)
     }
 
     fun shopNeedsSlot(i: Int) = engine.shopNeedsSlot(i)

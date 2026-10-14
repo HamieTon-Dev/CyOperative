@@ -126,6 +126,9 @@ class NetOp {
     /** Own shop stock (v22): upgrade index, next level, price, sold (0/1); and ready to leave. */
     val shop = ArrayList<IntArray>(4)
     var shopReady = false
+    /** Own shop equipment (v27): the pieces ([com.cyberoperative.game.data.Gear.encode]) and a sold bit per piece. */
+    var shopGear = ""
+    var shopGearSold = 0
     /** Pressed MOVE TO NEXT WORLD (v23). */
     var worldReady = false
 }
@@ -265,6 +268,7 @@ object CoopCodec {
                 o.writeByte(p.shop.size)
                 for (s in p.shop) { o.var32(s[0]); o.writeByte(s[1].coerceIn(0, 255)); o.var32(s[2]); o.writeBoolean(s[3] != 0) }
                 o.writeBoolean(p.shopReady)
+                o.writeUTF(p.shopGear); o.var32(p.shopGearSold)
                 o.writeBoolean(p.worldReady)
             }
 
@@ -389,6 +393,7 @@ object CoopCodec {
                 repeat(i.readUnsignedByte()) { val k = i.var32(); p.offer += k to i.var32() }
                 repeat(i.readUnsignedByte()) { p.shop += intArrayOf(i.var32(), i.readUnsignedByte(), i.var32(), if (i.readBoolean()) 1 else 0) }
                 p.shopReady = i.readBoolean()
+                p.shopGear = i.readUTF(); p.shopGearSold = i.var32()
                 p.worldReady = i.readBoolean()
                 w.ops += p
             }
@@ -513,5 +518,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 26
+    const val VERSION = 27
 }

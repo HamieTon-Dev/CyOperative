@@ -12,11 +12,26 @@ import kotlin.random.Random
 class MusicTest {
 
     @Test fun wholeCyOpsSoundtrackIsIncluded() {
-        assertEquals(28, MusicLibrary.all.size)
-        assertEquals(28, MusicLibrary.all.map { it.id }.toSet().size)
+        // 28 CyOps tracks + 10 INFERNO tracks (0.32.0).
+        assertEquals(38, MusicLibrary.all.size)
+        assertEquals(38, MusicLibrary.all.map { it.id }.toSet().size)
         assertEquals(28, MusicLibrary.poolFor(MusicState.COMBAT).size)
         assertTrue(MusicLibrary.poolFor(MusicState.MENU).isNotEmpty())
         assertTrue(MusicLibrary.poolFor(MusicState.BOSS).isNotEmpty())
+    }
+
+    @Test fun infernoRunsPlayOnlyTheInfernoTracksAndBossesStayAtSpeed() {
+        try {
+            MusicLibrary.inferno = true
+            assertEquals(8, MusicLibrary.poolFor(MusicState.COMBAT).size)
+            assertTrue(MusicLibrary.poolFor(MusicState.COMBAT).all { it.id.startsWith("inferno") })
+            assertEquals(setOf("inferno_boss_1", "inferno_boss_2"), MusicLibrary.poolFor(MusicState.BOSS).map { it.id }.toSet())
+        } finally { MusicLibrary.inferno = false }
+        val m = com.cyberoperative.game.audio.BossMusicProfiles.inferno(com.cyberoperative.game.data.Bosses.byId("exfil")!!)
+        for (phase in 0..2) assertEquals(1f, m.speed(phase), 0f)
+        assertTrue(MusicLibrary.poolFor(MusicState.COMBAT).none { it.id.startsWith("inferno") })
+        MusicLibrary.infernoUnlocked = false
+        assertEquals(28, MusicLibrary.listed.size)
     }
 
     @Test fun bossPoolHasLevel10AndBoss2Variants() {

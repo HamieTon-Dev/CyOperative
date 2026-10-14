@@ -102,13 +102,16 @@ fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidd
 @Composable
 fun ShopPanel(
     items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, onClose: () -> Unit,
-    modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false }
+    modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false },
+    gear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList(), onBuyGear: (Int) -> Unit = {}
 ) {
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // 8 items now (4 buffs, 4 equipment): a little taller than wide where there's room.
         val side = minOf(maxWidth * 0.9f, maxHeight * 0.8f, 380.dp)
+        val tall = minOf(maxHeight * 0.86f, side * 1.35f)
         Column(
             Modifier
-                .size(side)
+                .size(side, tall)
                 .background(Color(0xF0080A10), RoundedCornerShape(10.dp))
                 .border(1.5.dp, Palette.Gold, RoundedCornerShape(10.dp))
                 // Swallow taps so they don't reach the arena underneath.
@@ -131,7 +134,8 @@ fun ShopPanel(
             Text("${com.cyberoperative.game.ui.common.tapWord} to buy · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
             Spacer(Modifier.height(6.dp))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                if (items.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                if (items.isEmpty() && gear.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                if (items.isNotEmpty()) Text("BUFFS", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
                 for ((i, it) in items.withIndex()) {
                     val col = Color(it.def.rarity.color)
                     val affordable = euros >= it.price
@@ -171,6 +175,49 @@ fun ShopPanel(
                             },
                             color = when {
                                 it.sold -> Palette.TextMuted
+                                affordable -> Palette.Euro
+                                else -> Palette.Red
+                            },
+                            style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
+                        )
+                    }
+                }
+                // Equipment (owner, 0.32.0): PURPLE and up, bought into this run's finds (backpack, then vault).
+                if (gear.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text("EQUIPMENT", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
+                }
+                for ((gi, g) in gear.withIndex()) {
+                    val col = Color(g.item.rarity.color)
+                    val affordable = euros >= g.price
+                    val shape = RoundedCornerShape(8.dp)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .background(Palette.Surface, shape)
+                            .border(if (g.sold) 1.dp else 2.dp, if (g.sold) Palette.Divider else col, shape)
+                            .clickable(enabled = !g.sold) { if (affordable) onBuyGear(gi) }
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        com.cyberoperative.game.ui.common.GearIconView(g.item, Modifier.size(40.dp), dim = g.sold)
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("${g.item.rarity.label} · ${g.item.slot.label} · LV ${g.item.level}", color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Text(g.item.name, color = if (g.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            Text("${g.item.mainLabel} ${g.item.mainValue}" + if (g.item.affixes.isNotEmpty()) " · ${g.item.affixes.size} bonuses" else "",
+                                color = Palette.Green, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            when {
+                                g.sold -> "SOLD"
+                                affordable -> "€${"%,d".format(g.price)}"
+                                else -> "€${"%,d".format(g.price)}\nNEED €${"%,d".format(g.price - euros)}"
+                            },
+                            color = when {
+                                g.sold -> Palette.TextMuted
                                 affordable -> Palette.Euro
                                 else -> Palette.Red
                             },

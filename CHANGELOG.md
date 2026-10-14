@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.32.0 (versionCode 100) — 2026-10-14 · € carries over, equipment in the shop, INFERNO music
+### Changed (owner: "€ needs to be persistent and your total be present in every run")
+- **€ carries over between runs.** A run starts with every € you have banked. Whatever you earn or spend in the shop is banked as you go, so €11.5k at the end of one run means €11.5k at the start of the next. Co-op runs still start their shared wallet at €0; what you earn is banked to each player as before.
+### Added
+- **Equipment in the in-run shop.**
+  - The shop now shows **8 items: 4 buffs and 4 pieces of equipment**.
+  - Equipment is always **PURPLE or higher**, rolled on the **boss drop table**, so the rarest pieces are the least likely to be on the counter. It's at your item level (±2).
+  - Prices by rarity: EPIC €1,500, LEGENDARY €4,000, ENCRYPTED €9,000, INFERNAL €18,000, CRYPTO €35,000. Each item level adds 3%.
+  - What you buy goes with the run's finds: into the backpack, then the vault. In co-op each player has their own equipment on the counter.
+- **INFERNO soundtrack** (the owner's 10 tracks, cover art removed, re-encoded to ~96 kbps Ogg: 62 MB → 22 MB).
+  - **Inferno level music:** 4 pairs, which only play on INFERNO difficulties.
+  - **Inferno boss music:** the pair from the owner's image plays for every boss on INFERNO, at normal speed, never sped up.
+  - The tracks show in the in-game music player once Inferno is unlocked.
+### Technical
+- `RunConfig.startEuros` and `GameEngine.wallet`. A continued run subtracts what it had already banked.
+- Shop equipment: `GearShopItem`, `Operative.shopGear`, `Gear.rollShopRarity/shopPrice`, `buyShopGear(For)`. The guest buys with shop index 100+.
+- Co-op codec **v27**: `NetOp.shopGear/shopGearSold`.
+- Music: `TrackGroup.INFERNO/INFERNO_BOSS`, `MusicTier.INFERNO` (speed 1, no phase step), `MusicLibrary.inferno/infernoUnlocked/listed`.
+- New tests: `ShopTest` equipment checks and `runStartsWithTheEurosAlreadyBanked`; `MusicTest.infernoRunsPlay…`.
+- New render: `shop_with_equipment`.
+
 ## 0.31.0 (versionCode 99) — 2026-10-14 · co-op shared XP and smoother partners; PC HUD
 ### Added / changed
 - **Shared XP in co-op (100%).**

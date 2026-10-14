@@ -280,6 +280,35 @@ object Gear {
         return GearRarity.COMMON
     }
 
+    /**
+     * The in-run shop's equipment (owner, 0.32.0): PURPLE and up only, rolled on the boss table
+     * (the rarest the least likely to be on the counter).
+     */
+    fun rollShopRarity(rng: Random, inferno: Int): GearRarity {
+        val o = odds(boss = true, inferno = inferno)
+        val from = GearRarity.EPIC.ordinal
+        var total = 0f
+        for (i in from until o.size) total += o[i]
+        var x = rng.nextFloat() * total
+        for (i in from until o.size) { x -= o[i]; if (x <= 0f) return GearRarity.entries[i] }
+        return GearRarity.EPIC
+    }
+
+    /** Shop price: by rarity, a little more per item level. */
+    fun shopPrice(item: GearItem): Int {
+        val base = when (item.rarity) {
+            GearRarity.COMMON -> 300
+            GearRarity.UNCOMMON -> 600
+            GearRarity.RARE -> 900
+            GearRarity.EPIC -> 1500
+            GearRarity.LEGENDARY -> 4000
+            GearRarity.ENCRYPTED -> 9000
+            GearRarity.INFERNAL -> 18000
+            GearRarity.CRYPTO -> 35000
+        }
+        return (base * (1f + 0.03f * item.level)).toInt() / 10 * 10
+    }
+
     /** Slot odds: weapons a little less often than armor. */
     private val slotWeights = floatArrayOf(10f, 10f, 14f, 14f, 13f, 13f, 12f, 12f)
 

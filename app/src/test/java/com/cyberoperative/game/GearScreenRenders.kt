@@ -134,4 +134,20 @@ class GearScreenRendersPortrait : GearRenderBase() {
         compose.mainClock.advanceTimeBy(300)
         save("gear_floor_drops")
     }
+
+    /** The 0.32.0 shop: 4 buffs and 4 pieces of equipment. */
+    @Test fun shopWithEquipment() {
+        assumeTrue(enabled)
+        val rng = Random(11)
+        val buffs = com.cyberoperative.game.data.Upgrades.all.filter { it.rarity >= com.cyberoperative.game.data.Rarity.LEGENDARY && !it.instant }.take(4)
+            .map { com.cyberoperative.game.engine.ShopItem(it, 1, com.cyberoperative.game.engine.GameEngine.shopPrice(it.rarity, 20), sold = false) }
+        val gear = listOf(GearRarity.EPIC, GearRarity.LEGENDARY, GearRarity.EPIC, GearRarity.ENCRYPTED).mapIndexed { k, r ->
+            val item = Gear.roll(rng, k.toLong(), 24, r)
+            com.cyberoperative.game.engine.GearShopItem(item, Gear.shopPrice(item), sold = k == 2)
+        }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.game.ShopPanel(buffs, 11_500, {}, {}, gear = gear) } }
+        compose.mainClock.advanceTimeBy(600)
+        save("shop_with_equipment")
+    }
 }

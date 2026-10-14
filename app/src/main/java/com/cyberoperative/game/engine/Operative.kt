@@ -69,6 +69,8 @@ class Operative(val index: Int, baseStats: RunStats) {
     var sinceDamage = 99f
     /** This player's own shop stock (co-op: each player has a separate shop, owner 2026-10-11). */
     var shopItems: List<ShopItem> = emptyList()
+    /** Own shop equipment (0.32.0). */
+    var shopGear: List<GearShopItem> = emptyList()
     /** Co-op shop: standing in the exit gate, waiting for the partner to leave together. */
     var shopReady = false
     /** At the world server and pressed MOVE TO NEXT WORLD (co-op: waiting for the partner). */

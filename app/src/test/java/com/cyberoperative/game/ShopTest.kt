@@ -62,6 +62,16 @@ class ShopTest {
         assertEquals(1, g.build.level(item.def.id).coerceAtMost(1))
         assertFalse(g.buyShopItem(0))
 
+        // Equipment (0.32.0): four pieces, PURPLE and up, priced, bought into the run's finds.
+        assertEquals(GameEngine.SHOP_GEAR, g.operatives[0].shopGear.size)
+        assertTrue(g.operatives[0].shopGear.all { it.item.rarity >= com.cyberoperative.game.data.GearRarity.EPIC && it.price > 0 })
+        val piece = g.operatives[0].shopGear.first()
+        assertFalse(g.buyShopGear(0))
+        g.debugGrantEuros(piece.price)
+        assertTrue(g.buyShopGear(0))
+        assertTrue(g.operatives[0].shopGear[0].sold)
+        assertTrue(g.operatives[0].gearFound.any { it.uid == piece.item.uid })
+
         // Counter detection, then out through the top gate to level 2.
         walk(g, g.arena.width / 2f, 330f) { g.atShopCounter }
         assertTrue(g.atShopCounter)
@@ -70,6 +80,14 @@ class ShopTest {
         assertEquals(2, g.level)
         assertFalse(g.inShop)
         assertFalse(g.shopGateOpen)
+    }
+
+    @Test fun runStartsWithTheEurosAlreadyBanked() {
+        val g = GameEngine(RunConfig(seed = 3L, startEuros = 11_500))
+        assertEquals(11_500, g.wallet)
+        g.debugGrantEuros(200)
+        assertEquals(11_700, g.wallet)
+        assertEquals(200, g.eurosEarned)
     }
 
     @Test fun shopPricesRiseWithRarityAndDepth() {

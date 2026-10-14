@@ -70,6 +70,8 @@ data class RunConfig(
     /** How much permanent-upgrade mastery multiplied damage output / staying power (1 = none). */
     val masteryDpsRatio: Float = 1f,
     val masterySurvivalRatio: Float = 1f,
+    /** € the player already has when the run starts (owner, 0.32.0: € carries over between runs). */
+    val startEuros: Int = 0,
     /** Co-op partner (owner, 2026-10-08), or null for a solo run. */
     val ally: AllyConfig? = null,
     /** Weapons this operative can carry (7 + WEAPON SLOTS upgrade). */
@@ -121,6 +123,9 @@ enum class KeeperLook { GOLD, TITANIUM, BLACK, SPECTRUM;
         }
     }
 }
+
+/** One piece of equipment on the shop counter (owner, 0.32.0: PURPLE and up). */
+data class GearShopItem(val item: com.cyberoperative.game.data.GearItem, val price: Int, val sold: Boolean)
 
 /** One mod on the shop counter. */
 data class ShopItem(val def: com.cyberoperative.game.data.UpgradeDef, val nextLevel: Int, val price: Int, val sold: Boolean)
@@ -396,6 +401,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val completedEventIds = HashSet<String>()
     var eurosEarned = 0
         private set
+    /** € on hand: what the player brought into the run plus what it has earned (minus the shop). */
+    val wallet: Int get() = config.startEuros + eurosEarned
     var diamondsEarned = 0
         private set
     var runSeconds = 0f
@@ -1238,7 +1245,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         victory = null
         shopGateOpen = false
         goingToShop = false
-        for (o in ops) { o.shopItems = emptyList(); o.shopReady = false; o.worldReady = false }
+        for (o in ops) { o.shopItems = emptyList(); o.shopGear = emptyList(); o.shopReady = false; o.worldReady = false }
         worldServerOn = false
         previousArenaId = previousArena
         this.previousEvent = previousEvent
@@ -1772,7 +1779,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.shopReady = false
             o.worldReady = false
             cur = o
-            try { o.shopItems = rollShopItems() } finally { cur = ops[primary] }
+            try { o.shopItems = rollShopItems(); o.shopGear = rollShopGear(o) } finally { cur = ops[primary] }
         }
         phaseTimer = 0f
         keeperLook = KeeperLook.forStock(ops[primary].shopItems)
@@ -1786,6 +1793,35 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * Four distinct GOLDEN-or-better mods the build can still take, priced by
      * rarity and depth. Drawn by rarity weight, so TITANIUM stays the rare find.
      */
+    /** The counter's equipment (owner, 0.32.0): always [SHOP_GEAR] pieces, PURPLE and up, at the buyer's level. */
+    private fun rollShopGear(o: Operative): List<GearShopItem> = List(SHOP_GEAR) {
+        val r = com.cyberoperative.game.data.Gear.rollShopRarity(gearRng, config.difficulty.inferno)
+        val item = com.cyberoperative.game.data.Gear.roll(gearRng, ++gearSerial, com.cyberoperative.game.data.Gear.itemLevel(o.gearLevel, gearRng), r)
+        GearShopItem(item, com.cyberoperative.game.data.Gear.shopPrice(item), sold = false)
+    }
+
+    /** Buys equipment piece [index] from the current operative's counter: it goes with the run's finds. */
+    fun buyShopGear(index: Int): Boolean {
+        val o = cur
+        val g = o.shopGear.getOrNull(index) ?: return false
+        if (!inShop || g.sold || wallet < g.price) return false
+        eurosEarned -= g.price
+        o.gearFound += g.item
+        o.shopGear = o.shopGear.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
+        addText(o.px, o.py - 40f, "-${g.price} €", TextKind.INFO)
+        sound(GameSound.CURRENCY)
+        sound(if (g.item.rarity >= com.cyberoperative.game.data.GearRarity.LEGENDARY) GameSound.GEAR_LEGENDARY else GameSound.GEAR_SHEEN)
+        return true
+    }
+
+    /** Host: operative [opIndex] buys equipment from their own counter (a co-op guest's purchase). */
+    fun buyShopGearFor(opIndex: Int, index: Int): Boolean {
+        val o = ops.getOrNull(opIndex) ?: return false
+        if (o.gone) return false
+        cur = o
+        try { return buyShopGear(index) } finally { cur = ops[primary] }
+    }
+
     private fun rollShopItems(): List<ShopItem> {
         // New weapons are offered even with full slots: buying one swaps out an equipped weapon.
         val pool = Upgrades.all.filter {
@@ -1843,7 +1879,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Buys shop item [index]; a new weapon with full slots needs [replace] (the equipped weapon it swaps out). */
     fun buyShopItem(index: Int, replace: String? = null): Boolean {
         val item = shopItems.getOrNull(index) ?: return false
-        if (!inShop || item.sold || eurosEarned < item.price || !build.isEligible(item.def)) return false
+        if (!inShop || item.sold || wallet < item.price || !build.isEligible(item.def)) return false
         if (build.needsSlot(item.def)) {
             if (replace == null || replace !in build.weapons()) return false
             dropWeapon(replace)
@@ -4510,7 +4546,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (c.shopSerial > lastShopSerial) {
             lastShopSerial = c.shopSerial
-            buyShopItemFor(index, c.shopIndex, Upgrades.all.getOrNull(c.shopReplace)?.id)
+            if (c.shopIndex >= SHOP_GEAR_INDEX) buyShopGearFor(index, c.shopIndex - SHOP_GEAR_INDEX)
+            else buyShopItemFor(index, c.shopIndex, Upgrades.all.getOrNull(c.shopReplace)?.id)
         }
         if (c.rerollSerial > lastRerollSerial) {
             lastRerollSerial = c.rerollSerial
@@ -4551,6 +4588,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
             for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
+            n.shopGear = if (o.shopGear.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(o.shopGear.map { it.item })
+            n.shopGearSold = o.shopGear.foldIndexed(0) { i, m, it -> if (it.sold) m or (1 shl i) else m }
             n.shopReady = o.shopReady
             n.worldReady = o.worldReady
             w.ops += n
@@ -4740,6 +4779,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             val offer = n.offer.mapNotNull { (k, l) -> Upgrades.all.getOrNull(k)?.let { UpgradeOffer(it, l) } }
             if (offer.map { it.def.id to it.nextLevel } != o.offer.map { it.def.id to it.nextLevel }) o.offer = offer
             o.shopItems = n.shop.mapNotNull { s -> Upgrades.all.getOrNull(s[0])?.let { ShopItem(it, s[1], s[2], s[3] != 0) } }
+            o.shopGear = com.cyberoperative.game.data.Gear.decode(n.shopGear).mapIndexed { gi, item ->
+                GearShopItem(item, com.cyberoperative.game.data.Gear.shopPrice(item), (n.shopGearSold shr gi) and 1 != 0)
+            }
             o.shopReady = n.shopReady
             o.worldReady = n.worldReady
         }
@@ -5049,6 +5091,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val PACKET_BOMB_DAMAGE = 30f
         const val CONSUMABLE_COOLDOWN = 1f
         const val ELITE_HP_DROP = 0.08f
+        /** The shop's equipment pieces, and the co-op input index they start at. */
+        const val SHOP_GEAR = 4
+        const val SHOP_GEAR_INDEX = 100
         /** Co-op smoothing: a partner further than this from where it should be jumps there. */
         const val NET_SNAP = 260f
         /** Gear (owner, 2026-10-13): chance an elite drops a piece (+2% per INFERNO tier), pieces per world boss. */

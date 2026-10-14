@@ -1,7 +1,7 @@
 package com.cyberoperative.game.audio
 
 /** Where a track came from in CyOps TD, which decides where it plays by default. */
-enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT }
+enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT, INFERNO, INFERNO_BOSS }
 
 /** One owned CyOps TD soundtrack piece, titled with the owner's CyOps TD naming. */
 /** [file]: the audio file's base name (Android raw resource / PC resource `music/<file>.ogg`). */
@@ -36,8 +36,28 @@ object MusicLibrary {
         MusicTrack("boss2_remix_1", "track_boss2_remix_1", "CyOps - Boss 2 Remix (1)", TrackGroup.BOSS),
         MusicTrack("boss2_remix_2", "track_boss2_remix_2", "CyOps - Boss 2 Remix (2)", TrackGroup.BOSS),
         MusicTrack("liminal_space", "track_liminal_space", "CyOps TD - Liminal Space", TrackGroup.AMBIENT),
-        MusicTrack("liminal_haze", "track_liminal_haze", "CyOps TD - Liminal Haze", TrackGroup.AMBIENT)
+        MusicTrack("liminal_haze", "track_liminal_haze", "CyOps TD - Liminal Haze", TrackGroup.AMBIENT),
+        // INFERNO (owner, 0.32.0): plays only on the INFERNO difficulties; listed in the player once Inferno is unlocked.
+        inferno(1, 1, "track_inferno1"), inferno(1, 2, "track_inferno1_2"),
+        inferno(2, 1, "track_inferno2"), inferno(2, 2, "track_inferno2_2"),
+        inferno(3, 1, "track_inferno3"), inferno(3, 2, "track_inferno3_2"),
+        inferno(4, 1, "track_inferno4"), inferno(4, 2, "track_inferno4_2"),
+        MusicTrack("inferno_boss_1", "track_inferno_boss_1", "CyOps - Inferno Boss (1)", TrackGroup.INFERNO_BOSS),
+        MusicTrack("inferno_boss_2", "track_inferno_boss_2", "CyOps - Inferno Boss (2)", TrackGroup.INFERNO_BOSS)
     )
+
+    private fun inferno(n: Int, part: Int, file: String) =
+        MusicTrack("inferno${n}_$part", file, "CyOps - Inferno $n ($part)", TrackGroup.INFERNO)
+
+    /** The run is on an INFERNO difficulty: its own soundtrack plays. Set by the game session. */
+    @Volatile var inferno = false
+    /** INFERNO unlocked on this profile: its tracks show in the music player. */
+    @Volatile var infernoUnlocked = false
+
+    private fun isInferno(t: MusicTrack) = t.group == TrackGroup.INFERNO || t.group == TrackGroup.INFERNO_BOSS
+
+    /** Tracks the music player lists. */
+    val listed: List<MusicTrack> get() = if (infernoUnlocked) all else all.filter { !isInferno(it) }
 
     fun byId(id: String?): MusicTrack? = all.firstOrNull { it.id == id }
 
@@ -46,9 +66,10 @@ object MusicLibrary {
         MusicState.NONE -> emptyList()
         MusicState.MENU -> all.filter { it.group == TrackGroup.MENU }
         // In a run, the whole soundtrack shuffles.
-        MusicState.COMBAT, MusicState.EVENT -> all
+        MusicState.COMBAT, MusicState.EVENT -> if (inferno) all.filter { it.group == TrackGroup.INFERNO } else all.filter { !isInferno(it) }
         // Bosses get the heaviest pieces: CyOps TD's level-10 tracks and the BOSS 2 variants.
-        MusicState.BOSS -> all.filter { it.id.startsWith("level10") || it.group == TrackGroup.BOSS }
+        MusicState.BOSS -> if (inferno) all.filter { it.group == TrackGroup.INFERNO_BOSS }
+            else all.filter { it.id.startsWith("level10") || it.group == TrackGroup.BOSS }
         MusicState.GAME_OVER -> all.filter { it.group == TrackGroup.AMBIENT }
     }
 }

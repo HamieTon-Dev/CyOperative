@@ -20,7 +20,9 @@ enum class MusicTier(val label: String, val tracks: List<String>, val speed: Flo
     /** Expansion bosses. */
     III("TIER III", listOf("boss2_1", "boss2_2", "boss2_remix_1", "boss2_remix_2"), 1.5f),
     /** Pack Gamma, the hardest four. */
-    IV("TIER IV", listOf("boss2_remix_1", "boss2_remix_2"), 1.55f)
+    IV("TIER IV", listOf("boss2_remix_1", "boss2_remix_2"), 1.55f),
+    /** INFERNO difficulties (owner, 0.32.0): the Inferno boss pair at its own speed, never sped up. */
+    INFERNO("INFERNO", listOf("inferno_boss_1", "inferno_boss_2"), 1f)
 }
 
 /** Reverb space, mapped onto Android's PresetReverb presets. */
@@ -42,7 +44,7 @@ data class BossMusic(
     val speedAdj: Float = 0f
 ) {
     /** Tempo for HP phase [phase] (0..2): each phase pushes it a little harder. */
-    fun speed(phase: Int): Float = tier.speed + speedAdj + PHASE_STEP * phase.coerceIn(0, 2)
+    fun speed(phase: Int): Float = if (tier == MusicTier.INFERNO) 1f else tier.speed + speedAdj + PHASE_STEP * phase.coerceIn(0, 2)
 
     /** Pitch, nudged up for a *GLITCHED* boss. */
     fun pitch(glitched: Boolean): Float = if (glitched) pitch * GLITCH_PITCH else pitch
@@ -54,6 +56,10 @@ data class BossMusic(
 }
 
 object BossMusicProfiles {
+    /** Every boss on INFERNO: the Inferno boss pair, untouched (no tempo, pitch or EQ changes). */
+    fun inferno(def: BossDef): BossMusic =
+        BossMusic(MusicTier.INFERNO, if (def.id.hashCode() and 1 == 0) "inferno_boss_1" else "inferno_boss_2")
+
     private val profiles: Map<String, BossMusic> = mapOf(
         // --- Tier I/II: the classics -------------------------------------------------
         "breach" to BossMusic(MusicTier.I, "level10_1", pitch = 1.0f, bassDb = 3f),

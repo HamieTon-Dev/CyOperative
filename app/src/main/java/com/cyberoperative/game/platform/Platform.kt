@@ -174,7 +174,17 @@ private val rawMusic: Map<String, Int> = mapOf(
     "track_boss2_remix_1" to R.raw.track_boss2_remix_1,
     "track_boss2_remix_2" to R.raw.track_boss2_remix_2,
     "track_liminal_space" to R.raw.track_liminal_space,
-    "track_liminal_haze" to R.raw.track_liminal_haze
+    "track_liminal_haze" to R.raw.track_liminal_haze,
+    "track_inferno1" to R.raw.track_inferno1,
+    "track_inferno1_2" to R.raw.track_inferno1_2,
+    "track_inferno2" to R.raw.track_inferno2,
+    "track_inferno2_2" to R.raw.track_inferno2_2,
+    "track_inferno3" to R.raw.track_inferno3,
+    "track_inferno3_2" to R.raw.track_inferno3_2,
+    "track_inferno4" to R.raw.track_inferno4,
+    "track_inferno4_2" to R.raw.track_inferno4_2,
+    "track_inferno_boss_1" to R.raw.track_inferno_boss_1,
+    "track_inferno_boss_2" to R.raw.track_inferno_boss_2
 )
 
 fun musicResource(file: String): Int = rawMusic[file] ?: error("Unknown music file $file")
