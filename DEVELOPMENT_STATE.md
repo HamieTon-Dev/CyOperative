@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.36.0 (versionCode 105) |
+| Version | 0.36.1 (versionCode 106) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -15,7 +15,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 ## Known issues / caveats
 - **0.36.0 INFERNO boss redesign:**
-  - The bodies are the owner's painted sheets (`resources/bosses/inferno_*.webp`) plus `InfernoRig` animation in `InfernoBodies.kt`.
+  - The bodies are the owner's painted sheets (`resources/bosses/inferno_*.webp`) plus `InfernoRig` animation in `InfernoBodies.kt` (0.36.1: a deformable mesh with per-part `Deform`s, drawVertices on PC / Android 10+, tiles below).
   - Status per boss and the follow-ups: `docs/INFERNO_BOSS_REDESIGN.md`.
   - Recorded SFX live in `resources/sfx/` (`SoundBank.files`).
 - **0.35.0:**

@@ -60,11 +60,32 @@ those paintings as vector shapes (the 0.35.x bodies looked like icons), the shee
 | Scorch Halo | Too simple | Owner painting: halo wheel, slit eye, blade segments | Two counter-rotating rings, eye core | Drift; blades flare in the phase-3 painting |
 | Cinder Widow | OK, but flat | Owner painting: mechanical spider with molten abdomen | Leg halves (sway), small core | Legs sway, doubling on wind-up; stomp gait |
 
+## 0.36.1: moving parts
+
+Owner: "every boss is animated and has moving parts and not just a moving image".
+
+Each painting is now a 28 × 28 deformable mesh. Grid corners are moved by part deformers:
+
+| Deformer | What it moves |
+|---|---|
+| Bend | wings and scythes, hinged at the shoulder |
+| Step | legs, each foot lifting and swinging on its own beat |
+| Bob | loose pieces: crystals, lanterns, pylon tips, chimneys, turrets |
+| Jaw | mouths opening and closing |
+| Spin | rings and halos turning, in ellipse space so perspective holds |
+| Breathe | cores, abdomens, throats |
+| Slide | pylons and shields; the ground stays put |
+| Ripple | cloaks, robes, tails |
+
+Parts move on independent beats and harder on wind-up. The mesh stretches smoothly, so nothing tears. PC
+and Android 10+ draw it with `drawVertices`; older Android draws the same grid as tiles. On the tile path,
+big ring turns are kept small to avoid stepping. The per-boss part lists are in `infernoBodies`.
+
 ## Not yet (follow-ups)
 
 - **Per-attack paintings.** Attack-specific poses (e.g. Monarch Dive with folded wings, Silence Field
   dimming) need either more painted frames from the owner or procedural overlays per pattern. The rig
   currently has one wind-up state per boss.
 - **Death.** Bosses use the shared boss death burst. A per-boss break-apart would need cut-out part layers.
-- **Fully separate parts** (individual legs, chain links, turret heads that aim). These would need the
-  owner's art split into layers (or a parts sheet); the split-halves rig is the readable approximation.
+- **Parts that leave the body** (a thrown scythe, turret heads swivelling right round to aim). Mesh parts
+  bend and slide in place; detaching parts would need the owner's art split into layers.

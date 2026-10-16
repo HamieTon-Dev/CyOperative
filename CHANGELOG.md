@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.36.1 (versionCode 106) — 2026-10-16 · INFERNO bosses get real moving parts
+### Changed (owner: "every boss is animated and has moving parts and not just a moving image")
+- **Every INFERNO boss painting is now a deformable mesh** (28 × 28 grid) with its own moving parts. Each part moves on its own beat and harder on wind-up:
+  - **Hellcore Tyrant:** rune pylons bob and slide out; reactor rings turn; crown spikes sway.
+  - **Ember Warden:** shield pylons deploy outward; turret tips bob; the furnace eye swells.
+  - **Cinder Widow:** eight legs step in a wave; abdomen breathes; mandibles snap.
+  - **Magma Pulse:** armour bands and debris belt turn against each other; core swells.
+  - **Ashen Reaver:** scythes swing from the shoulders; ash cloak ripples; hood nods.
+  - **Infernal Router:** port ring turns; antennas sway; eye pulses.
+  - **Pyroclast Oracle:** six crystals drift on their own beats; halo rings turn; robe ripples.
+  - **Searfang Colossus:** four-leg stomping gait; jaw works; stacks shudder.
+  - **Burnwire Bishop:** lanterns swing on their chains; halo turns; mitre sways.
+  - **Furnace Maw:** jaws chew and gape; chimneys shudder; side armour heaves.
+  - **Redline Sovereign:** crown halo turns; royal pylons slide and bob.
+  - **Scorch Halo:** blade ring and inner ring turn opposite ways; eye dilates.
+  - **Volcanic Null:** suppression pylons slide and bob; halo turns; fragments drift.
+  - **Smolder Hex:** turret ring turns, each turret kicking on its own beat; inner hex counter-turns.
+  - **Combustion Monarch:** both great wings beat and spread on wind-up; tail sways; halo turns.
+- Drawn as one textured triangle mesh on PC and Android 10+. Older Android draws the same grid tile by tile.
+- Technical: `Deform` parts (Bend, Step, Bob, Jaw, Spin, Breathe, Slide, Ripple) in `InfernoBodies.kt`; `AppInfo.meshDrawing`. New render: `InfernoBossAnim` (frame sequences per pack).
+
 ## 0.36.0 (versionCode 105) — 2026-10-16 · INFERNO boss visual redesign, recorded drop sounds
 ### Changed (owner: "MAJOR VISUAL REDESIGN PASS on the 15 Inferno bosses")
 - **Every INFERNO boss now uses the owner's Inferno Boss Pack paintings**, cut out of the sheets with soft glow kept, as its in-game body. Each boss has its three painted states, one per HP phase, and an animation rig on top:

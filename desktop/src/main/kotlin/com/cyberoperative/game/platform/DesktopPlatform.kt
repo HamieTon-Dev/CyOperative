@@ -32,6 +32,8 @@ object AppInfo {
     val debug: Boolean = System.getProperty("cyberop.debug") == "true"
     /** PC (Steam) build: keyboard + mouse, Steam store and co-op. */
     const val desktop: Boolean = true
+    /** Textured triangle meshes (Canvas.drawVertices): always on Skia. */
+    const val meshDrawing: Boolean = true
 }
 
 /**

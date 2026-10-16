@@ -35,6 +35,8 @@ object AppInfo {
     val debug: Boolean = BuildConfig.DEBUG
     /** PC (Steam) build: keyboard + mouse, Steam store and co-op. */
     const val desktop: Boolean = false
+    /** Textured triangle meshes (Canvas.drawVertices) work on hardware canvases from Android 10. */
+    val meshDrawing: Boolean = android.os.Build.VERSION.SDK_INT >= 29
 }
 
 @Composable
