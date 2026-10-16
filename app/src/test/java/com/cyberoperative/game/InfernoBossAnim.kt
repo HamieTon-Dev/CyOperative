@@ -40,6 +40,8 @@ class InfernoBossAnim {
     @Test fun gamma() = run("gamma", InfernoBosses.gamma)
     @Test fun classicsA() = run("classics_a", com.cyberoperative.game.data.Bosses.classics.take(6))
     @Test fun classicsB() = run("classics_b", com.cyberoperative.game.data.Bosses.classics.drop(6))
+    @Test fun expansionA() = run("expansion_a", com.cyberoperative.game.data.BossExpansion.all.take(6))
+    @Test fun expansionB() = run("expansion_b", com.cyberoperative.game.data.BossExpansion.all.drop(6))
 
     private fun run(name: String, pack: List<com.cyberoperative.game.data.BossDef>) {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")

@@ -141,3 +141,8 @@ The two builds are separate Gradle modules with separate commands and outputs.
   launcher (`ArenaShape.wide`) or by the desktop platform layer (`AppInfo.desktop`,
   `GameKeys.active`). The Android versions of those are always off.
 - So phones keep portrait rooms, no cash bags, no Q/E/R/F, and Google Play wording.
+
+**Android-only features (not in the Steam build):**
+- IDLE RUNS and the home-screen widget (0.37.0). Their Android code lives in
+  `com/cyberoperative/game/widget/`, which `desktop/build.gradle.kts` excludes. The shared Idle Runs
+  page and simulator compile on PC, but with no Idle Runs host the menu entry is hidden.

@@ -107,11 +107,11 @@ object BossBodies {
         "good_game" to GoodGameBody
     )
 
-    /** Code-drawn bosses with a mesh rig (0.36.2) are drawn through it. */
+    /** Code-drawn bosses with a mesh rig (classics 0.36.2, Boss Expansion 0.37.0) are drawn through it. */
     private val meshed = HashMap<String, BossBody>()
 
     fun forId(id: String): BossBody? = infernoBodies[id] ?: bodies[id]?.let { b ->
-        val rig = classicRigs[id] ?: return@let b
+        val rig = classicRigs[id] ?: expansionRigs[id] ?: return@let b
         meshed.getOrPut(id) { MeshedBody(b, rig) }
     }
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.37.0 (versionCode 110) — 2026-10-16 · Idle Runs + home-screen widget, Boss Expansion moving parts
+### Added (owner: Idle Run Widget brief)
+- **IDLE RUNS** (Android; main menu › IDLE RUNS). Your equipped operator fights on its own, with the game closed:
+  - One threat at a time, a boss every 10 levels (STANDARD, or INFERNO once unlocked, at any unlocked INFERNO level).
+  - Uses the character's real stats: class, OP level / Overclock, permanent upgrades, equipped gear, rarity perks.
+  - Upgrade chips are picked automatically: the offer is the normal roll, and the pick favours what helps the build, with randomness (no perfect build).
+  - Gear drops from elites and bosses by the normal drop rules (INFERNO rules on INFERNO).
+  - Pays **exactly 50%** of the € and XP the same run would pay normally. € go to the account; XP and gear go to the character that ran it, collected when you open Idle Runs.
+  - Ends when the operator is terminated (or after 12 hours, or when you RECALL it). The summary shows highest level, € and XP earned, chips and gear.
+  - Tuned so a run reaches about where a competent player would with that loadout: sometimes a little shorter, sometimes a little further.
+- **IDLE RUN home-screen widget (2 × 3):**
+  - Active run: a small battle preview (your operator, the one threat or boss, room props, INFERNO room on INFERNO runs) cycling idle → attack → hit → wind-up; OP LV, level, € and XP earned; boss progress dots and NEXT BOSS.
+  - Operator Defeated: highest level achieved, XP and € earned, START NEW IDLE RUN?
+  - No run: START IDLE RUN.
+  - Tapping anywhere opens the game straight on Idle Runs (no splash). It never starts a run from the home screen.
+  - The art is the game's own drawing code for every piece (figures, threat sprites, boss bodies, INFERNO paintings, props), rendered to bitmaps. Nothing redrawn.
+- **Notification** when an idle operator is terminated ("start a new idle run?"). Android 13+ asks for permission when you start your first idle run.
+### Changed
+- **Boss Expansion bosses have mesh rigs** (moving parts, like the classics and INFERNO bosses): Vault Sentinel, Rootkit Apostle, Pulse Bishop, Packet Reaper, Worm Queen, Glitch Forge, Botnet Monarch, Ransom King, Black Ice Overlord, Spectral Firewall, Nullshade Specter.
+  - Circuit Hydra is unchanged: its heads are placed by the engine (they are the hitboxes and fire the beams) and already move on their own.
+### Technical
+- `idle/` (shared): `IdleRunState` (one JSON document), `IdleRunSimulator` (seeded, deterministic per event, catch-up from any timestamp), `IdleRuns` (host seam + `collect`).
+- `widget/` (Android only, excluded from the PC build): `IdleRunRepository` (own prefs file), `AndroidIdleHost`, `IdleRunWidgetReceiver` / `IdleRunWidget` (RemoteViews + ViewFlipper of 4 pre-rendered frames), `IdleRunWorker` (WorkManager: every 15 min, plus a one-off at the predicted end), `IdleRunNotifier`.
+- New dependency: `androidx.work:work-runtime-ktx` 2.9.1. New permission: `POST_NOTIFICATIONS`.
+- `ui/DeepLink` + `MainActivity` intent `com.cyberoperative.game.action.OPEN_IDLE_RUNS`. `MenuTarget.IDLE_RUNS` (hidden when no Idle Runs host).
+- `ArenaRenderer.drawPropAlone` (props without a live engine), `drawBossPreview(box = …)`, `IdleBattleArt`, `expansionRigs`.
+- Tests: `V037IdleRunTest` (50% rewards, stats/gear, chips, boss every 10, Standard/INFERNO pools, INFERNO lock, defeat, serialization, restart, catch-up, widget tap, old saves, 2 × 3 layout at two sizes with ≥ 8 sp text).
+
 ## 0.36.4 (versionCode 109) — 2026-10-16 · co-op €: everything separate
 ### Changed (owner: "no [shared run earnings], everything is separate unless trading")
 - **Co-op € are fully separate.** Each player's wallet is their own saved total plus only what they earn:

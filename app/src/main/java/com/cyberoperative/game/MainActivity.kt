@@ -18,13 +18,11 @@ class MainActivity : ComponentActivity() {
 
     private val app: CyberOperativeApp get() = application as CyberOperativeApp
 
-    /** Android 13+ notification prompt for Idle Runs (asked when a run starts). */
-    private val askNotifications = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {}
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         app.idle.permissionAsker = {
-            if (android.os.Build.VERSION.SDK_INT >= 33) askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            // Android 13+ notification prompt for Idle Runs (asked when a run starts; the answer needs no handling).
+            if (android.os.Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 41)
         }
         openFrom(intent)
         enableEdgeToEdge()

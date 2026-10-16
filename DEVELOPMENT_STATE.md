@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.36.4 (versionCode 109) |
+| Version | 0.37.0 (versionCode 110) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,12 +14,20 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.37.0 Idle Runs (Android only):**
+  - Shared: `idle/IdleRunSimulator` runs the real formulas (buildConfig + chips, LevelPlanner rooms, PowerGovernor, Scaling, boss scaling from BossBrain) one threat at a time. Tuning constants are at the top: `SKILL_MEAN` 0.62 ± 0.12, `BOSS_SKILL` 1.1, `HIT_TAKEN` 0.12, `BOSS_HIT_TAKEN` 0.06, `MAX_CROWD` 3, `ROOM_HEAL` 0.16, HP charges at 40%. These were calibrated against the test `Bot` (idle reaches a bit further than the simple bot); a device playtest should confirm the "competent player" target.
+  - Every random draw is seeded from (seed, level, event), so one big catch-up equals many small syncs (`catchingUpInOneJump…` test). Runs stop after 12 h (COMPLETED).
+  - Android: `widget/` package (excluded from the desktop build). The run lives in its own prefs file (`cyber_operative_idle_run`); the profile is only touched by `IdleRuns.collect` on the main thread, when the Idle Runs page is open.
+  - Widget drawing runs on the main thread (it shares EnemySprites/renderer state with the live game). `AndroidIdleHost.sync` releases its lock before drawing.
+  - WorkManager: periodic 15 min plus a one-off at the predicted end (the sim is deterministic, so the end time is known ahead).
+  - A widget tap during a game in progress does not leave the game (it would lose the run); from anywhere else it opens Idle Runs.
+- **0.37.0 expansion mesh rigs:** `expansionRigs` in `BossMeshBodies.kt` (11 bosses). Circuit Hydra is deliberately not meshed (engine-placed heads).
 - **0.36.3 co-op wallets:**
   - With `perPlayerWallets`, wallet = `startEuros` (saved €, the guest's from `RoomPlayer.euros`) + `eurosIncome` (0.36.4: per player, via `earn(amount, to)`) − `eurosSpent`.
   - Banking uses `eurosNet`. Trades adjust `eurosSpent` on the host, and the guest reads it from `NetOp` (v29).
 - **0.36.2 classic mesh rigs:**
   - `BossBodies.forId` wraps a code-drawn body that has a `classicRigs` entry in `MeshedBody`, which draws it offscreen (2.2 px/unit, ≤900 px, 1.5× its preview square) and then through the mesh.
-  - The Boss Expansion bosses have no rigs yet.
+  - 0.37.0: the Boss Expansion bosses have rigs too (`expansionRigs`), except Circuit Hydra.
 - **0.36.0 INFERNO boss redesign:**
   - The bodies are the owner's painted sheets (`resources/bosses/inferno_*.webp`) plus `InfernoRig` animation in `InfernoBodies.kt` (0.36.1: a deformable mesh with per-part `Deform`s, drawVertices on PC / Android 10+, tiles below).
   - Status per boss and the follow-ups: `docs/INFERNO_BOSS_REDESIGN.md`.
