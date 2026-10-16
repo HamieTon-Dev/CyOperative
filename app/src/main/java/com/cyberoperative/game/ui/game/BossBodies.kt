@@ -107,7 +107,13 @@ object BossBodies {
         "good_game" to GoodGameBody
     )
 
-    fun forId(id: String): BossBody? = bodies[id] ?: infernoBodies[id]
+    /** Code-drawn bosses with a mesh rig (0.36.2) are drawn through it. */
+    private val meshed = HashMap<String, BossBody>()
+
+    fun forId(id: String): BossBody? = infernoBodies[id] ?: bodies[id]?.let { b ->
+        val rig = classicRigs[id] ?: return@let b
+        meshed.getOrPut(id) { MeshedBody(b, rig) }
+    }
 
     fun has(id: String) = id in bodies || id in infernoBodies
 }

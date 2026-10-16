@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** INFERNO bosses in motion: frame sequences per pack (idle, then a wind-up); `-PrenderPreviews` only. */
+/** Bosses in motion (INFERNO packs and the classics): frame sequences per pack (idle, then a wind-up); `-PrenderPreviews` only. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w1000dp-h240dp-mdpi", sdk = [35])
@@ -38,6 +38,8 @@ class InfernoBossAnim {
     @Test fun alpha() = run("alpha", InfernoBosses.alpha)
     @Test fun beta() = run("beta", InfernoBosses.beta)
     @Test fun gamma() = run("gamma", InfernoBosses.gamma)
+    @Test fun classicsA() = run("classics_a", com.cyberoperative.game.data.Bosses.classics.take(6))
+    @Test fun classicsB() = run("classics_b", com.cyberoperative.game.data.Bosses.classics.drop(6))
 
     private fun run(name: String, pack: List<com.cyberoperative.game.data.BossDef>) {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")

@@ -8,7 +8,8 @@ device, tune balance, then fill out the store/meta phases.
 - CO-140 INFERNO boss visual redesign (owner brief 2026-10-16), see `docs/INFERNO_BOSS_REDESIGN.md`.
   - ✅ 0.36.0: all 15 bosses on the owner's paintings with animation rigs, in the priority order Maw → Searfang → Monarch → Bishop → Null → Warden → Magma → Sovereign → Oracle → Router → Reaver → Hex → Tyrant → Halo → Widow.
   - ✅ 0.36.1: deformable mesh rigs, so every boss has independently moving parts (legs, wings, jaws, rings, pylons, cloaks).
-  - Next: per-attack poses (Monarch Dive folded wings, Silence Field dimming), per-boss death break-apart, and layered parts (needs split art from the owner).
+  - ✅ 0.36.2: the 12 classic bosses have mesh rigs too.
+  - Next: mesh rigs for the 12 Boss Expansion bosses (if the owner wants them); per-attack poses (Monarch Dive folded wings, Silence Field dimming), per-boss death break-apart, and layered parts (needs split art from the owner).
 - CO-060 On-device playtest & balance pass (needs a physical device / emulator run)
   - 0.16.0: pooled mastery + hidden power governor. Playtest L100+ on Normal and Hard and tune
     `PowerGovernor` floors (enemy 0.3/0.4 s, boss 60/80 s), threat damage ×0.5/×0.75, hit cap 25%/34% and the late boss

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.36.2 (versionCode 107) — 2026-10-16 · classic bosses get moving parts too
+### Changed (owner: "Now animate all classic bosses this way")
+- **The twelve classic bosses have mesh rigs.** Each keeps all its own animation, and its parts now move on their own too:
+  - **Breach:** thrusters fire and bob; hull rocks; ring breathes; drill tip sways.
+  - **Botmaster:** antennas whip; drone ring turns; drones bob on their own beats.
+  - **Worm Prime:** the body slithers in a travelling wave to a flicking tail; maw gapes.
+  - **Ransom:** shackle jolts against the lock; chains swing; keyhole throbs; glyphs drift.
+  - **Rootkit King:** tendril arms reach and curl; robe ripples; hood nods.
+  - **Syn Storm:** packet ring turns; reactor breathes; dish rocks.
+  - **Kernel Panic:** pin rows twitch; die throbs; stray glyphs jump.
+  - **Exfil:** wings bank; twin thrusters flare; nose sways.
+  - **White Eye:** spiked ring turns; pupil dilates; eye rolls.
+  - **Zombie:** arms swing; legs shuffle; head lolls.
+  - **Spoofer:** mask drifts; echo ghosts slide apart.
+  - **Good Game:** treads judder; turret ring turns; cannon recoils; exhaust puffs.
+- How: each frame the boss's own body is drawn offscreen, 1.5× its framing so tails and orbits fit, then drawn through its posed mesh.
+- Technical:
+  - The shared engine moved to `ui/game/BossMeshRig.kt` (`Deform` incl. the new `Zoom`, `MeshGrid`).
+  - `MeshedBody` and `classicRigs` are in `ui/game/BossMeshBodies.kt`; `BossBodies.forId` wraps rigged bodies.
+  - `InfernoBossAnim` renders the classics too.
+
 ## 0.36.1 (versionCode 106) — 2026-10-16 · INFERNO bosses get real moving parts
 ### Changed (owner: "every boss is animated and has moving parts and not just a moving image")
 - **Every INFERNO boss painting is now a deformable mesh** (28 × 28 grid) with its own moving parts. Each part moves on its own beat and harder on wind-up:

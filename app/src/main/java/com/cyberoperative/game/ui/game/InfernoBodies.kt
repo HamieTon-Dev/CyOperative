@@ -6,16 +6,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import com.cyberoperative.game.ui.common.SafeBrush
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.cos
-import kotlin.math.exp
-import kotlin.math.floor
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /*
  * INFERNO boss bodies (owner, 0.36.x): the owner's Inferno Boss Pack paintings, animated with a
@@ -39,121 +33,10 @@ private const val GRID = 28
 /** The three pack atlases, decoded once. */
 private object InfernoArt {
     private val atlases = HashMap<String, ImageBitmap?>()
-    val shaders = HashMap<ImageBitmap, androidx.compose.ui.graphics.Shader>()
 
     @Synchronized
     fun atlas(pack: String): ImageBitmap? = atlases.getOrPut(pack) {
         runCatching { com.cyberoperative.game.platform.loadImageResource("bosses/inferno_$pack.webp") }.getOrNull()
-    }
-}
-
-private fun shaderFor(img: ImageBitmap): androidx.compose.ui.graphics.Shader =
-    InfernoArt.shaders.getOrPut(img) { androidx.compose.ui.graphics.ImageShader(img) }
-
-private fun smooth(e0: Float, e1: Float, x: Float): Float {
-    val t = ((x - e0) / (e1 - e0)).coerceIn(0f, 1f)
-    return t * t * (3f - 2f * t)
-}
-
-/** The animation state a deform reads: time, wind-up 0..1, phase. */
-internal class RigState(val t: Float, val wind: Float, val phase: Int)
-
-/**
- * One moving part of a painting. Coordinates are 0..1 of the cell; [apply] adds this part's
- * displacement of point (u, v) into [out] (cell units).
- */
-internal sealed class Deform {
-    abstract fun apply(u: Float, v: Float, s: RigState, out: FloatArray)
-
-    /** A wing / scythe / limb hinged at (pu, pv): the [side] (-1 left, 1 right) bends up and down, more toward the tip. */
-    class Bend(val pu: Float, val pv: Float, val side: Int, val reach: Float, val deg: Float, val speed: Float,
-               val phase: Float = 0f, val windDeg: Float = 0f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val along = (u - pu) * side
-            if (along <= 0f) return
-            val w = smooth(0f, reach, along)
-            val a = Math.toRadians(((deg * sin(s.t * speed + phase) + windDeg * s.wind) * w).toDouble()).toFloat() * -side
-            val dx = u - pu; val dy = v - pv
-            out[0] += dx * cos(a) - dy * sin(a) - dx
-            out[1] += dx * sin(a) + dy * cos(a) - dy
-        }
-    }
-
-    /** A leg: the foot near (u0, v0) lifts and swings forward on its own beat ([phase]). */
-    class Step(val u0: Float, val v0: Float, val radius: Float, val lift: Float, val speed: Float, val phase: Float, val swing: Float = 0.4f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val d2 = ((u - u0) * (u - u0) + (v - v0) * (v - v0)) / (radius * radius)
-            if (d2 > 4f) return
-            val w = exp(-d2)
-            val c = s.t * speed * (1f + s.wind) + phase
-            out[0] += cos(c) * lift * swing * w
-            out[1] -= sin(c).coerceAtLeast(0f) * lift * w
-        }
-    }
-
-    /** A loose piece (crystal, lantern, pylon tip, chimney) bobbing on its own beat. */
-    class Bob(val u0: Float, val v0: Float, val radius: Float, val amp: Float, val speed: Float, val phase: Float, val sideways: Float = 0f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val d2 = ((u - u0) * (u - u0) + (v - v0) * (v - v0)) / (radius * radius)
-            if (d2 > 4f) return
-            val w = exp(-d2)
-            val c = s.t * speed + phase
-            out[0] += cos(c) * amp * sideways * w
-            out[1] += sin(c) * amp * w * (1f + s.wind)
-        }
-    }
-
-    /** A mouth: below [mouth] (between [u0] and [u1]) drops, above lifts a little; wide open on wind-up. */
-    class Jaw(val u0: Float, val u1: Float, val mouth: Float, val depth: Float, val idle: Float, val open: Float, val speed: Float = 2.2f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val inX = smooth(u0, u0 + 0.08f, u) * (1f - smooth(u1 - 0.08f, u1, u))
-            if (inX <= 0f) return
-            val amt = idle * (0.5f + 0.5f * sin(s.t * speed)) + open * s.wind
-            if (v >= mouth) out[1] += amt * inX * smooth(mouth, mouth + depth * 0.4f, v) * (1f - smooth(mouth + depth, mouth + depth * 1.4f, v))
-            else out[1] -= amt * 0.45f * inX * smooth(mouth, mouth - depth * 0.4f, v) * (1f - smooth(mouth - depth, mouth - depth * 1.4f, v))
-        }
-    }
-
-    /** A ring (ellipse at (cu, cv), radii rx / ry, band r0..r1 in ring units) turning back and forth. */
-    class Spin(val cu: Float, val cv: Float, val rx: Float, val ry: Float, val r0: Float, val r1: Float, val deg: Float, val speed: Float, val phase: Float = 0f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val ex = (u - cu) / rx; val ey = (v - cv) / ry
-            val rr = sqrt(ex * ex + ey * ey)
-            val w = smooth(r0 - 0.15f, r0, rr) * (1f - smooth(r1, r1 + 0.15f, rr))
-            if (w <= 0f) return
-            val a = Math.toRadians((deg * sin(s.t * speed + phase) * (1f + 0.5f * s.wind) * w).toDouble()).toFloat()
-            out[0] += (ex * cos(a) - ey * sin(a) - ex) * rx
-            out[1] += (ex * sin(a) + ey * cos(a) - ey) * ry
-        }
-    }
-
-    /** A core / abdomen / throat swelling and settling. */
-    class Breathe(val cu: Float, val cv: Float, val radius: Float, val amp: Float, val speed: Float) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val dx = u - cu; val dy = v - cv
-            val d = sqrt(dx * dx + dy * dy)
-            if (d > radius) return
-            val k = (amp * sin(s.t * speed) + amp * 1.5f * s.wind) * (1f - smooth(radius * 0.4f, radius, d))
-            out[0] += dx * k; out[1] += dy * k
-        }
-    }
-
-    /** Pylons / shields on one [side] sliding out past [edge]; wide on wind-up. The ground stays put. */
-    class Slide(val side: Int, val edge: Float, val idle: Float, val wind: Float, val speed: Float = 1.3f) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val w = if (side < 0) smooth(edge, edge - 0.1f, u) else smooth(edge, edge + 0.1f, u)
-            if (w <= 0f) return
-            out[0] += side * (idle * (0.5f + 0.5f * sin(s.t * speed)) + wind * s.wind) * w * (1f - smooth(0.82f, 0.94f, v))
-        }
-    }
-
-    /** Cloth / robe / tail below [from] rippling sideways, more toward the hem. */
-    class Ripple(val from: Float, val amp: Float, val speed: Float, val waves: Float) : Deform() {
-        override fun apply(u: Float, v: Float, s: RigState, out: FloatArray) {
-            val w = smooth(from, 0.9f, v) * (1f - smooth(0.9f, 0.98f, v))
-            if (w <= 0f) return
-            out[0] += amp * w * (1f + s.wind) * sin(s.t * speed + v * waves + u * 3f)
-        }
     }
 }
 
@@ -184,10 +67,7 @@ internal class InfernoSpriteBody(private val rig: InfernoRig) : BossBody {
     override val previewSpan: Float get() = rig.span * 1.08f
     override val previewDrop: Float get() = 0f
 
-    // Displaced grid corners, reused every frame (cell units).
-    private val gx = FloatArray((GRID + 1) * (GRID + 1))
-    private val gy = FloatArray((GRID + 1) * (GRID + 1))
-    private val tmp = FloatArray(2)
+    private val grid = MeshGrid(GRID)
 
     override fun DrawScope.draw(p: BossPose) {
         val img = InfernoArt.atlas(rig.pack) ?: run { fallback(p); return }
@@ -208,16 +88,7 @@ internal class InfernoSpriteBody(private val rig: InfernoRig) : BossBody {
         val top = p.cy - rig.coreV * s + dy
         val core = Offset(left + rig.coreU * s, top + rig.coreV * s)
 
-        // Pose the grid for this frame.
-        val st = RigState(t, if (p.winding) 1f else 0f, p.phase)
-        for (j in 0..GRID) for (i in 0..GRID) {
-            val u = i / GRID.toFloat(); val v = j / GRID.toFloat()
-            tmp[0] = 0f; tmp[1] = 0f
-            for (d in rig.parts) d.apply(u, v, st, tmp)
-            gx[j * (GRID + 1) + i] = u + tmp[0]
-            // Squash about the ground line.
-            gy[j * (GRID + 1) + i] = 1f - (1f - (v + tmp[1])) * squash
-        }
+        grid.pose(rig.parts, RigState(t, if (p.winding) 1f else 0f, p.phase), squash)
 
         val base = p.phase.coerceIn(0, 2)
         val next = if (rig.jaws) 2 else (base + 1).coerceAtMost(2)
@@ -232,59 +103,9 @@ internal class InfernoSpriteBody(private val rig: InfernoRig) : BossBody {
         embers(core, s, top + s, t, r, hot)
     }
 
-    // Mesh drawing (Android 10+ and PC): one textured triangle mesh per painting.
-    private val paint = androidx.compose.ui.graphics.Paint()
-    private val indices: List<Int> by lazy {
-        val n = GRID + 1
-        ArrayList<Int>(GRID * GRID * 6).apply {
-            for (j in 0 until GRID) for (i in 0 until GRID) {
-                val a = j * n + i
-                add(a); add(a + 1); add(a + n)
-                add(a + 1); add(a + n + 1); add(a + n)
-            }
-        }
-    }
-    private val white: List<Color> by lazy { List((GRID + 1) * (GRID + 1)) { Color.White } }
-
     private fun DrawScope.mesh(img: ImageBitmap, col: Int, left: Float, top: Float, s: Float, alpha: Float, p: BossPose, flip: Boolean) {
-        if (!com.cyberoperative.game.platform.AppInfo.meshDrawing) return tiles(img, col, left, top, s, alpha, p, flip)
-        val n = GRID + 1
-        val mirror = left + rig.coreU * s
-        val pos = ArrayList<Offset>(n * n); val tex = ArrayList<Offset>(n * n)
-        for (j in 0..GRID) for (i in 0..GRID) {
-            val k = j * n + i
-            val x = left + gx[k] * s
-            pos += Offset(if (flip) 2f * mirror - x else x, top + gy[k] * s)
-            tex += Offset(col * CELL + i * CELL / GRID.toFloat(), rig.row * CELL + j * CELL / GRID.toFloat())
-        }
-        paint.shader = shaderFor(img)
-        paint.alpha = alpha
-        paint.colorFilter = if (p.hitFlash) ColorFilter.tint(Color.White.copy(alpha = 0.55f), BlendMode.SrcAtop) else null
-        val verts = androidx.compose.ui.graphics.Vertices(androidx.compose.ui.graphics.VertexMode.Triangles, pos, tex, white, indices)
-        drawContext.canvas.drawVertices(verts, BlendMode.Modulate, paint)
-    }
-
-    /** The painting drawn tile by tile over the posed grid (older Android; neighbours share edges, so no seams). */
-    private fun DrawScope.tiles(img: ImageBitmap, col: Int, left: Float, top: Float, s: Float, alpha: Float, p: BossPose, flip: Boolean) {
         val filter = if (p.hitFlash) ColorFilter.tint(Color.White.copy(alpha = 0.55f), BlendMode.SrcAtop) else null
-        val sx0 = col * CELL; val sy0 = rig.row * CELL
-        val tile = CELL / GRID
-        val n = GRID + 1
-        val mirror = left + rig.coreU * s
-        for (j in 0 until GRID) for (i in 0 until GRID) {
-            val a = j * n + i
-            var x0 = left + (gx[a] + gx[a + n]) * 0.5f * s
-            var x1 = left + (gx[a + 1] + gx[a + n + 1]) * 0.5f * s
-            if (flip) { val m0 = 2f * mirror - x1; x1 = 2f * mirror - x0; x0 = m0 }
-            val y0 = top + (gy[a] + gy[a + 1]) * 0.5f * s
-            val y1 = top + (gy[a + n] + gy[a + n + 1]) * 0.5f * s
-            val ix0 = floor(x0).toInt(); val iy0 = floor(y0).toInt()
-            val w = (ceil(x1).toInt() - ix0).coerceAtLeast(1)
-            val h = (ceil(y1).toInt() - iy0).coerceAtLeast(1)
-            val srcI = if (flip) GRID - 1 - i else i
-            drawImage(img, IntOffset(sx0 + srcI * tile, sy0 + j * tile), IntSize(tile, tile),
-                IntOffset(ix0, iy0), IntSize(w, h), alpha = alpha, colorFilter = filter)
-        }
+        with(grid) { draw(img, col * CELL.toFloat(), rig.row * CELL.toFloat(), CELL.toFloat(), left, top, s, alpha, filter, if (flip) left + rig.coreU * s else null) }
     }
 
     private fun DrawScope.drawCore(core: Offset, s: Float, pulse: Float, winding: Boolean, hot: Color) {
