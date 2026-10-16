@@ -1167,6 +1167,9 @@ class ArenaRenderer {
         else Look(mix(tone, look.top, 0.35f), mix(tone, look.front, 0.35f), trim)
     }
 
+    /** One prop on its own (asset sheets): as drawn in [g]'s current room theme. */
+    internal fun DrawScope.drawPropForSheet(g: GameEngine, o: ObstacleSpec, time: Float) = drawObstacleBody(g, o, 0, time, false, 0f)
+
     private fun DrawScope.drawObstacle(g: GameEngine, o: ObstacleSpec, index: Int, time: Float) {
         val vault = g.vaultPresent && index == g.arena.obstacles.lastIndex
         // Opening cache: it shakes harder and harder until it bursts.
