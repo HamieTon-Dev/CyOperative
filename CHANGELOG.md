@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.37.1 (versionCode 111) — 2026-10-16 · easier Idle Runs
+### Changed (owner: "make the runs a little easier so that they can run longer")
+- Idle operators take less damage (−25% from threats and bosses), heal more between rooms (22% of max HP, was 16%) and land a little more of their damage (66%, was 62%).
+- Result in testing: runs reach about 40% more levels and last about twice as long. For example:
+  - OP Lv 20 with Legendary gear on STANDARD: about level 48 in about an hour (was level 35 in 35 minutes).
+  - OP Lv 1 with Rare gear: about level 30 (was 22).
+- Rewards are unchanged: still exactly 50% of a normal run's € and XP.
+
 ## 0.37.0 (versionCode 110) — 2026-10-16 · Idle Runs + home-screen widget, Boss Expansion moving parts
 ### Added (owner: Idle Run Widget brief)
 - **IDLE RUNS** (Android; main menu › IDLE RUNS). Your equipped operator fights on its own, with the game closed:

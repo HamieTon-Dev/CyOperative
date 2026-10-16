@@ -47,17 +47,17 @@ import kotlin.random.Random
  */
 object IdleRunSimulator {
     /** Share of potential damage output a competent player lands (rolled ± [SKILL_SPREAD] per level). */
-    const val SKILL_MEAN = 0.62f
+    const val SKILL_MEAN = 0.66f
     const val SKILL_SPREAD = 0.12f
     /** Bosses are big, focused targets: a competent player lands a bit more on them. */
     const val BOSS_SKILL = 1.1f
     /** Share of threat attacks a competent player still takes. */
-    const val HIT_TAKEN = 0.12f
-    const val BOSS_HIT_TAKEN = 0.06f
+    const val HIT_TAKEN = 0.09f
+    const val BOSS_HIT_TAKEN = 0.045f
     /** Boss pattern damage per second, as a multiple of its contact damage. */
     const val BOSS_ATTACK_DPS = 0.9f
     /** Between rooms: HP charges, floor pickups and System Restores, as a share of max HP (× heal power). */
-    const val ROOM_HEAL = 0.16f
+    const val ROOM_HEAL = 0.22f
     /** Walk to the next door, and a boss's intro. */
     const val ROOM_SECONDS = 6f
     const val BOSS_INTRO_SECONDS = 4f
