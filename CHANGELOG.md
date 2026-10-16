@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.37.2 (versionCode 112) — 2026-10-16 · Idle Runs last twice as long again
+### Changed (owner: "make them run even longer, double it again")
+- Idle operators:
+  - take about 35% less damage than in 0.37.1;
+  - heal 32% of max HP between rooms (was 22%);
+  - land 70% of their damage (was 66%).
+- In testing, runs now last about 2.2× as long as in 0.37.1. For example:
+  - OP Lv 20 with Legendary gear on STANDARD: about level 73 in about 2 hours 7 minutes (was level 48 in about 1 hour).
+  - OP Lv 1 with Rare gear: about level 40 in 47 minutes (was level 30 in 27 minutes).
+- Rewards are unchanged: still exactly 50% of a normal run's € and XP.
+
 ## 0.37.1 (versionCode 111) — 2026-10-16 · easier Idle Runs
 ### Changed (owner: "make the runs a little easier so that they can run longer")
 - Idle operators take less damage (−25% from threats and bosses), heal more between rooms (22% of max HP, was 16%) and land a little more of their damage (66%, was 62%).

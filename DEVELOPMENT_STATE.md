@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.37.1 (versionCode 111) |
+| Version | 0.37.2 (versionCode 112) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -15,7 +15,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 ## Known issues / caveats
 - **0.37.0 Idle Runs (Android only):**
-  - Shared: `idle/IdleRunSimulator` runs the real formulas (buildConfig + chips, LevelPlanner rooms, PowerGovernor, Scaling, boss scaling from BossBrain) one threat at a time. Tuning constants are at the top: `SKILL_MEAN` 0.66 ± 0.12, `BOSS_SKILL` 1.1, `HIT_TAKEN` 0.09, `BOSS_HIT_TAKEN` 0.045, `MAX_CROWD` 3, `ROOM_HEAL` 0.22 (0.37.1: eased on owner request), HP charges at 40%. These were calibrated against the test `Bot` (idle reaches a bit further than the simple bot); a device playtest should confirm the "competent player" target.
+  - Shared: `idle/IdleRunSimulator` runs the real formulas (buildConfig + chips, LevelPlanner rooms, PowerGovernor, Scaling, boss scaling from BossBrain) one threat at a time. Tuning constants are at the top: `SKILL_MEAN` 0.70 ± 0.12, `BOSS_SKILL` 1.1, `HIT_TAKEN` 0.058, `BOSS_HIT_TAKEN` 0.029, `MAX_CROWD` 3, `ROOM_HEAL` 0.32 (eased twice on owner request: 0.37.1 ≈ ×2 duration, 0.37.2 ≈ ×2.2 more), HP charges at 40%. These were calibrated against the test `Bot` (idle reaches a bit further than the simple bot); a device playtest should confirm the "competent player" target.
   - Every random draw is seeded from (seed, level, event), so one big catch-up equals many small syncs (`catchingUpInOneJump…` test). Runs stop after 12 h (COMPLETED).
   - Android: `widget/` package (excluded from the desktop build). The run lives in its own prefs file (`cyber_operative_idle_run`); the profile is only touched by `IdleRuns.collect` on the main thread, when the Idle Runs page is open.
   - Widget drawing runs on the main thread (it shares EnemySprites/renderer state with the live game). `AndroidIdleHost.sync` releases its lock before drawing.
