@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Boss music reverb on the output mix (normal permission, no prompt). -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Idle Runs (0.37.0): "operator terminated, start a new run?" (asked on Android 13+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
         android:name="android.hardware.touchscreen"
@@ -40,6 +42,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- IDLE RUN home-screen widget (2 x 3). -->
+        <receiver
+            android:name=".widget.IdleRunWidgetReceiver"
+            android:exported="true"
+            android:label="Idle Run">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/idle_run_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

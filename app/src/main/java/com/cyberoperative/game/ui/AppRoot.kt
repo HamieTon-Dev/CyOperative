@@ -58,7 +58,22 @@ sealed interface Screen {
 
 @Composable
 fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remember { OfflineCoopBackend() }) {
-    var screen by remember { mutableStateOf<Screen>(Screen.DevSplash) }
+    // Opened from the Idle Run widget / notification: straight to Idle Runs, no splash (0.37.0).
+    var screen by remember {
+        val link = DeepLink.pending.value
+        mutableStateOf<Screen>(
+            if (link != null && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) { DeepLink.pending.value = null; Screen.Sub(link) } else Screen.DevSplash
+        )
+    }
+    val link by DeepLink.pending.collectAsState()
+    LaunchedEffect(link) {
+        val target = link ?: return@LaunchedEffect
+        // Never throws away a run in progress; otherwise open the page (after the boot if needed).
+        if (screen != Screen.Game && screen != Screen.DevSplash && screen != Screen.Boot && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) {
+            DeepLink.pending.value = null
+            screen = Screen.Sub(target)
+        } else if (screen == Screen.Game) DeepLink.pending.value = null
+    }
     /** Lives as long as the app UI: co-op links outlast the game screen they start on. */
     val appScope = rememberCoroutineScope()
     var coopRoom by remember { mutableStateOf<CoopRoom?>(null) }
@@ -114,7 +129,14 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
         Screen.DevSplash -> DeveloperSplash { screen = Screen.Boot }
         // First launch with characters (0.30.0): name your character before the menu (old saves keep their progress).
         Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) {
-            screen = if (com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) Screen.Menu else Screen.Create(editing = false, first = true)
+            val has = com.cyberoperative.game.meta.Characters.hasCharacter(save.current)
+            val linked = DeepLink.pending.value
+            if (linked != null && has) DeepLink.pending.value = null
+            screen = when {
+                !has -> Screen.Create(editing = false, first = true)
+                linked != null -> Screen.Sub(linked)
+                else -> Screen.Menu
+            }
         }
         Screen.Menu -> {
             MainMenuScreen(profile) { target ->
@@ -190,6 +212,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                     coopRoom = room
                     screen = Screen.CoopLobby
                 }
+                MenuTarget.IDLE_RUNS -> com.cyberoperative.game.ui.menu.IdleRunScreen(save, ::back) { click() }
                 MenuTarget.PLAY, MenuTarget.ENDLESS, MenuTarget.CONTINUE -> LaunchedEffect(Unit) { screen = Screen.Menu }
             }
         }

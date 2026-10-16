@@ -18,8 +18,15 @@ class MainActivity : ComponentActivity() {
 
     private val app: CyberOperativeApp get() = application as CyberOperativeApp
 
+    /** Android 13+ notification prompt for Idle Runs (asked when a run starts). */
+    private val askNotifications = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) {}
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        app.idle.permissionAsker = {
+            if (android.os.Build.VERSION.SDK_INT >= 33) askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        openFrom(intent)
         enableEdgeToEdge()
         hideSystemBars()
         val crash = CrashLog.read(this)
@@ -33,14 +40,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openFrom(intent)
+    }
+
+    /** The Idle Run widget / notification opens Main Menu › Idle Runs. */
+    private fun openFrom(intent: android.content.Intent?) {
+        if (intent?.action == com.cyberoperative.game.widget.IdleRunWidget.ACTION_OPEN_IDLE_RUNS) {
+            com.cyberoperative.game.ui.DeepLink.open(com.cyberoperative.game.ui.menu.MenuTarget.IDLE_RUNS)
+            intent.action = null
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         app.audio.onBackground()
+        // Leaving the app: save the Idle Run, schedule its worker and redraw the widget.
+        app.idle.sync(refreshWidget = true)
     }
 
     override fun onResume() {
         super.onResume()
         app.audio.onForeground()
+        // Opening the app catches the Idle Run up to now.
+        app.idle.sync(refreshWidget = false)
         hideSystemBars()
     }
 

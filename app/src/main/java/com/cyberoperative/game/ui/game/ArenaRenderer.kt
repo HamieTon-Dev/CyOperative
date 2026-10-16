@@ -252,6 +252,7 @@ class ArenaRenderer {
 
     /** A light's colour: the room's hell colour in an Inferno room, otherwise [normal]. */
     private fun hellLight(g: GameEngine, normal: Color): Color = if (infernoRoom(g)) Color(styleOf(g).env.accent) else normal
+    private fun hellLight(room: PropRoom, normal: Color): Color = if (room.inferno) Color(room.env.accent) else normal
 
     /** Flickering flame tongues and embers around an Inferno boss. */
     private fun DrawScope.drawHellAura(x: Float, y: Float, r: Float, time: Float, uid: Int) {
@@ -1147,16 +1148,35 @@ class ArenaRenderer {
     }
 
     /** Walls pick up the theme: bodies lean toward its tone; racks, crates and bulkheads take its trim. */
-    private fun themed(look: Look, kind: ObstacleKind, g: GameEngine): Look {
-        if (infernoRoom(g)) {
+    /**
+     * What a prop needs to know about its room, so the same prop art can also be drawn outside a
+     * live game (asset sheets, the Idle Run widget).
+     */
+    private class PropRoom {
+        var keeper = com.cyberoperative.game.engine.KeeperLook.GOLD
+        var vaultReady = false
+        var env: com.cyberoperative.game.data.Environment = Environments.all[0]
+        var inferno = false
+        var boss = false
+        var shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList()
+    }
+    private val liveRoom = PropRoom()
+    private val aloneRoom = PropRoom()
+
+    private fun propRoomOf(g: GameEngine): PropRoom = liveRoom.apply {
+        keeper = g.keeperLook; vaultReady = g.vaultReady; env = styleOf(g).env; inferno = infernoRoom(g); boss = g.plan.kind == LevelKind.BOSS; shopItems = g.shopItems
+    }
+
+    private fun themed(look: Look, kind: ObstacleKind, room: PropRoom): Look {
+        if (room.inferno) {
             // INFERNO: every light on every wall burns in the room's hell colour.
-            val env = styleOf(g).env
+            val env = room.env
             val trim = Color(env.wallTrim)
             return if (kind == ObstacleKind.HOLO_WALL) Look(trim.copy(alpha = 0.2f), trim.copy(alpha = 0.13f), trim)
             else Look(lerpC(look.top, Color(env.wallTone), 0.6f), lerpC(look.front, Color(env.wallTone), 0.6f), trim)
         }
-        if (g.plan.kind == LevelKind.BOSS) return look
-        val env = styleOf(g).env
+        if (room.boss) return look
+        val env = room.env
         val tone = Color(env.wallTone)
         val holo = kind == ObstacleKind.HOLO_WALL
         val trim = when (kind) {
@@ -1168,7 +1188,13 @@ class ArenaRenderer {
     }
 
     /** One prop on its own (asset sheets): as drawn in [g]'s current room theme. */
-    internal fun DrawScope.drawPropForSheet(g: GameEngine, o: ObstacleSpec, time: Float) = drawObstacleBody(g, o, 0, time, false, 0f)
+    internal fun DrawScope.drawPropForSheet(g: GameEngine, o: ObstacleSpec, time: Float) = drawObstacleBody(propRoomOf(g), o, 0, time, false, 0f)
+
+    /** One prop exactly as the game draws it, in a room themed [env] ([inferno]: an INFERNO room). */
+    fun DrawScope.drawPropAlone(o: ObstacleSpec, time: Float, env: com.cyberoperative.game.data.Environment, inferno: Boolean) {
+        aloneRoom.env = env; aloneRoom.inferno = inferno; aloneRoom.boss = false; aloneRoom.vaultReady = false
+        drawObstacleBody(aloneRoom, o, 0, time, false, 0f)
+    }
 
     private fun DrawScope.drawObstacle(g: GameEngine, o: ObstacleSpec, index: Int, time: Float) {
         val vault = g.vaultPresent && index == g.arena.obstacles.lastIndex
@@ -1177,17 +1203,17 @@ class ArenaRenderer {
             val k = 1f - g.vaultOpening / GameEngine.VAULT_OPEN_SECONDS
             val sx = sin(time * 70f) * (2f + 7f * k)
             val sy = cos(time * 53f) * (1f + 4f * k)
-            translate(sx, sy) { drawObstacleBody(g, o, index, time, vault, k) }
+            translate(sx, sy) { drawObstacleBody(propRoomOf(g), o, index, time, vault, k) }
             return
         }
-        drawObstacleBody(g, o, index, time, vault, 0f)
+        drawObstacleBody(propRoomOf(g), o, index, time, vault, 0f)
     }
 
-    private fun DrawScope.drawObstacleBody(g: GameEngine, o: ObstacleSpec, index: Int, time: Float, vault: Boolean, opening: Float) {
+    private fun DrawScope.drawObstacleBody(room: PropRoom, o: ObstacleSpec, index: Int, time: Float, vault: Boolean, opening: Float) {
         val r = o.rect
         // The shopkeeper stands behind the counter (drawn first so the counter hides the legs).
         if (o.kind == ObstacleKind.SHOP_COUNTER) with(OperativeFigures) {
-            val look = when (g.keeperLook) {
+            val look = when (room.keeper) {
                 com.cyberoperative.game.engine.KeeperLook.GOLD -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_GOLD
                 com.cyberoperative.game.engine.KeeperLook.TITANIUM -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_TITANIUM
                 com.cyberoperative.game.engine.KeeperLook.BLACK -> com.cyberoperative.game.ui.common.HeroPalette.KEEPER_BLACK
@@ -1196,7 +1222,7 @@ class ArenaRenderer {
             drawShopkeeper(r.centerX, r.top + 8f, 1.6f, time, look)
         }
         val h = heightOf(o.kind)
-        val look = if (vault) lookOf(o.kind, true) else themed(lookOf(o.kind, false), o.kind, g)
+        val look = if (vault) lookOf(o.kind, true) else themed(lookOf(o.kind, false), o.kind, room)
         val cr = CornerRadius(5f)
         val topY = r.top - h
         // Front face (from the top face's bottom edge down to the floor).
@@ -1263,7 +1289,7 @@ class ArenaRenderer {
             ObstacleKind.DATA_PILLAR -> {
                 // 06 Relay pillar: a glowing square frame on top and lit corner strips.
                 val ins = min(r.width, r.height) * 0.2f
-                val pillarLit = hellLight(g, Palette.Cyan)
+                val pillarLit = hellLight(room, Palette.Cyan)
                 drawRect(pillarLit.copy(alpha = 0.18f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f))
                 drawRect(pillarLit.copy(alpha = 0.9f), Offset(r.left + ins, topY + ins), Size(r.width - ins * 2f, r.height - ins * 2f), style = Stroke(2.5f))
                 drawLine(pillarLit.copy(alpha = 0.55f), Offset(r.left + 2f, frontTop + 4f), Offset(r.left + 2f, r.bottom - 4f), 2.5f)
@@ -1313,7 +1339,7 @@ class ArenaRenderer {
                 else drawCircle(look.trim, 4f, Offset(r.left + f * r.width, topY + r.height / 2f))
                 if (vault) {
                     // Ready to crack: a pulsing gold halo; opening: light leaks through cracks.
-                    if (g.vaultReady) {
+                    if (room.vaultReady) {
                         val p = 0.5f + 0.5f * sin(time * 5f)
                         drawRoundRect(Palette.Gold.copy(alpha = 0.25f + 0.25f * p), Offset(r.left - 8f, topY - 8f), Size(r.width + 16f, r.height + 16f), CornerRadius(8f), style = Stroke(4f))
                     }
@@ -1446,7 +1472,7 @@ class ArenaRenderer {
             ObstacleKind.SHOP_COUNTER -> {
                 // Glowing gold edge and the mods for sale laid out on the counter.
                 drawLine(Palette.Gold.copy(alpha = 0.5f), Offset(r.left + 4f, topY + 2f), Offset(r.right - 4f, topY + 2f), 2f)
-                val items = g.shopItems
+                val items = room.shopItems
                 val n = items.size.coerceAtLeast(1)
                 for ((i, it) in items.withIndex()) {
                     val cx = r.left + r.width * (i + 0.5f) / n
@@ -1510,7 +1536,7 @@ class ArenaRenderer {
                 val lx = r.centerX - lw / 2f; val ly = frontTop + min(sh, h) * 0.3f
                 val on = sin(time * 3f + index * 1.7f) > 0f
                 drawRect(Color(0xFF05070D), Offset(lx - 1f, ly - 1f), Size(lw + 2f, 10f))
-                val lockLit = hellLight(g, Palette.Cyan)
+                val lockLit = hellLight(room, Palette.Cyan)
                 drawRect(lockLit.copy(alpha = if (on) 0.85f else 0.3f), Offset(lx, ly), Size(lw, 8f))
                 if (on) drawRect(lockLit.copy(alpha = 0.18f), Offset(lx - 3f, ly - 3f), Size(lw + 6f, 14f))
                 drawCircle(Color(0xFF05070D), 1.6f, Offset(r.centerX, ly + 4f))

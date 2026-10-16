@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cyber Operative</string>
+    <string name="idle_widget_description">Your idle operator\'s fight: level, € and XP earned, next boss.</string>
 </resources>

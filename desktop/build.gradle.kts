@@ -71,7 +71,9 @@ kotlin {
             "com/cyberoperative/game/platform/Platform.kt",
             "com/cyberoperative/game/audio/AudioManager.kt",
             "com/cyberoperative/game/save/SaveRepository.kt",
-            "com/cyberoperative/game/net/FirebaseCoopBackend.kt"
+            "com/cyberoperative/game/net/FirebaseCoopBackend.kt",
+            // Idle Runs widget, worker and notifications: Android only (owner, 0.37.0).
+            "com/cyberoperative/game/widget/**"
         )
         resources.srcDir(copyAssets)
         // Gear icon atlases (Data Vault update) live in the shared Java resources.

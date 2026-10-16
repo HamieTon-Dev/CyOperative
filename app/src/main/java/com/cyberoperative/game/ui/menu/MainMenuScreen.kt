@@ -46,7 +46,14 @@ import kotlin.math.sin
 enum class MenuTarget(val label: String) {
     PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("CHARACTER"), VAULT("DATA VAULT"), UPGRADES("OVERCLOCK"), ARMORY("ARMORY"), CODEX("BOSS CODEX"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
-    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE")
+    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE"),
+    /** IDLE RUNS (0.37.0): Android only (the PC build has no Idle Runs host). */
+    IDLE_RUNS("IDLE RUNS");
+
+    companion object {
+        /** The small grid buttons (the big buttons are drawn on their own). */
+        val grid: List<MenuTarget> get() = entries.filter { it != PLAY && it != ENDLESS && it != CONTINUE && it != CO_OP && it != IDLE_RUNS }
+    }
 }
 
 /** Main menu (§6). One big PLAY, the rest in a compact two-column grid. */
@@ -141,8 +148,16 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 subtitle = "PLAY WITH A FRIEND",
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.CO_OP) }
+            if (com.cyberoperative.game.idle.IdleRuns.supported) {
+                Spacer(Modifier.height(10.dp))
+                CyberButton(
+                    "IDLE RUNS", accent = Palette.Orange,
+                    subtitle = "YOUR OPERATOR FIGHTS ON · 50% € & XP",
+                    modifier = Modifier.fillMaxWidth()
+                ) { onSelect(MenuTarget.IDLE_RUNS) }
+            }
             Spacer(Modifier.height(14.dp))
-            val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE && it != MenuTarget.CO_OP }
+            val rest = MenuTarget.grid
             for (row in rest.chunked(2)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     for (item in row) {

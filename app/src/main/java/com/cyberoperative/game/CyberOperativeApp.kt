@@ -10,6 +10,9 @@ class CyberOperativeApp : Application() {
         private set
     lateinit var audio: AudioManager
         private set
+    /** Idle Runs (0.37.0): the saved run, its worker, the home-screen widget. */
+    lateinit var idle: com.cyberoperative.game.widget.AndroidIdleHost
+        private set
     /** Co-op server (Firebase), or an offline stand-in when this build has no Firebase project. */
     val coop: com.cyberoperative.game.net.CoopBackend by lazy { com.cyberoperative.game.net.FirebaseCoopBackend.create(this) }
 
@@ -22,5 +25,7 @@ class CyberOperativeApp : Application() {
         audio.setVolumes(s.musicVolume, s.sfxVolume)
         audio.hapticsEnabled = s.haptics
         audio.initialize()
+        idle = com.cyberoperative.game.widget.AndroidIdleHost(this)
+        com.cyberoperative.game.idle.IdleRuns.host = idle
     }
 }

@@ -171,6 +171,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.database)
     implementation(libs.kotlinx.coroutines.play.services)
+    // Idle Runs (0.37.0): background catch-up for the home-screen widget.
+    implementation(libs.androidx.work.runtime)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

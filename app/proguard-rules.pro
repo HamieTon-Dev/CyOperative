@@ -13,3 +13,7 @@
 # Readable crash reports from release builds (class/method names and line numbers kept).
 -dontobfuscate
 -keepattributes SourceFile,LineNumberTable
+
+# Idle Runs (0.37.0): the saved run is @Serializable JSON.
+-keep,includedescriptorclasses class com.cyberoperative.game.idle.**$$serializer { *; }
+-keep class com.cyberoperative.game.idle.** { *; }

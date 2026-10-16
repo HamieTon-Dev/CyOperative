@@ -93,7 +93,7 @@ fun LandscapeMainMenu(profile: PlayerProfile, t: Float, onSelect: (MenuTarget) -
 private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, compact: Boolean = false) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp)) {
         val saved = remember(profile.savedRun) { RunSnapshot.decodeOrNull(profile.savedRun) }
-        val rest = MenuTarget.entries.filter { it != MenuTarget.PLAY && it != MenuTarget.ENDLESS && it != MenuTarget.CONTINUE && it != MenuTarget.CO_OP }
+        val rest = MenuTarget.grid + listOfNotNull(MenuTarget.IDLE_RUNS.takeIf { com.cyberoperative.game.idle.IdleRuns.supported })
         if (compact) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 if (saved != null) CyberButton("CONTINUE", primary = true, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.CONTINUE) }
@@ -214,5 +214,6 @@ private fun InfoLine(label: String, value: String) {
 private fun shortLabel(t: MenuTarget): String = when (t) {
     MenuTarget.LEADERBOARD -> "SCORES"
     MenuTarget.ACHIEVEMENTS -> "TROPHIES"
+    MenuTarget.IDLE_RUNS -> "IDLE"
     else -> t.label
 }

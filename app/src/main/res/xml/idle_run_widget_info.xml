@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IDLE RUN widget: 2 x 3 portrait. No updatePeriodMillis: WorkManager refreshes it (IdleRunWorker). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="130dp"
+    android:minHeight="200dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="180dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="3"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_idle_run"
+    android:previewLayout="@layout/widget_idle_run"
+    android:description="@string/idle_widget_description"
+    android:widgetCategory="home_screen" />
