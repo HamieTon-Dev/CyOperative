@@ -448,6 +448,11 @@ fun GameScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) { Text("MAP", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge) }
         }
+        // Co-op TRADE (owner, 0.35.0): small, under the MAP corner; the window when a trade is on.
+        if (session.isCoop && !session.paused && hud.phase != Phase.DEAD && !showInventory) {
+            TradeButton(session, hud, Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + (if (mapButtonShown) 48.dp else 8.dp), end = 10.dp).graphicsLayer { alpha = 0.7f })
+            TradeOverlay(session, hud, Modifier.align(Alignment.Center).padding(16.dp))
+        }
         // INVENTORY: top left, under the HUD, on every platform (I on PC).
         if (invButtonShown) {
             Box(
@@ -549,7 +554,8 @@ fun GameScreen(
             com.cyberoperative.game.ui.menu.CharacterScreen(
                 session.saveRepo, onBack = { closeInventory() },
                 startTab = com.cyberoperative.game.ui.menu.CharTab.GEAR, inRun = true, coopRun = session.isCoop,
-                onGearChanged = { session.applyGear() }
+                onGearChanged = { session.applyGear() },
+                onSold = if (session.isCoop) null else { n -> session.engine.grantEuros(n) }
             )
         }
         // Steam: big ability tiles along the bottom (owner, 0.31.0: readable, cooldown visible).

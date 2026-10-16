@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.35.0 (versionCode 103) — 2026-10-16 · trading, selling, 15 INFERNO bosses, class ability upgrades
+### Added
+- **Sell backpack items** (owner). An unlocked backpack piece can be sold. It's worth item level × rarity tier (Common 1 … Abyssal 9) × €50, capped at 85% of its shop price, and it takes a confirming second tap.
+  - Out of a run, the € is banked.
+  - In a solo run, the € goes straight into the run wallet.
+  - In co-op, the € is banked.
+- **Co-op trading.** A small **TRADE** button sits under the MAP corner.
+  - It only works while the room has no threats, and a trade in progress closes if threats arrive.
+  - The partner accepts the request, then each side offers banked €, potions (HP charges) and up to 8 backpack items.
+  - Both must press ACCEPT. Any change to either offer clears both accepts.
+  - A player who'd end up over the potion limit can't accept.
+  - Co-op codec **v28**.
+- **15 INFERNO-only bosses** (owner's Pack Alpha, Beta and Gamma sheets). Each has the owner's name, role, threat tier and four named attacks, built from the arena's attack patterns, with a body drawn after its card.
+  - On INFERNO, boss rooms from world 3 (Alpha) and world 4 (Beta and Gamma) draw only from these.
+  - **Combustion Monarch** guards INFERNO world 15.
+  - Endless boss rounds add them from level 160.
+  - Approval sheets: `docs/screenshots/inferno_pack_{alpha,beta,gamma}.png`.
+### Changed
+- **Shadow Step** also throws 6 knives that home in on threats through walls.
+- **Packet Mage:**
+  - **Firestorm** lands on the thickest group of threats, whichever way you move or aim.
+  - **Arcane Nova** bolts pass through walls and cover and home in for 5 seconds, from twice as far.
+- **Higher-rarity gear is stronger and more distinct:**
+  - Base values: Legendary ×1.6, Forged ×1.85, Voltaic ×2.1, Celestial ×2.4, Abyssal ×2.8.
+  - Affixes grow 18% per tier above Legendary (was 12%).
+  - Every Legendary-and-up piece has a **signature perk** by type (rifle / armor / system), shown with ★ on the item card. Examples: Forged armor sprays slag bolts when hit; Voltaic systems make Packet Nodes fire their own bolts; Celestial rifles add a parallel shot; Abyssal rifles can delete a threat outright.
+### Technical
+- New files: `data/InfernoBosses.kt`, `ui/game/InfernoBodies.kt`, `engine/Trade.kt`, `ui/game/TradeUi.kt`, `GearPerks`, `Gear.sellPrice`, `GearBank.sell`.
+- New `Projectile.seek` field and `GameEngine.grantEuros`.
+- `Bosses.eligible/randomForLevel(level, seed, inferno, endless)`.
+- New tests: `V035Test`. New render: `InfernoBossRenders`.
+
 ## 0.34.0 (versionCode 102) — 2026-10-14 · INFERNO 1–500, one shared Data Vault
 ### Changed
 - **INFERNO now has levels 1–500 (owner, curve A).** Each level is a little harder than the last:

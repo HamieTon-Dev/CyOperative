@@ -255,7 +255,11 @@ enum class BossRole(val label: String, val color: Long) {
     AMBUSHER("AMBUSHER", 0xFFFF2E9A),
     LOCKDOWN("LOCKDOWN", 0xFFFF3B3B),
     AREA_DENIAL("AREA DENIAL", 0xFFFF6A1A),
-    BLACKOUT_HUNTER("BLACKOUT HUNTER", 0xFFD040FF)
+    BLACKOUT_HUNTER("BLACKOUT HUNTER", 0xFFD040FF),
+    // INFERNO packs (owner sheets, 0.35.0).
+    SUPPORT("SUPPORT", 0xFF2E9BFF),
+    RITUALIST("RITUALIST", 0xFFD040FF),
+    APEX("APEX BOSS", 0xFFFF2EC4)
 }
 
 /** Threat tier skulls: 1 LOW · 2 MEDIUM · 3 HIGH · 4 EXTREME. */
@@ -652,7 +656,7 @@ object Bosses {
     /** Every boss: the classics, then the built expansion bosses in their slot order. */
     val roster: List<BossDef> by lazy { classics + expansion }
 
-    fun byId(id: String): BossDef? = roster.firstOrNull { it.id == id }
+    fun byId(id: String): BossDef? = roster.firstOrNull { it.id == id } ?: InfernoBosses.all.firstOrNull { it.id == id }
 
     /**
      * Levels 10–120: the classics. Levels 130–240: each expansion boss in its
@@ -673,9 +677,20 @@ object Bosses {
     val GAMMA_IDS = setOf("rootkit_apostle", "ransom_king", "spectral_firewall", "nullshade")
     const val GAMMA_FROM = 120
 
-    /** Bosses that can turn up on [level]'s boss room: a classic for the first boss (owner), no Gamma before [GAMMA_FROM]. */
-    fun eligible(level: Int): List<BossDef> =
-        if (level < 20) classics else roster.filter { level >= GAMMA_FROM || it.id !in GAMMA_IDS }
+    /**
+     * Bosses that can turn up on [level]'s boss room: a classic for the first boss (owner), no Gamma
+     * before [GAMMA_FROM]. INFERNO runs (owner, 0.35.0) fight the INFERNO packs from each pack's
+     * level on; Endless boss rounds add them from [InfernoBosses.ENDLESS_FROM].
+     */
+    fun eligible(level: Int, inferno: Boolean = false, endless: Boolean = false): List<BossDef> {
+        val base = if (level < 20) classics else roster.filter { level >= GAMMA_FROM || it.id !in GAMMA_IDS }
+        val hell = InfernoBosses.all.filter { level >= InfernoBosses.minLevel(it) }
+        return when {
+            inferno && hell.isNotEmpty() -> hell
+            endless && level >= InfernoBosses.ENDLESS_FROM -> base + InfernoBosses.all
+            else -> base
+        }
+    }
 
     /**
      * Owner, 2026-10-10: "dont assign bosses to set levels… randomize boss spawn on
@@ -683,16 +698,16 @@ object Bosses {
      * run, so co-op agrees): no boss repeats until every eligible one has come up.
      * [forLevel] stays as the difficulty curve a boss is scaled to.
      */
-    fun randomForLevel(level: Int, runSeed: Long): BossDef {
+    fun randomForLevel(level: Int, runSeed: Long, inferno: Boolean = false, endless: Boolean = false): BossDef {
         val rng = kotlin.random.Random(runSeed xor 0x5EEDB055L)
         val used = HashSet<String>()
         var last: BossDef? = null
         for (k in 1..maxOf(1, level / 10)) {
-            val pool = eligible(k * 10)
+            val pool = eligible(k * 10, inferno, endless)
             var cands = pool.filter { it.id !in used }
             if (cands.isEmpty()) {
                 used.clear()
-                cands = pool.filter { it != last }
+                cands = pool.filter { it != last }.ifEmpty { pool }
             }
             val pick = cands[rng.nextInt(cands.size)]
             used += pick.id

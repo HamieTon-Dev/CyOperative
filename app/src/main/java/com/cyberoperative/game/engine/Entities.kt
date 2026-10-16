@@ -90,6 +90,8 @@ class Projectile {
     /** Phase through obstacles (some boss patterns). */
     var ghost = false
     var homing = 0f
+    /** Friendly homing: how far it looks for a target (Arcane Nova / Shadow Step knives look further). */
+    var seek = 600f
     /** MINE: seconds until armed. */
     var armTimer = 0f
     /** MISSILE / MINE: blast radius on detonation (0 = no blast). */

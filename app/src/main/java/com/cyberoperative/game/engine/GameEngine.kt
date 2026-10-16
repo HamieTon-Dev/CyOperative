@@ -403,6 +403,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     /** € on hand: what the player brought into the run plus what it has earned (minus the shop). */
     val wallet: Int get() = config.startEuros + eurosEarned
+
+    /** € from outside the fight (a backpack sale mid-run, owner 0.35.0): into the wallet, banked as usual. */
+    fun grantEuros(n: Int) { if (n > 0) eurosEarned += n }
     var diamondsEarned = 0
         private set
     var runSeconds = 0f
@@ -1250,7 +1253,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousArenaId = previousArena
         this.previousEvent = previousEvent
         levelSeed = rng.nextLong()
-        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, config.seed, pressureCount(level))
+        plan = forced ?: LevelPlanner.plan(level, Random(levelSeed), previousArena, previousEvent, config.seed, pressureCount(level), inferno = config.difficulty.inferno > 0)
         val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
         clearAll()
@@ -2048,7 +2051,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         previousEvent = r.previousEvent
         // The same seed rebuilds the same room, waves and event rules.
         plan = if (campaign) campaignPlan(world, room, room in clearedRooms)
-        else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level))
+        else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level), inferno = config.difficulty.inferno > 0)
         vaultCracked = r.vaultCracked
         val extra = if (plan.rules.vault && !vaultCracked) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
         arena = Arena(plan.arena, extra)
@@ -2282,7 +2285,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     internal fun campaignPlan(w: Int, r: Int, revisit: Boolean): LevelPlan {
         val lvl = CampaignMap.levelFor(w, r)
         val rng = Random(config.seed xor (w * 1_000_003L + r * 7_919L) xor 0x77C0FFEE)
-        var p = if (r >= CampaignMap.BOSS_INDEX) LevelPlanner.campaignBossPlan(w, lvl, rng, config.seed)
+        var p = if (r >= CampaignMap.BOSS_INDEX) LevelPlanner.campaignBossPlan(w, lvl, rng, config.seed, inferno = config.difficulty.inferno > 0)
         else LevelPlanner.campaignRoomPlan(lvl, rng, config.seed, pressureCount(lvl))
         // A cleared room you walk back into is empty and calm.
         if (revisit) p = p.copy(kind = LevelKind.NORMAL, waves = emptyList(), boss = null, event = null, rules = com.cyberoperative.game.data.EventRules(), modifierNames = emptyList())
@@ -2862,6 +2865,32 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         repeat(14) { addParticle(x, y, 0xFF8FA7FF, 160f, 0.4f, 3f) }
     }
 
+    /** Shadow Step (owner, 0.35.0): six knives fan out and hunt threats down through walls. */
+    private fun shadowKnives(o: Operative) {
+        for (i in 0 until 6) {
+            val p = spawnBolt(o.px, o.py, o.facing + i * MathUtil.TWO_PI / 6f, ProjKind.MISSILE, stats.damage * 2.2f) ?: break
+            p.vx *= 0.7f; p.vy *= 0.7f
+            p.homing = 9f; p.radius = 6f; p.life = 3.5f
+            p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0; p.splash = 0f
+            p.ghost = true; p.seek = 1400f
+            p.tint = 0xFF8FA7FF
+        }
+    }
+
+    /** The threat with the most others around it within [range] of (x, y), or null. */
+    private fun densestThreat(x: Float, y: Float, range: Float): Pair<Float, Float>? {
+        var best: Enemy? = null
+        var bestN = -1
+        for (e in enemies.items) {
+            if (!e.active || !e.targetable) continue
+            if ((e.x - x) * (e.x - x) + (e.y - y) * (e.y - y) > range * range) continue
+            var n = 0
+            for (f in enemies.items) if (f.active && f.targetable && (f.x - e.x) * (f.x - e.x) + (f.y - e.y) * (f.y - e.y) < 130f * 130f) n++
+            if (n > bestN) { bestN = n; best = e }
+        }
+        return best?.let { it.x to it.y }
+    }
+
     private fun cast(spell: com.cyberoperative.game.data.Spell, o: Operative) {
         val s = stats
         when (spell) {
@@ -2913,13 +2942,17 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 fx.shake(10f, 0.4f)
                 sound(GameSound.EMP)
             }
-            com.cyberoperative.game.data.Spell.SHADOW_STEP -> if (o.remote) o.invuln = max(o.invuln, 0.35f) else shadowStep(o)
+            com.cyberoperative.game.data.Spell.SHADOW_STEP -> {
+                if (o.remote) o.invuln = max(o.invuln, 0.35f) else shadowStep(o)
+                shadowKnives(o)
+            }
             com.cyberoperative.game.data.Spell.SMOKE_VEIL -> {
                 o.veil = VEIL_SECONDS
                 repeat(24) { addParticle(o.px, o.py, 0xFF5A6478, 120f, 0.9f, 6f) }
             }
             com.cyberoperative.game.data.Spell.FIRESTORM -> {
-                val (tx, ty) = spellTarget(o, 520f)
+                // Owner, 0.35.0: lands on the threats, whichever way you're moving or aiming.
+                val (tx, ty) = densestThreat(o.px, o.py, 620f) ?: spellTarget(o, 520f)
                 for (i in 0 until 6) {
                     val a = i * 1.047f + rng.nextFloat() * 0.5f
                     val rr = if (i == 0) 0f else 70f + rng.nextFloat() * 50f
@@ -2934,9 +2967,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 for (i in 0 until 16) {
                     val p = spawnBolt(o.px, o.py, i * MathUtil.TWO_PI / 16f, ProjKind.MISSILE, s.damage * 1.8f) ?: break
                     p.vx *= 0.6f; p.vy *= 0.6f
-                    p.homing = 5f; p.radius = 7f; p.life = 2.6f
+                    // Owner, 0.35.0: tracer bolts pass through walls and cover and hunt for longer.
+                    p.homing = 6f; p.radius = 7f; p.life = 5f
                     p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
                     p.tint = 0xFFFF7A1A
+                    p.ghost = true; p.seek = 1400f
                 }
                 addPulse(o.px, o.py, 110f, 0.4f, 0xFFFF7A1A)
                 sound(GameSound.LANCE)
@@ -3399,6 +3434,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         p.lastHitUid = -1
         p.ghost = false
         p.homing = 0f
+        p.seek = 600f
         p.armTimer = 0f
         p.splash = 0f
         return p
@@ -3787,7 +3823,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                     p.vy = dy / d * sp
                 }
             } else if (p.homing > 0f && p.friendly) {
-                val t = nearestEnemy(p.x, p.y, 600f)
+                val t = nearestEnemy(p.x, p.y, p.seek)
                 if (t != null) {
                     val want = atan2(t.y - p.y, t.x - p.x)
                     val cur = atan2(p.vy, p.vx)
@@ -4516,6 +4552,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var lastRerollSerial = 0
     private var lastShopSerial = 0
     private var lastNextWorldSerial = 0
+    private var lastTradeSerial = 0
 
     /** Host: the guest's latest movement and picks. */
     fun applyInput(index: Int, c: CoopInput) {
@@ -4540,6 +4577,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             lastPickSerial = c.pickSerial
             chooseUpgradeFor(index, c.pickIndex, Upgrades.all.getOrNull(c.replaceIndex)?.id)
         }
+        if (c.tradeSerial > lastTradeSerial) {
+            lastTradeSerial = c.tradeSerial
+            TradeAction.entries.getOrNull(c.tradeAction)?.let { tradeAct(index, it, TradeOffer(c.tradeEuros, c.tradePotions, c.tradeItems)) }
+        }
         if (c.nextWorldSerial > lastNextWorldSerial) {
             lastNextWorldSerial = c.nextWorldSerial
             pressNextWorld(index)
@@ -4559,6 +4600,22 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private val enemyIndex: Map<String, Int> by lazy { Enemies.all.withIndex().associate { it.value.id to it.index } }
 
     /** Host: everything the guest needs to draw this moment of the run. [sounds] = sounds since the last snapshot. */
+    // --- Co-op trading (owner, 0.35.0; see Trade.kt) -------------------------------------
+    val trade = TradeDesk()
+
+    /** Trading needs two players and a room with no threats in it. */
+    fun tradeAllowed(): Boolean = ops.size >= 2 && phase != Phase.DEAD && aliveCount() == 0
+
+    /** Host: player [op] does [action]; a finished trade moves the potions here. */
+    fun tradeAct(op: Int, action: TradeAction, offer: TradeOffer = TradeOffer()) {
+        if (mirror || ops.size < 2) return
+        val charges = intArrayOf(ops[0].hpCharges, ops[1].hpCharges)
+        if (trade.act(op, action, offer, tradeAllowed(), charges, MAX_HP_CHARGES)) {
+            ops[0].hpCharges += trade.done[1].potions - trade.done[0].potions
+            ops[1].hpCharges += trade.done[0].potions - trade.done[1].potions
+        }
+    }
+
     fun captureWorld(seq: Int, sounds: List<GameSound>): CoopWorld {
         val w = CoopWorld()
         w.seq = seq
@@ -4635,6 +4692,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         // The guest's newest finds (they bank them on their own device; repeats are merged by id).
         // Shared XP (owner, 0.31.0): the guest banks the same OP XP the host earns, 100%.
         w.opXp = opXpEarned
+        if ((trade.open || trade.requestedBy >= 0) && !tradeAllowed()) trade.reset()
+        w.tradeRequest = trade.requestedBy; w.tradeOpen = trade.open
+        w.tradeOffers[0] = trade.offers[0]; w.tradeOffers[1] = trade.offers[1]
+        w.tradeDone = trade.doneSerial; w.tradeDoneOffers[0] = trade.done[0]; w.tradeDoneOffers[1] = trade.done[1]
+        w.tradeRefused = trade.refusedSerial; w.tradeRefusedFor = trade.refusedFor
         ops.getOrNull(1)?.let { g -> w.guestGear = if (g.gearFound.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(g.gearFound.takeLast(GUEST_GEAR_SENT)) }
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
@@ -4716,7 +4778,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             } else mode = GameMode.ENDLESS
             revisit = w.revisit
             plan = if (w.campaign) campaignPlan(world, room, w.revisit)
-            else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level))
+            else LevelPlanner.plan(level, Random(levelSeed), previousArenaId, previousEvent, config.seed, pressureCount(level), inferno = config.difficulty.inferno > 0)
             vaultCracked = false
             val extra = if (plan.rules.vault) listOf(Arena.vaultObstacle(plan.arena)) else emptyList()
             arena = Arena(plan.arena, extra)
@@ -4746,6 +4808,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         runLevel = w.runLevel; xp = w.xp; runSeconds = w.runSeconds; timedRemaining = w.timedRemaining
         // Shared XP: every kill and room either player makes counts in full for both.
         opXpEarned = maxOf(opXpEarned, w.opXp)
+        trade.requestedBy = w.tradeRequest; trade.open = w.tradeOpen
+        trade.offers[0] = w.tradeOffers[0]; trade.offers[1] = w.tradeOffers[1]
+        trade.done[0] = w.tradeDoneOffers[0]; trade.done[1] = w.tradeDoneOffers[1]; trade.doneSerial = w.tradeDone
+        trade.refusedSerial = w.tradeRefused; trade.refusedFor = w.tradeRefusedFor
         portalOpen = w.portalOpen
         if (w.banner != banner || w.bannerTimer > bannerTimer + 0.2f) { banner = w.banner; bannerSub = w.bannerSub }
         bannerTimer = w.bannerTimer

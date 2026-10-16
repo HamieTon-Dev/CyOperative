@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.34.0 (versionCode 102) |
+| Version | 0.35.0 (versionCode 103) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.35.0:**
+  - INFERNO bosses are `InfernoBosses.all`, kept out of `Bosses.roster`; `byId` finds them, and their bodies are in `InfernoBodies.kt` (waiting on owner approval).
+  - Trading: the host runs `TradeDesk`; the guest sends `CoopInput.trade*`. Potions move on the host, while € and items are applied by each side in `GameSession.checkTrade`.
+  - Guest trade actions ride on the unreliable input stream (latest serial wins), so a dropped packet can lose one click.
 - **INFERNO rarities (0.33.0):**
   - FORGED / VOLTAIC / CELESTIAL / ABYSSAL replaced ENCRYPTED / INFERNAL / CRYPTO; the old names stay valid on disk via `@SerialName`.
   - Odds: `Gear.odds` uses base × INFERNO level for those four (capped at 60% together), then COMMON…LEGENDARY share the rest.

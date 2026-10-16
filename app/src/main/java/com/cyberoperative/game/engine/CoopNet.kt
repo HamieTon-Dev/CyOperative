@@ -64,6 +64,14 @@ class CoopWorld {
     var guestGear = ""
     /** OP XP the run has earned (v26): shared 100% with the guest. */
     var opXp = 0L
+    /** Trade desk (v28, owner 0.35.0). */
+    var tradeRequest = -1
+    var tradeOpen = false
+    val tradeOffers = arrayOf(TradeOffer(), TradeOffer())
+    var tradeDone = 0
+    val tradeDoneOffers = arrayOf(TradeOffer(), TradeOffer())
+    var tradeRefused = 0
+    var tradeRefusedFor = -1
     /** Extra exit doors (PC): x, y, side (v16). */
     val exitDoors = ArrayList<FloatArray>(3)
     val zaps = ArrayList<NetZap>(40)
@@ -189,7 +197,13 @@ data class CoopInput(
     val shopIndex: Int = 0,
     val shopReplace: Int = -1,
     /** Bumped when the guest presses MOVE TO NEXT WORLD (v23). */
-    val nextWorldSerial: Int = 0
+    val nextWorldSerial: Int = 0,
+    /** Trade (v28): bumped on every trade action; [tradeAction] is a [TradeAction] ordinal plus the guest's offer. */
+    val tradeSerial: Int = 0,
+    val tradeAction: Int = 0,
+    val tradeEuros: Int = 0,
+    val tradePotions: Int = 0,
+    val tradeItems: String = ""
 )
 
 object CoopCodec {
@@ -197,6 +211,9 @@ object CoopCodec {
     const val MAX_HOSTILE_SHOTS = 150
     const val MAX_FRIENDLY_SHOTS = 70
     const val MAX_TEXTS = 24
+
+    private fun DataOutputStream.offer(t: TradeOffer) { var32(t.euros); writeByte(t.potions.coerceIn(0, 255)); writeUTF(t.items); writeBoolean(t.accepted) }
+    private fun DataInputStream.offer() = TradeOffer(var32(), readUnsignedByte(), readUTF(), readBoolean())
 
     // --- Fixed-point helpers -----------------------------------------------------
     private fun DataOutputStream.pos(v: Float) = writeShort((v * 2f).toInt().coerceIn(-32768, 32767))
@@ -354,6 +371,10 @@ object CoopCodec {
             if (w.worldServerOn) { o.pos(w.worldServerX); o.pos(w.worldServerY) }
             o.writeUTF(w.guestGear)
             o.writeLong(w.opXp)
+            o.writeByte(w.tradeRequest + 1); o.writeBoolean(w.tradeOpen)
+            for (t in w.tradeOffers) o.offer(t)
+            o.var32(w.tradeDone); for (t in w.tradeDoneOffers) o.offer(t)
+            o.var32(w.tradeRefused); o.writeByte(w.tradeRefusedFor + 1)
         }
         return bytes.toByteArray()
     }
@@ -483,6 +504,10 @@ object CoopCodec {
             if (w.worldServerOn) { w.worldServerX = i.pos(); w.worldServerY = i.pos() }
             w.guestGear = i.readUTF()
             w.opXp = i.readLong()
+            w.tradeRequest = i.readUnsignedByte() - 1; w.tradeOpen = i.readBoolean()
+            for (k in 0..1) w.tradeOffers[k] = i.offer()
+            w.tradeDone = i.var32(); for (k in 0..1) w.tradeDoneOffers[k] = i.offer()
+            w.tradeRefused = i.var32(); w.tradeRefusedFor = i.readUnsignedByte() - 1
             w
         }
     } catch (_: Exception) {
@@ -498,6 +523,7 @@ object CoopCodec {
             o.writeBoolean(c.aiming); o.pos(c.aimX); o.pos(c.aimY); o.var32(c.hpSerial); o.var32(c.bombSerial)
             o.var32(c.dashSerial); o.var32(c.spell1Serial); o.var32(c.spell2Serial)
             o.var32(c.shopSerial); o.writeByte(c.shopIndex); o.var32(c.shopReplace + 1); o.var32(c.nextWorldSerial)
+            o.var32(c.tradeSerial); o.writeByte(c.tradeAction); o.var32(c.tradeEuros); o.writeByte(c.tradePotions.coerceIn(0, 255)); o.writeUTF(c.tradeItems)
         }
         return bytes.toByteArray()
     }
@@ -510,7 +536,8 @@ object CoopCodec {
                 pickSerial = i.var32(), pickIndex = i.readUnsignedByte(), rerollSerial = i.var32(), level = i.var32(), replaceIndex = i.var32() - 1,
                 aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32(),
                 dashSerial = i.var32(), spell1Serial = i.var32(), spell2Serial = i.var32(),
-                shopSerial = i.var32(), shopIndex = i.readUnsignedByte(), shopReplace = i.var32() - 1, nextWorldSerial = i.var32()
+                shopSerial = i.var32(), shopIndex = i.readUnsignedByte(), shopReplace = i.var32() - 1, nextWorldSerial = i.var32(),
+                tradeSerial = i.var32(), tradeAction = i.readUnsignedByte(), tradeEuros = i.var32(), tradePotions = i.readUnsignedByte(), tradeItems = i.readUTF()
             )
         }
     } catch (_: Exception) {
@@ -518,5 +545,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 27
+    const val VERSION = 28
 }

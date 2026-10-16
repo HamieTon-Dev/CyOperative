@@ -54,11 +54,11 @@ enum class GearRarity(
     UNCOMMON("UNCOMMON", 0xFF3CFF6E, 1, 1.1f, 1),
     RARE("RARE", 0xFF2E9BFF, 2, 1.22f, 2),
     EPIC("EPIC", 0xFFB45CFF, 3, 1.36f, 3),
-    LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 1.52f, 4),
-    @SerialName("ENCRYPTED") FORGED("FORGED", 0xFFFF8A1F, 5, 1.7f, 4, minInferno = 1, infernoBase = 0.8f),
-    @SerialName("INFERNAL") VOLTAIC("VOLTAIC", 0xFFFFF04D, 6, 1.9f, 5, minInferno = 3, infernoBase = 0.7f),
-    @SerialName("CRYPTO") CELESTIAL("CELESTIAL", 0xFFDDE8FF, 7, 2.15f, 6, minInferno = 5, infernoBase = 0.5f),
-    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.45f, 6, minInferno = 7, infernoBase = 0.4f);
+    LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 1.6f, 4),
+    @SerialName("ENCRYPTED") FORGED("FORGED", 0xFFFF8A1F, 5, 1.85f, 4, minInferno = 1, infernoBase = 0.8f),
+    @SerialName("INFERNAL") VOLTAIC("VOLTAIC", 0xFFFFF04D, 6, 2.1f, 5, minInferno = 3, infernoBase = 0.7f),
+    @SerialName("CRYPTO") CELESTIAL("CELESTIAL", 0xFFDDE8FF, 7, 2.4f, 6, minInferno = 5, infernoBase = 0.5f),
+    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.8f, 6, minInferno = 7, infernoBase = 0.4f);
 
     /** Above BLUE: the drop gets a light beam and the sheen sound. */
     val sheen: Boolean get() = ordinal > RARE.ordinal
@@ -348,6 +348,13 @@ object Gear {
         return (base * (1f + 0.03f * item.level)).toInt() / 10 * 10
     }
 
+    /**
+     * What a backpack piece sells for (owner, 0.35.0): item level × rarity tier (1 COMMON … 9
+     * ABYSSAL) × 50, but never more than 85% of what the shop would charge for it.
+     */
+    fun sellPrice(item: GearItem): Int =
+        minOf(item.level * (item.rarity.ordinal + 1) * 50, (shopPrice(item) * 0.85f).toInt() / 10 * 10).coerceAtLeast(10)
+
     /** Slot odds: weapons a little less often than armor. */
     private val slotWeights = floatArrayOf(10f, 10f, 14f, 14f, 13f, 13f, 12f, 12f)
 
@@ -379,7 +386,7 @@ object Gear {
     }
 
     fun affixValue(stat: GearStat, level: Int, rarity: GearRarity, roll: Float): Float {
-        val scale = (1f + 0.5f * level / OpProgress.MAX_LEVEL.toFloat()) * (1f + 0.12f * (rarity.ordinal - GearRarity.LEGENDARY.ordinal).coerceAtLeast(0))
+        val scale = (1f + 0.5f * level / OpProgress.MAX_LEVEL.toFloat()) * (1f + 0.18f * (rarity.ordinal - GearRarity.LEGENDARY.ordinal).coerceAtLeast(0))
         // Higher rarities roll toward the top of the range.
         val r = roll.pow(1f / (1f + 0.25f * rarity.ordinal))
         val v = (stat.lo + (stat.hi - stat.lo) * r) * scale
@@ -405,6 +412,7 @@ object Gear {
                 else -> s.armor += g.base
             }
             for (a in g.affixes) applyAffix(s, a)
+            GearPerks.apply(s, g)
         }
     }
 
@@ -435,4 +443,59 @@ object Gear {
     fun decode(text: String?): List<GearItem> = if (text.isNullOrBlank()) emptyList() else runCatching {
         json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(GearItem.serializer()), text)
     }.getOrDefault(emptyList())
+}
+
+/**
+ * Signature perks (owner, 0.35.0: "not enough uniqueness to the perks higher rarity equipment
+ * gives you"). LEGENDARY and every INFERNO rarity add one fixed perk per piece, by what the piece
+ * is: the rifle, an armor piece, or the sidearm / implant / core.
+ */
+object GearPerks {
+    private enum class Kind { RIFLE, ARMOR, SYSTEM }
+    private fun kind(g: GearItem) = when {
+        g.slot == GearSlot.PRIMARY -> Kind.RIFLE
+        g.slot.armorPiece -> Kind.ARMOR
+        else -> Kind.SYSTEM
+    }
+
+    /** The perk's line on the item card, or null below LEGENDARY. */
+    fun text(g: GearItem): String? = when (g.rarity) {
+        GearRarity.LEGENDARY -> when (kind(g)) { Kind.RIFLE -> "Shots pierce 1 more threat"; Kind.ARMOR -> "+2% dodge"; Kind.SYSTEM -> "+6% XP gain, +6% €" }
+        GearRarity.FORGED -> when (kind(g)) { Kind.RIFLE -> "Shots bounce once more, +8% damage"; Kind.ARMOR -> "Molten plating: getting hit sprays 3 slag bolts"; Kind.SYSTEM -> "+1 Packet Node" }
+        GearRarity.VOLTAIC -> when (kind(g)) { Kind.RIFLE -> "Shots arc to 1 more threat"; Kind.ARMOR -> "+7% move speed"; Kind.SYSTEM -> "Packet Nodes fire their own bolts" }
+        GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> "+1 parallel shot"; Kind.ARMOR -> "+15% healing, +3 HP per kill"; Kind.SYSTEM -> "+12% critical damage, +3% critical chance" }
+        GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> "3% chance to delete a threat outright, +25% critical damage"; Kind.ARMOR -> "Hellfire skin: hits spray 5 bolts, +3% dodge"; Kind.SYSTEM -> "+1 Packet Node, +25% node damage, +10% damage" }
+        else -> null
+    }
+
+    fun apply(s: RunStats, g: GearItem) {
+        when (g.rarity) {
+            GearRarity.LEGENDARY -> when (kind(g)) {
+                Kind.RIFLE -> s.pierce += 1
+                Kind.ARMOR -> s.dodge += 0.02f
+                Kind.SYSTEM -> { s.xpMul *= 1.06f; s.euroMul *= 1.06f }
+            }
+            GearRarity.FORGED -> when (kind(g)) {
+                Kind.RIFLE -> { s.bounce += 1; s.damage *= 1.08f }
+                Kind.ARMOR -> s.counterRing += 3
+                Kind.SYSTEM -> s.orbCount += 1
+            }
+            GearRarity.VOLTAIC -> when (kind(g)) {
+                Kind.RIFLE -> s.chain += 1
+                Kind.ARMOR -> s.moveSpeed *= 1.07f
+                Kind.SYSTEM -> if (s.orbBoltInterval <= 0f) s.orbBoltInterval = 1.6f else s.orbBoltInterval *= 0.85f
+            }
+            GearRarity.CELESTIAL -> when (kind(g)) {
+                Kind.RIFLE -> s.parallelShots += 1
+                Kind.ARMOR -> { s.healMul *= 1.15f; s.healOnKill += 3f }
+                Kind.SYSTEM -> { s.critMul += 0.12f; s.critChance += 0.03f }
+            }
+            GearRarity.ABYSSAL -> when (kind(g)) {
+                Kind.RIFLE -> { s.instantDeleteChance += 0.03f; s.critMul += 0.25f }
+                Kind.ARMOR -> { s.counterRing += 5; s.dodge += 0.03f }
+                Kind.SYSTEM -> { s.orbCount += 1; s.orbDamage *= 1.25f; s.damage *= 1.1f }
+            }
+            else -> {}
+        }
+    }
 }

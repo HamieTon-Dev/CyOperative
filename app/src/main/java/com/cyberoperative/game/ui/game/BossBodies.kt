@@ -107,9 +107,9 @@ object BossBodies {
         "good_game" to GoodGameBody
     )
 
-    fun forId(id: String): BossBody? = bodies[id]
+    fun forId(id: String): BossBody? = bodies[id] ?: infernoBodies[id]
 
-    fun has(id: String) = id in bodies
+    fun has(id: String) = id in bodies || id in infernoBodies
 }
 
 // --- Shared drawing helpers for boss bodies ---------------------------------

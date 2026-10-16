@@ -437,6 +437,7 @@ class GameSession(
         val link = coop ?: return
         // Co-op never pauses (owner, 2026-10-08): the pause menu is just a menu.
         if (isHost || !engine.mirror) engine.update(delta) else engine.mirrorTick(delta)
+        checkTrade()
         if (partnerLeft) return
         silence += delta
         if (silence > PARTNER_TIMEOUT) { partnerDropped(); return }
@@ -453,7 +454,8 @@ class GameSession(
                 CoopCodec.encodeInput(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
                         engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial,
-                        dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace, nextWorldSerial)
+                        dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace, nextWorldSerial,
+                        tradeSerial, tradeActionSent, tradeOffer.euros, tradeOffer.potions, tradeOffer.items)
                 )
             )
         }
@@ -711,6 +713,47 @@ class GameSession(
             return
         }
         engine.reroll()
+    }
+
+    // --- Co-op trading (owner, 0.35.0; engine/Trade.kt) -----------------------------
+    private var tradeSerial = 0
+    private var tradeActionSent = 0
+    private var tradeOffer = com.cyberoperative.game.engine.TradeOffer()
+    private var appliedTrade = -1
+    private var seenRefusal = -1
+
+    /** Shows a short co-op notice. */
+    fun notice(text: String) { coopNotice = text }
+
+    /** This device's operative index in co-op (host 0, guest 1). */
+    val myIndex: Int get() = if (isHost) 0 else 1
+
+    /** A trade action from this player: the host acts at once, a guest sends it. */
+    fun trade(action: com.cyberoperative.game.engine.TradeAction, offer: com.cyberoperative.game.engine.TradeOffer = com.cyberoperative.game.engine.TradeOffer()) {
+        if (coop == null) return
+        if (guest) { tradeSerial++; tradeActionSent = action.ordinal; tradeOffer = offer; sendTimer = 1f }
+        else engine.tradeAct(0, action, offer)
+    }
+
+    /** A finished trade: take my offer out of my profile and bank what the partner gave. */
+    private fun checkTrade() {
+        val desk = engine.trade
+        if (appliedTrade < 0) { appliedTrade = desk.doneSerial; seenRefusal = desk.refusedSerial }
+        if (desk.refusedSerial != seenRefusal) {
+            seenRefusal = desk.refusedSerial
+            if (desk.refusedFor == myIndex) coopNotice = "TOO MANY POTIONS · USE OR DROP SOME TO ACCEPT"
+        }
+        if (desk.doneSerial == appliedTrade) return
+        appliedTrade = desk.doneSerial
+        val mine = desk.done[myIndex]
+        val theirs = desk.done[1 - myIndex]
+        val give = mine.itemList.map { it.uid }.toSet()
+        val got = theirs.itemList.map { it.copy(locked = false, fresh = true) }
+        save.update { p0 ->
+            val p = p0.copy(backpack = p0.backpack.filter { it.uid !in give }, euros = (p0.euros - mine.euros + theirs.euros).coerceAtLeast(0))
+            com.cyberoperative.game.meta.GearBank.bank(p, got).first
+        }
+        coopNotice = "TRADE COMPLETE"
     }
 
     private var nextWorldSerial = 0

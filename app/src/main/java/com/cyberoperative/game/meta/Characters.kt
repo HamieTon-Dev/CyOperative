@@ -160,6 +160,13 @@ object GearBank {
     }
 
     /** Destroys an item (never a locked or equipped one). */
+    /** Sells an unlocked backpack piece; [bank] adds the € to the profile (false: the run wallet takes it). */
+    fun sell(p: PlayerProfile, uid: Long, bank: Boolean = true): Pair<PlayerProfile, Int> {
+        val item = p.backpack.firstOrNull { it.uid == uid && !it.locked } ?: return p to 0
+        val price = Gear.sellPrice(item)
+        return p.copy(backpack = p.backpack.filter { it.uid != uid }, euros = if (bank) p.euros + price else p.euros) to price
+    }
+
     fun discard(p: PlayerProfile, uid: Long): PlayerProfile {
         val item = find(p, uid) ?: return p
         if (item.locked || isEquipped(p, uid)) return p

@@ -117,7 +117,9 @@ fun CharacterScreen(
     onEditLook: (() -> Unit)? = null,
     onNewCharacter: (() -> Unit)? = null,
     onGearChanged: () -> Unit = {},
-    initialSelected: Long? = null
+    initialSelected: Long? = null,
+    /** In a solo run the sale goes to the run's wallet (shown at once) instead of the bank. */
+    onSold: ((Int) -> Unit)? = null
 ) {
     val p by save.profile.collectAsState()
     var tab by remember { mutableStateOf(startTab) }
@@ -135,7 +137,13 @@ fun CharacterScreen(
         toBackpack = { uid -> save.update { GearBank.toBackpack(it, uid) } },
         lock = { uid -> save.update { GearBank.toggleLock(it, uid) } },
         discard = { uid -> save.update { GearBank.discard(it, uid) }; selected = null },
-        select = { uid -> selected = uid; save.update { GearBank.markSeen(it, uid) } }
+        select = { uid -> selected = uid; save.update { GearBank.markSeen(it, uid) } },
+        sell = { uid ->
+            var got = 0
+            save.update { val (np, price) = GearBank.sell(it, uid, bank = onSold == null); got = price; np }
+            if (got > 0) onSold?.invoke(got)
+            selected = null
+        }
     )
     fun drop(item: GearItem, at: Offset) {
         val target = drag.targetAt(at) ?: return
@@ -190,7 +198,8 @@ private class GearActions(
     val toBackpack: (Long) -> Unit,
     val lock: (Long) -> Unit,
     val discard: (Long) -> Unit,
-    val select: (Long) -> Unit
+    val select: (Long) -> Unit,
+    val sell: (Long) -> Unit = {}
 )
 
 @Composable
@@ -543,6 +552,7 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
             item.style?.let { Text(it.noun.uppercase() + if (it.rateMul != 1f) " · ×%.2f fire rate".format(it.rateMul) else "", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium) }
             Spacer(Modifier.height(4.dp))
             for (a in item.affixes) Text("◆ " + a.stat.format(a.value), color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall)
+            com.cyberoperative.game.data.GearPerks.text(item)?.let { Text("★ " + it, color = c, style = MaterialTheme.typography.labelMedium) }
             Spacer(Modifier.height(4.dp))
             Text(item.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             item.classOnly?.let { cid ->
@@ -555,6 +565,15 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
                     CyberButton("EQUIP", Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = false, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
                     Spacer(Modifier.height(6.dp))
                     CyberButton("STORE IN VAULT", Modifier.fillMaxWidth(), enabled = p.vault.size < Gear.VAULT_SIZE) { actions.toVault(item.uid) }
+                    if (!item.locked) {
+                        Spacer(Modifier.height(6.dp))
+                        var confirmSell by remember(item.uid) { mutableStateOf(false) }
+                        val price = Gear.sellPrice(item)
+                        CyberButton(if (confirmSell) "TAP AGAIN: SELL FOR €%,d".format(price) else "SELL  €%,d".format(price),
+                            Modifier.fillMaxWidth(), accent = Palette.Gold) {
+                            if (confirmSell) actions.sell(item.uid) else confirmSell = true
+                        }
+                    }
                 }
                 Where.VAULT -> {
                     CyberButton("EQUIP", Modifier.fillMaxWidth(), accent = Palette.Cyan, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }

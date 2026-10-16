@@ -49,9 +49,12 @@ object LevelPlanner {
         level: Int, rng: Random, previousArenaId: String?, previousWasEvent: Boolean,
         runSeed: Long = 0L,
         /** Threat-count multiplier for the difficulty (GameEngine.pressureCount). */
-        countMul: Float = 1f
+        countMul: Float = 1f,
+        /** INFERNO run: boss rooms use the INFERNO packs (owner, 0.35.0). */
+        inferno: Boolean = false
     ): LevelPlan {
-        if (Scaling.isBossLevel(level)) return bossPlan(level, rng, runSeed)
+        // plan() is the Endless planner: INFERNO bosses join its boss rounds from level 160.
+        if (Scaling.isBossLevel(level)) return bossPlan(level, rng, runSeed, inferno, endless = true)
 
         val event = pickEvent(level, rng, previousWasEvent)
         if (event != null) return eventPlan(level, rng, event, previousArenaId, countMul)
@@ -76,8 +79,10 @@ object LevelPlanner {
     const val NULLSHADE_CHANCE = 0.3f
 
     /** A world's boss room: the run's boss deck, except the Nullshade Specter only from world 12. */
-    fun campaignBossPlan(world: Int, level: Int, rng: Random, runSeed: Long): LevelPlan {
-        val base = bossPlan(level, rng, runSeed)
+    fun campaignBossPlan(world: Int, level: Int, rng: Random, runSeed: Long, inferno: Boolean = false): LevelPlan {
+        val base = bossPlan(level, rng, runSeed, inferno)
+        // INFERNO: the packs' apex boss guards world 15 (owner, 0.35.0).
+        if (inferno && level >= 30) return if (world >= CampaignMap.WORLDS) base.copy(boss = com.cyberoperative.game.data.InfernoBosses.FINALE) else base
         val ns = Bosses.byId(NULLSHADE)
         val boss = when {
             ns != null && world >= CampaignMap.WORLDS -> ns
@@ -125,8 +130,8 @@ object LevelPlanner {
     }
 
     /** A boss room: a random boss from the run's deck ([Bosses.randomForLevel]). */
-    fun bossPlan(level: Int, rng: Random, runSeed: Long = 0L): LevelPlan {
-        val boss = Bosses.randomForLevel(level, runSeed)
+    fun bossPlan(level: Int, rng: Random, runSeed: Long = 0L, inferno: Boolean = false, endless: Boolean = false): LevelPlan {
+        val boss = Bosses.randomForLevel(level, runSeed, inferno, endless)
         val arena = if (rng.nextBoolean()) Arenas.bossArena else Arenas.mirrored(Arenas.bossArena)
         return LevelPlan(level, LevelKind.BOSS, arena, emptyList(), boss = boss, glitchedBoss = rollGlitchedBoss(level, rng))
     }
