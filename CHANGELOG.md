@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.36.3 (versionCode 108) — 2026-10-16 · one € total in co-op too, hidden TRADE, short numbers
+### Changed
+- **One € total everywhere, co-op included** (owner: "€ needs to be persistent… the same in game as in main menu").
+  - Solo already worked this way.
+  - In co-op each player now has their own wallet: their saved total, plus the run's € (both players get full rewards), minus what they spend or trade away.
+  - Before, co-op showed a shared pot that started at €0. Now your in-game € equals your menu € in every mode.
+  - Trades move € between the two wallets. Gear can't be sold mid co-op run; sell between runs or in solo.
+- **TRADE is invisible unless it can be used:** co-op only, both players standing within 170 units of each other, no threats in the room.
+- **Short numbers when the full one doesn't fit** (owner): 398,765 → 398k, 3,785,245 → 3.7m, 198,465,245 → 198m, then b, t. Always rounded down.
+  - Used for score and € in every HUD layout, the shop wallet and prices, the € chips on the menu, and the trade window.
+### Technical
+- `GameEngine.perPlayerWallets/walletOf/eurosNet`, `Operative.startEuros/eurosSpent`.
+- `RoomPlayer.euros` (Firebase, Steam and direct-IP mappings).
+- Co-op codec **v29** (`NetOp.eurosSpent`), `GameEngine.TRADE_RANGE`.
+- `FitNumber` / `formatAmount` (lowercase k/m/b/t, one decimal).
+
 ## 0.36.2 (versionCode 107) — 2026-10-16 · classic bosses get moving parts too
 ### Changed (owner: "Now animate all classic bosses this way")
 - **The twelve classic bosses have mesh rigs.** Each keeps all its own animation, and its parts now move on their own too:

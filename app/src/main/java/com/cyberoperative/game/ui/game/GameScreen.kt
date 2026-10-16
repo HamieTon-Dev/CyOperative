@@ -450,7 +450,8 @@ fun GameScreen(
         }
         // Co-op TRADE (owner, 0.35.0): small, under the MAP corner; the window when a trade is on.
         if (session.isCoop && !session.paused && hud.phase != Phase.DEAD && !showInventory) {
-            TradeButton(session, hud, Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + (if (mapButtonShown) 48.dp else 8.dp), end = 10.dp).graphicsLayer { alpha = 0.7f })
+            // Only shown while the two of you stand together in a clear room (owner, 0.36.3); never solo.
+            if (session.engine.tradeAllowed()) TradeButton(session, hud, Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + (if (mapButtonShown) 48.dp else 8.dp), end = 10.dp).graphicsLayer { alpha = 0.7f })
             TradeOverlay(session, hud, Modifier.align(Alignment.Center).padding(16.dp))
         }
         // INVENTORY: top left, under the HUD, on every platform (I on PC).
@@ -555,7 +556,8 @@ fun GameScreen(
                 session.saveRepo, onBack = { closeInventory() },
                 startTab = com.cyberoperative.game.ui.menu.CharTab.GEAR, inRun = true, coopRun = session.isCoop,
                 onGearChanged = { session.applyGear() },
-                onSold = if (session.isCoop) null else { n -> session.engine.grantEuros(n) }
+                onSold = if (session.isCoop) null else { n -> session.engine.grantEuros(n) },
+                canSell = !session.isCoop
             )
         }
         // Steam: big ability tiles along the bottom (owner, 0.31.0: readable, cooldown visible).
@@ -790,7 +792,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseMenuTab(
             Text(
                 when {
                     saveBlocked.contains("BOSS") -> "Defeat the boss to unlock saving"
-                    saveBlocked.contains("CO-OP") -> "Rewards are banked when the run ends"
+                    saveBlocked.contains("CO-OP") -> "Rewards are saved when the run ends"
                     else -> "Try again in a moment"
                 },
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall

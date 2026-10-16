@@ -83,32 +83,52 @@ fun CurrencyChip(symbol: String, amount: Long, color: Color, modifier: Modifier 
     ) {
         Text(symbol, color = color, style = MaterialTheme.typography.titleMedium, maxLines = 1, softWrap = false)
         Spacer(Modifier.width(6.dp))
-        Text(formatAmount(amount), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
+        FitNumber(amount, Palette.TextPrimary, MaterialTheme.typography.titleSmall, maxFull = 7)
     }
 }
 
 /**
- * Currency for chips (owner, 2026-10-11: "the numbers should always fit"): at most 6 characters.
- * Up to 9,999 in full, then 74.7K, 747K, 1.25M, 12.5M, 125M, then B, T, Q and Qi. Always rounded down, so it
- * never shows more than you own.
+ * Short numbers (owner, 0.36.3): 398,765 → 398k, 3,785,245 → 3.7m, 198,465,245 → 198m, then b, t.
+ * Under 1,000 in full. One decimal below 100 of a unit; always rounded down, so it never shows more
+ * than you have. Shown only when the full number doesn't fit (see [FitNumber]).
  */
 fun formatAmount(v: Long): String {
     if (v < 0) return "-" + formatAmount(-v)
-    if (v < 10_000) return "%,d".format(v)
-    val units = arrayOf("K" to 1_000L, "M" to 1_000_000L, "B" to 1_000_000_000L, "T" to 1_000_000_000_000L, "Q" to 1_000_000_000_000_000L, "Qi" to 1_000_000_000_000_000_000L)
+    if (v < 1_000) return v.toString()
+    val units = arrayOf("k" to 1_000L, "m" to 1_000_000L, "b" to 1_000_000_000L, "t" to 1_000_000_000_000L, "q" to 1_000_000_000_000_000L)
     var (suffix, size) = units[0]
     for (u in units) if (v >= u.second) { suffix = u.first; size = u.second }
     val whole = v / size
-    val decimals = when {
-        whole >= 100 -> 0
-        whole >= 10 -> 1
-        else -> 2
-    }
-    if (decimals == 0) return "$whole$suffix"
-    val scale = if (decimals == 1) 10L else 100L
-    val frac = (v % size) * scale / size
-    val fracText = frac.toString().padStart(decimals, '0').trimEnd('0')
-    return if (fracText.isEmpty()) "$whole$suffix" else "$whole.$fracText$suffix"
+    if (whole >= 100) return "$whole$suffix"
+    val tenth = (v % size) * 10 / size
+    return if (tenth == 0L) "$whole$suffix" else "$whole.$tenth$suffix"
+}
+
+/** The full number with thousands separators. */
+fun formatFull(v: Long): String = "%,d".format(v)
+
+/**
+ * A number shown in full when it fits its space, otherwise short (owner, 0.36.3: "if it can fit
+ * without clipping or being cut off then display full number, otherwise short terms").
+ * [maxFull] also switches to short past that many characters where the space isn't bounded.
+ */
+@Composable
+fun FitNumber(
+    value: Long,
+    color: Color,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    prefix: String = "",
+    suffix: String = "",
+    maxFull: Int = 11
+) {
+    val full = prefix + formatFull(value) + suffix
+    val short = prefix + formatAmount(value) + suffix
+    val useShort = androidx.compose.runtime.remember(full.length) { androidx.compose.runtime.mutableStateOf(full.length > maxFull + prefix.length + suffix.length) }
+    Text(
+        if (useShort.value) short else full, color = color, style = style, maxLines = 1, softWrap = false, modifier = modifier,
+        onTextLayout = { if (!useShort.value && it.hasVisualOverflow) useShort.value = true }
+    )
 }
 
 /** Standard sub-screen frame: header with BACK, scrollable body supplied by caller. */

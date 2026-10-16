@@ -317,6 +317,13 @@ class GameSession(
         com.cyberoperative.game.data.ArenaShape.wide = desktop || (link == null && (restore?.wide ?: com.cyberoperative.game.ui.common.PlayMode.landscape))
         engine = GameEngine(config.copy(consumables = pc), restore)
         if (link != null) {
+            // Co-op wallets (0.36.3): each player starts from their own saved €.
+            engine.perPlayerWallets = true
+            fun start(e: Long) = e.coerceIn(0L, Int.MAX_VALUE.toLong() / 4).toInt()
+            if (link.room.isHost) {
+                engine.operatives.getOrNull(0)?.startEuros = start(p.euros)
+                engine.operatives.getOrNull(1)?.startEuros = start(link.state.guest?.euros ?: 0L)
+            } else engine.operatives.getOrNull(1)?.startEuros = start(p.euros)
             if (!link.room.isHost) engine.enterMirror(1)
             startLink(link)
         }
@@ -750,7 +757,8 @@ class GameSession(
         val give = mine.itemList.map { it.uid }.toSet()
         val got = theirs.itemList.map { it.copy(locked = false, fresh = true) }
         save.update { p0 ->
-            val p = p0.copy(backpack = p0.backpack.filter { it.uid !in give }, euros = (p0.euros - mine.euros + theirs.euros).coerceAtLeast(0))
+            // € moved between the run wallets (engine) and are saved with the run's other €.
+            val p = p0.copy(backpack = p0.backpack.filter { it.uid !in give })
             com.cyberoperative.game.meta.GearBank.bank(p, got).first
         }
         coopNotice = "TRADE COMPLETE"

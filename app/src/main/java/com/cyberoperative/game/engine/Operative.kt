@@ -39,6 +39,9 @@ class Operative(val index: Int, baseStats: RunStats) {
     var inputX = 0f
     var inputY = 0f
     /** PC consumables: HP charge packets (Q) and Packet Bombs (E). */
+    /** Co-op wallet (0.36.3): saved € at the start, and what was spent or traded away (negative: received). */
+    var startEuros = 0
+    var eurosSpent = 0
     var hpCharges = 0
     /** Gear picked up this run (banked into the backpack by the session). */
     val gearFound = ArrayList<com.cyberoperative.game.data.GearItem>()

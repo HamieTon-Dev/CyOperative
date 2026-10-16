@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.36.2 (versionCode 107) |
+| Version | 0.36.3 (versionCode 108) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.36.3 co-op wallets:**
+  - With `perPlayerWallets`, wallet = `startEuros` (saved €, the guest's from `RoomPlayer.euros`) + `eurosEarned` − `eurosSpent`.
+  - Banking uses `eurosNet`. Trades adjust `eurosSpent` on the host, and the guest reads it from `NetOp` (v29).
 - **0.36.2 classic mesh rigs:**
   - `BossBodies.forId` wraps a code-drawn body that has a `classicRigs` entry in `MeshedBody`, which draws it offscreen (2.2 px/unit, ≤900 px, 1.5× its preview square) and then through the mesh.
   - The Boss Expansion bosses have no rigs yet.

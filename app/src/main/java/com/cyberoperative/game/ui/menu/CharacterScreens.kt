@@ -118,8 +118,10 @@ fun CharacterScreen(
     onNewCharacter: (() -> Unit)? = null,
     onGearChanged: () -> Unit = {},
     initialSelected: Long? = null,
-    /** In a solo run the sale goes to the run's wallet (shown at once) instead of the bank. */
-    onSold: ((Int) -> Unit)? = null
+    /** In a solo run the sale goes straight into the run's wallet (your € total, shown at once). */
+    onSold: ((Int) -> Unit)? = null,
+    /** False in co-op runs: the co-op wallets live on the host, so sell between runs (or solo). */
+    canSell: Boolean = true
 ) {
     val p by save.profile.collectAsState()
     var tab by remember { mutableStateOf(startTab) }
@@ -143,7 +145,8 @@ fun CharacterScreen(
             save.update { val (np, price) = GearBank.sell(it, uid, bank = onSold == null); got = price; np }
             if (got > 0) onSold?.invoke(got)
             selected = null
-        }
+        },
+        canSell = canSell
     )
     fun drop(item: GearItem, at: Offset) {
         val target = drag.targetAt(at) ?: return
@@ -199,7 +202,8 @@ private class GearActions(
     val lock: (Long) -> Unit,
     val discard: (Long) -> Unit,
     val select: (Long) -> Unit,
-    val sell: (Long) -> Unit = {}
+    val sell: (Long) -> Unit = {},
+    val canSell: Boolean = true
 )
 
 @Composable
@@ -565,7 +569,11 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
                     CyberButton("EQUIP", Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = false, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
                     Spacer(Modifier.height(6.dp))
                     CyberButton("STORE IN VAULT", Modifier.fillMaxWidth(), enabled = p.vault.size < Gear.VAULT_SIZE) { actions.toVault(item.uid) }
-                    if (!item.locked) {
+                    if (!item.locked && !actions.canSell) {
+                        Spacer(Modifier.height(6.dp))
+                        Text("Sell gear between runs or in solo.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    }
+                    if (!item.locked && actions.canSell) {
                         Spacer(Modifier.height(6.dp))
                         var confirmSell by remember(item.uid) { mutableStateOf(false) }
                         val price = Gear.sellPrice(item)

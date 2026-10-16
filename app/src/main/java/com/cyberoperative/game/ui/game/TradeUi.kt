@@ -44,19 +44,15 @@ import com.cyberoperative.game.ui.theme.Palette
  * window. The desk lives in the engine (engine/Trade.kt); this only shows it and sends actions.
  */
 
-/** The small see-through [TRADE] button (co-op only), greyed out while threats are in the room. */
+/** The small see-through [TRADE] button: co-op only, and only while trading is possible (shown by the caller). */
 @Composable
 fun TradeButton(session: GameSession, @Suppress("UNUSED_PARAMETER") hud: HudSnapshot, modifier: Modifier) {
-    val ok = session.engine.tradeAllowed()
-    val c = if (ok) Palette.Gold else Palette.TextMuted
+    val c = Palette.Gold
     Box(
         modifier
             .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
             .border(1.5.dp, c, RoundedCornerShape(8.dp))
-            .clickable {
-                if (ok) session.trade(TradeAction.REQUEST)
-                else session.notice("CLEAR THE ROOM TO TRADE")
-            }
+            .clickable { session.trade(TradeAction.REQUEST) }
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) { Text("TRADE", color = c, style = MaterialTheme.typography.labelLarge) }
 }
@@ -97,13 +93,15 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
     val mine = desk.offers[me]
     val theirs = desk.offers[1 - me]
     val myCharges = session.engine.operatives.getOrNull(me)?.hpCharges ?: 0
+    // Your € are the same everywhere (owner): this run's wallet is your saved total plus the run.
+    val myWallet = session.engine.operatives.getOrNull(me)?.let { session.engine.walletOf(it) }?.coerceAtLeast(0) ?: 0
     // The local draft, seeded from what the desk already has for me.
     var euros by remember { mutableIntStateOf(mine.euros) }
     var potions by remember { mutableIntStateOf(mine.potions) }
     var picked by remember { mutableStateOf(mine.itemList.map { it.uid }.toSet()) }
     val tradable = p.backpack.filter { !it.locked }
     fun send(e: Int = euros, po: Int = potions, ids: Set<Long> = picked) {
-        euros = e.coerceIn(0, p.euros.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()); potions = po.coerceIn(0, myCharges); picked = ids
+        euros = e.coerceIn(0, myWallet); potions = po.coerceIn(0, myCharges); picked = ids
         val items = tradable.filter { it.uid in picked }.take(TradeDesk.MAX_ITEMS)
         session.trade(TradeAction.OFFER, TradeOffer(euros, potions, if (items.isEmpty()) "" else Gear.encode(items)))
     }
@@ -120,10 +118,10 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
         // --- My offer ---
         SideHeader("YOUR OFFER", mine.accepted)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("€ %,d".format(euros), color = Palette.Gold, style = MaterialTheme.typography.titleMedium, modifier = Modifier.widthIn(min = 96.dp))
+            com.cyberoperative.game.ui.common.FitNumber(euros.toLong(), Palette.Gold, MaterialTheme.typography.titleMedium, Modifier.widthIn(min = 96.dp), prefix = "€ ", maxFull = 9)
             for ((label, d) in listOf("−1k" to -1000, "−100" to -100, "+100" to 100, "+1k" to 1000)) Step(label) { send(e = euros + d) }
         }
-        Text("Banked: € %,d".format(p.euros), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        com.cyberoperative.game.ui.common.FitNumber(myWallet.toLong(), Palette.TextMuted, MaterialTheme.typography.labelSmall, prefix = "You have € ")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("✚ $potions potions", color = Palette.Green, style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = 96.dp))
             Step("−1") { send(po = potions - 1) }
@@ -141,7 +139,7 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
         Spacer(Modifier.height(10.dp))
         // --- Partner's offer ---
         SideHeader("PARTNER OFFERS", theirs.accepted)
-        Text("€ %,d   ·   ✚ %d potions".format(theirs.euros, theirs.potions), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+        Text("€ ${com.cyberoperative.game.ui.common.formatAmount(theirs.euros.toLong())}   ·   ✚ ${theirs.potions} potions", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             val list = theirs.itemList
             if (list.isEmpty()) Text("No items", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)

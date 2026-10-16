@@ -402,7 +402,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     var eurosEarned = 0
         private set
     /** € on hand: what the player brought into the run plus what it has earned (minus the shop). */
-    val wallet: Int get() = config.startEuros + eurosEarned
+    /**
+     * Co-op (owner, 0.36.3: "€ needs to be persistent… your total present in every run"): each
+     * player has their own wallet, their saved total plus the run's € minus what they spent (or
+     * traded away). Solo keeps one wallet.
+     */
+    var perPlayerWallets = false
+    fun walletOf(o: Operative): Int =
+        if (perPlayerWallets) o.startEuros + eurosEarned - o.eurosSpent else config.startEuros + eurosEarned
+    /** The current operative's € (the HUD, the shop). */
+    val wallet: Int get() = walletOf(cur)
+    /** What this run adds to the local player's saved € (purchases and trades included). */
+    val eurosNet: Int get() = if (perPlayerWallets) eurosEarned - ops[primary].eurosSpent else eurosEarned
+    private fun spend(price: Int) { if (perPlayerWallets) cur.eurosSpent += price else eurosEarned -= price }
 
     /** € from outside the fight (a backpack sale mid-run, owner 0.35.0): into the wallet, banked as usual. */
     fun grantEuros(n: Int) { if (n > 0) eurosEarned += n }
@@ -1808,7 +1820,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val o = cur
         val g = o.shopGear.getOrNull(index) ?: return false
         if (!inShop || g.sold || wallet < g.price) return false
-        eurosEarned -= g.price
+        spend(g.price)
         o.gearFound += g.item
         o.shopGear = o.shopGear.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
         addText(o.px, o.py - 40f, "-${g.price} €", TextKind.INFO)
@@ -1887,7 +1899,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (replace == null || replace !in build.weapons()) return false
             dropWeapon(replace)
         }
-        eurosEarned -= item.price
+        spend(item.price)
         applyUpgrade(item.def)
         cur.shopItems = shopItems.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
         addText(px, py - 40f, "-${item.price} €", TextKind.INFO)
@@ -2138,7 +2150,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     fun summary(): RunSummary = RunSummary(
         levelReached = level, score = score, kills = kills, bosses = bossesDefeated,
-        elites = elitesDefeated, events = eventsCompleted, euros = eurosEarned,
+        elites = elitesDefeated, events = eventsCompleted, euros = eurosNet,
         diamonds = diamondsEarned, seconds = runSeconds
     )
 
@@ -4612,15 +4624,26 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val trade = TradeDesk()
 
     /** Trading needs two players and a room with no threats in it. */
-    fun tradeAllowed(): Boolean = ops.size >= 2 && phase != Phase.DEAD && aliveCount() == 0
+    fun tradeAllowed(): Boolean {
+        if (ops.size < 2 || phase == Phase.DEAD || aliveCount() > 0) return false
+        val a = ops[0]; val b = ops[1]
+        if (a.gone || b.gone || !a.alive || !b.alive) return false
+        val dx = a.px - b.px; val dy = a.py - b.py
+        return dx * dx + dy * dy <= TRADE_RANGE * TRADE_RANGE
+    }
 
     /** Host: player [op] does [action]; a finished trade moves the potions here. */
     fun tradeAct(op: Int, action: TradeAction, offer: TradeOffer = TradeOffer()) {
         if (mirror || ops.size < 2) return
         val charges = intArrayOf(ops[0].hpCharges, ops[1].hpCharges)
-        if (trade.act(op, action, offer, tradeAllowed(), charges, MAX_HP_CHARGES)) {
+        // Nobody can offer more € than their wallet holds.
+        val capped = offer.copy(euros = offer.euros.coerceIn(0, walletOf(ops[op]).coerceAtLeast(0)))
+        if (trade.act(op, action, capped, tradeAllowed(), charges, MAX_HP_CHARGES)) {
             ops[0].hpCharges += trade.done[1].potions - trade.done[0].potions
             ops[1].hpCharges += trade.done[0].potions - trade.done[1].potions
+            // € move between the two wallets (and are saved with the run's other €).
+            ops[0].eurosSpent += trade.done[0].euros - trade.done[1].euros
+            ops[1].eurosSpent += trade.done[1].euros - trade.done[0].euros
         }
     }
 
@@ -4655,6 +4678,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
             n.shopGear = if (o.shopGear.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(o.shopGear.map { it.item })
             n.shopGearSold = o.shopGear.foldIndexed(0) { i, m, it -> if (it.sold) m or (1 shl i) else m }
+            n.eurosSpent = o.eurosSpent
             n.shopReady = o.shopReady
             n.worldReady = o.worldReady
             w.ops += n
@@ -4858,6 +4882,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
             o.shopReady = n.shopReady
             o.worldReady = n.worldReady
+            o.eurosSpent = n.eurosSpent
         }
 
         // Enemies by uid: keep the ones still alive (smoothly moved), add new, burst the vanished.
@@ -5166,6 +5191,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val CONSUMABLE_COOLDOWN = 1f
         const val ELITE_HP_DROP = 0.08f
         /** The shop's equipment pieces, and the co-op input index they start at. */
+        /** Players must stand this close to trade (owner, 0.36.3: "standing next to one another"). */
+        const val TRADE_RANGE = 170f
         const val SHOP_GEAR = com.cyberoperative.game.data.Gear.SHOP_GEAR_PIECES
         const val SHOP_GEAR_INDEX = 100
         /** Co-op smoothing: a partner further than this from where it should be jumps there. */

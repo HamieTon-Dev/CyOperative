@@ -59,7 +59,8 @@ fun roomPlayerFor(uid: String, callsign: String, p: PlayerProfile) = RoomPlayer(
     // Pairing shows the CHARACTER's name (owner, 2026-10-13): it works on Steam, direct IP and offline alike.
     uid = uid, name = com.cyberoperative.game.meta.Characters.coopName(p, callsign), permanent = p.permanentUpgrades, opLevel = operativeLevel(p.operativeXp),
     body = com.cyberoperative.game.data.Operatives.byId(p.selectedOperative).bodyId, skin = com.cyberoperative.game.data.OperativeSkins.token(com.cyberoperative.game.meta.StoreManager.effectiveSkin(p)), ready = true,
-    gear = com.cyberoperative.game.data.Gear.encode(p.equipped.values)
+    gear = com.cyberoperative.game.data.Gear.encode(p.equipped.values),
+    euros = p.euros
 )
 
 /**

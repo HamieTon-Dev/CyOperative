@@ -21,7 +21,9 @@ data class RoomPlayer(
     val skin: String = "default",
     val ready: Boolean = false,
     /** Equipped gear ([com.cyberoperative.game.data.Gear.encode]); the host builds both operatives from it. */
-    val gear: String = ""
+    val gear: String = "",
+    /** Saved € (0.36.3): the host starts this player's co-op wallet from it. */
+    val euros: Long = 0
 )
 
 enum class RoomStatus { LOBBY, PLAYING, ENDED }

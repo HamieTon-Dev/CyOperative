@@ -120,7 +120,7 @@ fun ShopPanel(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("X,.,.X  SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
-                Text("€ $euros", color = Palette.Euro, style = MaterialTheme.typography.titleSmall)
+                com.cyberoperative.game.ui.common.FitNumber(euros.toLong(), Palette.Euro, MaterialTheme.typography.titleSmall, prefix = "€ ", maxFull = 9)
                 Spacer(Modifier.width(8.dp))
                 Box(
                     Modifier
@@ -171,7 +171,7 @@ fun ShopPanel(
                             when {
                                 it.sold -> "SOLD"
                                 affordable -> "€${it.price}"
-                                else -> "€${it.price}\nNEED €${it.price - euros}"
+                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(it.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((it.price - euros).toLong())}"
                             },
                             color = when {
                                 it.sold -> Palette.TextMuted
@@ -214,7 +214,7 @@ fun ShopPanel(
                             when {
                                 g.sold -> "SOLD"
                                 affordable -> "€${"%,d".format(g.price)}"
-                                else -> "€${"%,d".format(g.price)}\nNEED €${"%,d".format(g.price - euros)}"
+                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(g.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((g.price - euros).toLong())}"
                             },
                             color = when {
                                 g.sold -> Palette.TextMuted

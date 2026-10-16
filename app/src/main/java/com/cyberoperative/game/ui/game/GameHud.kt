@@ -176,15 +176,9 @@ private fun HeaderRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
                     color = levelColor(h), style = mono(big, FontWeight.Bold), maxLines = 1, softWrap = false
                 )
                 Divider()
-                Text(
-                    "SCORE ${"%,d".format(h.score)}", color = Palette.TextPrimary, style = mono(small, FontWeight.Medium),
-                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
-                )
+                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "SCORE ")
                 Divider()
-                Text(
-                    "€ ${"%,d".format(h.euros)}", color = Palette.Euro, style = mono(small, FontWeight.Medium),
-                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
-                )
+                com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
             }
             HudClock(Modifier.padding(start = 6.dp))
             PauseButton(paused, onPause)
@@ -439,9 +433,9 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                         color = levelColor(h), style = mono(15.sp, FontWeight.Bold), maxLines = 1
                     )
                     Divider()
-                    Text("SCORE ${"%,d".format(h.score)}", color = Palette.TextPrimary, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                    com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "SCORE ")
                     Divider()
-                    Text("€ ${"%,d".format(h.euros)}", color = Palette.Euro, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                    com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
                 }
                 Spacer(Modifier.height(4.dp))
                 HpRow(h)
@@ -507,9 +501,9 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(h.roomLabel, color = levelColor(h), style = mono(13.sp, FontWeight.Bold), maxLines = 1)
                 Divider()
-                Text("%,d".format(h.score), color = Palette.TextPrimary, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false))
                 Divider()
-                Text("€ ${"%,d".format(h.euros)}", color = Palette.Euro, style = mono(12.sp, FontWeight.Medium), maxLines = 1)
+                com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
             }
             Spacer(Modifier.height(2.dp))
             HpRow(h, label = "HP", labelWidth = 26.dp)
