@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.35.1 (versionCode 104) |
+| Version | 0.36.0 (versionCode 105) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.36.0 INFERNO boss redesign:**
+  - The bodies are the owner's painted sheets (`resources/bosses/inferno_*.webp`) plus `InfernoRig` animation in `InfernoBodies.kt`.
+  - Status per boss and the follow-ups: `docs/INFERNO_BOSS_REDESIGN.md`.
+  - Recorded SFX live in `resources/sfx/` (`SoundBank.files`).
 - **0.35.0:**
   - INFERNO bosses are `InfernoBosses.all`, kept out of `Bosses.roster`; `byId` finds them, and their bodies are in `InfernoBodies.kt` (waiting on owner approval).
   - Trading: the host runs `TradeDesk`; the guest sends `CoopInput.trade*`. Potions move on the host, while € and items are applied by each side in `GameSession.checkTrade`.

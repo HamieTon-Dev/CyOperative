@@ -7,5 +7,7 @@ enum class GameSound {
     PORTAL_OPEN, BOSS_SPAWN, BOSS_GROWL, BOSS_PHASE, BOSS_DEATH, CURRENCY, GAME_OVER, EVENT_START,
     REVIVE, UI_CLICK, UI_BACK, BOOT_TICK, ACCESS_GRANTED,
     /** Gear drops (owner, 2026-10-13): a sheen above BLUE, a bigger one for GOLDEN and up. */
-    GEAR_SHEEN, GEAR_LEGENDARY
+    GEAR_SHEEN, GEAR_LEGENDARY,
+    /** INFERNO rarity drops (owner's recorded sounds, 0.36.0): T1 Forged … T4 Abyssal. */
+    GEAR_FORGED, GEAR_VOLTAIC, GEAR_CELESTIAL, GEAR_ABYSSAL
 }

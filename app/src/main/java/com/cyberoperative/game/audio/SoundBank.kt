@@ -22,6 +22,25 @@ object SoundBank {
     private val T = ToneSynth.Wave.TRIANGLE
     private val N = ToneSynth.Wave.NOISE
 
+    /**
+     * Recorded effects (owner's files, 0.36.0): resource path under resources/ and gain. Every
+     * other effect is synthesized from [recipes]. Both platforms load these from the classpath.
+     */
+    val files: Map<GameSound, Pair<String, Float>> = mapOf(
+        GameSound.GEAR_FORGED to ("sfx/drop_forged.wav" to 0.75f),
+        GameSound.GEAR_VOLTAIC to ("sfx/drop_voltaic.wav" to 0.8f),
+        GameSound.GEAR_CELESTIAL to ("sfx/drop_celestial.wav" to 0.85f),
+        GameSound.GEAR_ABYSSAL to ("sfx/drop_abyssal.wav" to 0.95f)
+    )
+
+    /** Playback gain for [sound], recorded or synthesized. */
+    fun gain(sound: GameSound): Float = recipes[sound]?.gain ?: files[sound]?.second ?: 1f
+
+    /** The WAV bytes of a recorded effect, or null. */
+    fun fileBytes(sound: GameSound): ByteArray? = files[sound]?.let { (path, _) ->
+        runCatching { SoundBank::class.java.classLoader?.getResourceAsStream(path)?.use { it.readBytes() } }.getOrNull()
+    }
+
     /** Minimum seconds between two plays of the same effect. */
     val minInterval: Map<GameSound, Float> = mapOf(
         GameSound.PLAYER_SHOT to 0.07f,

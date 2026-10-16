@@ -67,6 +67,16 @@ class AudioManager {
                 } catch (_: Throwable) {
                 }
             }
+            // Recorded effects (owner's drop sounds) straight from the classpath.
+            for (sound in SoundBank.files.keys) {
+                try {
+                    val wav = SoundBank.fileBytes(sound) ?: continue
+                    clips[sound] = (0 until CLIPS_PER_SOUND).map {
+                        AudioSystem.getClip().apply { open(AudioSystem.getAudioInputStream(ByteArrayInputStream(wav))) }
+                    }
+                } catch (_: Throwable) {
+                }
+            }
         }.apply { isDaemon = true; name = "sfx-load" }.start()
     }
 
@@ -81,7 +91,6 @@ class AudioManager {
     fun play(sound: GameSound) {
         if (!foreground) return
         val pool = clips[sound] ?: return
-        val recipe = SoundBank.recipes[sound] ?: return
         val now = System.nanoTime() / 1_000_000L
         val gap = SoundBank.minInterval[sound]
         if (gap != null) {
@@ -89,7 +98,7 @@ class AudioManager {
             if (now - last < (gap * 1000).toLong()) return
         }
         lastPlayed[sound] = now
-        val vol = (sfxVolume * recipe.gain).coerceIn(0f, 1f)
+        val vol = (sfxVolume * SoundBank.gain(sound)).coerceIn(0f, 1f)
         if (vol <= 0f) return
         val clip = pool.firstOrNull { !it.isRunning } ?: pool[Random.nextInt(pool.size)]
         try {

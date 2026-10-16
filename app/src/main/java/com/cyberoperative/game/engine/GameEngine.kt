@@ -2593,6 +2593,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** The drop sound: a sheen above BLUE, a bigger one for GOLDEN and up. */
     private fun gearLanded(l: Loot) {
         val r = l.gear?.rarity ?: return
+        when (r) {
+            // The owner's recorded drop sounds (0.36.0): T1 Forged … T4 Abyssal.
+            com.cyberoperative.game.data.GearRarity.FORGED -> { sound(GameSound.GEAR_FORGED); return }
+            com.cyberoperative.game.data.GearRarity.VOLTAIC -> { sound(GameSound.GEAR_VOLTAIC); return }
+            com.cyberoperative.game.data.GearRarity.CELESTIAL -> { sound(GameSound.GEAR_CELESTIAL); return }
+            com.cyberoperative.game.data.GearRarity.ABYSSAL -> { sound(GameSound.GEAR_ABYSSAL); return }
+            else -> {}
+        }
         if (r >= com.cyberoperative.game.data.GearRarity.LEGENDARY) sound(GameSound.GEAR_LEGENDARY)
         else if (r.sheen) sound(GameSound.GEAR_SHEEN)
     }

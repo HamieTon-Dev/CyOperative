@@ -41,6 +41,40 @@ class InfernoBossRenders {
     @Test fun beta() = sheet("beta", InfernoBosses.beta)
     @Test fun gamma() = sheet("gamma", InfernoBosses.gamma)
 
+    /** In the arena at gameplay scale (portrait), a few bosses side by side over several runs. */
+    @Test fun arenaMaw() = arena("furnace_maw")
+    @Test fun arenaSearfang() = arena("searfang_colossus")
+    @Test fun arenaMonarch() = arena("combustion_monarch")
+    @Test fun arenaWarden() = arena("ember_warden")
+
+    private fun arena(id: String) {
+        assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
+        val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens").also { it.mkdirs() }
+        val def = com.cyberoperative.game.data.Bosses.byId(id)!!
+        val ctx = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = com.cyberoperative.game.save.SaveRepository(ctx)
+        repo.update { it.copy(tutorialDone = true) }
+        val session = com.cyberoperative.game.ui.game.GameSession(repo, com.cyberoperative.game.audio.AudioManager(ctx))
+        val g = session.engine
+        g.debugStartPlan(com.cyberoperative.game.engine.LevelPlanner.bossPlan(40, kotlin.random.Random(3)).copy(boss = def, glitchedBoss = false))
+        val me = g.operatives[0]
+        var t = 0f
+        while (t < 6f) {
+            me.invuln = 99f; me.hp = me.build.stats.maxHp
+            g.setInput(0f, 0f)
+            g.update(1f / 60f); t += 1f / 60f
+        }
+        g.boss?.let { it.x = g.arena.width / 2f; it.y = g.arena.height * 0.45f }
+        g.sounds.clear()
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.game.GameScreen(session, false, {}, {}) } }
+        compose.mainClock.advanceTimeBy(200)
+        val view = compose.activity.window.decorView
+        val bmp = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        compose.runOnUiThread { view.draw(Canvas(bmp)) }
+        File(out, "inferno_arena_$id.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
     private fun sheet(name: String, pack: List<com.cyberoperative.game.data.BossDef>) {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
         val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens").also { it.mkdirs() }
@@ -52,6 +86,13 @@ class InfernoBossRenders {
                         Text(b.name, color = Color(b.color), fontSize = 13.sp, modifier = Modifier.weight(0.8f))
                         for (ph in 0..2) Box(Modifier.weight(1f).height(210.dp)) {
                             BossBodyPreview(b, ph, 1.3f + ph * 0.7f, Modifier.fillMaxSize(), winding = ph == 2)
+                            // The hitbox, as the preview places it (cyan ring), to check alignment.
+                            androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                                val body = com.cyberoperative.game.ui.game.BossBodies.forId(b.id)
+                                val sc = size.minDimension / (b.radius * (body?.previewSpan ?: 4.2f))
+                                drawCircle(Color(0xFF00E5FF), b.radius * sc, androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f - 6f * sc),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(2f))
+                            }
                         }
                     }
                 }

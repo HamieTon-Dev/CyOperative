@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.36.0 (versionCode 105) — 2026-10-16 · INFERNO boss visual redesign, recorded drop sounds
+### Changed (owner: "MAJOR VISUAL REDESIGN PASS on the 15 Inferno bosses")
+- **Every INFERNO boss now uses the owner's Inferno Boss Pack paintings**, cut out of the sheets with soft glow kept, as its in-game body. Each boss has its three painted states, one per HP phase, and an animation rig on top:
+  - wind-ups cross-fade toward the next painting, and the jaw bosses open their maw;
+  - reactor cores pulse and go white-hot on wind-up;
+  - movement: hover, drift, a heavy settle, or a stomping gait;
+  - moving halves: Monarch's wings beat and open wide; Widow's legs, Reaver's scythes, Bishop's chains and Oracle's crystals sway; Warden, Sovereign, Null and Tyrant pylons step outward;
+  - counter-rotating ember rings on the machine bosses, embers, and a white hit flash;
+  - Searfang turns to face you.
+- All 15 are back on the inferno palette: red, crimson, orange and charcoal, with white-hot cores and magenta-red only on Volcanic Null.
+- Names, attacks, roles, stats, placement and IDs are unchanged. The audit and approach are in `docs/INFERNO_BOSS_REDESIGN.md`.
+### Added
+- **The owner's recorded drop sounds for the INFERNO rarities:** T1 Forged, T2 Voltaic, T3 Celestial, T4 Abyssal.
+  - Audio change: the game could only play synthesized effects before. It now also plays recorded files from `resources/sfx/` on Android (SoundPool) and PC (Clip).
+  - The files were converted to mono 44.1 kHz WAV (1.3 MB → 0.6 MB).
+### Technical
+- New: `resources/bosses/inferno_{alpha,beta,gamma}.webp`, `InfernoRig` / `InfernoSpriteBody`, `SoundBank.files/gain/fileBytes`, `GameSound.GEAR_FORGED…GEAR_ABYSSAL`.
+- New renders: `InfernoBossRenders` sheets (with hitbox rings) and arena shots.
+
 ## 0.35.1 (versionCode 104) — 2026-10-16 · every INFERNO boss burns its own colour
 ### Changed (owner: "all inferno bosses will not be the same color")
 - Each of the 15 INFERNO bosses has its own fire, armour and HP-bar colour, keeping the volcanic look:

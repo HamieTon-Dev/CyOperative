@@ -123,6 +123,16 @@ class AudioManager(private val context: Context) {
                         Log.w(TAG, "sfx $sound failed", t)
                     }
                 }
+                // Recorded effects: copied out of the APK's resources once, then loaded like the rest.
+                for (sound in SoundBank.files.keys) {
+                    try {
+                        val f = File(dir, "${sound.name.lowercase()}_rec1.wav")
+                        if (!f.exists()) SoundBank.fileBytes(sound)?.let { f.writeBytes(it) }
+                        if (f.exists()) ids[sound] = p.load(f.absolutePath, 1)
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "sfx $sound failed", t)
+                    }
+                }
             }.start()
         } catch (t: Throwable) {
             Log.w(TAG, "SoundPool unavailable; running silent", t)
@@ -143,7 +153,6 @@ class AudioManager(private val context: Context) {
         if (!foreground) return
         val p = pool ?: return
         val id = ids[sound] ?: return
-        val recipe = SoundBank.recipes[sound] ?: return
         val now = SystemClock.uptimeMillis()
         val gap = SoundBank.minInterval[sound]
         if (gap != null) {
@@ -153,7 +162,7 @@ class AudioManager(private val context: Context) {
         lastPlayed[sound] = now
         val variants = SoundBank.pitchVariants[sound]
         val rate = variants?.get(Random.nextInt(variants.size)) ?: 1f
-        val vol = (sfxVolume * recipe.gain).coerceIn(0f, 1f)
+        val vol = (sfxVolume * SoundBank.gain(sound)).coerceIn(0f, 1f)
         if (vol <= 0f) return
         p.play(id, vol, vol, 1, 0, rate)
         when (sound) {
