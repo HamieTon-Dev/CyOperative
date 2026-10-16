@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.36.4 (versionCode 109) — 2026-10-16 · co-op €: everything separate
+### Changed (owner: "no [shared run earnings], everything is separate unless trading")
+- **Co-op € are fully separate.** Each player's wallet is their own saved total plus only what they earn:
+  - **Kills:** the cash bag belongs to whoever got the kill, and only they can pick it up.
+  - **Chips that pay € (Crypto Cache):** go to whoever takes them.
+  - **Room-clear, vault and boss payouts:** each player gets their own full payout; nothing is split or pooled.
+  - € only move between players through a trade.
+- **XP is unchanged.** Each player levels their own character, and every kill by either player gives both of them the full XP.
+- Co-op codec **v30** (`NetOp.eurosIncome`).
+
 ## 0.36.3 (versionCode 108) — 2026-10-16 · one € total in co-op too, hidden TRADE, short numbers
 ### Changed
 - **One € total everywhere, co-op included** (owner: "€ needs to be persistent… the same in game as in main menu").

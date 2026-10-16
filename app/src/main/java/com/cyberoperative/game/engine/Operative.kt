@@ -42,6 +42,8 @@ class Operative(val index: Int, baseStats: RunStats) {
     /** Co-op wallet (0.36.3): saved € at the start, and what was spent or traded away (negative: received). */
     var startEuros = 0
     var eurosSpent = 0
+    /** Co-op (0.36.4): € this player earned this run (separate from the partner's). */
+    var eurosIncome = 0
     var hpCharges = 0
     /** Gear picked up this run (banked into the backpack by the session). */
     val gearFound = ArrayList<com.cyberoperative.game.data.GearItem>()

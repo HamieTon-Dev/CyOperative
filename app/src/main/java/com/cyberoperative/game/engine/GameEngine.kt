@@ -403,17 +403,24 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         private set
     /** € on hand: what the player brought into the run plus what it has earned (minus the shop). */
     /**
-     * Co-op (owner, 0.36.3: "€ needs to be persistent… your total present in every run"): each
-     * player has their own wallet, their saved total plus the run's € minus what they spent (or
-     * traded away). Solo keeps one wallet.
+     * Co-op (owner, 0.36.3/0.36.4: "everything is separate unless trading"): each player has their
+     * own wallet: their saved total plus what THEY earn this run (their kills and cash bags, and their
+     * own full room / boss / vault payouts), minus what they spend or trade away. Solo keeps one wallet.
      */
     var perPlayerWallets = false
     fun walletOf(o: Operative): Int =
-        if (perPlayerWallets) o.startEuros + eurosEarned - o.eurosSpent else config.startEuros + eurosEarned
+        if (perPlayerWallets) o.startEuros + o.eurosIncome - o.eurosSpent else config.startEuros + eurosEarned
     /** The current operative's € (the HUD, the shop). */
     val wallet: Int get() = walletOf(cur)
     /** What this run adds to the local player's saved € (purchases and trades included). */
-    val eurosNet: Int get() = if (perPlayerWallets) eurosEarned - ops[primary].eurosSpent else eurosEarned
+    val eurosNet: Int get() = if (perPlayerWallets) ops[primary].eurosIncome - ops[primary].eurosSpent else eurosEarned
+
+    /** Pays [amount] €: to [to] only, or (null) to every player in full. */
+    private fun earn(amount: Int, to: Operative? = null) {
+        eurosEarned += amount
+        if (!perPlayerWallets) return
+        if (to != null) to.eurosIncome += amount else for (o in ops) if (!o.gone) o.eurosIncome += amount
+    }
     private fun spend(price: Int) { if (perPlayerWallets) cur.eurosSpent += price else eurosEarned -= price }
 
     /** € from outside the fight (a backpack sale mid-run, owner 0.35.0): into the wallet, banked as usual. */
@@ -1430,7 +1437,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val eventMul = if (plan.kind == LevelKind.EVENT) plan.rules.rewardMul else 1f
         score += (Scoring.levelClear(level, levelSeconds, levelEnemyTotal, levelDamageTaken, eventMul) * difficultyReward).toLong()
         val euros = ((5 + level) * eventMul * stats.euroMul * difficultyReward).toInt()
-        eurosEarned += euros
+        earn(euros)
         if (plan.kind == LevelKind.EVENT) {
             eventsCompleted++
             plan.event?.let { completedEventIds += it.id }
@@ -1539,7 +1546,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             when (choice.def.id) {
                 Upgrades.CRYPTO_CACHE.id -> {
                     val euros = ((15 + 3 * level) * stats.euroMul * difficultyReward).toInt()
-                    eurosEarned += euros
+                    earn(euros, cur)
                     addText(px, py - 40f, "+$euros €", TextKind.INFO)
                     sound(GameSound.CURRENCY)
                 }
@@ -1610,7 +1617,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val cx = arena.width / 2f
         val cy = arena.height / 2f
         val payout = vaultPayout(level)
-        eurosEarned += payout
+        earn(payout)
         addPulse(cx, cy, 260f, 0.7f, 0xFFFFD426)
         addPulse(cx, cy, 140f, 0.45f, 0xFFFFFFFF)
         repeat(70) { addParticle(cx, cy, if (it % 3 == 0) 0xFFFFFFFF else 0xFFFFD426, 420f, 1.1f, 4f) }
@@ -2670,7 +2677,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         when (l.kind) {
             LootKind.HP_CHARGE -> o.hpCharges++
             LootKind.PACKET_BOMB -> o.packetBombs++
-            LootKind.CASH -> eurosEarned += l.amount
+            LootKind.CASH -> earn(l.amount, o)
             LootKind.UPGRADE -> { chipDef(l)?.let { applyChip(o, it) }; return }
             LootKind.GEAR -> {
                 val g = l.gear ?: return
@@ -2698,7 +2705,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         // Endless never clears: very old bags bank themselves so the floor never fills up.
         while (loot.size > MAX_FLOOR_LOOT) {
             val oldest = loot.firstOrNull { it.kind == LootKind.CASH } ?: break
-            eurosEarned += oldest.amount
+            earn(oldest.amount, ops.getOrNull(oldest.owner))
             loot.remove(oldest)
         }
         val vacuum = phase != Phase.COMBAT
@@ -3650,10 +3657,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val euros = max(1, (e.def.euros * rewardMul * s.euroMul * difficultyReward).toInt())
         // PC: kills pay out as a cash bag on the floor (walk over it, or it's pulled in when the room is clear).
         if (config.consumables && !mirror) {
-            // A cash bag for whoever is nearest (co-op: your partner's bags aren't yours to take).
-            val near = ops.filter { it.alive }.minByOrNull { MathUtil.dist2(it.px, it.py, e.x, e.y) }
-            loot += Loot(LootKind.CASH, e.x, e.y, euros).also { it.owner = near?.index ?: -1 }
-        } else eurosEarned += euros
+            // Co-op (owner, 0.36.4): the bag belongs to whoever got the kill; your partner can't take it.
+            val killer = cur.takeIf { it.alive || it.downed } ?: ops.filter { it.alive }.minByOrNull { MathUtil.dist2(it.px, it.py, e.x, e.y) }
+            loot += Loot(LootKind.CASH, e.x, e.y, euros).also { it.owner = if (perPlayerWallets) killer?.index ?: -1 else -1 }
+        } else earn(euros, if (perPlayerWallets) cur else null)
         score += (Scoring.kill(e.def.score, level, e.isElite, e.isChild) * difficultyReward).toLong()
         if (s.healOnKill > 0f) heal(s.healOnKill, quiet = true)
         // OP XP (owner, 2026-10-13): every kill, more for elites and bosses.
@@ -4497,7 +4504,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         dropGear(spewX, spewY, boss = true, count = (if (campaign) BOSS_GEAR_DROPS else BOSS_GEAR_DROPS - 1) + config.difficulty.inferno.coerceAtMost(10) / 3)
         lastKillX = spewX; lastKillY = spewY
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
-        eurosEarned += paid
+        earn(paid)
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
         // Campaign: a world boss pays out like the end of a world (at least four boosted drops).
@@ -4679,6 +4686,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.shopGear = if (o.shopGear.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(o.shopGear.map { it.item })
             n.shopGearSold = o.shopGear.foldIndexed(0) { i, m, it -> if (it.sold) m or (1 shl i) else m }
             n.eurosSpent = o.eurosSpent
+            n.eurosIncome = o.eurosIncome
             n.shopReady = o.shopReady
             n.worldReady = o.worldReady
             w.ops += n
@@ -4883,6 +4891,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.shopReady = n.shopReady
             o.worldReady = n.worldReady
             o.eurosSpent = n.eurosSpent
+            o.eurosIncome = n.eurosIncome
         }
 
         // Enemies by uid: keep the ones still alive (smoothly moved), add new, burst the vanished.
