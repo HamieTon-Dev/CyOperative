@@ -18,12 +18,53 @@ import kotlin.math.sin
  * edges, a white-hot core, embers rising off the body and a burning pool on the floor.
  */
 
-private val METAL = Color(0xFF1C0E0B)
-private val METAL_LIT = Color(0xFF34190F)
-private val METAL_DARK = Color(0xFF0B0504)
-private val LAVA = Color(0xFFFF6A1A)
-private val HOT = Color(0xFFFFC24A)
-private val WHITE_HOT = Color(0xFFFFF1C8)
+/**
+ * Each INFERNO boss burns its own colour (owner, 0.35.1: "all inferno bosses will not be the same
+ * colour"): [lava] is its fire, [hot] the bright heart of it, [metal] its armour.
+ */
+internal class InfernoPalette(val lava: Long, val hot: Long, val metal: Long, val white: Long = 0xFFFFF4E0)
+
+// The palette in use; every body sets its own at the top of draw() (drawing is single-threaded).
+private var METAL: Color = Color(0xFF1C0E0B)
+private var METAL_LIT: Color = Color(0xFF34190F)
+private var METAL_DARK: Color = Color(0xFF0B0504)
+private var LAVA: Color = Color(0xFFFF6A1A)
+private var HOT: Color = Color(0xFFFFC24A)
+private var WHITE_HOT: Color = Color(0xFFFFF1C8)
+/** Crystal / spike faces: armour warmed by the fire. */
+private var SHARD: Color = Color(0xFF4A1E10)
+
+private fun use(pal: InfernoPalette) {
+    val m = Color(pal.metal)
+    METAL = m
+    METAL_LIT = lighter(m, 0.12f)
+    METAL_DARK = darker(m, 0.45f)
+    LAVA = Color(pal.lava)
+    HOT = Color(pal.hot)
+    WHITE_HOT = Color(pal.white)
+    SHARD = Color(
+        m.red * 0.6f + LAVA.red * 0.25f, m.green * 0.6f + LAVA.green * 0.25f, m.blue * 0.6f + LAVA.blue * 0.25f, 1f
+    )
+}
+
+/** One palette per boss, after its card. */
+internal object InfernoPalettes {
+    val HELLCORE = InfernoPalette(0xFFFF5A14, 0xFFFFC24A, 0xFF1C0E0B)          // classic forge orange
+    val WARDEN = InfernoPalette(0xFFFFA21A, 0xFFFFE27A, 0xFF241808)            // amber furnace, bronze plate
+    val WIDOW = InfernoPalette(0xFFFF1E5A, 0xFFFF9AB4, 0xFF1A0610)             // crimson-magenta venom fire
+    val MAGMA = InfernoPalette(0xFFFF8A00, 0xFFFFF06A, 0xFF22140A)             // molten sun-orange
+    val REAVER = InfernoPalette(0xFFFF7A5A, 0xFFFFE2D6, 0xFF2C2828, 0xFFFFFFFF)  // ash grey, pale embers
+    val ROUTER = InfernoPalette(0xFFFF3A2A, 0xFF8AF4FF, 0xFF120C10)            // hell red with cyan data
+    val ORACLE = InfernoPalette(0xFFB04BFF, 0xFFF0C8FF, 0xFF140A1E)            // violet hellfire
+    val SEARFANG = InfernoPalette(0xFFE0141A, 0xFFFF8A3A, 0xFF1A0606)          // blood-red slag
+    val BISHOP = InfernoPalette(0xFF2E9BFF, 0xFFB8F0FF, 0xFF0A0E1C)            // blue soul-fire
+    val MAW = InfernoPalette(0xFF9CFF2A, 0xFFEAFFB0, 0xFF101808)               // sulphur-green brimstone
+    val SOVEREIGN = InfernoPalette(0xFFFF1A3A, 0xFFFFD24A, 0xFF180608)         // royal crimson and gold
+    val HALO = InfernoPalette(0xFFFFC21A, 0xFFFFFFE0, 0xFF2A2010)              // solar gold-white
+    val NULL = InfernoPalette(0xFFFF2EC4, 0xFFFFB0EE, 0xFF0C060C)              // magenta null-fire, obsidian
+    val HEX = InfernoPalette(0xFF1AE8A0, 0xFFD0FFF0, 0xFF081410)               // teal ritual fire
+    val MONARCH = InfernoPalette(0xFFFF4A6A, 0xFFFFC08A, 0xFF1E080C)           // phoenix rose-orange
+}
 private const val PI = Math.PI.toFloat()
 
 private fun metal(p: BossPose) = if (p.hitFlash) Color.White else METAL
@@ -75,6 +116,7 @@ private fun pulseOf(p: BossPose, rate: Float = 3f) = 0.5f + 0.5f * sin(p.time * 
 /** Hellcore Tyrant: an armoured forge core in a fire halo, molten shards orbiting, lava dripping. */
 internal object HellcoreTyrantBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.HELLCORE)
         val r = p.radius; val t = p.time; val pu = pulseOf(p)
         val cy = p.cy + sin(t * 1.5f) * r * 0.06f
         lavaPool(p, p.cy + r * 0.95f)
@@ -90,7 +132,7 @@ internal object HellcoreTyrantBody : BossBody {
             val a = t * 0.7f + k * 2f * PI / n
             val sx = p.cx + cos(a) * r * 1.55f
             val sy = cy + sin(a) * r * 0.55f - r * 0.1f
-            crystal(sx, sy + r * 0.25f, -PI / 2f, r * 0.55f, r * 0.2f, Color(0xFF5A2410), METAL_DARK, LAVA)
+            crystal(sx, sy + r * 0.25f, -PI / 2f, r * 0.55f, r * 0.2f, SHARD, METAL_DARK, LAVA)
         }
         fireRing(Offset(p.cx, cy), r * 1.25f, r * 0.38f, LAVA.copy(alpha = 0.8f))
         // Hull: four heavy plates round the core.
@@ -107,6 +149,7 @@ internal object HellcoreTyrantBody : BossBody {
 /** Ember Warden: a squat fortress between two rune pylons, one great burning eye. */
 internal object EmberWardenBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.WARDEN)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 2f)
         val ground = p.cy + r * 0.95f
         lavaPool(p, ground, 1.6f)
@@ -119,7 +162,7 @@ internal object EmberWardenBody : BossBody {
                 val y = ground - r * (0.5f + k * 0.42f)
                 drawLine(LAVA.copy(alpha = 0.5f + 0.4f * sin(t * 4f + k + s)), Offset(x - r * 0.08f, y), Offset(x + r * 0.08f, y - r * 0.12f), 2.5f)
             }
-            crystal(x, ground - r * 2.25f, -PI / 2f, r * 0.45f, r * 0.42f, Color(0xFF4A1E10), METAL_DARK, LAVA)
+            crystal(x, ground - r * 2.25f, -PI / 2f, r * 0.45f, r * 0.42f, SHARD, METAL_DARK, LAVA)
         }
         // Fortress body and shoulders.
         block(p.cx, ground, r * 1.5f, r * 0.8f, r * 1.25f, ml, m, LAVA)
@@ -134,6 +177,7 @@ internal object EmberWardenBody : BossBody {
 /** Cinder Widow: a molten spider, burning egg-sac abdomen and eight lava-tipped legs. */
 internal object CinderWidowBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.WIDOW)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 5f)
         val cy = p.cy
         lavaPool(p, cy + r * 0.9f, 1.5f)
@@ -167,6 +211,7 @@ internal object CinderWidowBody : BossBody {
 /** Magma Pulse: a sphere of cracked plates over a molten heart, two orbit rings, plates breaking off. */
 internal object MagmaPulseBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.MAGMA)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 4f)
         val c = Offset(p.cx, p.cy - r * 0.15f + sin(t * 1.3f) * r * 0.05f)
         lavaPool(p, p.cy + r * 0.95f, 1.4f)
@@ -204,6 +249,7 @@ internal object MagmaPulseBody : BossBody {
 /** Ashen Reaver: a hooded reaper in a tattered burning cloak, two huge molten scythes. */
 internal object AshenReaverBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.REAVER)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 4f)
         val cy = p.cy + sin(t * 2f) * r * 0.08f
         lavaPool(p, p.cy + r, 1.2f)
@@ -252,6 +298,7 @@ internal object AshenReaverBody : BossBody {
 internal object InfernalRouterBody : BossBody {
     override val previewSpan: Float get() = 4.6f
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.ROUTER)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 3f)
         val cy = p.cy - r * 0.1f + sin(t * 1.2f) * r * 0.04f
         lavaPool(p, p.cy + r, 1.4f)
@@ -291,6 +338,7 @@ internal object InfernalRouterBody : BossBody {
 /** Pyroclast Oracle: a pointed hood round a pale mask with one red eye, crystals and fire rings round it. */
 internal object PyroclastOracleBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.ORACLE)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 2.5f)
         val cy = p.cy - r * 0.1f + sin(t * 1.4f) * r * 0.07f
         lavaPool(p, p.cy + r, 1.2f)
@@ -301,7 +349,7 @@ internal object PyroclastOracleBody : BossBody {
             val a = t * 0.4f + k * 0.785f
             val x = p.cx + cos(a) * r * 1.6f
             val y = cy + sin(a * 1.3f) * r * 0.7f - r * 0.3f
-            crystal(x, y + r * 0.2f, -PI / 2f, r * 0.42f, r * 0.18f, Color(0xFFFF4A2A), Color(0xFF5A0E08), HOT)
+            crystal(x, y + r * 0.2f, -PI / 2f, r * 0.42f, r * 0.18f, LAVA, darker(LAVA, 0.35f), HOT)
         }
         val m = metal(p); val ml = metalLit(p)
         // Robe and pointed hood.
@@ -320,6 +368,7 @@ internal object PyroclastOracleBody : BossBody {
 internal object SearfangColossusBody : BossBody {
     override val previewSpan: Float get() = 4.6f
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.SEARFANG)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 3f)
         val ground = p.cy + r * 0.95f
         lavaPool(p, ground, 1.6f)
@@ -361,6 +410,7 @@ internal object SearfangColossusBody : BossBody {
 /** Burnwire Bishop: a hovering bishop with a spired mitre, a burning halo and looping chains. */
 internal object BurnwireBishopBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.BISHOP)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 2.5f)
         val cy = p.cy - r * 0.1f + sin(t * 1.6f) * r * 0.07f
         lavaPool(p, p.cy + r, 1.2f)
@@ -396,6 +446,7 @@ internal object BurnwireBishopBody : BossBody {
 internal object FurnaceMawBody : BossBody {
     override val previewSpan: Float get() = 4.4f
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.MAW)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 2f)
         val cy = p.cy - r * 0.1f
         lavaPool(p, p.cy + r, 1.6f)
@@ -421,7 +472,7 @@ internal object FurnaceMawBody : BossBody {
             val a = k * 2f * PI / n
             val bx = p.cx + cos(a) * r * 0.85f
             val by = cy + sin(a) * r * 0.75f * open
-            crystal(bx, by, a + PI, r * (0.32f + 0.08f * (k % 2)), r * 0.13f, Color(0xFF2A140E), METAL_DARK, LAVA)
+            crystal(bx, by, a + PI, r * (0.32f + 0.08f * (k % 2)), r * 0.13f, SHARD, METAL_DARK, LAVA)
         }
         embers(p, 12, 1.5f)
     }
@@ -434,13 +485,14 @@ internal object FurnaceMawBody : BossBody {
 /** Redline Sovereign: a stepped black monolith-king, crown spires in a burning halo, a molten seam down its heart. */
 internal object RedlineSovereignBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.SOVEREIGN)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 2f)
         val ground = p.cy + r * 0.95f
         lavaPool(p, ground, 1.6f)
         val m = metal(p); val ml = metalLit(p)
         // Side spires.
         for (s in listOf(-1f, 1f)) {
-            crystal(p.cx + s * r * 1.35f, ground - r * 0.3f, -PI / 2f, r * 1.6f, r * 0.3f, Color(0xFF3A1810), METAL_DARK, LAVA)
+            crystal(p.cx + s * r * 1.35f, ground - r * 0.3f, -PI / 2f, r * 1.6f, r * 0.3f, SHARD, METAL_DARK, LAVA)
         }
         // Stepped body.
         block(p.cx, ground, r * 1.9f, r * 0.8f, r * 0.55f, ml, m, LAVA)
@@ -452,7 +504,7 @@ internal object RedlineSovereignBody : BossBody {
         for (k in 0 until 5) {
             val x = p.cx + (k - 2f) * r * 0.22f
             val h = r * (0.55f + 0.3f * (1f - abs(k - 2f) / 2f))
-            crystal(x, top, -PI / 2f, h, r * 0.14f, Color(0xFF4A1E10), METAL_DARK, HOT)
+            crystal(x, top, -PI / 2f, h, r * 0.14f, SHARD, METAL_DARK, HOT)
         }
         // The redline seam.
         val seam = 0.6f + 0.4f * sin(t * 5f)
@@ -466,6 +518,7 @@ internal object RedlineSovereignBody : BossBody {
 /** Scorch Halo: a floating wheel of blades round a single slit eye; it spins faster each phase. */
 internal object ScorchHaloBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.HALO)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 3f)
         val c = Offset(p.cx, p.cy - r * 0.15f + sin(t * 1.4f) * r * 0.06f)
         lavaPool(p, p.cy + r, 1.3f)
@@ -474,7 +527,7 @@ internal object ScorchHaloBody : BossBody {
         // Blade arrows round the rim.
         for (k in 0 until 8) {
             val a = spin + k * PI / 4f
-            crystal(c.x + cos(a) * r * 1.05f, c.y + sin(a) * r * 1.05f, a, r * 0.55f, r * 0.26f, Color(0xFF4A1E10), METAL_DARK, LAVA)
+            crystal(c.x + cos(a) * r * 1.05f, c.y + sin(a) * r * 1.05f, a, r * 0.55f, r * 0.26f, SHARD, METAL_DARK, LAVA)
         }
         // Rings.
         drawCircle(m, r * 1.05f, c)
@@ -495,6 +548,7 @@ internal object ScorchHaloBody : BossBody {
 /** Volcanic Null: a towering obsidian monolith with a molten eye, suppression pylons and an ash halo. */
 internal object VolcanicNullBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.NULL)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 1.6f)
         val ground = p.cy + r * 0.95f
         lavaPool(p, ground, 1.7f)
@@ -505,7 +559,7 @@ internal object VolcanicNullBody : BossBody {
             val x = p.cx + s * r * 1.25f
             block(x, ground, r * 0.36f, r * 0.3f, r * 1.4f, ml, m, LAVA)
             val fy = ground - r * (1.8f + 0.1f * sin(t * 2f + s))
-            crystal(x, fy + r * 0.2f, -PI / 2f, r * 0.45f, r * 0.2f, Color(0xFF3A1810), METAL_DARK, LAVA)
+            crystal(x, fy + r * 0.2f, -PI / 2f, r * 0.45f, r * 0.2f, SHARD, METAL_DARK, LAVA)
         }
         // The monolith with ribbed sides.
         block(p.cx, ground, r * 1.2f, r * 0.7f, r * 2.2f, ml, m, LAVA)
@@ -522,6 +576,7 @@ internal object VolcanicNullBody : BossBody {
 /** Smolder Hex: a hexagonal curse engine, a burning sigil in its face and six ember turrets at its corners. */
 internal object SmolderHexBody : BossBody {
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.HEX)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 3f)
         val c = Offset(p.cx, p.cy - r * 0.1f)
         lavaPool(p, p.cy + r, 1.5f)
@@ -556,6 +611,7 @@ internal object SmolderHexBody : BossBody {
 internal object CombustionMonarchBody : BossBody {
     override val previewSpan: Float get() = 5f
     override fun DrawScope.draw(p: BossPose) {
+        use(InfernoPalettes.MONARCH)
         val r = p.radius; val t = p.time; val pu = pulseOf(p, 3f)
         val cy = p.cy - r * 0.2f + sin(t * 2f) * r * 0.08f
         lavaPool(p, p.cy + r, 1.7f)
@@ -568,7 +624,7 @@ internal object CombustionMonarchBody : BossBody {
                 for (f in 0 until 5) {
                     val a = (if (s < 0) PI else 0f) + s * (base + (f - 2) * 0.16f)
                     val l = len * (1f - abs(f - 2) * 0.1f)
-                    crystal(p.cx + s * r * 0.2f, cy, a, l, r * 0.3f, Color(0xFFFF5A1A).copy(alpha = 0.85f), Color(0xFF7A1A08), HOT, 1f)
+                    crystal(p.cx + s * r * 0.2f, cy, a, l, r * 0.3f, LAVA.copy(alpha = 0.85f), darker(LAVA, 0.45f), HOT, 1f)
                 }
             }
         }

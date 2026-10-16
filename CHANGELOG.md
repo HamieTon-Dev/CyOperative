@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.35.1 (versionCode 104) — 2026-10-16 · every INFERNO boss burns its own colour
+### Changed (owner: "all inferno bosses will not be the same color")
+- Each of the 15 INFERNO bosses has its own fire, armour and HP-bar colour, keeping the volcanic look:
+  - **Alpha:** Hellcore Tyrant forge orange; Ember Warden amber/bronze; Cinder Widow crimson-magenta; Magma Pulse sun-orange; Ashen Reaver ash grey with pale embers.
+  - **Beta:** Infernal Router hell red with cyan data; Pyroclast Oracle violet hellfire; Searfang Colossus blood red; Burnwire Bishop blue soul-fire; Furnace Maw sulphur-green brimstone.
+  - **Gamma:** Redline Sovereign crimson and gold; Scorch Halo solar gold-white; Volcanic Null magenta on obsidian; Smolder Hex teal ritual fire; Combustion Monarch phoenix rose-orange.
+- Technical: `InfernoPalette` / `InfernoPalettes` in `ui/game/InfernoBodies.kt`.
+
 ## 0.35.0 (versionCode 103) — 2026-10-16 · trading, selling, 15 INFERNO bosses, class ability upgrades
 ### Added
 - **Sell backpack items** (owner). An unlocked backpack piece can be sold. It's worth item level × rarity tier (Common 1 … Abyssal 9) × €50, capped at 85% of its shop price, and it takes a confirming second tap.
