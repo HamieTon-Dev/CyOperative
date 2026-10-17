@@ -297,14 +297,18 @@ class GameSession(
             val guestCfg = Operatives.buildConfig(Operatives.byBody(guest.body).id, guest.permanent, link.state.seed, guest.opLevel, com.cyberoperative.game.data.Gear.decode(guest.gear))
             hostCfg.copy(
                 mode = GameMode.CAMPAIGN, difficulty = this.difficulty, opLevel = maxOf(host.opLevel, guest.opLevel),
-                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots, guestCfg.classId)
+                ally = AllyConfig(guestCfg.baseStats, guestCfg.rerolls, guestCfg.upgradeQuality, guestCfg.startingUpgrades, guest.opLevel, guestCfg.weaponSlots, guestCfg.classId,
+                    pet = com.cyberoperative.game.data.PetLoadout.decode(guest.pet)),
+                pet = com.cyberoperative.game.data.PetLoadout.decode(host.pet)
             )
         } else {
             Operatives.buildConfig(classId, p.permanentUpgrades, restore?.seed ?: System.nanoTime(), com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level, p.equipped.values)
                 .copy(
                     mode = this.mode, difficulty = this.difficulty, opLevel = com.cyberoperative.game.ui.menu.operativeLevel(p.operativeXp),
                     // € carries over between runs (owner, 0.32.0). A continued run already banked what it earned.
-                    startEuros = (p.euros - (restore?.euros ?: 0)).coerceIn(0L, Int.MAX_VALUE.toLong() / 2).toInt()
+                    startEuros = (p.euros - (restore?.euros ?: 0)).coerceIn(0L, Int.MAX_VALUE.toLong() / 2).toInt(),
+                    // The equipped companion follows the operative (0.38.0).
+                    pet = com.cyberoperative.game.meta.Incubators.loadout(p)
                 )
         }
         // Every run (solo and co-op, every platform) uses the drop rules: chips, weapon cards,
@@ -905,7 +909,9 @@ class GameSession(
             gearToastSerial++
         }
         gearBankTimer += delta
-        if (gearBankTimer >= 2f && found.size > bankedGear) bankGear()
+        val o = engine.operatives.getOrNull(engine.primary)
+        val petFinds = o != null && (o.eggsFound.size > bankedEggs || o.stonesFound > bankedStones)
+        if (gearBankTimer >= 2f && (found.size > bankedGear || petFinds)) bankGear()
     }
 
     /** The save, for the in-run INVENTORY (CHARACTER screen). */
@@ -929,9 +935,23 @@ class GameSession(
         engine.reequip(engine.primary, cfg.baseStats)
     }
 
+    private var bankedEggs = 0
+    private var bankedStones = 0
+
+    /** Eggs and Inferno Stones found so far go into the save (0.38.0). */
+    private fun bankPetFinds() {
+        val o = engine.operatives.getOrNull(engine.primary) ?: return
+        if (o.eggsFound.size <= bankedEggs && o.stonesFound <= bankedStones) return
+        val eggs = o.eggsFound.drop(bankedEggs)
+        val stones = (o.stonesFound - bankedStones).coerceAtLeast(0)
+        bankedEggs = o.eggsFound.size; bankedStones = o.stonesFound
+        save.update { p -> com.cyberoperative.game.meta.Incubators.addEggs(p, eggs).let { it.copy(infernoStones = it.infernoStones + stones) } }
+    }
+
     /** Banks the gear found so far into the backpack (then the Data Vault). */
     fun bankGear() {
         gearBankTimer = 0f
+        bankPetFinds()
         val found = engine.operatives.getOrNull(engine.primary)?.gearFound ?: return
         if (found.size <= bankedGear) return
         val fresh = found.subList(bankedGear, found.size).toList()

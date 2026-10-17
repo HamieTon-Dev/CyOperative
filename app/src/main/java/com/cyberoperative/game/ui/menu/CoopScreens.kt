@@ -60,7 +60,8 @@ fun roomPlayerFor(uid: String, callsign: String, p: PlayerProfile) = RoomPlayer(
     uid = uid, name = com.cyberoperative.game.meta.Characters.coopName(p, callsign), permanent = p.permanentUpgrades, opLevel = operativeLevel(p.operativeXp),
     body = com.cyberoperative.game.data.Operatives.byId(p.selectedOperative).bodyId, skin = com.cyberoperative.game.data.OperativeSkins.token(com.cyberoperative.game.meta.StoreManager.effectiveSkin(p)), ready = true,
     gear = com.cyberoperative.game.data.Gear.encode(p.equipped.values),
-    euros = p.euros
+    euros = p.euros,
+    pet = com.cyberoperative.game.meta.Incubators.loadout(p)?.encode().orEmpty()
 )
 
 /**

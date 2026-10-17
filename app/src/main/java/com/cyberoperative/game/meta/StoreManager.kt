@@ -134,4 +134,11 @@ object StoreManager {
 
     /** Credit a verified ◇ purchase (from Google Play, or a debug test grant). */
     fun grantDiamonds(p: PlayerProfile, amount: Int): PlayerProfile = p.copy(diamonds = p.diamonds + amount)
+
+    /** A pet egg for ◇ (0.38.0): rarity rolled from that egg's odds, the pet inside rolled too. */
+    fun buyEgg(p: PlayerProfile, egg: com.cyberoperative.game.data.Pets.StoreEgg, rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile? {
+        if (p.diamonds < egg.price || p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS) return null
+        val e = com.cyberoperative.game.data.Pets.rollEgg(rng, p.petSeq, egg.roll(rng))
+        return p.copy(diamonds = p.diamonds - egg.price, eggs = p.eggs + e, petSeq = p.petSeq + 1)
+    }
 }

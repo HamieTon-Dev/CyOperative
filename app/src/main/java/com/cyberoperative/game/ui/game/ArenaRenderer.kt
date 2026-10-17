@@ -1029,6 +1029,19 @@ class ArenaRenderer {
         val items = g.enemies.items
         for (i in items.indices) if (items[i].active) push(1, i, items[i].y + items[i].radius * 0.5f)
         if (g.phase != Phase.DEAD) for (o in g.operatives) if (!o.gone) push(2, o.index, o.py + g.playerRadius * 0.5f)
+        // Companions (0.38.0): follow their operative (smoothed here, so a co-op guest sees them too).
+        val dt = if (petClock < 0f) 0f else (time - petClock).coerceIn(0f, 0.1f)
+        petClock = time
+        if (g.phase != Phase.DEAD) for (o in g.operatives) {
+            if (o.gone || o.pet == null || o.index > 1) continue
+            val dir = if (kotlin.math.cos(o.facing) >= 0f) -1f else 1f
+            val tx = o.px + dir * 34f; val ty = o.py + 22f
+            val j = o.index * 2
+            if (petPos[j] == 0f && petPos[j + 1] == 0f || dt == 0f) { petPos[j] = tx; petPos[j + 1] = ty }
+            val k = kotlin.math.min(1f, dt * 5f)
+            petPos[j] += (tx - petPos[j]) * k; petPos[j + 1] += (ty - petPos[j + 1]) * k
+            push(3, o.index, petPos[j + 1])
+        }
         // Insertion sort: tiny n, already nearly sorted frame to frame.
         for (i in 1 until sortCount) {
             val k = sortKey[i]; val kd = sortKind[i]; val ix = sortIndex[i]
@@ -1044,6 +1057,7 @@ class ArenaRenderer {
             when (sortKind[i]) {
                 0 -> drawObstacle(g, obs[sortIndex[i]], sortIndex[i], time)
                 1 -> drawEnemy(g, items[sortIndex[i]], time)
+                3 -> drawPet(g, sortIndex[i], time)
                 else -> {
                     val idx = sortIndex[i]
                     val local = idx == g.primary
@@ -1053,6 +1067,21 @@ class ArenaRenderer {
                 }
             }
         }
+    }
+
+    private val petPos = FloatArray(4)
+    private var petClock = -1f
+
+    /** A companion: shadow, a faint ring in its rarity colour, the owner's sprite bobbing. */
+    private fun DrawScope.drawPet(g: GameEngine, index: Int, time: Float) {
+        val o = g.operatives.getOrNull(index) ?: return
+        val pet = o.pet ?: return
+        val x = petPos[index * 2]; val y = petPos[index * 2 + 1]
+        val bob = kotlin.math.sin(time * 4f + index) * 3f
+        val c = Color(pet.rarity.color)
+        drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - 15f, y - 4f), Size(30f, 9f))
+        drawOval(c.copy(alpha = 0.35f), Offset(x - 17f, y - 6f), Size(34f, 12f), style = Stroke(1.6f))
+        with(com.cyberoperative.game.ui.common.PetArt) { drawPet(pet.art, x, y + bob - 2f, 54f) }
     }
 
     private fun push(kind: Int, index: Int, key: Float) {

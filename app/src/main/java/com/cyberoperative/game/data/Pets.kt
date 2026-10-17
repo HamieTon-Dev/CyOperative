@@ -1,0 +1,215 @@
+package com.cyberoperative.game.data
+
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlin.random.Random
+
+/*
+ * COMPANIONS (owner, 0.38.0): eggs drop in runs (and can be bought for ◇), hatch in the
+ * INCUBATOR on a real-time timer, and a hatched pet follows your operative and fights.
+ * Art: the owner's ten pet / egg sheets, every pet and egg cut out (resources/pets, webp atlases).
+ */
+
+/** An unhatched egg. [art] is its egg picture; [pet] is the pet inside (rolled when it dropped). */
+@Serializable
+data class PetEgg(
+    @SerialName("u") val uid: Long,
+    @SerialName("r") val rarity: GearRarity,
+    @SerialName("a") val art: Int,
+    @SerialName("p") val pet: Int
+) {
+    val name: String get() = Pets.eggName(this)
+    /** Hatch time with no Inferno Stones. */
+    val baseMs: Long get() = Pets.hatchMs(rarity)
+}
+
+/** A hatched companion. */
+@Serializable
+data class Pet(
+    @SerialName("u") val uid: Long,
+    @SerialName("a") val art: Int,
+    @SerialName("r") val rarity: GearRarity,
+    /** Not looked at yet (the reveal / "NEW" tag). */
+    @SerialName("n") val fresh: Boolean = true
+) {
+    val name: String get() = Pets.petName(art)
+    val loadout: PetLoadout get() = PetLoadout(art, rarity)
+}
+
+/** What a run needs to know about an equipped pet. */
+data class PetLoadout(val art: Int, val rarity: GearRarity) {
+    fun encode(): String = "$art:${rarity.name}"
+
+    companion object {
+        fun decode(s: String?): PetLoadout? {
+            if (s.isNullOrBlank()) return null
+            val art = s.substringBefore(':').toIntOrNull() ?: return null
+            val r = runCatching { GearRarity.valueOf(s.substringAfter(':')) }.getOrNull() ?: return null
+            return PetLoadout(art.coerceIn(0, Pets.PET_COUNT - 1), r)
+        }
+    }
+}
+
+/**
+ * Where the incubator's clock stands (anti-cheat). Hatch time only counts on the phone's
+ * since-boot clock, which changing the date/time doesn't touch; across a reboot the gap is
+ * checked against network time ([com.cyberoperative.game.data.TrustedClock]).
+ */
+@Serializable
+data class ClockAnchor(
+    @SerialName("b") val boot: String = "",
+    @SerialName("m") val mono: Long = 0,
+    /** Real time at [mono] (network-checked when [verified]). */
+    @SerialName("t") val trusted: Long = 0,
+    @SerialName("v") val verified: Boolean = false
+)
+
+/** The incubator: one egg hatching, three waiting, up to six Inferno Stones socketed. */
+@Serializable
+data class Incubator(
+    @SerialName("c") val current: PetEgg? = null,
+    /** Hatching progress on [current], in no-stone milliseconds. */
+    @SerialName("p") val progress: Long = 0,
+    @SerialName("q") val queue: List<PetEgg> = emptyList(),
+    /** Inferno Stones socketed (0..[Pets.MAX_STONES]). */
+    @SerialName("s") val stones: Int = 0,
+    @SerialName("k") val clock: ClockAnchor = ClockAnchor(),
+    /** After a reboot the clock is paused until network time confirms the gap. */
+    @SerialName("w") val waitingForTime: Boolean = false
+) {
+    /** Milliseconds of real time left on [current] at the current stone count. */
+    val remainingMs: Long get() {
+        val e = current ?: return 0
+        return ((e.baseMs - progress).coerceAtLeast(0) * Pets.timeFactor(stones)).toLong()
+    }
+    val fraction: Float get() = current?.let { (progress.toFloat() / it.baseMs).coerceIn(0f, 1f) } ?: 0f
+}
+
+object Pets {
+    /** Cut from the owner's ten sheets (resources/pets). */
+    const val PET_COUNT = 1005
+    const val EGG_COUNT = 872
+    /** Atlas layout: 16 × 16 cells per page; pets 64 px, eggs 48 px. */
+    const val PER_PAGE = 256
+    const val COLS = 16
+    const val PET_PX = 64
+    const val EGG_PX = 48
+
+    const val MAX_STONES = 6
+    /** Each Inferno Stone takes 15% off the hatch time; six take 90% (owner). */
+    const val STONE_CUT = 0.15f
+    const val QUEUE = 3
+    const val MAX_EGGS = 100
+
+    fun timeFactor(stones: Int): Float = (1f - STONE_CUT * stones.coerceIn(0, MAX_STONES)).coerceAtLeast(0.1f)
+
+    /** Hatch time by rarity (owner, 0.38.0: 5 min … 8 h). */
+    fun hatchMs(r: GearRarity): Long = 60_000L * when (r) {
+        GearRarity.COMMON -> 5
+        GearRarity.UNCOMMON -> 10
+        GearRarity.RARE -> 20
+        GearRarity.EPIC -> 60
+        GearRarity.LEGENDARY -> 120
+        GearRarity.FORGED -> 180
+        GearRarity.VOLTAIC -> 240
+        GearRarity.CELESTIAL -> 360
+        GearRarity.ABYSSAL -> 480
+    }
+
+    // --- Art --------------------------------------------------------------------------------
+
+    /** Colour class per pet / egg picture (R O Y V G C B P M W K), worked out when the art was cut. */
+    private val hues: Pair<String, String> by lazy {
+        val text = runCatching {
+            Pets::class.java.classLoader?.getResourceAsStream("pets/hues.txt")?.use { it.readBytes().decodeToString() }
+        }.getOrNull().orEmpty().lines()
+        (text.getOrNull(0)?.trim().orEmpty()) to (text.getOrNull(1)?.trim().orEmpty())
+    }
+    private fun petHue(i: Int): Char = hues.first.getOrElse(i) { 'B' }
+    private fun eggHue(i: Int): Char = hues.second.getOrElse(i) { 'B' }
+
+    /** An egg picture's rarity, by its colour (matching the gear rarity colours). */
+    fun eggArtRarity(i: Int): GearRarity = when (eggHue(i)) {
+        'W', 'K' -> GearRarity.COMMON
+        'G' -> GearRarity.UNCOMMON
+        'B' -> GearRarity.RARE
+        'P', 'M' -> GearRarity.EPIC
+        'Y' -> if (i % 2 == 0) GearRarity.LEGENDARY else GearRarity.VOLTAIC
+        'V' -> GearRarity.VOLTAIC
+        'O' -> GearRarity.FORGED
+        'C' -> GearRarity.CELESTIAL
+        'R' -> GearRarity.ABYSSAL
+        else -> GearRarity.RARE
+    }
+
+    private val eggsByRarity: Map<GearRarity, List<Int>> by lazy {
+        val m = (0 until EGG_COUNT).groupBy { eggArtRarity(it) }
+        GearRarity.entries.associateWith { r -> m[r].orEmpty().ifEmpty { (0 until EGG_COUNT).toList() } }
+    }
+
+    private val hueWord = mapOf(
+        'R' to "Crimson", 'O' to "Ember", 'Y' to "Amber", 'V' to "Volt", 'G' to "Venom", 'C' to "Frost",
+        'B' to "Azure", 'P' to "Violet", 'M' to "Neon", 'W' to "Ghost", 'K' to "Shadow"
+    )
+    private val species = listOf(
+        "Byteling", "Glitchpup", "Sparkmite", "Codecub", "Packetling", "Nanokit", "Ratchet", "Cogling",
+        "Voltpaw", "Pixelfang", "Bitbug", "Circuitkin", "Fluxling", "Chipling", "Datamite", "Hexpup",
+        "Ionfox", "Proxypaw", "Rootling", "Scriptling", "Shardling", "Synthcub", "Torqling", "Vectorkin",
+        "Wirefox", "Zapling", "Boltling", "Crawlbot", "Dronelet", "Sentrykin", "Mechapup", "Widget",
+        "Gizmo", "Rivet", "Sprocket", "Servo", "Quark", "Tensor", "Kernel", "Cipher"
+    )
+    private val eggWords = listOf("Core", "Shell", "Nova", "Pulse", "Prism", "Vault", "Rift", "Signal", "Cipher", "Flux", "Nexus", "Ember")
+
+    fun petName(art: Int): String = "${hueWord[petHue(art)] ?: "Azure"} ${species[(art * 7919 + 13) % species.size]}"
+    fun eggName(e: PetEgg): String = "${hueWord[eggHue(e.art)] ?: "Azure"} ${eggWords[(e.art * 31 + 7) % eggWords.size]} Egg"
+
+    /** A new egg of [rarity]: its picture matches the rarity's colour; the pet inside is any of them. */
+    fun rollEgg(rng: Random, uid: Long, rarity: GearRarity): PetEgg {
+        val pics = eggsByRarity.getValue(rarity)
+        return PetEgg(uid, rarity, pics[rng.nextInt(pics.size)], rng.nextInt(PET_COUNT))
+    }
+
+    // --- Combat -------------------------------------------------------------------------------
+
+    /** Pet shot damage as a share of its operative's payload. */
+    fun damageMul(r: GearRarity): Float = when (r) {
+        GearRarity.COMMON -> 0.30f
+        GearRarity.UNCOMMON -> 0.36f
+        GearRarity.RARE -> 0.44f
+        GearRarity.EPIC -> 0.54f
+        GearRarity.LEGENDARY -> 0.66f
+        GearRarity.FORGED -> 0.80f
+        GearRarity.VOLTAIC -> 0.95f
+        GearRarity.CELESTIAL -> 1.10f
+        GearRarity.ABYSSAL -> 1.30f
+    }
+
+    /** Seconds between pet shots: 1.1 s for COMMON down to 0.6 s for ABYSSAL. */
+    fun fireInterval(r: GearRarity): Float = 1.1f - 0.0625f * r.ordinal
+    const val RANGE = 460f
+
+    // --- Drops ----------------------------------------------------------------------------------
+
+    /** Egg chance from a boss and an elite (each operative rolls its own). */
+    const val BOSS_EGG = 0.35f
+    const val ELITE_EGG = 0.02f
+
+    /**
+     * Inferno Stone chance from a boss on INFERNO [level]: an ABYSSAL-tier find, the same
+     * 0.4% × INFERNO level as ABYSSAL gear, at most 20%.
+     */
+    fun stoneChance(level: Int): Float = if (level <= 0) 0f else (0.004f * level).coerceAtMost(0.2f)
+
+    /** Store eggs (◇). Defaults: change prices / odds here. */
+    enum class StoreEgg(val label: String, val price: Long, val odds: List<Pair<GearRarity, Float>>) {
+        MYSTERY("MYSTERY EGG", 150, listOf(GearRarity.COMMON to 40f, GearRarity.UNCOMMON to 30f, GearRarity.RARE to 20f, GearRarity.EPIC to 8f, GearRarity.LEGENDARY to 2f)),
+        EPIC("EPIC EGG", 600, listOf(GearRarity.EPIC to 85f, GearRarity.LEGENDARY to 15f)),
+        LEGENDARY("LEGENDARY EGG", 1500, listOf(GearRarity.LEGENDARY to 100f));
+
+        fun roll(rng: Random): GearRarity {
+            var x = rng.nextFloat() * odds.sumOf { it.second.toDouble() }.toFloat()
+            for ((r, w) in odds) { x -= w; if (x <= 0f) return r }
+            return odds.last().first
+        }
+    }
+}

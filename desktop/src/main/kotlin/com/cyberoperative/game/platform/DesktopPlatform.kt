@@ -171,3 +171,15 @@ fun androidx.compose.ui.Modifier.platformGestureExclusion(): androidx.compose.ui
 /** The PC window is always landscape. */
 @Composable
 fun ScreenOrientation(landscape: Boolean) {}
+
+/**
+ * Clocks for anything that must not be fooled by changing the PC's time (Pet incubator,
+ * 0.38.0). On PC [mono] only lasts as long as the game is open, so every launch is a new
+ * "boot": time spent closed is checked against network time.
+ */
+object PlatformClock {
+    private val process = java.util.UUID.randomUUID().toString()
+    fun wall(): Long = System.currentTimeMillis()
+    fun mono(): Long = System.nanoTime() / 1_000_000L
+    fun bootId(): String = process
+}

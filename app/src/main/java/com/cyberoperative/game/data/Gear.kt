@@ -436,7 +436,7 @@ object Gear {
 
     // --- Compact text form (co-op lobby, run saves) -------------------------------
 
-    private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+    val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     fun encode(items: Collection<GearItem>): String = json.encodeToString(kotlinx.serialization.builtins.ListSerializer(GearItem.serializer()), items.toList())
 

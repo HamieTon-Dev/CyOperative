@@ -73,7 +73,18 @@ data class PlayerProfile(
     val vault: List<com.cyberoperative.game.data.GearItem> = emptyList(),
     /** Next gear id (unique across every character). */
     val gearSeq: Long = 1,
-    val otherCharacters: List<CharacterSave> = emptyList()
+    val otherCharacters: List<CharacterSave> = emptyList(),
+    // --- Companions (0.38.0): shared by every character on the account ---------------------
+    /** Unhatched eggs (up to 100). */
+    val eggs: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
+    val pets: List<com.cyberoperative.game.data.Pet> = emptyList(),
+    /** The pet that follows the operative into runs (uid, 0 = none). */
+    val activePet: Long = 0,
+    /** Inferno Stones owned (those socketed in the incubator count too). */
+    val infernoStones: Int = 0,
+    val incubator: com.cyberoperative.game.data.Incubator = com.cyberoperative.game.data.Incubator(),
+    /** Next egg / pet id. */
+    val petSeq: Long = 1
 )
 
 /** Appearance picks on the character creator: HEAD, FACE, BODY, LEGS (three options each). */

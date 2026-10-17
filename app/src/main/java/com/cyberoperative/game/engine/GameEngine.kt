@@ -45,7 +45,9 @@ data class AllyConfig(
     val opLevel: Int = 1,
     val weaponSlots: Int = Upgrades.MAX_WEAPONS,
     /** The partner's class (its PC spells). */
-    val classId: String = "operative"
+    val classId: String = "operative",
+    /** The partner's companion (0.38.0), or null. */
+    val pet: com.cyberoperative.game.data.PetLoadout? = null
 )
 
 const val COOP_HP_MUL = 1.4f
@@ -81,7 +83,9 @@ data class RunConfig(
     /** This player's class (its PC spells). */
     val classId: String = "operative",
     /** This player's own OP level for gear drops (co-op runs scale threats to the higher one); 0 = [opLevel]. */
-    val gearLevel: Int = 0
+    val gearLevel: Int = 0,
+    /** This player's companion (0.38.0): follows and fights. Null: none. */
+    val pet: com.cyberoperative.game.data.PetLoadout? = null
 ) {
     val coop: Boolean get() = ally != null
     /** Co-op threat HP ×1.4 (bosses ×1.7) and ~35% more threats. */
@@ -189,6 +193,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         config.ally?.let { a -> getOrNull(1)?.classId = a.classId }
         this[0].gearLevel = if (config.gearLevel > 0) config.gearLevel else config.opLevel
         config.ally?.let { a -> getOrNull(1)?.gearLevel = a.opLevel }
+        this[0].pet = config.pet
+        config.ally?.let { a -> getOrNull(1)?.pet = a.pet }
     }
     val operatives: List<Operative> get() = ops
     /** Floor drops; only on builds with consumables. Own random so seeds and balance stay as they were. */
@@ -1149,7 +1155,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         runSeconds += dt
         if (phase == Phase.COMBAT) levelSeconds += dt
 
-        forEachAlive { updatePlayer(dt); updateOrbit(dt); updateCloak(dt) }
+        forEachAlive { updatePlayer(dt); updateOrbit(dt); updatePet(dt); updateCloak(dt) }
         if (config.consumables) updateLoot(dt)
         if (phase == Phase.COMBAT) {
             updateSpawning(dt)
@@ -3467,6 +3473,52 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         return p
     }
 
+    /** Separate random for companion drops, so gear and loot seeds are unchanged. */
+    private val petRng = kotlin.random.Random(config.seed xor 0x9E7EL)
+
+    /**
+     * Companion (owner, 0.38.0): follows a little behind the operative and fires at the
+     * nearest threat in range, its shot a share of the operative's payload by rarity.
+     */
+    private fun updatePet(dt: Float) {
+        val pet = cur.pet ?: return
+        val dir = if (kotlin.math.cos(facing) >= 0f) -1f else 1f
+        val tx = px + dir * 34f; val ty = py + 22f
+        if (cur.petX == 0f && cur.petY == 0f) { cur.petX = tx; cur.petY = ty }
+        val k = min(1f, dt * 6f)
+        cur.petX += (tx - cur.petX) * k; cur.petY += (ty - cur.petY) * k
+        cur.petTimer -= dt
+        if (cur.petTimer > 0f || phase != Phase.COMBAT) return
+        val t = nearestEnemy(cur.petX, cur.petY, com.cyberoperative.game.data.Pets.RANGE) ?: return
+        cur.petTimer = com.cyberoperative.game.data.Pets.fireInterval(pet.rarity)
+        val ang = atan2(t.y - cur.petY, t.x - cur.petX)
+        val p = newProjectile() ?: return
+        p.active = true; p.friendly = true; p.kind = ProjKind.NODE_BOLT
+        p.x = cur.petX; p.y = cur.petY
+        p.vx = cos(ang) * 560f; p.vy = sin(ang) * 560f
+        p.radius = 5f; p.damage = stats.damage * com.cyberoperative.game.data.Pets.damageMul(pet.rarity) * plan.rules.playerDamageMul; p.crit = false
+        p.life = 1f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+        p.lastHitUid = -1; p.ghost = false; p.homing = 0f
+    }
+
+    /** Eggs (and, on INFERNO, Inferno Stones) from a boss or an elite: each operative rolls its own. */
+    private fun rollPetDrops(boss: Boolean, x: Float, y: Float) {
+        if (mirror) return
+        val inf = config.difficulty.inferno
+        for (o in ops) {
+            if (o.gone) continue
+            if (petRng.nextFloat() < (if (boss) com.cyberoperative.game.data.Pets.BOSS_EGG else com.cyberoperative.game.data.Pets.ELITE_EGG)) {
+                val rarity = com.cyberoperative.game.data.Gear.rollRarity(petRng, boss, inf, (config.difficulty.luck * 0.3f).coerceAtLeast(0f), false)
+                o.eggsFound += com.cyberoperative.game.data.Pets.rollEgg(petRng, (o.eggsFound.size + 1).toLong(), rarity)
+                if (o === ops[primary]) addText(x, y - 56f, "EGG FOUND", TextKind.INFO)
+            }
+            if (boss && petRng.nextFloat() < com.cyberoperative.game.data.Pets.stoneChance(inf)) {
+                o.stonesFound++
+                if (o === ops[primary]) addText(x, y - 76f, "INFERNO STONE!", TextKind.INFO)
+            }
+        }
+    }
+
     private fun updateOrbit(dt: Float) {
         val s = stats
         orbAngle = (orbAngle + s.orbAngularSpeed * dt) % MathUtil.TWO_PI
@@ -3640,6 +3692,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             elitesDefeated++
             dropLoot(e.x, e.y, ELITE_HP_DROP, ELITE_BOMB_DROP)
             if (!mirror && gearRng.nextFloat() < ELITE_GEAR_CHANCE + 0.02f * config.difficulty.inferno.coerceAtMost(10)) dropGear(e.x, e.y, boss = false, count = 1)
+            rollPetDrops(boss = false, e.x, e.y)
         }
         lastKillX = e.x; lastKillY = e.y
         if (chipRules && !mirror && chipBudget > 0 && phase == Phase.COMBAT) {
@@ -4502,6 +4555,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         dropLoot(spewX, spewY, BOSS_HP_DROP, BOSS_BOMB_DROP)
         // Gear (owner, 2026-10-13): a world boss drops three pieces per player, more on INFERNO.
         dropGear(spewX, spewY, boss = true, count = (if (campaign) BOSS_GEAR_DROPS else BOSS_GEAR_DROPS - 1) + config.difficulty.inferno.coerceAtMost(10) / 3)
+        rollPetDrops(boss = true, spewX, spewY)
         lastKillX = spewX; lastKillY = spewY
         val paid = (eurosReward * stats.euroMul * difficultyReward).toInt()
         earn(paid)
@@ -4738,6 +4792,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         w.tradeDone = trade.doneSerial; w.tradeDoneOffers[0] = trade.done[0]; w.tradeDoneOffers[1] = trade.done[1]
         w.tradeRefused = trade.refusedSerial; w.tradeRefusedFor = trade.refusedFor
         ops.getOrNull(1)?.let { g -> w.guestGear = if (g.gearFound.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(g.gearFound.takeLast(GUEST_GEAR_SENT)) }
+        ops.getOrNull(1)?.let { g ->
+            w.guestEggs = if (g.eggsFound.isEmpty()) "" else com.cyberoperative.game.data.Gear.json.encodeToString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.PetEgg.serializer()), g.eggsFound)
+            w.guestStones = g.stonesFound
+        }
         for (d in exitDoors) w.exitDoors += floatArrayOf(d.x, d.y, d.side.toFloat())
         for (z in zaps.items) {
             if (!z.active) continue
@@ -4946,6 +5004,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (w.guestGear.isNotEmpty()) ops.getOrNull(1)?.let { g ->
             for (item in com.cyberoperative.game.data.Gear.decode(w.guestGear)) if (g.gearFound.none { it.uid == item.uid }) g.gearFound += item
+        }
+        ops.getOrNull(1)?.let { g ->
+            if (w.guestEggs.isNotEmpty()) runCatching {
+                val eggs = com.cyberoperative.game.data.Gear.json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.PetEgg.serializer()), w.guestEggs)
+                if (eggs.size > g.eggsFound.size) { g.eggsFound.clear(); g.eggsFound += eggs }
+            }
+            g.stonesFound = maxOf(g.stonesFound, w.guestStones)
         }
         exitDoors.clear()
         for (d in w.exitDoors) exitDoors += ExitDoor(d[0], d[1], d[2].toInt())

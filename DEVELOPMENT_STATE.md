@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.37.6 (versionCode 116) |
+| Version | 0.38.0 (versionCode 118) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,15 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.38.0 companions:**
+  - Pets, eggs, the incubator and stones are account-wide (top-level profile fields).
+  - Incubator time:
+    - `Incubators.clockStep` credits the since-boot clock (`PlatformClock.mono`) within a boot.
+    - Across a reboot / PC restart it needs `TrustedClock.networkNow()` (an HTTPS Date header, read in the background) and waits until then (`waitingForTime`).
+    - If the anchor was never network-verified, the time credited across a reboot is capped at 8 h.
+  - Pets are drawn by the renderer from a smoothed follow position (so co-op guests see them); the host's engine fires the shots (NODE_BOLT projectiles).
+  - Store egg prices and odds are in `Pets.StoreEgg` (defaults, not yet owner-approved).
+  - No hatch notification yet.
 - **0.37.5 NEON tracks:** `TrackGroup.NEON` tracks are in both COMBAT pools (normal and INFERNO), never in BOSS/MENU pools; `MusicTrack.plain` means 1.0× speed and pitch and no EQ or reverb; a pinned NEON track is dropped when a boss round starts.
 - **0.37.0 Idle Runs (Android only):**
   - Shared: `idle/IdleRunSimulator` runs the real formulas (buildConfig + chips, LevelPlanner rooms, PowerGovernor, Scaling, boss scaling from BossBrain) one threat at a time. Tuning constants are at the top: `SKILL_MEAN` 0.70 ± 0.12, `BOSS_SKILL` 1.1, `HIT_TAKEN` 0.058, `BOSS_HIT_TAKEN` 0.029, `MAX_CROWD` 3, `ROOM_HEAL` 0.32 (eased twice on owner request: 0.37.1 ≈ ×2 duration, 0.37.2 ≈ ×2.2 more), HP charges at 40%. These were calibrated against the test `Bot` (idle reaches a bit further than the simple bot); a device playtest should confirm the "competent player" target.

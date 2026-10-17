@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.38.0 (versionCode 118) — 2026-10-17 · Companions: eggs, incubator, Inferno Stones, pets
+### Added (owner: companion / pet addon)
+- **Pets** that follow you and fight. Equip one in CHARACTER › PETS.
+  - It hovers beside your operative in every run and fires at the nearest threat.
+  - Each shot deals 30% (Common) to 130% (Abyssal) of your payload, every 1.1 s down to 0.6 s.
+  - Co-op shows each player's pet, and both pets fight.
+- **Art:** all of it is the owner's ten pet / egg sheets cut out.
+  - **1,005 pets** and **872 eggs**.
+  - Each egg's rarity matches its colour (grey Common, green Uncommon, blue Rare, purple Epic, gold Legendary, orange Forged, yellow Voltaic, cyan Celestial, red Abyssal).
+  - Names are generated, e.g. "Violet Nova Egg" and "Crimson Hexpup".
+- **Eggs:**
+  - **Drops:** a boss drops one 35% of the time, an elite 2%. Each player rolls their own, using the gear rarity odds (INFERNO rarities on INFERNO).
+  - **Store:** MYSTERY EGG ◇150, EPIC EGG ◇600 and LEGENDARY EGG ◇1500 (defaults).
+  - Up to 100 eggs.
+- **Incubator** (CHARACTER › PETS, or **EGGS → INCUBATOR** on the inventory):
+  - Hatch times by rarity: Common 5 min, Uncommon 10 min, Rare 20 min, Epic 1 h, Legendary 2 h, Forged 3 h, Voltaic 4 h, Celestial 6 h, Abyssal 8 h.
+  - One egg hatches at a time, with a live countdown (h:mm:ss) and the egg trembling as it gets close. Three more wait in a queue, and a queued egg can be taken back.
+  - When an egg hatches, a NEW PET HATCHED! reveal shows the pet.
+- **Inferno Stones:**
+  - An ultra-rare, ABYSSAL-tier find from INFERNO bosses: 0.4% × INFERNO level per boss, at most 20%.
+  - Socket up to six in the incubator. Each takes 15% off the hatch time, 90% with all six.
+  - The incubator picture glows hotter with each stone (the owner's six incubator states).
+- **The timer can't be fooled by changing the phone's clock.**
+  - Hatching only counts time on the device's since-boot clock, which the date/time settings don't touch.
+  - After a reboot (or a PC restart), the time away is checked against network time. Until the phone is online the incubator shows VERIFYING TIME… and waits, and then it credits the real time that passed.
+### Technical
+- `data/Pets.kt` (PetEgg, Pet, Incubator, ClockAnchor, PetLoadout, odds, hatch times), `meta/PetCare.kt` (`Incubators`, `TrustedClock`), `PlatformClock` (Android: elapsedRealtime + boot count; PC: per launch).
+- Save: `eggs`, `pets`, `activePet`, `infernoStones`, `incubator`, `petSeq` (old saves load with none).
+- Engine: `RunConfig.pet` / `AllyConfig.pet`, `Operative.pet/eggsFound/stonesFound`, `updatePet`, `rollPetDrops` (own random, so existing seeds are unchanged). Co-op codec **v31** (`guestEggs`, `guestStones`), `RoomPlayer.pet`.
+- Art: `resources/pets/` (pets_0..3, eggs_0..3, stones, incubator_1..6, hues.txt), 4.3 MB.
+- Tests: `V038PetsTest` (hatch times, stone math incl. the owner's 2:00:00 → 0:12:00, real-time hatch, clock changes ignored, reboot needs network, queue, store, pet in a run, old saves); renders `PetRenders`.
+
 ## 0.37.6 (versionCode 116) — 2026-10-17 · 3 × 1 Idle Run widget
 ### Added (owner: "did you not make a 3 x 1 widget?")
 - **IDLE RUN (wide), a 3 × 1 home-screen widget**, next to the 2 × 3 one in the widget list.

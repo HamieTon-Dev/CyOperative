@@ -23,7 +23,9 @@ data class RoomPlayer(
     /** Equipped gear ([com.cyberoperative.game.data.Gear.encode]); the host builds both operatives from it. */
     val gear: String = "",
     /** Saved € (0.36.3): the host starts this player's co-op wallet from it. */
-    val euros: Long = 0
+    val euros: Long = 0,
+    /** Equipped companion (0.38.0, [com.cyberoperative.game.data.PetLoadout.encode]), "" = none. */
+    val pet: String = ""
 )
 
 enum class RoomStatus { LOBBY, PLAYING, ENDED }

@@ -80,7 +80,7 @@ import com.cyberoperative.game.ui.common.LivingBackground
 import com.cyberoperative.game.ui.theme.Palette
 
 /** CHARACTER screen tabs (owner's mock-ups, 2026-10-13). */
-enum class CharTab(val label: String) { OVERVIEW("OVERVIEW"), GEAR("GEAR"), SKILLS("SKILLS"), VAULT("DATA VAULT") }
+enum class CharTab(val label: String) { OVERVIEW("OVERVIEW"), GEAR("GEAR"), PETS("PETS"), SKILLS("SKILLS"), VAULT("DATA VAULT") }
 
 /** Where an item sits right now. */
 private enum class Where { EQUIPPED, BACKPACK, VAULT }
@@ -177,8 +177,19 @@ fun CharacterScreen(
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     when (tab) {
                         CharTab.OVERVIEW -> OverviewTab(p, wide, inRun, onEditLook, { picking = true }.takeIf { !inRun }, onDeploy)
-                        CharTab.GEAR -> GearTab(p, wide, selected, actions, drag, coopRun, ::drop) { tab = CharTab.VAULT; selected = null }
+                        CharTab.GEAR -> Column(Modifier.fillMaxSize()) {
+                            // Owner: a button on the inventory to send eggs to the incubator.
+                            if (p.eggs.isNotEmpty() || p.incubator.current != null) {
+                                CyberButton(
+                                    "EGGS (${p.eggs.size}) → INCUBATOR", Modifier.fillMaxWidth(), accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
+                                    subtitle = p.incubator.current?.let { "HATCHING: ${it.name}" } ?: "SEND EGGS TO HATCH"
+                                ) { tab = CharTab.PETS; selected = null }
+                                Spacer(Modifier.height(6.dp))
+                            }
+                            Box(Modifier.weight(1f)) { GearTab(p, wide, selected, actions, drag, coopRun, ::drop) { tab = CharTab.VAULT; selected = null } }
+                        }
                         CharTab.SKILLS -> SkillsTab(p, wide, onOverclock.takeIf { !inRun })
+                        CharTab.PETS -> PetsTab(save, p, wide)
                         CharTab.VAULT -> VaultTab(p, wide, selected, actions, drag, ::drop, onDepositAll = { save.update { GearBank.depositAll(it) } }) { tab = CharTab.GEAR; selected = null }
                     }
                 }
@@ -213,7 +224,7 @@ private fun Header(p: PlayerProfile, tab: CharTab, wide: Boolean, inRun: Boolean
             Text(if (inRun) "< RESUME" else "< BACK", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 6.dp, horizontal = 4.dp))
             Spacer(Modifier.width(10.dp))
-            Text(if (tab == CharTab.VAULT) "DATA VAULT" else "CHARACTER", color = Palette.TextPrimary,
+            Text(when (tab) { CharTab.VAULT -> "DATA VAULT"; CharTab.PETS -> "COMPANIONS"; else -> "CHARACTER" }, color = Palette.TextPrimary,
                 style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 1)
             if (wide) TabRow(tab, onTab)
             Spacer(Modifier.width(10.dp))

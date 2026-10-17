@@ -62,6 +62,9 @@ class CoopWorld {
     val loot = ArrayList<FloatArray>(8)
     /** The guest's latest gear finds, as [com.cyberoperative.game.data.Gear.encode] text (v25). */
     var guestGear = ""
+    /** The partner's eggs found (JSON) and Inferno Stones found (0.38.0, v31). */
+    var guestEggs = ""
+    var guestStones = 0
     /** OP XP the run has earned (v26): shared 100% with the guest. */
     var opXp = 0L
     /** Trade desk (v28, owner 0.35.0). */
@@ -374,6 +377,8 @@ object CoopCodec {
             o.writeBoolean(w.worldServerOn)
             if (w.worldServerOn) { o.pos(w.worldServerX); o.pos(w.worldServerY) }
             o.writeUTF(w.guestGear)
+            o.writeUTF(w.guestEggs)
+            o.writeShort(w.guestStones.coerceIn(0, 32000))
             o.writeLong(w.opXp)
             o.writeByte(w.tradeRequest + 1); o.writeBoolean(w.tradeOpen)
             for (t in w.tradeOffers) o.offer(t)
@@ -507,6 +512,8 @@ object CoopCodec {
             w.worldServerOn = i.readBoolean()
             if (w.worldServerOn) { w.worldServerX = i.pos(); w.worldServerY = i.pos() }
             w.guestGear = i.readUTF()
+            w.guestEggs = i.readUTF()
+            w.guestStones = i.readUnsignedShort()
             w.opXp = i.readLong()
             w.tradeRequest = i.readUnsignedByte() - 1; w.tradeOpen = i.readBoolean()
             for (k in 0..1) w.tradeOffers[k] = i.offer()
@@ -549,5 +556,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 30
+    const val VERSION = 31
 }

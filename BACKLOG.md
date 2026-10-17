@@ -5,6 +5,13 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- CO-160 COMPANIONS (owner brief 2026-10-17).
+  - ✅ 0.38.0: eggs, incubator, Inferno Stones, pets that follow and fight, the owner's 1,005 pets and 872 eggs.
+  - Next:
+    - owner check of store egg prices / odds and pet power;
+    - a hatch-ready notification;
+    - pet levels or duplicates (merge?);
+    - per-pet abilities like the examples' FIRE BITE.
 - CO-150 IDLE RUNS + Android home-screen widget (owner brief 2026-10-16).
   - ✅ 0.37.0: simulator (real stats, chips, gear, 50% € / XP), 2 × 3 widget (active / defeated / no run), worker, notification, deep link, in-app page.
   - ✅ 0.37.1: runs eased (about +40% levels, ×2 duration).

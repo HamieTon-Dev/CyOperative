@@ -92,6 +92,17 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 ) { spend(save, audio) { StoreManager.buyRevives(it, pack) } }
             }
 
+            item { Header("PET EGGS  ·  OWNED: ${p.eggs.size}/${com.cyberoperative.game.data.Pets.MAX_EGGS}") }
+            items(com.cyberoperative.game.data.Pets.StoreEgg.entries.toList(), key = { "egg_" + it.name }) { egg ->
+                val full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS
+                StoreRow(
+                    title = egg.label,
+                    subtitle = egg.odds.joinToString(" · ") { (r, w) -> "${r.label} ${w.toInt()}%" } + " — hatch it in the INCUBATOR (CHARACTER › PETS)",
+                    price = if (full) "FULL" else "◇${"%,d".format(egg.price)}", accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
+                    enabled = !full && p.diamonds >= egg.price
+                ) { spend(save, audio) { com.cyberoperative.game.meta.StoreManager.buyEgg(it, egg) } }
+            }
+
             item { Header("OPERATIVE SKINS") }
             item {
                 StoreRow(

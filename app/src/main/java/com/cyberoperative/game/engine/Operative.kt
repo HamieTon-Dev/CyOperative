@@ -45,6 +45,14 @@ class Operative(val index: Int, baseStats: RunStats) {
     /** Co-op (0.36.4): € this player earned this run (separate from the partner's). */
     var eurosIncome = 0
     var hpCharges = 0
+    /** Companion (0.38.0): its loadout, where it hovers, and its shot timer. */
+    var pet: com.cyberoperative.game.data.PetLoadout? = null
+    var petX = 0f
+    var petY = 0f
+    var petTimer = 0f
+    /** Eggs and Inferno Stones found this run (banked by the session). */
+    val eggsFound = ArrayList<com.cyberoperative.game.data.PetEgg>()
+    var stonesFound = 0
     /** Gear picked up this run (banked into the backpack by the session). */
     val gearFound = ArrayList<com.cyberoperative.game.data.GearItem>()
     /** OP level of this player: drops roll their item level from it. */

@@ -19,6 +19,9 @@ class CyberOperativeApp : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLog.install(this)
+        // Companion incubator: boot-count clock and network time (0.38.0).
+        com.cyberoperative.game.platform.PlatformClock.context = this
+        com.cyberoperative.game.meta.TrustedClock.refresh()
         save = SaveRepository(this)
         audio = AudioManager(this)
         val s = save.current.settings

@@ -243,3 +243,19 @@ fun ScreenOrientation(landscape: Boolean) {
         onDispose { }
     }
 }
+
+/**
+ * Clocks for anything that must not be fooled by changing the phone's time (Pet incubator,
+ * 0.38.0). [mono] is time since boot (keeps counting while the app is closed and the phone
+ * sleeps, ignores clock changes); [bootId] changes on every reboot.
+ */
+object PlatformClock {
+    @Volatile var context: Context? = null
+    fun wall(): Long = System.currentTimeMillis()
+    fun mono(): Long = android.os.SystemClock.elapsedRealtime()
+    fun bootId(): String {
+        val boots = context?.let { runCatching { android.provider.Settings.Global.getInt(it.contentResolver, android.provider.Settings.Global.BOOT_COUNT) }.getOrNull() } ?: -1
+        // Without a boot count, the boot time (to the minute) still changes on a reboot.
+        return if (boots >= 0) "b$boots" else "t${(wall() - mono()) / 60_000L}"
+    }
+}
