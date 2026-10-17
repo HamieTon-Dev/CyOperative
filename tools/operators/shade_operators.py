@@ -65,8 +65,8 @@ def shade(path, flat_cape=None):
     base_px = np.clip(grey + (px - grey) * sat_k, 0, 1)   # slightly less saturated than the panel colour
     # rounded volumes: a soft bevel at every panel edge plus a broad dome over each panel
     fm = fill.astype(np.float32)
-    if mage:   # smooth cloth: mostly the broad dome, a light edge bevel
-        height = (0.25 * ndimage.gaussian_filter(fm, 3.5) + 0.75 * ndimage.gaussian_filter(fm, 16)) * fm
+    if mage:   # soft cloth: a broad gentle dome, no edge bevel
+        height = ndimage.gaussian_filter(fm, 18) * fm * 0.7
     else:
         height = (0.55 * ndimage.gaussian_filter(fm, 2.5) + 0.45 * ndimage.gaussian_filter(fm, 9)) * fm
     hs = ndimage.gaussian_filter(height, 1.0) * 26.0
@@ -82,8 +82,21 @@ def shade(path, flat_cape=None):
     ao = np.clip(ndimage.gaussian_filter(fm, 4.0 if mage else 2.0) * 1.6, 0, 1) * (0.3 if mage else 0.5) + (0.7 if mage else 0.5)
     base = base_px
     visor = (kind[labels] == 1) & fill
-    lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
-    lit = lit + (spec * np.where(visor, 0.45, 0.65 if mage else 0.5))[..., None]
+    if mage:
+        # Cloth, not metal (owner): matte wrap lighting, no hard highlight, only a faint broad
+        # sheen, and soft vertical folds that deepen toward the hem of the big robe panels.
+        wrap = np.clip((nrm @ LIGHT + 0.45) / 1.45, 0, 1)
+        sizes = ndimage.sum(fill, labels, idx) if n else np.zeros(0)
+        big = np.isin(labels, idx[sizes > 0.04 * total]) if n else np.zeros_like(fill)
+        t = np.clip((yy - y0) / max(y1 - y0, 1), 0, 1)
+        folds = np.sin(xx / max(x1 - x0, 1) * 2 * np.pi * 4.5 + 0.8 + 0.6 * np.sin(yy / 40.0)) * (0.06 + 0.16 * t ** 1.5)
+        folds = ndimage.gaussian_filter(np.where(big, folds, 0), 2.0)
+        sheen = np.clip(nrm @ HALF, 0, 1) ** 6 * 0.07
+        lit = base * (0.5 + 0.55 * wrap + folds)[..., None] * fall[..., None] * ao[..., None]
+        lit = lit + np.where(visor, spec * 0.45, sheen)[..., None]
+    else:
+        lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
+        lit = lit + (spec * np.where(visor, 0.45, 0.5))[..., None]
     out = np.where(fill[..., None], lit, 0)
     # The Phantom's cape and hood stay as they were, unshaded (owner, after the v2 sheets):
     # its two biggest panels.
