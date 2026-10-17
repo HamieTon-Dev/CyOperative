@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.44.0 (versionCode 127) — 2026-10-17 · Operator redesign
+### Changed (owner-approved redesign)
+- **Every operator gets the new look.** Each class keeps its exact shapes, animations and skins, and gains the pets' shading:
+  - armour panels are filled with a richer, slightly muted tone of the skin colour;
+  - each panel is lit as a rounded volume from the top left, with a soft highlight;
+  - limbs have a highlight and shadow along them.
+- **Packet Mage:** the robe is matte cloth with soft folds that deepen toward the hem. There's no metal shine on it.
+- **Phantom:** the hood and cape keep their original look.
+- Neon trim, the >_< faces and the visors are unchanged.
+- The look applies everywhere the operators appear: runs, co-op, the character screens, the creator, the class picker and the shopkeeper.
+### Technical
+- New `ui/common/FigureShade` (`lift` / `overlay` / `tube` / `folds`).
+- `ClassFigures.look` now returns the lifted plates, and `rawLook` the original ones.
+- The hero figure and helmet are shaded too. The menu emblem keeps its flat look.
+- `OperatorRawRenders` writes both `raw/` (flat) and `ingame/` renders.
+
 ## 0.43.1 (versionCode 125) — 2026-10-17 · Technician without the blaster
 ### Changed (owner)
 - The TECHNICIAN no longer holds the small blaster. The Plasma Beam arm cannon still shows when that power-up is taken.

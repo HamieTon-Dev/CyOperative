@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.43.1 (versionCode 125) |
+| Version | 0.44.0 (versionCode 127) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.44.0 operator redesign:**
+  - `FigureShade` is applied in `ClassFigures.fillStroke`, `limb`, the lifted `look()`, and the hero figure and helmet in `OperativeEmblem`.
+  - The Phantom's hood, cape and torso use `rawLook` + `flatStroke`. The Mage draws with `matte` set and has robe `folds`.
+  - `FigureShade.enabled = false` brings back the flat look.
+  - The concept tools live in `tools/operators/`, and the approved sheets are `docs/operators_concept/v2_*.png`.
 - **0.43.0 € hatch:**
   - Price: `Pets.instantHatchEuros` = `Incubators.accountOpLevel` (max over every character) × ◇ price × `HATCH_EURO_MUL` (100).
   - Action: `Incubators.instantHatchWithEuros`.

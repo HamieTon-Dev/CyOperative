@@ -29,6 +29,8 @@ import java.io.File
 class OperatorRawRenders {
     private val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens", "../operators_concept/raw")
 
+    private var dir = out
+
     private fun render(name: String, style: BodyStyle, skin: com.cyberoperative.game.data.OperativeSkin, look: CharacterLook? = null) {
         val px = 480
         val bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
@@ -37,12 +39,22 @@ class OperatorRawRenders {
             val u = px / 80f * 0.92f
             with(OperativeFigures) { drawFigure(style, skin, px / 2f, px * 0.9f, u, -0.4f, false, 0f, look = look) }
         }
-        out.mkdirs()
-        File(out, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        dir.mkdirs()
+        File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     @Test fun raw() {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
+        // raw/: the flat originals (input for tools/operators/shade_operators.py); ingame/: the shipped look.
+        for (shaded in listOf(false, true)) {
+            com.cyberoperative.game.ui.common.FigureShade.enabled = shaded
+            dir = if (shaded) File(out.parentFile, "ingame") else out
+            renderAll()
+        }
+        com.cyberoperative.game.ui.common.FigureShade.enabled = true
+    }
+
+    private fun renderAll() {
         val styles = listOf("agent" to BodyStyle.AGENT, "technician" to BodyStyle.NEON, "juggernaut" to BodyStyle.MECH, "phantom" to BodyStyle.RUNNER, "mage" to BodyStyle.MAGE)
         val skins = listOf("default" to OperativeSkins.DEFAULT, "titanium" to OperativeSkins.TITANIUM, "purple" to OperativeSkins.PURPLE, "gold" to OperativeSkins.GOLD) +
             OperativeSkins.all.filter { it.id in setOf("red_hat", "ids", "blue_hat") }.map { it.id to it }

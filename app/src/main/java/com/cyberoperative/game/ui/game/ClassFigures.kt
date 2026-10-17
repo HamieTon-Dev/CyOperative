@@ -20,6 +20,10 @@ import com.cyberoperative.game.data.OperativeSkins
 import com.cyberoperative.game.ui.common.HeroPalette
 import com.cyberoperative.game.ui.common.OperativeMark
 import com.cyberoperative.game.ui.common.drawHeroHelmet
+import com.cyberoperative.game.ui.common.FigureShade
+import com.cyberoperative.game.ui.common.FigureShade.folds
+import com.cyberoperative.game.ui.common.FigureShade.overlay
+import com.cyberoperative.game.ui.common.FigureShade.tube
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -43,13 +47,25 @@ internal object ClassFigures {
     class Look(
         val plateLight: Color, val plateMid: Color, val plateDark: Color,
         val trim: Color, val face: Color, val visor: Color, val hero: HeroPalette
-    )
+    ) {
+        /** The 0.44.0 redesign's richer plate tones ([FigureShade.lift]); trim, face and visor unchanged. */
+        fun lifted(matte: Boolean = false) = Look(
+            FigureShade.lift(plateLight, matte), FigureShade.lift(plateMid, matte), FigureShade.lift(plateDark, matte),
+            trim, face, visor, hero
+        )
+    }
+
+    /** The Packet Mage's robe is cloth (owner, 0.44.0): matte light, no highlight. */
+    private var matte = false
 
     private fun mix(a: Color, b: Color, t: Float) =
         Color(a.red + (b.red - a.red) * t, a.green + (b.green - a.green) * t, a.blue + (b.blue - a.blue) * t, 1f)
 
     /** [cobaltTitanium]: PHANTOM and PACKET MAGE wear TITANIUM as cobalt blue (owner, 2026-10-11). */
-    fun look(skin: OperativeSkin, time: Float, cobaltTitanium: Boolean = false): Look {
+    fun look(skin: OperativeSkin, time: Float, cobaltTitanium: Boolean = false): Look = rawLook(skin, time, cobaltTitanium).lifted(matte)
+
+    /** The original flat colours (the Phantom's hood and cape keep them, owner 0.44.0). */
+    fun rawLook(skin: OperativeSkin, time: Float, cobaltTitanium: Boolean = false): Look {
         val c = OperativeMark.colors(skin, time)
         if (skin.id == OperativeSkins.TITANIUM.id && cobaltTitanium) {
             return Look(
@@ -183,10 +199,23 @@ internal object ClassFigures {
 
     private fun DrawScope.fillStroke(p: Path, fill: Color, edge: Color, w: Float = 1f) {
         drawPath(p, fill)
+        overlay(p, matte)
         drawPath(p, edge, style = Stroke(w, join = StrokeJoin.Round))
     }
 
     private fun DrawScope.fillStroke(p: Path, fill: Brush, edge: Color, w: Float = 1f) {
+        drawPath(p, fill)
+        overlay(p, matte)
+        drawPath(p, edge, style = Stroke(w, join = StrokeJoin.Round))
+    }
+
+    /** No shading: the Phantom's hood and cape as they were. */
+    private fun DrawScope.flatStroke(p: Path, fill: Brush, edge: Color, w: Float = 1f) {
+        drawPath(p, fill)
+        drawPath(p, edge, style = Stroke(w, join = StrokeJoin.Round))
+    }
+
+    private fun DrawScope.flatStroke(p: Path, fill: Color, edge: Color, w: Float = 1f) {
         drawPath(p, fill)
         drawPath(p, edge, style = Stroke(w, join = StrokeJoin.Round))
     }
@@ -205,6 +234,7 @@ internal object ClassFigures {
     private fun DrawScope.limb(a: Offset, b: Offset, w: Float, c: Color, edge: Color) {
         drawLine(edge, a, b, w + 1.4f, StrokeCap.Round)
         drawLine(c, a, b, w, StrokeCap.Round)
+        tube(a, b, w, matte)
     }
 
     /** Black octagon visor with the >_< face. */
@@ -395,6 +425,7 @@ internal object ClassFigures {
     fun DrawScope.phantom(skin: OperativeSkin, x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float) {
         val dir = if (cos(facing) < 0f) -1f else 1f
         val l = look(skin, time, cobaltTitanium = true)
+        val l0 = rawLook(skin, time, cobaltTitanium = true)
         val pulse = 0.8f + 0.2f * sin(time * 2.2f)
         val hover = 5f + sin(time * 2.6f) * 1.6f
         place(x, foot, u, dir, alpha) {
@@ -405,7 +436,7 @@ internal object ClassFigures {
                 // Back of the cloak: a big tattered sweep trailing behind.
                 val back = poly(44f, 36f, 30f, 46f, 16f - flow, 66f, 6f - flow, 92f, 14f - flow, 88f, 12f - flow, 104f, 22f - flow * 0.6f, 96f,
                     26f - flow * 0.5f, 110f, 34f, 98f, 42f, 106f, 46f, 88f, 64f, 52f)
-                fillStroke(back, Brush.verticalGradient(listOf(l.plateMid, l.plateDark), startY = 36f, endY = 110f), l.trim.copy(alpha = 0.85f), 1f)
+                flatStroke(back, Brush.verticalGradient(listOf(l0.plateMid, l0.plateDark), startY = 36f, endY = 110f), l.trim.copy(alpha = 0.85f), 1f)
                 // Dissolving pixels off the trailing edge.
                 for (i in 0 until 9) {
                     val ph = (time * 0.45f + i * 0.137f) % 1f
@@ -423,12 +454,12 @@ internal object ClassFigures {
                 drawCircle(l.trim, 1.8f, Offset(68f, 94f))
                 fillStroke(poly(60f, 106f, 69f, 106f, 71f, 111f, 60f, 111f), l.plateLight, l.trim, 0.8f)
                 // Torso: a fitted dark suit with a glowing clasp.
-                fillStroke(poly(42f, 56f, 62f, 56f, 64f, 76f, 60f, 86f, 46f, 86f, 40f, 76f), l.plateDark, l.trim.copy(alpha = 0.7f), 0.9f)
-                drawLine(l.plateMid, Offset(44f, 74f), Offset(62f, 74f), 3f)
+                flatStroke(poly(42f, 56f, 62f, 56f, 64f, 76f, 60f, 86f, 46f, 86f, 40f, 76f), l0.plateDark, l.trim.copy(alpha = 0.7f), 0.9f)
+                drawLine(l0.plateMid, Offset(44f, 74f), Offset(62f, 74f), 3f)
                 drawCircle(l.trim.copy(alpha = 0.35f * pulse), 3.4f, Offset(52f, 62f))
                 drawCircle(l.trim, 1.7f, Offset(52f, 62f))
                 // Front cloak panel over the shoulder.
-                fillStroke(poly(62f, 50f, 72f, 66f, 78f, 88f, 70f, 84f, 66f, 92f, 62f, 74f), l.plateMid, l.trim.copy(alpha = 0.85f), 0.9f)
+                flatStroke(poly(62f, 50f, 72f, 66f, 78f, 88f, 70f, 84f, 66f, 92f, 62f, 74f), l0.plateMid, l.trim.copy(alpha = 0.85f), 0.9f)
                 // Daggers: one low behind, one forward.
                 limb(Offset(44f, 62f), Offset(34f, 76f), 4.5f, l.plateDark, l.trim.copy(alpha = 0.4f))
                 dagger(34f, 76f, 200f, l, pulse)
@@ -443,7 +474,7 @@ internal object ClassFigures {
                 path.cubicTo(70f, 28f, 70f, 46f, 66f, 56f)
                 path.cubicTo(58f, 60f, 46f, 60f, 38f, 56f)
                 path.close()
-                fillStroke(path, Brush.verticalGradient(listOf(l.plateLight, l.plateMid, l.plateDark), startY = 12f, endY = 58f), l.trim, 1.1f)
+                flatStroke(path, Brush.verticalGradient(listOf(l0.plateLight, l0.plateMid, l0.plateDark), startY = 12f, endY = 58f), l.trim, 1.1f)
                 drawOval(Color(0xFF020306), Offset(41f, 27f), Size(25f, 26f))
                 visorFace(54f, 40f, 18f, 13f, l, pulse)
             }
@@ -479,6 +510,11 @@ internal object ClassFigures {
         val dir = if (cos(facing) < 0f) -1f else 1f
         val walk = if (moving) sin(time * 10f) else 0f
         val bob = if (moving) abs(sin(time * 10f)) * 1.2f else sin(time * 1.8f) * 0.5f
+        matte = true
+        try { mageBody(skin, x, foot, u, facing, moving, time, alpha, dir, walk, bob) } finally { matte = false }
+    }
+
+    private fun DrawScope.mageBody(skin: OperativeSkin, x: Float, foot: Float, u: Float, facing: Float, moving: Boolean, time: Float, alpha: Float, dir: Float, walk: Float, bob: Float) {
         val l = look(skin, time, cobaltTitanium = true)
         val pulse = 0.8f + 0.2f * sin(time * 2.2f)
         place(x, foot, u, dir, alpha) {
@@ -497,6 +533,7 @@ internal object ClassFigures {
                 // Robe: long, flared, with a lighter front panel.
                 val robe = poly(38f, 58f, 66f, 58f, 74f, 108f, 78f, 117f, 26f + sway, 117f, 30f + sway, 108f)
                 fillStroke(robe, Brush.verticalGradient(listOf(l.plateMid, l.plateDark), startY = 58f, endY = 117f), l.trim.copy(alpha = 0.85f), 1f)
+                folds(poly(38f, 58f, 66f, 58f, 74f, 108f, 78f, 117f, 26f + sway, 117f, 30f + sway, 108f), 64f, 117f)
                 fillStroke(poly(47f, 70f, 57f, 70f, 61f, 116f, 43f + sway * 0.5f, 116f), l.plateLight.copy(alpha = 0.9f), l.trim.copy(alpha = 0.6f), 0.7f)
                 // Hem band of glowing runes.
                 neon(Offset(29f + sway, 110f), Offset(76f, 110f), l.trim, 0.9f, pulse)

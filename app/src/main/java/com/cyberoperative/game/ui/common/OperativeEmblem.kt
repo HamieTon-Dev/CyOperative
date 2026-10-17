@@ -230,6 +230,7 @@ private fun DrawScope.drawHeroShield(p: HeroPalette, face: HeroFace, time: Float
 private fun DrawScope.drawHeroHead(p: HeroPalette, face: HeroFace, time: Float, pulse: Float) {
     glowStroke(hood, p.outline, 0.9f, pulse * 0.7f, layers = 3)
     drawPath(hood, Brush.verticalGradient(listOf(p.hoodTop, p.hoodMid, p.hoodBottom), startY = 11f, endY = 74f))
+    with(FigureShade) { overlay(hood) }
     drawPath(hoodFacet, p.facet)
     drawPath(hood, p.outline, style = Stroke(1.4f, join = StrokeJoin.Round))
     drawPath(hoodOpening, p.opening)
@@ -253,7 +254,7 @@ private fun DrawScope.drawHeroHeadset(p: HeroPalette, time: Float, pulse: Float)
 
 /** The hero's hood, face shield and headset alone (FIELD AGENT helmet), emblem units. */
 fun DrawScope.drawHeroHelmet(palette: HeroPalette, time: Float) {
-    val p = palette.at(time)
+    val p = palette.at(time).shaded()
     val pulse = 0.8f + 0.2f * sin(time * 2.2f)
     drawHeroHead(p, HeroFace.ICON, time, pulse)
     drawHeroHeadset(p, time, pulse)
@@ -267,24 +268,36 @@ private val heroCloak = path(28f, 78f, 78f, 78f, 74f, 98f, 62f, 106f, 44f, 106f,
  * The traced hero standing, in emblem units: foot line at y = 118, centre x = 52.
  * [walk] −1..1 swings the legs. Callers scale/translate it into the world.
  */
+/** The 0.44.0 redesign's richer hood tones on the figure (the menu emblem keeps the flat ones). */
+private fun HeroPalette.shaded(): HeroPalette =
+    if (!FigureShade.enabled) this else copy(hoodTop = FigureShade.lift(hoodTop), hoodMid = FigureShade.lift(hoodMid), hoodBottom = FigureShade.lift(hoodBottom))
+
 fun DrawScope.drawHeroFigure(palette: HeroPalette, face: HeroFace, time: Float, walk: Float) {
-    val p = palette.at(time)
+    val p = palette.at(time).shaded()
     val pulse = 0.8f + 0.2f * sin(time * 2.2f)
     // Legs and boots.
     drawLine(p.hoodBottom, Offset(43f, 102f), Offset(43f - walk * 5f, 116f), 8f, StrokeCap.Round)
     drawLine(p.hoodMid, Offset(61f, 102f), Offset(61f + walk * 5f, 116f), 8f, StrokeCap.Round)
+    with(FigureShade) {
+        tube(Offset(43f, 102f), Offset(43f - walk * 5f, 116f), 8f)
+        tube(Offset(61f, 102f), Offset(61f + walk * 5f, 116f), 8f)
+    }
     drawCircle(p.glow, 3.6f, Offset(43f - walk * 5f, 117f))
     drawCircle(p.glow, 3.6f, Offset(61f + walk * 5f, 117f))
     // Sleeves, then the robe-like cloak.
     drawLine(p.outline, Offset(27f, 76f), Offset(22f, 96f), 9f, StrokeCap.Round)
     drawLine(p.hoodBottom, Offset(27f, 76f), Offset(22f, 96f), 6.5f, StrokeCap.Round)
+    with(FigureShade) { tube(Offset(27f, 76f), Offset(22f, 96f), 6.5f) }
     drawLine(p.outline, Offset(79f, 76f), Offset(84f, 96f), 9f, StrokeCap.Round)
     drawLine(p.hoodMid, Offset(79f, 76f), Offset(84f, 96f), 6.5f, StrokeCap.Round)
+    with(FigureShade) { tube(Offset(79f, 76f), Offset(84f, 96f), 6.5f) }
     drawPath(heroCloak, Brush.verticalGradient(listOf(p.hoodMid, p.hoodBottom), startY = 78f, endY = 106f))
+    with(FigureShade) { overlay(heroCloak) }
     drawPath(heroCloak, p.outline, style = Stroke(1.2f, join = StrokeJoin.Round))
     drawLine(p.outline.copy(alpha = 0.6f), Offset(53f, 84f), Offset(53f, 104f), 1f)
     // Shoulders, strap, collar tab and button (from the icon).
     drawPath(heroShoulders, Brush.verticalGradient(listOf(p.hoodTop, p.hoodBottom), startY = 60f, endY = 84f))
+    with(FigureShade) { overlay(heroShoulders) }
     drawPath(heroShoulders, p.outline, style = Stroke(1.1f, join = StrokeJoin.Round))
     drawPath(strap, p.hoodBottom)
     drawPath(strap, p.outline.copy(alpha = 0.7f), style = Stroke(0.7f, join = StrokeJoin.Round))
