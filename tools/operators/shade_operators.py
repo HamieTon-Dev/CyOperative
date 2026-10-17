@@ -78,13 +78,14 @@ def shade(path, flat_cape=None):
     lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
     lit = lit + (spec * np.where(visor, 0.6, 0.8))[..., None]
     out = np.where(fill[..., None], lit, 0)
-    # The Phantom's cape stays as it was, unshaded (owner, after the v2 sheets).
+    # The Phantom's cape and hood stay as they were, unshaded (owner, after the v2 sheets):
+    # its two biggest panels.
     if flat_cape is None:
         flat_cape = os.path.basename(path).startswith("phantom")
     if flat_cape and n:
         sizes = ndimage.sum(fill, labels, idx)
-        cape = labels == (int(np.argmax(sizes)) + 1)
-        out = np.where(cape[..., None], rgb, out)
+        flat = np.isin(labels, np.argsort(-sizes)[:2] + 1)
+        out = np.where(flat[..., None], rgb, out)
 
     lines = np.where(line[..., None], np.clip(rgb * 1.12 + 0.05, 0, 1), 0)
     out = np.where(line[..., None], lines, out)
