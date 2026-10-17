@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.42.0 (versionCode 123) |
+| Version | 0.43.0 (versionCode 124) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,9 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.43.0 € hatch:**
+  - Price: `Pets.instantHatchEuros` = `Incubators.accountOpLevel` (max over every character) × ◇ price × `HATCH_EURO_MUL` (100).
+  - Action: `Incubators.instantHatchWithEuros`.
 - **0.42.0 instant hatch:**
   - Price: `Pets.instantHatchPrice` (`HATCH_PRICE_MUL` 4, owner-approved).
   - Action: `Incubators.instantHatch` ticks first, charges from the real remaining time, then hatches through `credit`.

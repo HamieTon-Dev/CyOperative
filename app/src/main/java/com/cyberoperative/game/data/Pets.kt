@@ -164,6 +164,14 @@ object Pets {
     }
     const val HATCH_PRICE_MUL = 4
 
+    /**
+     * The € way (owner, 0.43.0): the account's highest operator level × the ◇ price × 100.
+     * A fresh ENCRYPTED egg at OP 60 is €26.4M; it falls with the ◇ price as the egg hatches.
+     */
+    fun instantHatchEuros(diamondPrice: Int, accountOpLevel: Int): Long =
+        accountOpLevel.coerceAtLeast(1).toLong() * diamondPrice * HATCH_EURO_MUL
+    const val HATCH_EURO_MUL = 100L
+
     fun timeFactor(stones: Int): Float = (1f - STONE_CUT * stones.coerceIn(0, MAX_STONES)).coerceAtLeast(0.1f)
 
     /** Hatch time by rarity (owner, 0.38.0: 5 min … 8 h). */

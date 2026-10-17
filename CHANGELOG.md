@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.43.0 (versionCode 124) — 2026-10-17 · Instant hatch with €
+### Added (owner)
+- **HATCH WITH € · €N** under the ◇ button on the incubator. It takes two taps: the second tap confirms.
+  - Price: the account's highest operator level × the ◇ price × 100. It uses the highest level among all characters, so switching to a low-level character doesn't make it cheaper.
+  - Like the ◇ price, it falls as the egg hatches and with Inferno Stones.
+  - Fresh egg at OP 60: Common €24,000, Rare €240k, Epic €960k, Legendary €2.4M, Abyssal €19.2M, Encrypted €26.4M.
+
 ## 0.42.0 (versionCode 123) — 2026-10-17 · Instant hatch for ◇
 ### Added (owner-approved price: ×4)
 - **INSTANT HATCH · ◇N** on the incubator.

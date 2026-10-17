@@ -164,6 +164,20 @@ object Incubators {
         return q.copy(diamonds = q.diamonds - price, incubator = inc, pets = q.pets + pets, petSeq = next)
     }
 
+    /** The highest operator level on the account (every character), for the € hatch price. */
+    fun accountOpLevel(p: PlayerProfile): Int =
+        (listOf(p.operativeXp) + p.otherCharacters.map { it.operativeXp }).maxOf { com.cyberoperative.game.data.OpProgress.of(it).level }
+
+    /** Pays € to hatch the egg in the incubator now; null when there's no egg or not enough €. */
+    fun instantHatchWithEuros(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile? {
+        val q = tick(p, now)
+        val egg = q.incubator.current ?: return null
+        val price = Pets.instantHatchEuros(Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs), accountOpLevel(q))
+        if (price <= 0L || q.euros < price) return null
+        val (inc, pets, next) = credit(q.incubator.copy(progress = egg.baseMs), 0L, q.petSeq)
+        return q.copy(euros = q.euros - price, incubator = inc, pets = q.pets + pets, petSeq = next)
+    }
+
     /** Wall-clock time the current egg should hatch (for a reminder notification), or null. */
     fun hatchAt(p: PlayerProfile, wall: Long = PlatformClock.wall()): Long? =
         p.incubator.current?.let { wall + p.incubator.remainingMs }

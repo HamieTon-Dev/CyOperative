@@ -12,6 +12,7 @@ device, tune balance, then fill out the store/meta phases.
     - pet levels or duplicates (merge?).
   - ✅ 0.39.0: hatch notification, pet abilities (1–4 by rarity).
   - ✅ 0.40.0: 500 new GLITCHED…ENCRYPTED pets + eggs (generated in the owner's style; owner review of the sheets pending).
+  - ✅ 0.43.0: € instant hatch (highest OP × ◇ × 100).
   - ✅ 0.42.0: instant hatch for ◇ (×4, owner-approved).
   - ✅ 0.41.0: 500 animated ENCRYPTED pets (14 colourways, live moving parts).
 - CO-170 POWER TIERS + HARD (owner 2026-10-17: "Hard mode is not possible past world 2").

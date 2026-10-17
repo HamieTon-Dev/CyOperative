@@ -98,7 +98,8 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
     LaunchedEffect(hatchDue) { if (hatchDue) save.update { Incubators.tick(it) } }
 
     val incubator: @Composable (Modifier) -> Unit = { m -> IncubatorPanel(p, remaining, m, { n -> save.update { Incubators.setStones(it, n) } },
-        onInstant = { if (Incubators.instantHatch(p) == null) note = "Not enough ◇." else { save.update { Incubators.instantHatch(it) ?: it }; note = "" } }) { uid ->
+        onInstant = { if (Incubators.instantHatch(p) == null) note = "Not enough ◇." else { save.update { Incubators.instantHatch(it) ?: it }; note = "" } },
+        onInstantEuros = { if (Incubators.instantHatchWithEuros(p) == null) note = "Not enough €." else { save.update { Incubators.instantHatchWithEuros(it) ?: it }; note = "" } }) { uid ->
         val r = Incubators.takeBack(p, uid)
         if (r == null) note = "Egg inventory is full." else save.update { Incubators.takeBack(it, uid) ?: it }
     } }
@@ -140,7 +141,7 @@ private fun Card(modifier: Modifier, accent: Color = Palette.Divider, content: @
 }
 
 @Composable
-private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier, onStones: (Int) -> Unit, onInstant: () -> Unit = {}, onTakeBack: (Long) -> Unit) {
+private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier, onStones: (Int) -> Unit, onInstant: () -> Unit = {}, onInstantEuros: () -> Unit = {}, onTakeBack: (Long) -> Unit) {
     val inc = p.incubator
     val egg = inc.current
     Card(modifier, accent = Color(0xFFFF4A1A)) {
@@ -191,6 +192,16 @@ private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier
                         accent = Palette.Gold, primary = confirm, enabled = afford,
                         subtitle = if (afford) "You have ◇${p.diamonds}" else "Not enough ◇ (you have ${p.diamonds})"
                     ) { if (confirm) { confirm = false; onInstant() } else confirm = true }
+                    // Or € (owner, 0.43.0): highest operator level on the account × ◇ price × 100.
+                    Spacer(Modifier.height(6.dp))
+                    val euros = Pets.instantHatchEuros(price, Incubators.accountOpLevel(p))
+                    var confirmE by remember(egg.uid) { mutableStateOf(false) }
+                    val affordE = p.euros >= euros
+                    CyberButton(
+                        if (confirmE) "CONFIRM · €${"%,d".format(euros)}" else "HATCH WITH € · €${"%,d".format(euros)}", Modifier.fillMaxWidth(),
+                        accent = Palette.Green, primary = confirmE, enabled = affordE,
+                        subtitle = if (affordE) "You have €${"%,d".format(p.euros)}" else "Not enough € (you have €${"%,d".format(p.euros)})"
+                    ) { if (confirmE) { confirmE = false; onInstantEuros() } else confirmE = true }
                 }
             }
             Spacer(Modifier.height(8.dp))
