@@ -62,9 +62,10 @@ class V037IdleRunTest {
     @Test fun rewardsAreExactlyHalfOfTheNormalRun() {
         val s = IdleRunSimulator.advance(run(), 12 * hour)
         assertTrue(s.normalEuros > 0 && s.normalXp > 0)
-        assertEquals(kotlin.math.floor(s.normalEuros * 0.5).toLong(), s.eurosEarned)
+        assertEquals(kotlin.math.floor(s.normalEuros * 0.4).toLong(), s.eurosEarned)
         assertEquals(kotlin.math.floor(s.normalXp * 0.5).toLong(), s.xpEarned)
-        assertEquals(50L, IdleRunState(normalEuros = 101.0, normalXp = 100.0).eurosEarned)
+        assertEquals(40L, IdleRunState(normalEuros = 101.0, normalXp = 100.0).eurosEarned)
+        assertEquals(50L, IdleRunState(normalEuros = 101.0, normalXp = 100.0).xpEarned)
     }
 
     @Test fun operatorStatsAndGearChangeHowFarItGets() {

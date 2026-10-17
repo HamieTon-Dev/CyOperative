@@ -112,7 +112,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:maxLines="1"
-                android:text="50% € • 50% XP"
+                android:text="40% € • 50% XP"
                 android:textColor="#FF7FE9F5"
                 android:textSize="9sp" />
         </LinearLayout>
@@ -195,7 +195,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:gravity="center"
-                android:text="Your operator fights on its own for 50% € and XP."
+                android:text="Your operator fights on its own for 40% € and 50% XP."
                 android:textColor="#FF5C6E8C"
                 android:textSize="9sp" />
             <TextView

@@ -189,7 +189,7 @@ private fun ActiveRun(s: IdleRunState, time: Float, onRecall: () -> Unit) {
                 Triple("RUN TIME", clock(s.durationSeconds(System.currentTimeMillis())), Palette.TextPrimary),
                 Triple("KILLS", "${s.kills} · ${s.bosses} BOSS", Palette.TextPrimary)
             )
-            Text("IDLE RATE: 50% € · 50% XP OF A NORMAL RUN", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
+            Text("IDLE RATE: 40% € · 50% XP OF A NORMAL RUN", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
             Text("Uses your operator's level, gear, Overclock and class. Upgrade chips are picked for your build.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
@@ -285,7 +285,7 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
                 InfernoStepper(tier, p.infernoUnlocked) { tier = it }
             }
             Spacer(Modifier.height(10.dp))
-            Text("• One threat at a time, a boss every 10 levels.\n• Your equipped operator's real stats, gear and class.\n• Upgrade chips picked for your build.\n• Earns 50% of the € and XP a normal run would.\n• Keeps going with the game closed. Add the IDLE RUN widget to your home screen.",
+            Text("• One threat at a time, a boss every 10 levels.\n• Your equipped operator's real stats, gear and class.\n• Upgrade chips picked for your build.\n• Earns 40% of the € and 50% of the XP a normal run would.\n• Keeps going with the game closed. Add the IDLE RUN widget to your home screen.",
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(10.dp))
             val d = if (inferno) Difficulty.inferno(tier) ?: Difficulty.MEDIUM else Difficulty.MEDIUM

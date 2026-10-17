@@ -37,7 +37,8 @@ import kotlin.random.Random
  *  - threat HP and damage use the engine's curves (Scaling, difficulty, OP level, the hidden
  *    [PowerGovernor]); damage to the operator goes through armour, dodge and the threat-damage scale;
  *  - rewards are the normal run's (kill €, room €, boss bounty, [OpProgress] XP) and the
- *    operator keeps [IdleRunState.REWARD_SHARE] of them; gear drops use the normal drop rules.
+ *    operator keeps [IdleRunState.EURO_SHARE] of the € and [IdleRunState.REWARD_SHARE] of the XP;
+ *    gear drops use the normal drop rules, then keep EPIC+ and [GEAR_KEEP] of those.
  *
  * A real room throws several threats at once and a real player dodges most attacks; the idle
  * fight shows one threat, so its damage is the room's crowd pressure and the share a competent
@@ -74,6 +75,8 @@ object IdleRunSimulator {
 
     /** The worst gear an idle run keeps (owner, 0.37.3: "only epic and higher drops"). */
     val MIN_DROP_RARITY = com.cyberoperative.game.data.GearRarity.EPIC
+    /** Share of those an idle run keeps (owner, 0.37.4: 20% less gear than at launch). */
+    const val GEAR_KEEP = 0.8f
 
     private const val BOSS_PREFIX = "boss:"
 
@@ -333,8 +336,10 @@ object IdleRunSimulator {
             repeat(count) {
                 val rarity = Gear.rollRarity(r, boss, inf, luck, boss && level >= 120)
                 val item = Gear.roll(r, (drops.size + 1).toLong(), Gear.itemLevel(cfg.gearLevel, r), rarity)
-                // Idle Runs keep only EPIC and better (owner, 0.37.3); the roll itself is the normal one.
-                if (item.rarity >= MIN_DROP_RARITY) drops += item
+                // Idle Runs keep only EPIC and better (owner, 0.37.3), and 20% fewer of those (0.37.4).
+                // The roll itself is the normal one; the keep roll is always drawn so runs stay seeded.
+                val keep = r.nextFloat() < GEAR_KEEP
+                if (item.rarity >= MIN_DROP_RARITY && keep) drops += item
             }
         }
 

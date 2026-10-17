@@ -74,7 +74,7 @@ data class IdleRunState(
     val kills: Int = 0,
     val elites: Int = 0,
     val bosses: Int = 0,
-    /** What a normal run would have paid so far; the operator keeps [REWARD_SHARE] of it. */
+    /** What a normal run would have paid so far; the operator keeps [EURO_SHARE] of the € and [REWARD_SHARE] of the XP. */
     val normalEuros: Double = 0.0,
     val normalXp: Double = 0.0,
     /** Upgrade chips picked this run (id → level), and their names in pick order. */
@@ -91,8 +91,8 @@ data class IdleRunState(
     val active: Boolean get() = status == IdleStatus.ACTIVE
     val ended: Boolean get() = status != IdleStatus.ACTIVE
 
-    /** € and XP the operator keeps: exactly half of the normal run's (rounded down). */
-    val eurosEarned: Long get() = floor(normalEuros * REWARD_SHARE).toLong()
+    /** € and XP the operator keeps (rounded down): 40% of the normal run's €, 50% of its XP. */
+    val eurosEarned: Long get() = floor(normalEuros * EURO_SHARE).toLong()
     val xpEarned: Long get() = floor(normalXp * REWARD_SHARE).toLong()
 
     /** The next boss level (10, 20, …); the current one while a boss is up. */
@@ -106,8 +106,13 @@ data class IdleRunState(
     val levelProgress: Float get() = if (roomSize <= 0) 0f else (1f - (queue.size + (if (enemy != null) 1 else 0)).toFloat() / roomSize).coerceIn(0f, 1f)
 
     companion object {
-        /** Idle Runs pay this share of a normal run's € and XP (owner: exactly 50%). */
+        /** Idle Runs pay this share of a normal run's XP (owner: exactly 50%). */
         const val REWARD_SHARE = 0.5
+        /**
+         * …and this share of its € (owner, 0.37.4: 20% less than the 50% at launch, "this doesn't
+         * need to be a better option than actually playing the game").
+         */
+        const val EURO_SHARE = 0.4
 
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 

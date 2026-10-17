@@ -152,7 +152,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
                 Spacer(Modifier.height(10.dp))
                 CyberButton(
                     "IDLE RUNS", accent = Palette.Orange,
-                    subtitle = "YOUR OPERATOR FIGHTS ON · 50% € & XP",
+                    subtitle = "YOUR OPERATOR FIGHTS ON · 40% € · 50% XP",
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.IDLE_RUNS) }
             }

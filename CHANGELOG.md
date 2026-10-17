@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.37.4 (versionCode 114) — 2026-10-17 · Idle Runs pay 20% less € and gear
+### Changed (owner: "reduce gear and money rewards by 20%. This doesn't need to be a better option than actually playing the game")
+- **€:** idle runs now pay **40%** of a normal run's € (was 50%).
+- **Gear:** idle runs keep 20% fewer pieces (still EPIC and better only).
+- **XP is unchanged at 50%.** So is how long runs last.
+- The widget, menu button and Idle Runs page now read "40% € · 50% XP".
+
 ## 0.37.3 (versionCode 113) — 2026-10-17 · Idle Runs keep only EPIC+ gear
 ### Changed (owner: "Idle rewards only epic and higher drops")
 - Idle Runs now keep only **EPIC and better** gear: Epic, Legendary, and the INFERNO rarities on INFERNO runs.
