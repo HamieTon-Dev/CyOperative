@@ -27,6 +27,10 @@ HALF = LIGHT + np.array([0, 0, 1.0]); HALF /= np.linalg.norm(HALF)
 
 
 def shade(path, flat_cape=None):
+    # The Packet Mage's robe reads as satin, not felt (owner): its own colour kept richer,
+    # smoother broad shading and a little more shine.
+    mage = os.path.basename(path).startswith("mage")
+    dark_lift, panel_lift, sat_k = (0.3, 0.56, 1.15) if mage else (0.22, 0.48, 0.85)
     im = np.asarray(Image.open(path).convert("RGBA")).astype(np.float32) / 255.0
     rgb, a = im[..., :3], im[..., 3]
     H, W = a.shape
@@ -53,15 +57,18 @@ def shade(path, flat_cape=None):
         if v < 0.2 and enclosed > 0.03 and reg.sum() < 0.08 * total:
             kind[i] = 1; gain[i] = 0.09 / v          # visor plate round a face: stays near-black
         elif v < 0.12:
-            gain[i] = 0.22 / v                        # the dark armour: a deep tinted tone
+            gain[i] = dark_lift / v                        # the dark armour: a deep tinted tone
         else:
-            gain[i] = 0.48 / v                        # coloured panels: a muted mid-tone (owner: "a little too colorful")
+            gain[i] = panel_lift / v                        # coloured panels: a muted mid-tone (owner: "a little too colorful")
     px = rgb * gain[labels][..., None]
     grey = px.mean(-1, keepdims=True)
-    base_px = np.clip(grey + (px - grey) * 0.85, 0, 1)   # slightly less saturated than the panel colour
+    base_px = np.clip(grey + (px - grey) * sat_k, 0, 1)   # slightly less saturated than the panel colour
     # rounded volumes: a soft bevel at every panel edge plus a broad dome over each panel
     fm = fill.astype(np.float32)
-    height = (0.55 * ndimage.gaussian_filter(fm, 2.5) + 0.45 * ndimage.gaussian_filter(fm, 9)) * fm
+    if mage:   # smooth cloth: mostly the broad dome, a light edge bevel
+        height = (0.25 * ndimage.gaussian_filter(fm, 3.5) + 0.75 * ndimage.gaussian_filter(fm, 16)) * fm
+    else:
+        height = (0.55 * ndimage.gaussian_filter(fm, 2.5) + 0.45 * ndimage.gaussian_filter(fm, 9)) * fm
     hs = ndimage.gaussian_filter(height, 1.0) * 26.0
     gy, gx = np.gradient(hs)
     nrm = np.dstack([-gx, -gy, np.ones_like(hs)])
@@ -72,11 +79,11 @@ def shade(path, flat_cape=None):
     ys, xs = np.nonzero(solid)
     y0, y1, x0, x1 = ys.min(), ys.max(), xs.min(), xs.max()
     fall = 1.0 - 0.3 * np.clip(((yy - y0) / max(y1 - y0, 1) * 0.7 + (xx - x0) / max(x1 - x0, 1) * 0.3), 0, 1)
-    ao = np.clip(ndimage.gaussian_filter(fm, 2.0) * 1.6, 0, 1) * 0.5 + 0.5
+    ao = np.clip(ndimage.gaussian_filter(fm, 4.0 if mage else 2.0) * 1.6, 0, 1) * (0.3 if mage else 0.5) + (0.7 if mage else 0.5)
     base = base_px
     visor = (kind[labels] == 1) & fill
     lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
-    lit = lit + (spec * np.where(visor, 0.45, 0.5))[..., None]
+    lit = lit + (spec * np.where(visor, 0.45, 0.65 if mage else 0.5))[..., None]
     out = np.where(fill[..., None], lit, 0)
     # The Phantom's cape and hood stay as they were, unshaded (owner, after the v2 sheets):
     # its two biggest panels.
