@@ -13,6 +13,7 @@ device, tune balance, then fill out the store/meta phases.
   - ✅ 0.39.0: hatch notification, pet abilities (1–4 by rarity).
 - CO-170 POWER TIERS + HARD (owner 2026-10-17: "Hard mode is not possible past world 2").
   - ✅ 0.39.0: GLITCHED LEGENDARY + ENCRYPTED gear/chips, FORGED…ABYSSAL chips (22 new), Golden+ gear +30%, Hard easing past World 2, 2 chips/room on Hard, boss 3 potions, elite potions 33%.
+  - ✅ 0.39.1: NORMAL +HP/+dmg past level 100 (HARD rises with it), HARD idle runs.
   - Next: owner playtest of Hard World 15; check NORMAL isn't trivial late (greedy builds can one-shot basics past L100).
 - CO-150 IDLE RUNS + Android home-screen widget (owner brief 2026-10-16).
   - ✅ 0.37.0: simulator (real stats, chips, gear, 50% € / XP), 2 × 3 widget (active / defeated / no run), worker, notification, deep link, in-app page.

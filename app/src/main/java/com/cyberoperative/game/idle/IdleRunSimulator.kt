@@ -93,9 +93,9 @@ object IdleRunSimulator {
         else -> null
     }
 
-    /** The difficulties an idle run may use: STANDARD (Normal), and INFERNO once unlocked. */
+    /** The difficulties an idle run may use: STANDARD (Normal), HARD (0.39.1), and INFERNO once unlocked. */
     fun choices(p: PlayerProfile): List<Difficulty> =
-        listOfNotNull(Difficulty.MEDIUM, if (p.infernoUnlocked > 0) Difficulty.inferno(p.infernoUnlocked) else null)
+        listOfNotNull(Difficulty.MEDIUM, Difficulty.HARD, if (p.infernoUnlocked > 0) Difficulty.inferno(p.infernoUnlocked) else null)
 
     /** A fresh run for the active character with everything it has equipped now. */
     fun start(p: PlayerProfile, difficulty: Difficulty, now: Long, seed: Long = now xor System.nanoTime()): IdleRunState {
@@ -168,8 +168,11 @@ object IdleRunSimulator {
 
         /** Monster level, as in the engine: the OP level, or the run level / 2.5 when deeper. */
         val monsterLevel: Int get() = max(cfg.opLevel, ceil(level / 2.5f).toInt()).coerceAtLeast(1)
-        val opHpNow: Float get() = 1f + (cfg.opHpMul - 1f) * difficulty.extraScaling
-        val opDamageNow: Float get() = 1f + (cfg.opDamageMul - 1f) * difficulty.extraScaling
+        // The game's 0.39 HARD ease and 0.39.1 NORMAL late curve (Endless worlds: level / 10 + 1).
+        val opHpNow: Float get() = (1f + (cfg.opHpMul - 1f) * difficulty.extraScaling) *
+            GameEngine.hardEase(difficulty, 1 + level / 10, level, cfg.opHpMul, cfg.opDamageMul, damage = false) * GameEngine.normalLate(difficulty, level, damage = false)
+        val opDamageNow: Float get() = (1f + (cfg.opDamageMul - 1f) * difficulty.extraScaling) *
+            GameEngine.hardEase(difficulty, 1 + level / 10, level, cfg.opHpMul, cfg.opDamageMul, damage = true) * GameEngine.normalLate(difficulty, level, damage = true)
         fun pressureHp(l: Int) = 1f + (Scaling.hpPressure(l) - 1f) * difficulty.hpPressureShare
         fun pressureDamage(l: Int) = 1f + (Scaling.damagePressure(l) - 1f) * difficulty.pressure
         fun pressureCount(l: Int) = 1f + (Scaling.countPressure(l) - 1f) * difficulty.pressure
@@ -337,7 +340,9 @@ object IdleRunSimulator {
             val inf = difficulty.inferno
             val luck = (difficulty.luck * 0.3f).coerceAtLeast(0f)
             repeat(count) {
-                val rarity = Gear.rollRarity(r, boss, inf, luck, boss && level >= 120)
+                // Idle never drops GLITCHED or ENCRYPTED (owner, 0.39.1): those come out as GOLDEN.
+                val rolled = Gear.rollRarity(r, boss, inf, luck, boss && level >= 120)
+                val rarity = if (rolled == com.cyberoperative.game.data.GearRarity.GLITCHED || rolled == com.cyberoperative.game.data.GearRarity.ENCRYPTED) com.cyberoperative.game.data.GearRarity.LEGENDARY else rolled
                 val item = Gear.roll(r, (drops.size + 1).toLong(), Gear.itemLevel(cfg.gearLevel, r), rarity)
                 // Idle Runs keep only EPIC and better (owner, 0.37.3), and 20% fewer of those (0.37.4).
                 // The roll itself is the normal one; the keep roll is always drawn so runs stay seeded.

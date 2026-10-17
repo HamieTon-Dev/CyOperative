@@ -115,7 +115,7 @@ class V037IdleRunTest {
     @Test fun infernoNeedsToBeUnlocked() {
         val locked = profile()
         assertNotNull(IdleRunSimulator.cannotStart(locked, Difficulty.inferno(1)!!))
-        assertEquals(listOf(Difficulty.MEDIUM), IdleRunSimulator.choices(locked))
+        assertEquals(listOf(Difficulty.MEDIUM, Difficulty.HARD), IdleRunSimulator.choices(locked))
         assertNotNull(IdleRunSimulator.cannotStart(profile(inferno = 2), Difficulty.inferno(3)!!))
         assertNull(IdleRunSimulator.cannotStart(profile(inferno = 2), Difficulty.inferno(2)!!))
         assertTrue(runCatching { IdleRunSimulator.start(locked, Difficulty.inferno(1)!!, 0L) }.isFailure)

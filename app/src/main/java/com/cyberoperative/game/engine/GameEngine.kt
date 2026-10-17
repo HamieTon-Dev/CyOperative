@@ -333,7 +333,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * to OP level"): the one difficulty extra on top of the base curve, from
      * level 1, halved on EASY.
      */
-    val opHpNow: Float get() = (1f + (config.opHpMul - 1f) * config.difficulty.extraScaling) * hardEase
+    val opHpNow: Float get() = (1f + (config.opHpMul - 1f) * config.difficulty.extraScaling) * hardEase * normalLate(config.difficulty, level, damage = false)
 
     /**
      * HARD past World 2 (owner, 0.39.0: "Hard mode is not possible past world 2"): threat HP and
@@ -343,31 +343,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val hardEase: Float get() = hardEase(damage = false)
     private val hardEaseDamage: Float get() = hardEase(damage = true)
 
-    /** Never eases HARD below [HARD_OVER_NORMAL] × what NORMAL would field at this level. */
-    private fun hardEase(damage: Boolean): Float {
-        val d = config.difficulty
-        if (d != Difficulty.HARD) return 1f
-        val w = if (campaign) world else 1 + level / 10
-        val ease = 1f - HARD_EASE * ((w - 2) / 3f).coerceIn(0f, 1f)
-        if (ease >= 1f) return 1f
-        val n = Difficulty.MEDIUM
-        val ratio = if (damage) {
-            val dp = Scaling.damagePressure(level) - 1f
-            d.enemyDamage * (1f + dp * d.pressure) * (1f + (config.opDamageMul - 1f) * d.extraScaling) /
-                (n.enemyDamage * (1f + dp * n.pressure) * (1f + (config.opDamageMul - 1f) * n.extraScaling))
-        } else {
-            val hp = Scaling.hpPressure(level) - 1f
-            d.enemyHp * (1f + hp * d.hpPressureShare) * (1f + (config.opHpMul - 1f) * d.extraScaling) /
-                (n.enemyHp * (1f + hp * n.hpPressureShare) * (1f + (config.opHpMul - 1f) * n.extraScaling))
-        }
-        return max(ease, HARD_OVER_NORMAL / ratio).coerceAtMost(1f)
-    }
+    private fun hardEase(damage: Boolean): Float =
+        hardEase(config.difficulty, if (campaign) world else 1 + level / 10, level, config.opHpMul, config.opDamageMul, damage)
 
     /** Post-level-10 pressure for this difficulty (owner, 2026-10-11): extra HP, damage and threat count. */
     internal fun pressureHp(lvl: Int = level): Float = 1f + (Scaling.hpPressure(lvl) - 1f) * config.difficulty.hpPressureShare
     internal fun pressureDamage(lvl: Int = level): Float = 1f + (Scaling.damagePressure(lvl) - 1f) * config.difficulty.pressure
     internal fun pressureCount(lvl: Int = level): Float = 1f + (Scaling.countPressure(lvl) - 1f) * config.difficulty.pressure
-    val opDamageNow: Float get() = (1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling) * hardEaseDamage
+    val opDamageNow: Float get() = (1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling) * hardEaseDamage * normalLate(config.difficulty, level, damage = true)
 
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false
@@ -2643,8 +2626,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val luck = (config.difficulty.luck * 0.3f).coerceAtLeast(0f)
         for (o in ops) {
             if (o.gone) continue
+            // HARD bosses (owner, 0.39.1; deliberately not shown anywhere in the game): one piece is
+            // GLITCHED for sure on Worlds 1–3, then 20% less each world; past that only the usual odds.
+            val forceGlitched = boss && config.difficulty == Difficulty.HARD && gearRng.nextFloat() < hardBossGlitched(if (campaign) world else 1 + level / 10)
             for (k in 0 until count) {
-                val rarity = com.cyberoperative.game.data.Gear.rollRarity(gearRng, boss, inferno, luck, late)
+                val rolled = com.cyberoperative.game.data.Gear.rollRarity(gearRng, boss, inferno, luck, late)
+                val rarity = if (k == 0 && forceGlitched && rolled < com.cyberoperative.game.data.GearRarity.GLITCHED) com.cyberoperative.game.data.GearRarity.GLITCHED else rolled
                 val item = com.cyberoperative.game.data.Gear.roll(gearRng, ++gearSerial, com.cyberoperative.game.data.Gear.itemLevel(o.gearLevel, gearRng), rarity)
                 arena.pushOut(x + (o.index * 2 - (ops.size - 1)) * 30f + (k - (count - 1) / 2f) * 24f, y + 10f, 14f)
                 placeLoot(Loot(LootKind.GEAR, arena.out[0], arena.out[1]).also { it.owner = o.index; it.gear = item })
@@ -5417,6 +5404,39 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val HARD_EASE = 0.25f
         /** ... but HARD threats always stay at least this much tougher than NORMAL's. */
         const val HARD_OVER_NORMAL = 1.1f
+
+        /** HARD boss: chance one piece is forced GLITCHED, by world (1 on 1–3, −0.2 a world, then 0). */
+        fun hardBossGlitched(world: Int): Float = if (world <= 3) 1f else (1f - 0.2f * (world - 3)).coerceAtLeast(0f)
+
+        /**
+         * NORMAL past level 100 (owner, 0.39.1: "make enemies harder"): threat HP +1.2% and damage
+         * +0.6% per level, up to ×2.5 HP and ×1.6 damage (level 225 / 200).
+         */
+        fun normalLate(d: Difficulty, level: Int, damage: Boolean): Float {
+            if (d != Difficulty.MEDIUM || level <= NORMAL_LATE_FROM) return 1f
+            val over = (level - NORMAL_LATE_FROM).toFloat()
+            return if (damage) (1f + 0.006f * over).coerceAtMost(1.6f) else (1f + 0.012f * over).coerceAtMost(2.5f)
+        }
+        const val NORMAL_LATE_FROM = 100
+
+        /** HARD's ease at [worldNow] (see [hardEase]); HARD always stays at least [HARD_OVER_NORMAL] × NORMAL at [level]. */
+        fun hardEase(d: Difficulty, worldNow: Int, level: Int, opHpMul: Float, opDamageMul: Float, damage: Boolean): Float {
+            if (d != Difficulty.HARD) return 1f
+            val ease = 1f - HARD_EASE * ((worldNow - 2) / 3f).coerceIn(0f, 1f)
+            val n = Difficulty.MEDIUM
+            val ratio = if (damage) {
+                val dp = Scaling.damagePressure(level) - 1f
+                d.enemyDamage * (1f + dp * d.pressure) * (1f + (opDamageMul - 1f) * d.extraScaling) /
+                    (n.enemyDamage * (1f + dp * n.pressure) * (1f + (opDamageMul - 1f) * n.extraScaling) * normalLate(n, level, damage = true))
+            } else {
+                val hp = Scaling.hpPressure(level) - 1f
+                d.enemyHp * (1f + hp * d.hpPressureShare) * (1f + (opHpMul - 1f) * d.extraScaling) /
+                    (n.enemyHp * (1f + hp * n.hpPressureShare) * (1f + (opHpMul - 1f) * n.extraScaling) * normalLate(n, level, damage = false))
+            }
+            // Past level 100 NORMAL climbs (normalLate) and HARD climbs with it (owner, 0.39.1:
+            // "Hard rises with Normal"), so this can go above 1.
+            return max(ease, HARD_OVER_NORMAL / ratio)
+        }
         /** HARD: extra chip luck, and at least this many boss picks. */
         const val HARD_CHIP_LUCK = 0.35f
         const val HARD_BOSS_PICKS = 3

@@ -110,7 +110,7 @@ internal fun clock(seconds: Long): String {
 
 internal fun idleDifficultyLabel(s: IdleRunState): String {
     val d = Difficulty.byName(s.difficulty)
-    return if (d.inferno > 0) "INFERNO ${d.inferno}" else "STANDARD"
+    return idleLabel(d)
 }
 
 internal fun idleEnemyName(s: IdleRunState): String {
@@ -267,6 +267,7 @@ private fun Summary(s: IdleRunState, time: Float) {
 @Composable
 private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
     var inferno by remember { mutableStateOf(false) }
+    var hard by remember { mutableStateOf(false) }
     var tier by remember { mutableIntStateOf(p.infernoUnlocked.coerceAtLeast(1)) }
     TerminalCard(accent = Palette.Cyan) {
         Column {
@@ -276,9 +277,11 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("STANDARD", Modifier.weight(1f), accent = Palette.Cyan, primary = !inferno) { inferno = false }
+                CyberButton("STANDARD", Modifier.weight(1f), accent = Palette.Cyan, primary = !inferno && !hard) { inferno = false; hard = false }
+                // HARD (owner, 0.39.1): the player's choice.
+                CyberButton("HARD", Modifier.weight(1f), accent = Palette.Magenta, primary = hard) { hard = true; inferno = false }
                 // INFERNO only once it is unlocked (beat World 15 on HARD).
-                if (p.infernoUnlocked > 0) CyberButton("INFERNO", Modifier.weight(1f), accent = Palette.Red, primary = inferno) { inferno = true }
+                if (p.infernoUnlocked > 0) CyberButton("INFERNO", Modifier.weight(1f), accent = Palette.Red, primary = inferno) { inferno = true; hard = false }
             }
             if (inferno && p.infernoUnlocked > 0) {
                 Spacer(Modifier.height(8.dp))
@@ -288,10 +291,21 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
             Text("• One threat at a time, a boss every 10 levels.\n• Your equipped operator's real stats, gear and class.\n• Upgrade chips picked for your build.\n• Earns 40% of the € and 50% of the XP a normal run would.\n• Keeps going with the game closed. Add the IDLE RUN widget to your home screen.",
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(10.dp))
-            val d = if (inferno) Difficulty.inferno(tier) ?: Difficulty.MEDIUM else Difficulty.MEDIUM
+            val d = when {
+                inferno -> Difficulty.inferno(tier) ?: Difficulty.MEDIUM
+                hard -> Difficulty.HARD
+                else -> Difficulty.MEDIUM
+            }
             val why = IdleRunSimulator.cannotStart(p, d)
             CyberButton("START IDLE RUN", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, enabled = why == null,
-                subtitle = why ?: if (inferno) "INFERNO $tier" else "STANDARD") { onStart(d) }
+                subtitle = why ?: idleLabel(d)) { onStart(d) }
         }
     }
+}
+
+/** STANDARD, HARD or INFERNO n (idle run badge). */
+fun idleLabel(d: Difficulty): String = when {
+    d.inferno > 0 -> "INFERNO ${d.inferno}"
+    d == Difficulty.HARD -> "HARD"
+    else -> "STANDARD"
 }

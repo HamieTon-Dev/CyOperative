@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.39.1 (versionCode 120) — 2026-10-17 · Tougher NORMAL past level 100, HARD idle runs
+### Changed
+- **NORMAL past level 100** (campaign Worlds 11–15, and Endless):
+  - Threat HP rises 1.2% a level, up to ×2.5. Damage rises 0.6% a level, up to ×1.6.
+  - HARD rises with it and always stays at least 10% tougher than NORMAL (owner's choice).
+- **Idle Runs:**
+  - You can choose a HARD run (STANDARD / HARD / INFERNO). The widget shows a HARD badge for it.
+  - Idle Runs never drop GLITCHED or ENCRYPTED gear. Those rolls come out as GOLDEN.
+  - Idle threats follow the same HARD ease and NORMAL late curve as real runs.
+- HARD boss loot tuning.
+
 ## 0.39.0 (versionCode 119) — 2026-10-17 · GLITCHED LEGENDARY, ENCRYPTED, new chip tiers, Hard balance, pet abilities
 ### Added (owner: "Hard mode is not possible past world 2")
 - **Two new rarities for gear and chips:**

@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.39.0 (versionCode 119) |
+| Version | 0.39.1 (versionCode 120) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,15 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.39.1 (owner):**
+  - `GameEngine.normalLate`: MEDIUM only, past level 100, HP +1.2%/level (cap ×2.5), damage +0.6%/level (cap ×1.6).
+  - `hardEase` is now uncapped above 1, so HARD stays ≥ `HARD_OVER_NORMAL` × NORMAL ("Hard rises with Normal").
+  - **SECRET, keep it out of the game, store text and public notes:** on HARD, each player's boss gear has one piece forced to GLITCHED with chance `hardBossGlitched(world)`:
+    - 100% on Worlds 1–3, then −20% a world (W4 80%, W5 60%, W6 40%, W7 20%, W8+ 0%);
+    - past that, only the normal ~2.2% boss odds apply;
+    - Endless uses world = level / 10 + 1;
+    - code: `dropGear` in GameEngine.
+  - Idle: HARD is selectable (`IdleRunSimulator.choices`); GLITCHED/ENCRYPTED rolls become LEGENDARY; idle uses `GameEngine.hardEase` / `normalLate`.
 - **0.39.0 power tiers / Hard balance:**
   - Rarity order:
     - gear: … LEGENDARY, GLITCHED, FORGED … ABYSSAL, ENCRYPTED;

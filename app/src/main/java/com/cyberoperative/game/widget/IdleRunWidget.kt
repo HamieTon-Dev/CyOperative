@@ -124,7 +124,7 @@ object IdleRunWidget {
         val roomy = heightDp >= 64
         v.setViewVisibility(R.id.wide_hint, if (roomy || run == null) View.VISIBLE else View.GONE)
         v.setViewVisibility(R.id.wide_stats, if (run == null) View.GONE else View.VISIBLE)
-        v.setTextViewText(R.id.wide_badge, if (inferno) "INFERNO" else "STANDARD")
+        v.setTextViewText(R.id.wide_badge, if (inferno) "INFERNO" else if (run?.difficulty == Difficulty.HARD.name) "HARD" else "STANDARD")
         v.setInt(R.id.wide_badge, "setBackgroundResource", if (inferno) R.drawable.widget_badge_inferno else R.drawable.widget_badge_standard)
         when {
             run == null -> {
@@ -168,7 +168,7 @@ object IdleRunWidget {
         val artH = artW / 2
 
         val inferno = run != null && Difficulty.byName(run.difficulty).inferno > 0
-        v.setTextViewText(R.id.idle_badge, if (inferno) "INFERNO" else "STANDARD")
+        v.setTextViewText(R.id.idle_badge, if (inferno) "INFERNO" else if (run?.difficulty == Difficulty.HARD.name) "HARD" else "STANDARD")
         v.setInt(R.id.idle_badge, "setBackgroundResource", if (inferno) R.drawable.widget_badge_inferno else R.drawable.widget_badge_standard)
         v.setViewVisibility(R.id.idle_badge, if (run == null) View.GONE else View.VISIBLE)
         val ended = run != null && run.status != IdleStatus.ACTIVE

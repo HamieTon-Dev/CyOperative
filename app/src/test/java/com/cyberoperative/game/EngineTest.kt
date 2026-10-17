@@ -97,8 +97,9 @@ class EngineTest {
             val bot = Bot(g, dodge = false)
             var t = 0f
             var sawPhase3 = false
-            // Bosses have double HP on Normal (owner, 2026-10-11): give the fixed-DPS bot longer.
-            while (t < 360f && g.bossesDefeated == 0) {
+            // Bosses have double HP on Normal (owner, 2026-10-11), and more past level 100 (0.39.1):
+            // give the fixed-DPS bot longer.
+            while (t < 600f && g.bossesDefeated == 0) {
                 bot.step(1f / 30f); t += 1f / 30f
                 val b = g.boss
                 if (b != null && b.hp / b.maxHp < 0.25f) sawPhase3 = true
