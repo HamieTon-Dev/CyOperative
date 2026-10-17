@@ -53,12 +53,12 @@ def shade(path, flat_cape=None):
         if v < 0.2 and enclosed > 0.03 and reg.sum() < 0.08 * total:
             kind[i] = 1; gain[i] = 0.09 / v          # visor plate round a face: stays near-black
         elif v < 0.12:
-            gain[i] = 0.3 / v                         # the dark armour: a deep tinted tone
+            gain[i] = 0.22 / v                        # the dark armour: a deep tinted tone
         else:
-            gain[i] = 0.66 / v                        # coloured panels: a rich mid-tone
+            gain[i] = 0.48 / v                        # coloured panels: a muted mid-tone (owner: "a little too colorful")
     px = rgb * gain[labels][..., None]
     grey = px.mean(-1, keepdims=True)
-    base_px = np.clip(grey + (px - grey) * 1.35, 0, 1)   # a little more saturated
+    base_px = np.clip(grey + (px - grey) * 0.85, 0, 1)   # slightly less saturated than the panel colour
     # rounded volumes: a soft bevel at every panel edge plus a broad dome over each panel
     fm = fill.astype(np.float32)
     height = (0.55 * ndimage.gaussian_filter(fm, 2.5) + 0.45 * ndimage.gaussian_filter(fm, 9)) * fm
@@ -76,7 +76,7 @@ def shade(path, flat_cape=None):
     base = base_px
     visor = (kind[labels] == 1) & fill
     lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
-    lit = lit + (spec * np.where(visor, 0.6, 0.8))[..., None]
+    lit = lit + (spec * np.where(visor, 0.45, 0.5))[..., None]
     out = np.where(fill[..., None], lit, 0)
     # The Phantom's cape and hood stay as they were, unshaded (owner, after the v2 sheets):
     # its two biggest panels.
