@@ -227,7 +227,7 @@ private fun Loot(s: IdleRunState) {
             else Text(s.chipLog.takeLast(12).reversed().joinToString(" · "), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(8.dp))
             Text("GEAR DROPS (${s.drops.size})", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
-            if (s.drops.isEmpty()) Text("Elites and bosses drop gear.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            if (s.drops.isEmpty()) Text("Elites and bosses drop gear (Idle Runs keep EPIC and better).", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (g in s.drops) GearIconView(g, Modifier.size(44.dp))
             }

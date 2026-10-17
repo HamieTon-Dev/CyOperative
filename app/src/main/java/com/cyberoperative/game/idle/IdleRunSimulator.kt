@@ -72,6 +72,9 @@ object IdleRunSimulator {
     /** Drink an HP charge under this share of max HP. */
     const val CHARGE_AT = 0.4f
 
+    /** The worst gear an idle run keeps (owner, 0.37.3: "only epic and higher drops"). */
+    val MIN_DROP_RARITY = com.cyberoperative.game.data.GearRarity.EPIC
+
     private const val BOSS_PREFIX = "boss:"
 
     // ------------------------------------------------------------------------------------------
@@ -329,7 +332,9 @@ object IdleRunSimulator {
             val luck = (difficulty.luck * 0.3f).coerceAtLeast(0f)
             repeat(count) {
                 val rarity = Gear.rollRarity(r, boss, inf, luck, boss && level >= 120)
-                drops += Gear.roll(r, (drops.size + 1).toLong(), Gear.itemLevel(cfg.gearLevel, r), rarity)
+                val item = Gear.roll(r, (drops.size + 1).toLong(), Gear.itemLevel(cfg.gearLevel, r), rarity)
+                // Idle Runs keep only EPIC and better (owner, 0.37.3); the roll itself is the normal one.
+                if (item.rarity >= MIN_DROP_RARITY) drops += item
             }
         }
 

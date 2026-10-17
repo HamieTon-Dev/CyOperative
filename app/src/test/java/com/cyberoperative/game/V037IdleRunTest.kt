@@ -130,6 +130,9 @@ class V037IdleRunTest {
         assertEquals(10 + s.eurosEarned, paid.euros)
         assertEquals(s.xpEarned, paid.operativeXp)
         assertEquals(s.drops.size, paid.backpack.size)
+        // Idle Runs keep only EPIC and better gear.
+        val rich = IdleRunSimulator.advance(run(profile(rarity = GearRarity.LEGENDARY)), 12 * hour)
+        assertTrue(rich.drops.isNotEmpty() && rich.drops.all { it.rarity >= GearRarity.EPIC })
         assertEquals(paid, IdleRuns.collect(paid, s.copy(collected = true)))
         // Recalled runs keep what they earned.
         val r = IdleRuns.recall(run(profile(rarity = GearRarity.RARE)), 60_000L)

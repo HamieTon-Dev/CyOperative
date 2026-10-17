@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.37.3 (versionCode 113) — 2026-10-17 · Idle Runs keep only EPIC+ gear
+### Changed (owner: "Idle rewards only epic and higher drops")
+- Idle Runs now keep only **EPIC and better** gear: Epic, Legendary, and the INFERNO rarities on INFERNO runs.
+- The drop rolls themselves are unchanged (same chances, same rarity odds); lower rarities are simply not kept.
+- A 1–2 hour geared run now brings home about 5–27 pieces instead of 90–350, so the backpack and Data Vault no longer fill with low-tier gear.
+- XP, € and how long runs last are unchanged.
+
 ## 0.37.2 (versionCode 112) — 2026-10-16 · Idle Runs last twice as long again
 ### Changed (owner: "make them run even longer, double it again")
 - Idle operators:
