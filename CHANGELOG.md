@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.41.0 (versionCode 122) — 2026-10-17 · 500 animated ENCRYPTED pets
+### Added (owner: "500 more encrypted pets in all of the variety of colors… special orbs rotating them or different moving mechanical parts")
+- **500 new ENCRYPTED pets, each with its own egg and name** (e.g. "Cyan Kernel Seeker").
+  - 14 colourways: pink, purple, blue, cyan, green, aqua, red, yellow, gold, platinum, orange, obsidian, pearl, and prism (rainbow).
+  - **Live animations.** Each pet has one or two moving parts, and most also hover:
+    - orbiting orbs (they pass behind and in front of the pet);
+    - a spinning ring of lights;
+    - twin rotating gears;
+    - a spinning propeller;
+    - a helix of rising motes;
+    - floating crystal shards;
+    - a visor scan line;
+    - a pulsing core glow.
+  - Prism pets cycle through every colour.
+  - The animation plays in runs and in the PETS screen.
+- ENCRYPTED eggs now hatch from 570 ENCRYPTED designs: 500 animated and 70 static.
+- Review: `docs/pets_new/encrypted_animated_1…5.png` (all 500, with each pet's moving parts listed), plus `encrypted_animated_preview.gif` and `encrypted_animated_closeup.gif`.
+### Technical
+- The generator now writes 1,000 new pets (pages 4–7). The first 500 are unchanged.
+- `new_pets.txt` has a 4th field for each animated pet's moving parts, parsed by `PetAnim`.
+- The parts are drawn by `ui/common/PetFx`, through `PetArt.drawPet(…, time)`.
+
 ## 0.40.0 (versionCode 121) — 2026-10-17 · 500 new pets (GLITCHED … ENCRYPTED)
 ### Added (owner: "500 more pets ranging from glitched to encrypted rarity, their eggs, and their design")
 - **500 new companions, each with its own egg.**

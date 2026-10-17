@@ -24,11 +24,22 @@ class V040PetsTest {
         }
     }
 
-    @Test fun fiveHundredNamedPetsSurviveTheLoadoutCodec() {
+    @Test fun aThousandNamedPetsSurviveTheLoadoutCodec() {
         val names = (0 until Pets.NEW_COUNT).map { Pets.petName(Pets.NEW_BASE + it) }
-        assertEquals(500, names.toSet().size)
+        assertEquals(1000, names.toSet().size)
         val last = Pets.NEW_BASE + Pets.NEW_COUNT - 1
         assertEquals(last, PetLoadout.decode(Pet(1, last, GearRarity.ENCRYPTED).loadout.encode())!!.art)
         assertEquals(Pets.PET_COUNT - 1, Pets.validPet(Pets.PET_COUNT + 3))
+    }
+
+    @Test fun fiveHundredAnimatedEncryptedPets() {
+        val animated = (0 until Pets.NEW_COUNT).map { Pets.NEW_BASE + it }.filter { Pets.anim(it) != null }
+        assertEquals(500, animated.size)
+        assertTrue(animated.all { Pets.designedTier(it) == GearRarity.ENCRYPTED })
+        assertTrue(animated.all { a -> Pets.anim(a)!!.parts.any { it.kind != com.cyberoperative.game.data.PetAnim.Kind.FLOAT } })
+        // ENCRYPTED eggs are mostly the animated ones now (500 of 570).
+        val r = Random(9)
+        val hits = (0 until 200).count { Pets.anim(Pets.rollEgg(r, it.toLong(), GearRarity.ENCRYPTED).pet) != null }
+        assertTrue("$hits", hits in 150..195)
     }
 }

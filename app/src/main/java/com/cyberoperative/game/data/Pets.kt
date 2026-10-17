@@ -116,16 +116,17 @@ object Pets {
      * tier, name and egg name. GLITCHED and better eggs hatch these.
      */
     const val NEW_BASE = 1024
-    const val NEW_COUNT = 500
+    /** 500 from 0.40.0 (GLITCHED … ENCRYPTED) + 500 animated ENCRYPTED from 0.41.0. */
+    const val NEW_COUNT = 1000
 
-    private class NewPet(val tier: GearRarity, val name: String, val egg: String)
+    private class NewPet(val tier: GearRarity, val name: String, val egg: String, val anim: PetAnim?)
     private val newPets: List<NewPet> by lazy {
         runCatching {
             Pets::class.java.classLoader?.getResourceAsStream("pets/new_pets.txt")?.use { it.readBytes().decodeToString() }
         }.getOrNull().orEmpty().lines().filter { it.isNotBlank() }.mapNotNull { l ->
             val p = l.split('|')
             val tier = runCatching { GearRarity.valueOf(p[0]) }.getOrNull() ?: return@mapNotNull null
-            NewPet(tier, p.getOrElse(1) { "Pet" }, p.getOrElse(2) { "Egg" })
+            NewPet(tier, p.getOrElse(1) { "Pet" }, p.getOrElse(2) { "Egg" }, PetAnim.parse(p.getOrNull(3)))
         }
     }
     private val newByTier: Map<GearRarity, List<Int>> by lazy { newPets.indices.groupBy { newPets[it].tier } }
@@ -134,6 +135,9 @@ object Pets {
     /** A pet picture index that exists (old 0 until [PET_COUNT], or a new one). */
     fun validPet(art: Int): Int = if (isNewArt(art)) art else art.coerceIn(0, PET_COUNT - 1)
     fun validEgg(art: Int): Int = if (isNewArt(art)) art else art.coerceIn(0, EGG_COUNT - 1)
+    /** The animated ENCRYPTED pets' moving parts (0.41.0), or null. */
+    fun anim(art: Int): PetAnim? = if (isNewArt(art)) newPets[art - NEW_BASE].anim else null
+
     /** The rarity a new pet was designed for, or null for the owner's original pets. */
     fun designedTier(art: Int): GearRarity? = if (isNewArt(art)) newPets[art - NEW_BASE].tier else null
     /** Atlas layout: 16 × 16 cells per page; pets 64 px, eggs 48 px. */
@@ -281,6 +285,32 @@ object Pets {
             var x = rng.nextFloat() * odds.sumOf { it.second.toDouble() }.toFloat()
             for ((r, w) in odds) { x -= w; if (x <= 0f) return r }
             return odds.last().first
+        }
+    }
+}
+
+/**
+ * Moving parts of an animated ENCRYPTED pet (owner, 0.41.0: "special orbs rotating them or
+ * different moving mechanical parts"). Parsed from new_pets.txt ("KIND:count:RRGGBB|RAINBOW:speed;…"),
+ * drawn live by `ui/common/PetFx`.
+ */
+class PetAnim(val parts: List<Part>) {
+    enum class Kind { ORBS, RING, GEARS, PROP, SHARDS, HELIX, SCAN, PULSE, FLOAT }
+    /** [color] is ARGB, or null for RAINBOW (cycles every rarity colour). */
+    class Part(val kind: Kind, val count: Int, val color: Long?, val speed: Float)
+
+    val floats: Boolean get() = parts.any { it.kind == Kind.FLOAT }
+
+    companion object {
+        fun parse(s: String?): PetAnim? {
+            if (s.isNullOrBlank()) return null
+            val parts = s.split(';').mapNotNull { p ->
+                val f = p.split(':')
+                val kind = runCatching { Kind.valueOf(f[0]) }.getOrNull() ?: return@mapNotNull null
+                val color = f.getOrNull(2)?.let { if (it == "RAINBOW") null else (0xFF000000L or (it.toLongOrNull(16) ?: 0xFFFFFFL)) }
+                Part(kind, f.getOrNull(1)?.toIntOrNull() ?: 1, color, f.getOrNull(3)?.toFloatOrNull() ?: 1f)
+            }
+            return if (parts.isEmpty()) null else PetAnim(parts)
         }
     }
 }

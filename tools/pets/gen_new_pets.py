@@ -220,10 +220,10 @@ def outline(img, color=(10, 10, 16), px=4):
 
 # --- Pet ----------------------------------------------------------------------------------------
 
-def draw_pet(tier, rnd):
+def draw_pet(tier, rnd, pal_override=None):
     N = PET * S
     c = Canvas(N)
-    pal = dict(rnd.choice(PALETTES[tier]))
+    pal = dict(pal_override) if pal_override else dict(rnd.choice(PALETTES[tier]))
     # small per-pet hue jitter so no two share exact colours
     j = rnd.uniform(-18, 18)
     pal["body"] = tuple(int(np.clip(v + j * (1 if i == rnd.randrange(3) else 0.3), 0, 255)) for i, v in enumerate(pal["body"]))
@@ -602,6 +602,140 @@ def draw_egg(tier, pal, rnd):
     return img.resize((EGG, EGG), Image.LANCZOS)
 
 
+# --- 0.41.0: 500 animated ENCRYPTED pets in every colour ---------------------------------------
+
+ANIM_COUNT = 500
+# name, body, trim, accent, eye  ("RAINBOW" accents cycle through every hue in the game)
+COLORWAYS = [
+    ("Pink", (255, 110, 200), (110, 30, 80), (255, 170, 230), (255, 230, 250)),
+    ("Purple", (150, 80, 240), (50, 20, 100), (210, 150, 255), (240, 200, 255)),
+    ("Blue", (50, 110, 255), (16, 36, 110), (120, 190, 255), (200, 235, 255)),
+    ("Cyan", (0, 220, 255), (0, 70, 100), (150, 250, 255), (230, 255, 255)),
+    ("Green", (60, 230, 90), (16, 80, 30), (170, 255, 150), (230, 255, 210)),
+    ("Aqua", (40, 240, 200), (10, 90, 80), (160, 255, 235), (220, 255, 245)),
+    ("Red", (240, 40, 60), (90, 10, 20), (255, 120, 110), (255, 220, 200)),
+    ("Yellow", (255, 230, 60), (110, 90, 10), (255, 250, 160), (255, 255, 230)),
+    ("Gold", (230, 170, 40), (100, 60, 10), (255, 225, 120), (255, 245, 200)),
+    ("Platinum", (220, 228, 240), (100, 110, 130), (180, 220, 255), (240, 250, 255)),
+    ("Orange", (255, 130, 30), (110, 46, 8), (255, 200, 120), (255, 240, 210)),
+    ("Obsidian", (30, 30, 40), (8, 8, 14), (170, 120, 255), (230, 210, 255)),
+    ("Pearl", (246, 244, 250), (140, 130, 160), (255, 190, 240), (200, 240, 255)),
+    ("Prism", (40, 44, 60), (12, 12, 20), "RAINBOW", (255, 255, 255)),
+]
+ANIM_WORDS = ["Cipher", "Root", "Hash", "Kernel", "Quantum", "Sigma", "Crypt", "Vector", "Proxy", "Daemon",
+              "Nonce", "Salt", "Shard", "Token", "Vault", "Enigma", "Matrix", "Codex", "Lattice", "Prime"]
+ANIM_KINDS = ["ORBS", "ORBS", "ORBS", "RING", "GEARS", "PROP", "SHARDS", "HELIX", "SCAN", "PULSE"]
+RAINBOW = [(255, 61, 242), (255, 43, 58), (255, 138, 31), (255, 240, 77), (60, 230, 90), (0, 240, 255), (50, 110, 255), (150, 80, 240)]
+
+
+def hexc(c):
+    return "RAINBOW" if c == "RAINBOW" else "%02X%02X%02X" % c
+
+
+def anim_spec(rnd, accent, eye):
+    """The pet's moving parts: 1-2 motions (plus an optional hover bob)."""
+    kinds = []
+    first = rnd.choice(ANIM_KINDS)
+    kinds.append(first)
+    if rnd.random() < 0.55:
+        second = rnd.choice([k for k in ANIM_KINDS if k != first and not (first in ("ORBS", "HELIX") and k in ("ORBS", "HELIX"))])
+        kinds.append(second)
+    parts = []
+    for k in kinds:
+        n = {"ORBS": rnd.randint(2, 4), "GEARS": 2, "SHARDS": 3, "HELIX": 6}.get(k, 1)
+        col = accent if (k != "SCAN" or accent == "RAINBOW") else eye
+        if k == "ORBS" and accent != "RAINBOW" and rnd.random() < 0.35:
+            col = rnd.choice(RAINBOW)
+        speed = round(rnd.uniform(0.7, 1.5), 2) * rnd.choice([1, -1])
+        parts.append(f"{k}:{n}:{hexc(col)}:{speed}")
+    if rnd.random() < 0.6:
+        parts.append("FLOAT:1:FFFFFF:1.0")
+    return ";".join(parts)
+
+
+def _col(c, t, i=0):
+    if c == "RAINBOW":
+        f = (t * 0.6 + i * 0.13) % 1.0 * len(RAINBOW)
+        a, b = RAINBOW[int(f) % len(RAINBOW)], RAINBOW[(int(f) + 1) % len(RAINBOW)]
+        return mix(a, b, f - int(f))
+    return tuple(int(c[j:j + 2], 16) for j in (0, 2, 4))
+
+
+def render_anim(sprite, spec, t, size=128):
+    """Python twin of PetFx (Kotlin): the pet with its moving parts at time t (review sheets / GIFs)."""
+    S2 = 4
+    W = size * S2
+    back = Image.new("RGBA", (W, W), (0, 0, 0, 0)); front = Image.new("RGBA", (W, W), (0, 0, 0, 0))
+    db, df = ImageDraw.Draw(back), ImageDraw.Draw(front)
+    bob = 0.0
+    parts = [p.split(":") for p in spec.split(";")]
+    for k, n, c, sp in parts:
+        if k == "FLOAT": bob = math.sin(t * 2.2) * 0.035
+    def P(u, v): return (u * W, (v + bob) * W)
+    for k, n, c, sp in parts:
+        n = int(n); sp = float(sp)
+        if k in ("ORBS", "HELIX", "SHARDS"):
+            for i in range(n):
+                a = t * sp * 2.4 + i * 2 * math.pi / n
+                if k == "ORBS":
+                    u, v, r = 0.5 + math.cos(a) * 0.44, 0.56 + math.sin(a) * 0.13, 0.045
+                elif k == "HELIX":
+                    u, v, r = 0.5 + math.cos(a) * 0.40, 0.2 + ((i / n + t * 0.12 * abs(sp)) % 1.0) * 0.7, 0.03
+                else:
+                    u, v, r = 0.5 + math.cos(a * 0.5) * 0.46, 0.35 + math.sin(t * 2 + i) * 0.06, 0.04
+                d = df if math.sin(a) >= 0 or k == "SHARDS" else db
+                col = _col(c, t, i)
+                x, y = P(u, v); R = r * W
+                d.ellipse([x - R * 2, y - R * 2, x + R * 2, y + R * 2], fill=col + (60,))
+                if k == "SHARDS":
+                    d.polygon([(x, y - R * 1.6), (x + R, y), (x, y + R * 1.6), (x - R, y)], fill=col + (255,))
+                else:
+                    d.ellipse([x - R, y - R, x + R, y + R], fill=col + (255,))
+                    d.ellipse([x - R * 0.45, y - R * 0.6, x, y - R * 0.15], fill=(255, 255, 255, 220))
+        elif k == "RING":
+            for i in range(14):
+                a = t * sp * 1.6 + i * 2 * math.pi / 14
+                x, y = P(0.5 + math.cos(a) * 0.4, 0.58 + math.sin(a) * 0.11)
+                d = df if math.sin(a) >= 0 else db
+                R = 0.016 * W
+                d.ellipse([x - R, y - R, x + R, y + R], fill=_col(c, t, i) + (230,))
+        elif k == "GEARS":
+            for gi, gu in enumerate((0.1, 0.9)):
+                x, y = P(gu, 0.66)
+                R = 0.085 * W
+                rot = t * sp * 2.0 * (1 if gi == 0 else -1)
+                col = _col(c, t, gi)
+                pts = []
+                for j in range(16):
+                    a = rot + j * math.pi / 8
+                    rr = R if j % 2 == 0 else R * 0.72
+                    pts.append((x + math.cos(a) * rr, y + math.sin(a) * rr))
+                df.polygon(pts, fill=mix(col, (40, 40, 50), 0.35) + (255,))
+                df.ellipse([x - R * 0.35, y - R * 0.35, x + R * 0.35, y + R * 0.35], fill=col + (255,))
+        elif k == "PROP":
+            x, y = P(0.5, 0.06)
+            w = abs(math.cos(t * sp * 9)) * 0.26 * W + 0.03 * W
+            df.ellipse([x - w, y - 0.02 * W, x + w, y + 0.02 * W], fill=_col(c, t) + (200,))
+            df.ellipse([x - 0.02 * W, y - 0.02 * W, x + 0.02 * W, y + 0.02 * W], fill=(230, 230, 240, 255))
+        elif k == "PULSE":
+            x, y = P(0.5, 0.55)
+            a = int(60 + 50 * math.sin(t * 3 * abs(sp)))
+            for rr, al in ((0.48, a // 3), (0.38, a // 2)):
+                db.ellipse([x - rr * W, y - rr * W, x + rr * W, y + rr * W], fill=_col(c, t) + (al,))
+        elif k == "SCAN":
+            yy = 0.42 + (math.sin(t * 2.5 * abs(sp)) * 0.5 + 0.5) * 0.2
+            x0, y0 = P(0.28, yy); x1, _ = P(0.72, yy)
+            df.line([(x0, y0), (x1, y0)], fill=_col(c, t) + (220,), width=int(0.012 * W))
+    back = back.filter(ImageFilter.GaussianBlur(1)).resize((size, size), Image.LANCZOS)
+    front = front.resize((size, size), Image.LANCZOS)
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.alpha_composite(back)
+    spr = sprite.resize((size, size), Image.NEAREST)
+    out.alpha_composite(spr, (0, int(bob * size)))
+    out.alpha_composite(front)
+    return out
+
+
 def main():
     os.makedirs(DOCS, exist_ok=True)
     pets, eggs, meta = [], [], []
@@ -622,6 +756,21 @@ def main():
             egg_name = f"{EGG_WORDS[tier][k % 4]} {['Core', 'Shell', 'Prism', 'Vault', 'Rift', 'Nexus'][(k // 4) % 6]} Egg"
             pets.append(pet); eggs.append(egg); meta.append(f"{tier}|{name}|{egg_name}")
             idx += 1
+    first = len(pets)
+    for k in range(ANIM_COUNT):
+        rnd = random.Random(f"enc-anim-{k}")
+        cw = COLORWAYS[k % len(COLORWAYS)]
+        accent = cw[3]
+        pal = dict(body=cw[1], trim=cw[2], accent=(255, 255, 255) if accent == "RAINBOW" else accent, eye=cw[4])
+        pet, pal = draw_pet("ENCRYPTED", rnd, pal_override=pal)
+        egg = draw_egg("ENCRYPTED", pal, random.Random(f"enc-anim-egg-{k}"))
+        spec = anim_spec(rnd, accent, cw[4])
+        for t in range(len(ANIM_WORDS) * len(SPECIES)):
+            name = f"{cw[0]} {ANIM_WORDS[(k // len(COLORWAYS) + t) % len(ANIM_WORDS)]} {SPECIES[(k * 11 + t // len(ANIM_WORDS)) % len(SPECIES)]}"
+            if name not in seen: break
+        seen.add(name)
+        egg_name = f"{cw[0]} Cipher {['Core', 'Shell', 'Prism', 'Vault', 'Rift', 'Nexus'][k % 6]} Egg"
+        pets.append(pet); eggs.append(egg); meta.append(f"ENCRYPTED|{name}|{egg_name}|{spec}")
     print("generated", len(pets))
 
     def pages(imgs, px, prefix):
@@ -643,6 +792,7 @@ def main():
         font = big = ImageFont.load_default()
     start = 0
     for tier, count in TIERS:
+        if os.environ.get("SKIP_OLD_SHEETS"): break
         cols = 10
         cw, ch = 150, 172
         rows = (count + cols - 1) // cols
@@ -662,13 +812,51 @@ def main():
         start += count
     # one overview of all 500 at 1x
     ov = Image.new("RGBA", (25 * 68 + 8, 20 * 68 + 8), (14, 18, 28, 255))
-    for i, p in enumerate(pets):
+    for i, p in enumerate(pets[:500]):
         ov.alpha_composite(p, (4 + (i % 25) * 68, 4 + (i // 25) * 68))
     ov.save(os.path.join(DOCS, "all_500_pets.png"))
     eo = Image.new("RGBA", (25 * 52 + 8, 20 * 52 + 8), (14, 18, 28, 255))
-    for i, e in enumerate(eggs):
+    for i, e in enumerate(eggs[:500]):
         eo.alpha_composite(e, (4 + (i % 25) * 52, 4 + (i // 25) * 52))
     eo.save(os.path.join(DOCS, "all_500_eggs.png"))
+
+    # Animated ENCRYPTED set: sheets (one frame, moving parts drawn) by colour, plus GIFs.
+    anim = list(range(first, len(pets)))
+    for page in range(0, len(anim), 100):
+        ids = anim[page:page + 100]
+        cols = 10; cw, ch = 150, 172
+        sheet = Image.new("RGBA", (cols * cw + 20, ((len(ids) + cols - 1) // cols) * ch + 70), (14, 18, 28, 255))
+        d = ImageDraw.Draw(sheet)
+        d.text((14, 16), f"ANIMATED ENCRYPTED PETS  ·  #{ids[0] - first + 1}–{ids[-1] - first + 1} of 500", fill=TIER_COLOR["ENCRYPTED"] + (255,), font=big)
+        for i, j in enumerate(ids):
+            x = 10 + (i % cols) * cw; y = 60 + (i // cols) * ch
+            d.rounded_rectangle([x + 3, y + 3, x + cw - 3, y + ch - 3], 8, fill=(22, 28, 42, 255), outline=TIER_COLOR["ENCRYPTED"] + (120,))
+            sheet.alpha_composite(render_anim(pets[j], meta[j].split("|")[3], 0.7 + i * 0.37), (x + 11, y + 6))
+            sheet.alpha_composite(eggs[j].resize((40, 40), Image.LANCZOS), (x + cw - 46, y + 96))
+            nm = meta[j].split("|")[1]
+            d.text((x + 9, y + ch - 30), nm if len(nm) <= 22 else nm[:21] + "…", fill=(230, 236, 245, 255), font=font)
+            kinds = ",".join(p.split(":")[0].lower() for p in meta[j].split("|")[3].split(";"))
+            d.text((x + 9, y + ch - 16), f"#{j - first + 1} · {kinds}", fill=(140, 150, 170, 255), font=font)
+        sheet.save(os.path.join(DOCS, f"encrypted_animated_{page // 100 + 1}.png"))
+    # GIFs: 28 pets (two of each colour) moving, and a few big close-ups.
+    sample = [anim[c + 14 * r] for r in range(2) for c in range(14)]
+    frames = []
+    for f in range(36):
+        t = f / 36 * (2 * math.pi / 1.0) / 2.2 * 1.0
+        fr = Image.new("RGBA", (7 * 132 + 4, 4 * 132 + 4), (14, 18, 28, 255))
+        for i, j in enumerate(sample):
+            fr.alpha_composite(render_anim(pets[j], meta[j].split("|")[3], t), (2 + (i % 7) * 132, 2 + (i // 7) * 132))
+        frames.append(fr.convert("RGB"))
+    frames[0].save(os.path.join(DOCS, "encrypted_animated_preview.gif"), save_all=True, append_images=frames[1:], duration=70, loop=0)
+    big_ids = anim[:8]
+    frames = []
+    for f in range(36):
+        t = f / 36 * 2.86
+        fr = Image.new("RGBA", (4 * 260 + 4, 2 * 260 + 4), (14, 18, 28, 255))
+        for i, j in enumerate(big_ids):
+            fr.alpha_composite(render_anim(pets[j], meta[j].split("|")[3], t, size=256), (2 + (i % 4) * 260, 2 + (i // 4) * 260))
+        frames.append(fr.convert("RGB"))
+    frames[0].save(os.path.join(DOCS, "encrypted_animated_closeup.gif"), save_all=True, append_images=frames[1:], duration=70, loop=0)
 
 
 if __name__ == "__main__":

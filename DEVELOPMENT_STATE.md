@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.40.0 (versionCode 121) |
+| Version | 0.41.0 (versionCode 122) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.41.0 animated ENCRYPTED pets:**
+  - New art indices 1524–2023 (pages 5–7).
+  - `Pets.anim(art)` returns the moving parts. `PetFx` (Kotlin) and `render_anim` (Python, used for the review sheets) must stay in step.
+  - `PetIconView` runs an infinite transition only for animated pets.
 - **0.40.0 new pets:**
   - 500 generated pets and eggs on atlas pages 4–5, at art index 1024 + k. Run `python3 tools/pets/gen_new_pets.py` to regenerate them (the output is the same every time).
   - `Pets.rollEgg` gives GLITCHED+ eggs a new pet of that tier, with matching egg art.

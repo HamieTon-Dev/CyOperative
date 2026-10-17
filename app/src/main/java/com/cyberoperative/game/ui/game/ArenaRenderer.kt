@@ -1081,7 +1081,7 @@ class ArenaRenderer {
         val c = Color(pet.rarity.color)
         drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - 15f, y - 4f), Size(30f, 9f))
         drawOval(c.copy(alpha = 0.35f), Offset(x - 17f, y - 6f), Size(34f, 12f), style = Stroke(1.6f))
-        with(com.cyberoperative.game.ui.common.PetArt) { drawPet(pet.art, x, y + bob - 2f, 54f) }
+        with(com.cyberoperative.game.ui.common.PetArt) { drawPet(pet.art, x, y + bob - 2f, 54f, time = time) }
     }
 
     private fun push(kind: Int, index: Int, key: Float) {

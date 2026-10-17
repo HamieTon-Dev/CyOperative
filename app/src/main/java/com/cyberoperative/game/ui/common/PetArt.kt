@@ -4,6 +4,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -30,7 +36,7 @@ object PetArt {
 
     /** Decodes the atlases on a background thread (app start). */
     fun preload() {
-        Thread({ for (i in 0..5) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
+        Thread({ for (i in 0..7) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
     }
 
     private fun DrawScope.cell(page: String, index: Int, px: Int, dx: Float, dy: Float, size: Float, alpha: Float) {
@@ -43,21 +49,38 @@ object PetArt {
         )
     }
 
-    /** Pet [art] standing at ([cx], [bottom]), [size] tall. */
-    fun DrawScope.drawPet(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f) =
-        cell("pets", Pets.validPet(art), Pets.PET_PX, cx - size / 2f, bottom - size, size, alpha)
+    /** Pet [art] standing at ([cx], [bottom]), [size] tall; animated pets move with [time] (seconds). */
+    fun DrawScope.drawPet(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f, time: Float = 0f) {
+        val anim = Pets.anim(art)
+        if (anim == null) {
+            cell("pets", Pets.validPet(art), Pets.PET_PX, cx - size / 2f, bottom - size, size, alpha)
+            return
+        }
+        val left = cx - size / 2f
+        val bob = if (anim.floats) kotlin.math.sin(time * 2.2f) * 0.035f * size else 0f
+        val top = bottom - size + bob
+        with(PetFx) { draw(anim, left, top, size, time, front = false, alpha = alpha) }
+        cell("pets", Pets.validPet(art), Pets.PET_PX, left, top, size, alpha)
+        with(PetFx) { draw(anim, left, top, size, time, front = true, alpha = alpha) }
+    }
 
     fun DrawScope.drawEgg(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f) =
         cell("eggs", Pets.validEgg(art), Pets.EGG_PX, cx - size / 2f, bottom - size, size, alpha)
 }
 
-/** A pet portrait with a soft glow in its rarity colour. */
+/** A pet portrait with a soft glow in its rarity colour (animated ENCRYPTED pets keep moving). */
 @Composable
 fun PetIconView(art: Int, rarity: GearRarity, modifier: Modifier = Modifier) {
+    val t = if (Pets.anim(art) != null) {
+        val v by rememberInfiniteTransition(label = "pet").animateFloat(
+            0f, 600f, infiniteRepeatable(tween(600_000, easing = LinearEasing)), label = "t"
+        )
+        v
+    } else 0f
     Canvas(modifier) {
         val c = Color(rarity.color)
         drawCircle(c.copy(alpha = 0.18f), size.minDimension * 0.46f, Offset(size.width / 2f, size.height * 0.55f))
-        with(PetArt) { drawPet(art, size.width / 2f, size.height * 0.98f, size.minDimension * 0.96f) }
+        with(PetArt) { drawPet(art, size.width / 2f, size.height * 0.98f, size.minDimension * 0.96f, time = t) }
     }
 }
 

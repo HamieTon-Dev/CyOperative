@@ -12,6 +12,7 @@ device, tune balance, then fill out the store/meta phases.
     - pet levels or duplicates (merge?).
   - ✅ 0.39.0: hatch notification, pet abilities (1–4 by rarity).
   - ✅ 0.40.0: 500 new GLITCHED…ENCRYPTED pets + eggs (generated in the owner's style; owner review of the sheets pending).
+  - ✅ 0.41.0: 500 animated ENCRYPTED pets (14 colourways, live moving parts).
 - CO-170 POWER TIERS + HARD (owner 2026-10-17: "Hard mode is not possible past world 2").
   - ✅ 0.39.0: GLITCHED LEGENDARY + ENCRYPTED gear/chips, FORGED…ABYSSAL chips (22 new), Golden+ gear +30%, Hard easing past World 2, 2 chips/room on Hard, boss 3 potions, elite potions 33%.
   - ✅ 0.39.1: NORMAL +HP/+dmg past level 100 (HARD rises with it), HARD idle runs.

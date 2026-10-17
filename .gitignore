@@ -25,3 +25,4 @@ keystore/
 # Logs
 *.log
 app/google-services.json
+__pycache__/
