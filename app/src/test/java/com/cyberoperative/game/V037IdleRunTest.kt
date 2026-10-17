@@ -222,6 +222,32 @@ class V037IdleRunTest {
         }
     }
 
+    /** The 3 × 1 widget (0.37.6) at real sizes: everything fits and stays readable. */
+    @Test fun wideWidgetLaysOutAtThreeByOne() {
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val active = IdleRunSimulator.advance(run(profile(rarity = GearRarity.RARE)), 75_000L)
+        val hell = IdleRunSimulator.advance(run(profile(inferno = 3, rarity = GearRarity.LEGENDARY), Difficulty.inferno(3)!!), 40_000L)
+        val dead = IdleRunSimulator.advance(run(), 12 * hour)
+        val shots = listOf("active" to active, "inferno" to hell, "defeated" to dead, "none" to null)
+        for ((w, h) in listOf(200 to 56, 260 to 72)) for ((name, s) in shots) {
+            val v = IdleRunWidget.buildWide(ctx, s, h).apply(ctx, FrameLayout(ctx))
+            val d = ctx.resources.displayMetrics.density
+            v.measure(View.MeasureSpec.makeMeasureSpec((w * d).toInt(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec((h * d).toInt(), View.MeasureSpec.EXACTLY))
+            v.layout(0, 0, v.measuredWidth, v.measuredHeight)
+            for (t in texts(v)) if (t.isShown) {
+                assertTrue("${t.text} is ${t.textSize / ctx.resources.displayMetrics.scaledDensity} sp", t.textSize / ctx.resources.displayMetrics.scaledDensity >= 8f)
+                val loc = IntArray(2).also { var p: View? = t; var y = 0; while (p != null && p !== v) { y += p.top; p = p.parent as? View }; it[1] = y }
+                assertTrue("'${t.text}' fits ($name ${w}x$h)", loc[1] + t.height <= v.height + 1 && t.height > 0)
+            }
+            if (System.getProperty("cyberop.renderPreviews") == "true") {
+                val bmp = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+                v.draw(Canvas(bmp))
+                val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens").also { it.mkdirs() }
+                File(out, "idle_widget_wide_${name}_${w}x$h.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            }
+        }
+    }
+
     @Test fun renderIdleRunsScreen() {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()

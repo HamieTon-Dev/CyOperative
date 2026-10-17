@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IDLE RUN home-screen widget, 3 x 1 (wide). Built by widget/IdleRunWidget.kt (buildWide). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wide_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_frame_cyan"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="5dp">
+
+    <ViewFlipper
+        android:id="@+id/wide_flipper"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.46"
+        android:autoStart="true"
+        android:background="@drawable/widget_art_bg"
+        android:flipInterval="1100">
+        <ImageView android:id="@+id/wide_frame_0" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="Operator fighting" />
+        <ImageView android:id="@+id/wide_frame_1" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="Operator attacking" />
+        <ImageView android:id="@+id/wide_frame_2" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="Threat hit" />
+        <ImageView android:id="@+id/wide_frame_3" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="Threat winding up" />
+    </ViewFlipper>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="6dp"
+        android:layout_weight="0.54"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/wide_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-condensed"
+                android:maxLines="1"
+                android:text="IDLE RUN"
+                android:textColor="#FF00E5FF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/wide_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/widget_badge_standard"
+                android:fontFamily="sans-serif-condensed"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:text="STANDARD"
+                android:textColor="#FFE6EEFA"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/wide_line2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:maxLines="1"
+            android:text="No Active Run"
+            android:textColor="#FFE6EEFA"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+        <LinearLayout
+            android:id="@+id/wide_stats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/wide_euros"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-condensed"
+                android:maxLines="1"
+                android:text="€ 0"
+                android:textColor="#FFFFD426"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/wide_xp"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-condensed"
+                android:maxLines="1"
+                android:text="XP 0"
+                android:textColor="#FF00E5FF"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/wide_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="TAP TO START IDLE RUN"
+            android:textColor="#FF7FE9F5"
+            android:textSize="9sp" />
+    </LinearLayout>
+</LinearLayout>

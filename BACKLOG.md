@@ -11,6 +11,7 @@ device, tune balance, then fill out the store/meta phases.
   - ✅ 0.37.2: eased again (×2.2 duration).
   - ✅ 0.37.3: idle drops kept only at EPIC and better.
   - ✅ 0.37.4: idle € 40% (XP 50%), 20% less gear.
+  - ✅ 0.37.6: 3 × 1 wide widget.
   - Next: device check on a real launcher (widget sizes, ViewFlipper timing, notification); playtest the idle reach vs a real player and tune `IdleRunSimulator` constants; PC version later (owner: "not for desktop for now").
 - CO-140 INFERNO boss visual redesign (owner brief 2026-10-16), see `docs/INFERNO_BOSS_REDESIGN.md`.
   - ✅ 0.36.0: all 15 bosses on the owner's paintings with animation rigs, in the priority order Maw → Searfang → Monarch → Bishop → Null → Warden → Magma → Sovereign → Oracle → Router → Reaver → Hex → Tyrant → Halo → Widow.

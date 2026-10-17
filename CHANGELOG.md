@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.37.6 (versionCode 116) — 2026-10-17 · 3 × 1 Idle Run widget
+### Added (owner: "did you not make a 3 x 1 widget?")
+- **IDLE RUN (wide), a 3 × 1 home-screen widget**, next to the 2 × 3 one in the widget list.
+  - Left: the same animated battle preview (your operator, the one threat or boss, room props).
+  - Right:
+    - **Active run:** IDLE RUN plus the STANDARD / INFERNO badge, level and next boss, € and XP earned.
+    - **Defeated:** OPERATOR DEFEATED with the highest level, € and XP, and START NEW IDLE RUN? on taller widgets.
+    - **No run:** tap to start.
+  - Resizable; on a taller widget it also shows the OP level and the idle rate.
+  - Tap opens Idle Runs. Updated together with the 2 × 3.
+### Technical
+- `IdleRunWideWidgetReceiver`, `IdleRunWidget.buildWide`, `layout/widget_idle_run_wide.xml`, `xml/idle_run_wide_widget_info.xml`. Test: `wideWidgetLaysOutAtThreeByOne` (200 × 56 and 260 × 72 dp, ≥ 8 sp text).
+
 ## 0.37.5 (versionCode 115) — 2026-10-17 · five new NEON tracks
 ### Added (owner's music)
 - **Five new tracks:** Neon Alley 1987 (1), (2) and (3), Neon Afterglow 1987, and Neon Requiem.

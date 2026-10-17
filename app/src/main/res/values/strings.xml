@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">Cyber Operative</string>
     <string name="idle_widget_description">Your idle operator\'s fight: level, € and XP earned, next boss.</string>
+    <string name="idle_widget_wide_description">Idle Run at a glance: the fight, level, next boss, € and XP.</string>
 </resources>

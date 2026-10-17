@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- IDLE RUN widget, 3 x 1 (wide). Refreshed by WorkManager (IdleRunWorker), like the 2 x 3. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="200dp"
+    android:minHeight="50dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_idle_run_wide"
+    android:previewLayout="@layout/widget_idle_run_wide"
+    android:description="@string/idle_widget_wide_description"
+    android:widgetCategory="home_screen" />
