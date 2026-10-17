@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.39.1 (versionCode 120) |
+| Version | 0.40.0 (versionCode 121) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.40.0 new pets:**
+  - 500 generated pets and eggs on atlas pages 4–5, at art index 1024 + k. Run `python3 tools/pets/gen_new_pets.py` to regenerate them (the output is the same every time).
+  - `Pets.rollEgg` gives GLITCHED+ eggs a new pet of that tier, with matching egg art.
+  - The original 1,005 pets and 872 eggs are unchanged; GLITCHED/ENCRYPTED no longer borrow old egg pictures.
 - **0.39.1 (owner):**
   - `GameEngine.normalLate`: MEDIUM only, past level 100, HP +1.2%/level (cap ×2.5), damage +0.6%/level (cap ×1.6).
   - `hardEase` is now uncapped above 1, so HARD stays ≥ `HARD_OVER_NORMAL` × NORMAL ("Hard rises with Normal").

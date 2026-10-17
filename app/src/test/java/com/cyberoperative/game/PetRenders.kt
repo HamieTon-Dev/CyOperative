@@ -45,8 +45,10 @@ class PetRenders {
     private fun stocked(repo: SaveRepository) {
         val r = Random(5)
         val eggs = GearRarity.entries.flatMap { rar -> (0..1).map { Pets.rollEgg(r, (rar.ordinal * 10 + it + 1).toLong(), rar) } }
-        val pets = (0 until 12).map { Pet(500L + it, r.nextInt(Pets.PET_COUNT), GearRarity.entries[it % GearRarity.entries.size], fresh = false) }
-        repo.update { it.copy(characterId = "c", characterName = "ZERO", eggs = eggs, pets = pets, activePet = 503L, infernoStones = 4, petSeq = 1000) }
+        val pets = (0 until 12).map { Pet(500L + it, r.nextInt(Pets.PET_COUNT), GearRarity.entries[it % GearRarity.entries.size], fresh = false) } +
+            // 0.40.0 pets (GLITCHED … ENCRYPTED, pages 4–5).
+            (0 until 10).map { Pet(600L + it, Pets.NEW_BASE + it * 50, Pets.designedTier(Pets.NEW_BASE + it * 50)!!, fresh = false) }
+        repo.update { it.copy(characterId = "c", characterName = "ZERO", eggs = eggs, pets = pets, activePet = 609L, infernoStones = 4, petSeq = 1000) }
         repo.update { p -> listOf(42L, 31L, 12L, 5L).fold(p) { q, u -> Incubators.send(q, u) ?: q } }
         repo.update { Incubators.setStones(it, 3) }
     }

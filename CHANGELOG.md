@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.40.0 (versionCode 121) — 2026-10-17 · 500 new pets (GLITCHED … ENCRYPTED)
+### Added (owner: "500 more pets ranging from glitched to encrypted rarity, their eggs, and their design")
+- **500 new companions, each with its own egg.**
+  - Split by rarity: GLITCHED 90, FORGED 85, VOLTAIC 85, CELESTIAL 85, ABYSSAL 85, ENCRYPTED 70.
+  - Each has a unique name, such as "Cinderhex Puck" or "Cipher Beetle".
+  - They are built in the style of the original pets: glossy robot bodies, dark visor faces with glowing eyes, side pods, legs or thrusters, and toppers.
+  - Each tier has its own look:
+    - GLITCHED: gold with magenta/cyan glitch tears;
+    - FORGED: molten cracks and embers;
+    - VOLTAIC: lightning arcs;
+    - CELESTIAL: platinum, halos and wings;
+    - ABYSSAL: hellfire and horns;
+    - ENCRYPTED: black with cyan circuitry.
+- GLITCHED and better eggs now hatch one of the new pets designed for that rarity, in its own matching egg. Lower rarities keep the original 1,005 pets.
+- Review sheets: `docs/pets_new/` has one sheet per tier with each pet, its egg and its name, plus all 500 pets and all 500 eggs.
+### Technical
+- `tools/pets/gen_new_pets.py` (deterministic) writes `pets_4/5.webp`, `eggs_4/5.webp` and `new_pets.txt`.
+- New pet art indices are `Pets.NEW_BASE` (1024) + k, and the egg art uses the same index. Helpers: `Pets.validPet`, `validEgg`, `designedTier`.
+
 ## 0.39.1 (versionCode 120) — 2026-10-17 · Tougher NORMAL past level 100, HARD idle runs
 ### Changed
 - **NORMAL past level 100** (campaign Worlds 11–15, and Endless):

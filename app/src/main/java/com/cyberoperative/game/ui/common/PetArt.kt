@@ -30,7 +30,7 @@ object PetArt {
 
     /** Decodes the atlases on a background thread (app start). */
     fun preload() {
-        Thread({ for (i in 0..3) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
+        Thread({ for (i in 0..5) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
     }
 
     private fun DrawScope.cell(page: String, index: Int, px: Int, dx: Float, dy: Float, size: Float, alpha: Float) {
@@ -45,10 +45,10 @@ object PetArt {
 
     /** Pet [art] standing at ([cx], [bottom]), [size] tall. */
     fun DrawScope.drawPet(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f) =
-        cell("pets", art.coerceIn(0, Pets.PET_COUNT - 1), Pets.PET_PX, cx - size / 2f, bottom - size, size, alpha)
+        cell("pets", Pets.validPet(art), Pets.PET_PX, cx - size / 2f, bottom - size, size, alpha)
 
     fun DrawScope.drawEgg(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f) =
-        cell("eggs", art.coerceIn(0, Pets.EGG_COUNT - 1), Pets.EGG_PX, cx - size / 2f, bottom - size, size, alpha)
+        cell("eggs", Pets.validEgg(art), Pets.EGG_PX, cx - size / 2f, bottom - size, size, alpha)
 }
 
 /** A pet portrait with a soft glow in its rarity colour. */
