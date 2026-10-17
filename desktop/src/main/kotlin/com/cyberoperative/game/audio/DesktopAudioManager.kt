@@ -149,6 +149,8 @@ class AudioManager {
         if (next == state) return
         state = next
         if (next == MusicState.NONE) { stopPlayer(); return }
+        // A NEON track never plays on a boss round, even hand-picked (owner, 0.37.5).
+        if (next == MusicState.BOSS && pinned?.plain == true) pinned = null
         val keep = pinned
         if (keep != null && currentTrack == keep && player != null) return
         val cur = currentTrack
@@ -177,13 +179,15 @@ class AudioManager {
     }
 
     private fun onTrackFinished() {
-        val nextTrack = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        var nextTrack = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        while (state == MusicState.BOSS && nextTrack?.plain == true) nextTrack = nextInOrder(nextTrack)
         if (pinned != null) pinned = nextTrack
         if (!shuffle && pinned != null) { playTrack(currentTrack); return }
         playTrack(nextTrack)
     }
 
-    private fun poolNow(): List<MusicTrack> = if (pinned != null) MusicLibrary.all else poolFor(state)
+    private fun poolNow(): List<MusicTrack> =
+        if (pinned != null) MusicLibrary.all.filter { !(state == MusicState.BOSS && it.plain) } else poolFor(state)
 
     private fun nextInOrder(t: MusicTrack?): MusicTrack {
         val list = MusicLibrary.all
@@ -193,7 +197,7 @@ class AudioManager {
 
     /** Music volume with headroom for a boss's (Android) EQ boost, kept so levels match. */
     private fun musicGain(): Float {
-        val m = bossMusic.takeIf { state == MusicState.BOSS } ?: return musicVolume
+        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true } ?: return musicVolume
         val boost = maxOf(0f, m.bassDb, m.trebleDb)
         return musicVolume * Math.pow(10.0, (-boost * 0.5 / 20.0)).toFloat()
     }

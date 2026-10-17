@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.37.4 (versionCode 114) |
+| Version | 0.37.5 (versionCode 115) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.37.5 NEON tracks:** `TrackGroup.NEON` tracks are in both COMBAT pools (normal and INFERNO), never in BOSS/MENU pools; `MusicTrack.plain` means 1.0× speed and pitch and no EQ or reverb; a pinned NEON track is dropped when a boss round starts.
 - **0.37.0 Idle Runs (Android only):**
   - Shared: `idle/IdleRunSimulator` runs the real formulas (buildConfig + chips, LevelPlanner rooms, PowerGovernor, Scaling, boss scaling from BossBrain) one threat at a time. Tuning constants are at the top: `SKILL_MEAN` 0.70 ± 0.12, `BOSS_SKILL` 1.1, `HIT_TAKEN` 0.058, `BOSS_HIT_TAKEN` 0.029, `MAX_CROWD` 3, `ROOM_HEAL` 0.32 (eased twice on owner request: 0.37.1 ≈ ×2 duration, 0.37.2 ≈ ×2.2 more), HP charges at 40%. These were calibrated against the test `Bot` (idle reaches a bit further than the simple bot); a device playtest should confirm the "competent player" target.
   - Rewards: `EURO_SHARE` 0.4 of the €, `REWARD_SHARE` 0.5 of the XP (0.37.4).

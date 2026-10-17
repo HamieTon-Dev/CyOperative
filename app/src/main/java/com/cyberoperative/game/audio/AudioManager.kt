@@ -233,11 +233,13 @@ class AudioManager(private val context: Context) {
 
     /** Tempo now: the boss's own (by phase) in a boss fight, else the state's. */
     private fun speedNow(): Float {
+        if (currentTrack?.plain == true) return 1f
         val m = bossMusic
         return if (state == MusicState.BOSS && m != null) m.speed(bossPhase) else speedFor(state, slowRound)
     }
 
     private fun pitchNow(): Float {
+        if (currentTrack?.plain == true) return 1f
         val m = bossMusic
         return if (state == MusicState.BOSS && m != null) m.pitch(bossGlitched) else 1f
     }
@@ -259,6 +261,8 @@ class AudioManager(private val context: Context) {
         ensureSpeed()
         if (next == MusicState.NONE) { stopPlayer(); return }
         // A hand-picked track keeps playing through state changes.
+        // A NEON track never plays on a boss round, even hand-picked.
+        if (next == MusicState.BOSS && pinned?.plain == true) pinned = null
         val keep = pinned
         if (keep != null && currentTrack == keep && player != null) return
         val cur = currentTrack
@@ -343,12 +347,14 @@ class AudioManager(private val context: Context) {
 
     private fun onTrackFinished() {
         // Next in the shuffle (or the next track in list order when shuffle is off).
-        val nextTrack = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        var nextTrack = if (shuffle) bag.next(poolNow(), currentTrack) else nextInOrder(currentTrack)
+        while (state == MusicState.BOSS && nextTrack?.plain == true) nextTrack = nextInOrder(nextTrack)
         if (pinned != null) pinned = nextTrack
         playTrack(nextTrack)
     }
 
-    private fun poolNow(): List<MusicTrack> = if (pinned != null) MusicLibrary.all else poolFor(state)
+    private fun poolNow(): List<MusicTrack> =
+        if (pinned != null) MusicLibrary.all.filter { !(state == MusicState.BOSS && it.plain) } else poolFor(state)
 
     private fun nextInOrder(t: MusicTrack?): MusicTrack {
         val list = MusicLibrary.all
@@ -362,7 +368,8 @@ class AudioManager(private val context: Context) {
      * audio effects just play the track (with its pitch and tempo).
      */
     private fun applyEffects(mp: MediaPlayer) {
-        val m = bossMusic.takeIf { state == MusicState.BOSS }
+        // NEON tracks play as recorded: no EQ or reverb (owner, 0.37.5).
+        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true }
         try { mp.setVolume(musicGain(), musicGain()) } catch (_: Throwable) {}
         try {
             if (m == null || (m.bassDb == 0f && m.trebleDb == 0f)) {
@@ -406,7 +413,7 @@ class AudioManager(private val context: Context) {
 
     /** Music volume with headroom for a boss's EQ boost (half the boost), so it doesn't clip. */
     private fun musicGain(): Float {
-        val m = bossMusic.takeIf { state == MusicState.BOSS } ?: return musicVolume
+        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true } ?: return musicVolume
         val boost = maxOf(0f, m.bassDb, m.trebleDb)
         return musicVolume * Math.pow(10.0, (-boost * 0.5 / 20.0)).toFloat()
     }

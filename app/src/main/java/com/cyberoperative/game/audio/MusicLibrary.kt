@@ -1,11 +1,16 @@
 package com.cyberoperative.game.audio
 
 /** Where a track came from in CyOps TD, which decides where it plays by default. */
-enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT, INFERNO, INFERNO_BOSS }
+enum class TrackGroup { MENU, LEVEL, BOSS, AMBIENT, INFERNO, INFERNO_BOSS,
+    /** Owner's NEON tracks (0.37.5): any level, never a boss round, always as recorded. */
+    NEON }
 
 /** One owned CyOps TD soundtrack piece, titled with the owner's CyOps TD naming. */
 /** [file]: the audio file's base name (Android raw resource / PC resource `music/<file>.ogg`). */
-data class MusicTrack(val id: String, val file: String, val title: String, val group: TrackGroup)
+data class MusicTrack(val id: String, val file: String, val title: String, val group: TrackGroup) {
+    /** Played exactly as recorded: never sped up or slowed, no pitch shift, EQ or reverb (owner, 0.37.5). */
+    val plain: Boolean get() = group == TrackGroup.NEON
+}
 
 /**
  * The full CyOps TD soundtrack (owner, 2026-10-07: "use all of the music
@@ -43,7 +48,13 @@ object MusicLibrary {
         inferno(3, 1, "track_inferno3"), inferno(3, 2, "track_inferno3_2"),
         inferno(4, 1, "track_inferno4"), inferno(4, 2, "track_inferno4_2"),
         MusicTrack("inferno_boss_1", "track_inferno_boss_1", "CyOps - Inferno Boss (1)", TrackGroup.INFERNO_BOSS),
-        MusicTrack("inferno_boss_2", "track_inferno_boss_2", "CyOps - Inferno Boss (2)", TrackGroup.INFERNO_BOSS)
+        MusicTrack("inferno_boss_2", "track_inferno_boss_2", "CyOps - Inferno Boss (2)", TrackGroup.INFERNO_BOSS),
+        // NEON (owner, 0.37.5): any level on any difficulty, never on a boss round, never altered.
+        MusicTrack("neon_alley_1", "track_neon_alley_1", "Neon Alley 1987 (1)", TrackGroup.NEON),
+        MusicTrack("neon_alley_2", "track_neon_alley_2", "Neon Alley 1987 (2)", TrackGroup.NEON),
+        MusicTrack("neon_alley_3", "track_neon_alley_3", "Neon Alley 1987 (3)", TrackGroup.NEON),
+        MusicTrack("neon_afterglow", "track_neon_afterglow", "Neon Afterglow 1987", TrackGroup.NEON),
+        MusicTrack("neon_requiem", "track_neon_requiem", "Neon Requiem", TrackGroup.NEON)
     )
 
     private fun inferno(n: Int, part: Int, file: String) =
@@ -66,7 +77,8 @@ object MusicLibrary {
         MusicState.NONE -> emptyList()
         MusicState.MENU -> all.filter { it.group == TrackGroup.MENU }
         // In a run, the whole soundtrack shuffles.
-        MusicState.COMBAT, MusicState.EVENT -> if (inferno) all.filter { it.group == TrackGroup.INFERNO } else all.filter { !isInferno(it) }
+        // The NEON tracks join both (owner: "any level"). Boss rounds below never get them.
+        MusicState.COMBAT, MusicState.EVENT -> if (inferno) all.filter { it.group == TrackGroup.INFERNO || it.group == TrackGroup.NEON } else all.filter { !isInferno(it) }
         // Bosses get the heaviest pieces: CyOps TD's level-10 tracks and the BOSS 2 variants.
         MusicState.BOSS -> if (inferno) all.filter { it.group == TrackGroup.INFERNO_BOSS }
             else all.filter { it.id.startsWith("level10") || it.group == TrackGroup.BOSS }

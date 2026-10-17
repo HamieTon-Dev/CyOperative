@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.37.5 (versionCode 115) — 2026-10-17 · five new NEON tracks
+### Added (owner's music)
+- **Five new tracks:** Neon Alley 1987 (1), (2) and (3), Neon Afterglow 1987, and Neon Requiem.
+  - They shuffle into the music on any level, on every difficulty including INFERNO.
+  - Never on a boss round: not even when hand-picked in the music player (it moves on when a boss arrives).
+  - Always played exactly as recorded: never sped up or slowed (the 1.25× / 0.75× round tempo doesn't apply), no pitch change, no EQ and no reverb.
+  - They are also listed in the pause-screen music player.
+- Stored as Ogg Vorbis at about 96 kbps like the rest of the soundtrack: 10.6 MB for all five (the MP3s were 21.5 MB). This is only a format conversion; nothing else in the audio was changed.
+### Technical
+- `TrackGroup.NEON` and `MusicTrack.plain`. `AudioManager.speedNow/pitchNow/applyEffects/musicGain` skip plain tracks; Android and PC skip them on boss rounds.
+- `res/raw/track_neon_*.ogg`. Test: `V0375MusicTest`.
+
 ## 0.37.4 (versionCode 114) — 2026-10-17 · Idle Runs pay 20% less € and gear
 ### Changed (owner: "reduce gear and money rewards by 20%. This doesn't need to be a better option than actually playing the game")
 - **€:** idle runs now pay **40%** of a normal run's € (was 50%).
