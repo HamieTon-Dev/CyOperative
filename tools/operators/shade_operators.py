@@ -26,7 +26,7 @@ LIGHT = np.array([-0.55, -0.7, 0.55]); LIGHT /= np.linalg.norm(LIGHT)
 HALF = LIGHT + np.array([0, 0, 1.0]); HALF /= np.linalg.norm(HALF)
 
 
-def shade(path):
+def shade(path, flat_cape=None):
     im = np.asarray(Image.open(path).convert("RGBA")).astype(np.float32) / 255.0
     rgb, a = im[..., :3], im[..., 3]
     H, W = a.shape
@@ -78,6 +78,13 @@ def shade(path):
     lit = base * (0.42 + 0.75 * diff)[..., None] * fall[..., None] * ao[..., None]
     lit = lit + (spec * np.where(visor, 0.6, 0.8))[..., None]
     out = np.where(fill[..., None], lit, 0)
+    # The Phantom's cape stays as it was, unshaded (owner, after the v2 sheets).
+    if flat_cape is None:
+        flat_cape = os.path.basename(path).startswith("phantom")
+    if flat_cape and n:
+        sizes = ndimage.sum(fill, labels, idx)
+        cape = labels == (int(np.argmax(sizes)) + 1)
+        out = np.where(cape[..., None], rgb, out)
 
     lines = np.where(line[..., None], np.clip(rgb * 1.12 + 0.05, 0, 1), 0)
     out = np.where(line[..., None], lines, out)
