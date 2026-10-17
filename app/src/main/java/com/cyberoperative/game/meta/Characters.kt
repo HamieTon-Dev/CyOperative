@@ -188,6 +188,6 @@ object GearBank {
     fun versus(p: PlayerProfile, item: GearItem): Float? {
         val cur = p.equipped[item.slot] ?: return null
         if (cur.uid == item.uid) return null
-        return item.base - cur.base
+        return item.effectiveBase - cur.effectiveBase
     }
 }

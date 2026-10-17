@@ -75,6 +75,8 @@ object IdleRunSimulator {
 
     /** The worst gear an idle run keeps (owner, 0.37.3: "only epic and higher drops"). */
     val MIN_DROP_RARITY = com.cyberoperative.game.data.GearRarity.EPIC
+    const val IDLE_BOSS_HP_DROP = 0.5f
+    const val IDLE_ELITE_HP_DROP = 0.08f
     /** Share of those an idle run keeps (owner, 0.37.4: 20% less gear than at launch). */
     const val GEAR_KEEP = 0.8f
 
@@ -315,7 +317,8 @@ object IdleRunSimulator {
             val r = rng(7, kills)
             val inf = difficulty.inferno
             // HP charge packets drop from elites and bosses, as on the floor in a normal run.
-            val chargeChance = if (e.boss) GameEngine.BOSS_HP_DROP else if (e.elite != null) GameEngine.ELITE_HP_DROP else 0f
+            // Kept at the 0.38 odds (0.39.0 raised them in real runs only: idle stays the weaker option).
+            val chargeChance = if (e.boss) IDLE_BOSS_HP_DROP else if (e.elite != null) IDLE_ELITE_HP_DROP else 0f
             if (r.nextFloat() < chargeChance) charges = min(GameEngine.MAX_HP_CHARGES, charges + 1)
             when {
                 e.boss -> {

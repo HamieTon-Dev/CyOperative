@@ -97,6 +97,8 @@ object GearIcons {
             GearRarity.VOLTAIC -> voltArcs(c, x, y, h, w, t, scale)
             GearRarity.CELESTIAL -> celestialHalo(c, x, y, h, t, scale)
             GearRarity.ABYSSAL -> abyssFlames(x, y, w, t, scale)
+            GearRarity.GLITCHED -> glitchBlocks(x, y, h, w, t, scale)
+            GearRarity.ENCRYPTED -> { abyssFlames(x, y, w, t, scale); codeColumn(c, x, y, h, w, t, scale) }
             else -> {}
         }
     }
@@ -145,6 +147,27 @@ object GearIcons {
             val a = (1f - ph) * 0.9f
             drawLine(Color.White.copy(alpha = a), Offset(sx - r, sy), Offset(sx + r, sy), strokeWidth = 1.2f * scale)
             drawLine(Color.White.copy(alpha = a), Offset(sx, sy - r), Offset(sx, sy + r), strokeWidth = 1.2f * scale)
+        }
+    }
+
+    /** GLITCHED: magenta / cyan blocks jumping around the beam. */
+    private fun DrawScope.glitchBlocks(x: Float, y: Float, h: Float, w: Float, t: Float, scale: Float) {
+        val seed = (t * 8f).toInt()
+        for (k in 0 until 6) {
+            val j = (((seed * 31 + k * 97) * 2654435761L) ushr 16 and 0xFF) / 255f
+            val bx = x + (j - 0.5f) * w * 2.2f
+            val by = y - h * ((k + j) / 6.5f)
+            val c = if (k % 2 == 0) Color(0xFFFF3DF2) else Color(0xFF3DF2FF)
+            drawRect(c.copy(alpha = 0.75f), Offset(bx, by), androidx.compose.ui.geometry.Size((6f + 8f * j) * scale, 3f * scale))
+        }
+    }
+
+    /** ENCRYPTED: green code glyphs streaming up the beam. */
+    private fun DrawScope.codeColumn(c: Color, x: Float, y: Float, h: Float, w: Float, t: Float, scale: Float) {
+        for (k in 0 until 12) {
+            val ph = (t * 0.6f + k * 0.083f) % 1f
+            val gx = x + ((k * 7) % 5 - 2) * w * 0.28f
+            drawRect(c.copy(alpha = (1f - ph) * 0.95f), Offset(gx - 2f * scale, y - ph * h), androidx.compose.ui.geometry.Size(4f * scale, 6f * scale))
         }
     }
 

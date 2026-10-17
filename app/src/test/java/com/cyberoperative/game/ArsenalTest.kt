@@ -15,7 +15,8 @@ import org.junit.Test
 class ArsenalTest {
 
     @Test fun fiveWeaponsPerRarityAllOfferable() {
-        for (r in Rarity.entries) {
+        // The 0.39.0 chip tiers (GLITCHED, FORGED … ENCRYPTED) are power-ups only, no arsenal weapons.
+        for (r in Rarity.entries) if (!r.special) {
             val n = Weapons.all.count { it.rarity == r }
             assertTrue("$r has only $n weapons", n >= 5)
         }

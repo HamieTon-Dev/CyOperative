@@ -46,6 +46,11 @@ class MainActivity : ComponentActivity() {
 
     /** The Idle Run widget / notification opens Main Menu › Idle Runs. */
     private fun openFrom(intent: android.content.Intent?) {
+        if (intent?.action == com.cyberoperative.game.widget.IdleRunWidget.ACTION_OPEN_PETS) {
+            com.cyberoperative.game.ui.DeepLink.open(com.cyberoperative.game.ui.menu.MenuTarget.VAULT)
+            com.cyberoperative.game.ui.DeepLink.petsTab = true
+            intent.action = null
+        }
         if (intent?.action == com.cyberoperative.game.widget.IdleRunWidget.ACTION_OPEN_IDLE_RUNS) {
             com.cyberoperative.game.ui.DeepLink.open(com.cyberoperative.game.ui.menu.MenuTarget.IDLE_RUNS)
             intent.action = null
@@ -57,6 +62,8 @@ class MainActivity : ComponentActivity() {
         app.audio.onBackground()
         // Leaving the app: save the Idle Run, schedule its worker and redraw the widget.
         app.idle.sync(refreshWidget = true)
+        // The incubator's hatch reminder follows the egg in it now.
+        com.cyberoperative.game.meta.PetReminders.update(app.save.current)
     }
 
     override fun onResume() {

@@ -1,5 +1,68 @@
 # Changelog
 
+## 0.39.0 (versionCode 119) — 2026-10-17 · GLITCHED LEGENDARY, ENCRYPTED, new chip tiers, Hard balance, pet abilities
+### Added (owner: "Hard mode is not possible past world 2")
+- **Two new rarities for gear and chips:**
+  - **GLITCHED LEGENDARY** (magenta) sits right after GOLDEN. It drops on every difficulty: about 2.2% per boss gear piece, a quarter of that from elites, and a little more on INFERNO and with luck. Its card is gold foil that tears into magenta/cyan glitch slices.
+  - **ENCRYPTED** (electric cyan) is the new top tier, above ABYSSAL. It is very rare on every difficulty (about 0.25% per boss gear piece) and never appears in the shop. Its card has falling code and a pulsing border, and its drops have code rising up a flaming beam.
+- **Gear:**
+  - GOLDEN and better gear has +30% main stats and +30% perk values. This is applied when worn, so gear you already own gets it too.
+  - **GLITCHED perks:**
+    - rifle: fire on the move at 50% rate, +10% damage;
+    - armor: heal 3 HP per hit, +3% dodge;
+    - system: dash cooldown −25%, +15% damage.
+  - **ENCRYPTED perks:**
+    - rifle: fire at full rate on the move, +50% damage;
+    - armor: HP potions drink themselves at 20% HP or on a lethal hit, and heal 8 HP per hit;
+    - system: dash cooldown −50%, double healing, companion fires twice as fast.
+- **Chips:** seven new chip tiers (GLITCHED, FORGED, VOLTAIC, CELESTIAL, ABYSSAL, ENCRYPTED, with TITANIUM kept between GLITCHED and FORGED) and 22 new chips:
+  - **GLITCHED:**
+    - GHOST TRIGGER: fire on the move at 50% rate;
+    - BUFFER OVERFLOW;
+    - STACK SMASH: heal per hit;
+    - PHASE SKIP: shorter dash cooldown, dodge;
+    - ROLLBACK: HP, healing, stronger potions.
+  - **FORGED:** MOLTEN CORE, SLAG PLATING.
+  - **VOLTAIC:** STORM CIRCUIT, OVERVOLT NODES.
+  - **CELESTIAL:** HALO PROTOCOL, STARFALL OPTICS.
+  - **ABYSSAL:**
+    - INFERNO PROTOCOL: heal 10 HP per hit;
+    - HELLGATE ROUNDS.
+  - **ENCRYPTED** (very rare, near game-breaking):
+    - ZERO LATENCY: dash cooldown −50%;
+    - RUN & GUN: shoot while moving, full rate;
+    - DOUBLE PAYLOAD: damage ×2;
+    - REGEN MATRIX: all healing ×2, potions included;
+    - FULL RESTORE: potions heal to full, and the potion turns into a red glowing abyssal draught on the floor, the HUD and the touch button;
+    - FAILSAFE: a potion drinks itself at 20% HP or on a hit that would kill you, and you survive that hit;
+    - PHANTOM CODE: dodge ×2, capped at 60%;
+    - OVERCLOCK SYNC: your fire rate and your pet's ×2;
+    - VAMPIRIC ROOT: heal 20 HP per hit.
+- **Hard balance:**
+  - From World 3, threat HP and damage on HARD ease off, reaching −25% by World 5. HARD threats still always stay at least 10% tougher than NORMAL's. INFERNO is untouched.
+  - HARD rooms drop 2 chips (event rooms 3), with extra chip luck, and HARD bosses give at least 3 picks.
+- **HP potions (all difficulties):** every boss drops 3 per player, and elites now drop one 33% of the time (was 8%). Idle Runs keep the old odds.
+- **Pet abilities:**
+  - Abilities: FIRE BITE, CHAIN SHOCK, HEAL PULSE, SHIELD BUBBLE, SHOCK NOVA, HOMING MISSILES, PIERCING LASER and RAPID FIRE.
+  - Below EPIC a pet has 1 ability. EPIC and better may have 2. GLITCHED and better may have 3 or 4 (the cap is 4).
+  - Rarer pets get shorter cooldowns.
+  - Abilities are shown in PETS and on the hatch reveal.
+  - A pet's abilities are fixed by its id, so every pet you already own has them now.
+- **Hatch notification (Android):** "Your egg has hatched!" fires when the egg in the incubator is ready, and tapping it opens CHARACTER › PETS.
+### Fixed (owner: co-op loot looked wrong on the joined player's screen)
+- **Co-op drops on the guest:**
+  - The guest's own drops now look solid there, and the host's show as the faint see-through glow, the same way the host sees them.
+  - Cause: the guest rebuilt every drop from each snapshot with its pop-in timer reset to 0. Its own drops were drawn at 5% size, and the partner's glow at size 0.
+  - Fix: the snapshot now carries each drop's age, and the guest keeps ageing drops between snapshots.
+### Changed
+- The fire-rate cap was raised from 8 to 12 volleys per second (to make room for OVERCLOCK SYNC).
+- Co-op protocol v32: gear rarity numbers shifted, so 0.38 and 0.39 can't play together.
+### Technical
+- New RunStats fields: `healOnHit`, `moveFireRate`, `dashCooldownMul`, `potionFullHeal`, `potionMul`, `autoPotion`, `dodgeMul`, `petRateMul`.
+- `GearRarity.GLITCHED` / `ENCRYPTED` (saved as `ENCRYPTED_X`, because `ENCRYPTED` is FORGED's old save name) plus `statBoost` and `animated`.
+- `Rarity.highTier` is now an explicit value capped at 3, so the new tiers don't compound luck.
+- New: `GameEngine.hardEase`, `widget/PetHatchWorker`, `PetReminders`.
+
 ## 0.38.0 (versionCode 118) — 2026-10-17 · Companions: eggs, incubator, Inferno Stones, pets
 ### Added (owner: companion / pet addon)
 - **Pets** that follow you and fight. Equip one in CHARACTER › PETS.

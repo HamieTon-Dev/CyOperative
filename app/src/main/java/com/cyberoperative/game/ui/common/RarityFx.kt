@@ -36,7 +36,7 @@ import kotlin.math.sin
  * so the text stays crisp).
  */
 fun Modifier.rarityCard(rarity: GearRarity?, corner: Dp = 6.dp, over: Boolean = true): Modifier =
-    if (rarity == null || !rarity.inferno) this else composed {
+    if (rarity == null || !rarity.animated) this else composed {
         val t by rememberInfiniteTransition(label = "rarity").animateFloat(
             0f, 600f, infiniteRepeatable(tween(600_000, easing = LinearEasing), RepeatMode.Restart), label = "t"
         )
@@ -50,7 +50,17 @@ object RarityFx {
             addRoundRect(androidx.compose.ui.geometry.RoundRect(0f, 0f, size.width, size.height, CornerRadius(corner)))
         }
         clipPath(clip) {
-            if (rarity == GearRarity.ABYSSAL) flames(t) else sheen(Color(rarity.color), t)
+            when (rarity) {
+                GearRarity.ABYSSAL -> flames(t)
+                GearRarity.GLITCHED -> glitch(t)
+                GearRarity.ENCRYPTED -> codeRain(t)
+                else -> sheen(Color(rarity.color), t)
+            }
+        }
+        if (rarity == GearRarity.ENCRYPTED) {
+            val pulse = 0.55f + 0.3f * sin(t * 3f)
+            drawRoundRect(Color(0xFF00F0FF).copy(alpha = pulse), cornerRadius = CornerRadius(corner),
+                style = Stroke(width = (size.minDimension * 0.03f).coerceIn(1.5f, 3f)))
         }
         if (rarity == GearRarity.ABYSSAL) {
             val flick = 0.55f + 0.25f * sin(t * 11f) * sin(t * 4.3f)
@@ -83,6 +93,44 @@ object RarityFx {
                 start = Offset(cx - band, h * 0.5f + band), end = Offset(cx + band, h * 0.5f - band)
             )
             drawRect(brush)
+        }
+    }
+
+    /** GLITCHED (owner, 0.39.0): a gold card that tears into magenta / cyan slices now and then. */
+    private fun DrawScope.glitch(t: Float) {
+        val w = size.width; val h = size.height
+        sheen(Color(0xFFFFC21A), t)
+        val seed = (t * 9f).toInt()
+        val burst = seed % 7 < 2
+        val n = if (burst) 5 else 2
+        for (k in 0 until n) {
+            val j = (((seed * 73 + k * 151) * 2654435761L) ushr 12 and 0xFFFF) / 65535f
+            val y = h * j
+            val bh = h * (0.03f + 0.06f * ((k * 37 + seed) % 5) / 5f)
+            val dx = (j - 0.5f) * w * (if (burst) 0.12f else 0.04f)
+            val a = if (burst) 0.32f else 0.12f
+            drawRect(Color(0xFFFF3DF2).copy(alpha = a), Offset(dx, y), androidx.compose.ui.geometry.Size(w, bh))
+            drawRect(Color(0xFF3DF2FF).copy(alpha = a * 0.8f), Offset(-dx, y + bh * 0.5f), androidx.compose.ui.geometry.Size(w, bh * 0.5f))
+        }
+    }
+
+    /** ENCRYPTED (owner, 0.39.0): falling green code over a dark sheen. */
+    private fun DrawScope.codeRain(t: Float) {
+        val w = size.width; val h = size.height
+        drawRect(Brush.verticalGradient(listOf(Color(0x2200F0FF), Color.Transparent, Color(0x3300F0FF))))
+        val cols = 7
+        val cell = (size.minDimension / 12f).coerceAtLeast(3f)
+        for (c in 0 until cols) {
+            val x = w * (c + 0.5f) / cols
+            val speed = 0.18f + 0.07f * ((c * 5) % 4)
+            val head = ((t * speed + c * 0.29f) % 1.3f) * h
+            for (k in 0 until 8) {
+                val y = head - k * cell * 1.4f
+                if (y < 0f || y > h) continue
+                val a = (if (k == 0) 0.85f else 0.5f * (1f - k / 8f))
+                drawRect(if (k == 0) Color.White.copy(alpha = a) else Color(0xFF00F0FF).copy(alpha = a),
+                    Offset(x - cell * 0.35f, y), androidx.compose.ui.geometry.Size(cell * 0.7f, cell))
+            }
         }
     }
 

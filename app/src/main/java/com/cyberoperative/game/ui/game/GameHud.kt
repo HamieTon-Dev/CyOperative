@@ -464,7 +464,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 Spacer(Modifier.width(6.dp))
                 h.spell2?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_2, it.icon, it.label, h.spell2Cd, Palette.Magenta) }
                 Spacer(Modifier.width(14.dp))
-                ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", h.hpCharges, Palette.Green)
+                ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", h.hpCharges, if (h.potionFull) Color(0xFFFF2B3A) else Palette.Green)
                 Spacer(Modifier.width(8.dp))
                 ConsumableChip(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", h.packetBombs, Palette.Cyan)
                 Spacer(Modifier.width(14.dp))
@@ -566,11 +566,11 @@ private fun ConsumableChip(action: com.cyberoperative.game.ui.common.KeyAction, 
 fun PcAbilityBar(h: HudSnapshot, scale: Float, modifier: Modifier = Modifier) {
     val tile = 76.dp * scale
     Row(modifier, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp * scale), verticalAlignment = Alignment.Bottom) {
-        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, com.cyberoperative.game.engine.GameEngine.DASH_COOLDOWN, Palette.Cyan, tile)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, h.dashMax, Palette.Cyan, tile)
         h.spell1?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, it.cooldown, Palette.Purple, tile) }
         h.spell2?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_2, it.icon, it.label, h.spell2Cd, it.cooldown, Palette.Magenta, tile) }
         Spacer(Modifier.width(10.dp * scale))
-        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", "HP", 0f, 1f, Palette.Green, tile, count = h.hpCharges)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", "HP", 0f, 1f, if (h.potionFull) Color(0xFFFF2B3A) else Palette.Green, tile, count = h.hpCharges)
         AbilityTile(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", "BOMB", 0f, 1f, Palette.Cyan, tile, count = h.packetBombs)
     }
 }

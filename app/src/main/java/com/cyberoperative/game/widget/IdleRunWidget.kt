@@ -61,6 +61,15 @@ class IdleRunWideWidgetReceiver : AppWidgetProvider() {
  */
 object IdleRunWidget {
     const val ACTION_OPEN_IDLE_RUNS = "com.cyberoperative.game.action.OPEN_IDLE_RUNS"
+    const val ACTION_OPEN_PETS = "com.cyberoperative.game.action.OPEN_PETS"
+
+    /** Opens Cyber Operative on CHARACTER › PETS (the hatch notification). */
+    fun openPets(context: Context): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_PETS)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        return PendingIntent.getActivity(context, 8, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
 
     private val frameViews = intArrayOf(R.id.idle_frame_0, R.id.idle_frame_1, R.id.idle_frame_2, R.id.idle_frame_3)
     private val main = Handler(Looper.getMainLooper())

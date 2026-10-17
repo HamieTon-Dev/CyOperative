@@ -8,16 +8,24 @@ import com.cyberoperative.game.data.ArenaShape
  * PURPLE, GOLDEN and TITANIUM are progressively rarer. Their odds rise with
  * level, difficulty and boss rewards (see RunBuild.rollOffer luck).
  */
-enum class Rarity(val label: String, val color: Long, val weight: Float) {
-    COMMON("COMMON", 0xFFB8C4D6, 100f),
-    UNCOMMON("UNCOMMON", 0xFF00FF9C, 55f),
-    RARE("BLUE RARE", 0xFF2E9BFF, 26f),
-    EPIC("PURPLE", 0xFFA259FF, 7f),
-    LEGENDARY("GOLDEN", 0xFFFFD426, 2.5f),
-    TITANIUM("TITANIUM", 0xFFDCE8F2, 0.8f);
+enum class Rarity(val label: String, val color: Long, val weight: Float, /** Luck steps: 0 BLUE and below, 1 PURPLE, 2 GOLDEN, 3 above. */ val highTier: Int) {
+    COMMON("COMMON", 0xFFB8C4D6, 100f, 0),
+    UNCOMMON("UNCOMMON", 0xFF00FF9C, 55f, 0),
+    RARE("BLUE RARE", 0xFF2E9BFF, 26f, 0),
+    EPIC("PURPLE", 0xFFA259FF, 7f, 1),
+    LEGENDARY("GOLDEN", 0xFFFFD426, 2.5f, 2),
+    // The equipment tiers as chips (owner, 0.39.0): very strong, rarer the higher they go.
+    GLITCHED("GLITCHED LEGENDARY", 0xFFFF3DF2, 1.5f, 3),
+    TITANIUM("TITANIUM", 0xFFDCE8F2, 0.8f, 3),
+    FORGED("FORGED", 0xFFFF8A1F, 0.9f, 3),
+    VOLTAIC("VOLTAIC", 0xFFFFF04D, 0.75f, 3),
+    CELESTIAL("CELESTIAL", 0xFFBFD4FF, 0.6f, 3),
+    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 0.45f, 3),
+    /** Near game-breaking (owner, 0.39.0): very rare on every difficulty. */
+    ENCRYPTED("ENCRYPTED", 0xFF00F0FF, 0.16f, 3);
 
-    /** 0 for BLUE and below; 1, 2, 3 for PURPLE, GOLDEN, TITANIUM. */
-    val highTier: Int get() = (ordinal - RARE.ordinal).coerceAtLeast(0)
+    /** GLITCHED and the five tiers above TITANIUM: animated chips. */
+    val special: Boolean get() = this == GLITCHED || ordinal > TITANIUM.ordinal
 }
 
 enum class UpgradeCategory { WEAPON, ORBIT, DEFENSE, STAT, UTILITY }
@@ -285,6 +293,124 @@ object Upgrades {
         { s, _ -> s.euroMul *= 1.5f; s.damage *= 1.2f; s.critChance += 0.1f }
     )
 
+    // --- GLITCHED LEGENDARY (owner, 0.39.0: "makes hard mode runs possible") ----------
+    val GHOST_TRIGGER = UpgradeDef(
+        "ghost_trigger", "GHOST TRIGGER", "~>*", Rarity.GLITCHED, UpgradeCategory.STAT, 1,
+        "A glitch in the fire control: your rifle keeps shooting while you move.",
+        { "Fire on the move at 50% rate, +15% damage" },
+        { s, _ -> s.moveFireRate = maxOf(s.moveFireRate, 0.5f); s.damage *= 1.15f }
+    )
+    val BUFFER_OVERFLOW = UpgradeDef(
+        "buffer_overflow", "BUFFER OVERFLOW", "[>>]", Rarity.GLITCHED, UpgradeCategory.STAT, 2,
+        "Writes past the limit: more damage, faster shots.", { "+35% damage, +15% attack speed" },
+        { s, l -> s.damage *= 1f + 0.35f * l; s.fireRate *= 1f + 0.15f * l }
+    )
+    val STACK_SMASH = UpgradeDef(
+        "stack_smash", "STACK SMASH", "<+>", Rarity.GLITCHED, UpgradeCategory.DEFENSE, 2,
+        "Every hit leaks a little HP back to you.", { "Heal 3 HP per hit, +20% max HP" },
+        { s, l -> s.healOnHit += 3f * l; s.maxHp *= 1f + 0.2f * l }
+    )
+    val PHASE_SKIP = UpgradeDef(
+        "phase_skip", "PHASE SKIP", ">|>", Rarity.GLITCHED, UpgradeCategory.DEFENSE, 1,
+        "Skips frames: dash sooner and slip more hits.", { "Dash cooldown −30%, +6% dodge" },
+        { s, _ -> s.dashCooldownMul *= 0.7f; s.dodge += 0.06f }
+    )
+    val ROLLBACK = UpgradeDef(
+        "rollback", "ROLLBACK", "<<3", Rarity.GLITCHED, UpgradeCategory.DEFENSE, 1,
+        "Restores from a cleaner snapshot: more HP, better healing.", { "+40% max HP, +40% healing, HP potions +50%" },
+        { s, _ -> s.maxHp *= 1.4f; s.healMul *= 1.4f; s.potionMul *= 1.5f }
+    )
+
+    // --- FORGED … ABYSSAL ------------------------------------------------------
+    val MOLTEN_CORE = UpgradeDef(
+        "molten_core", "MOLTEN CORE", "{^}", Rarity.FORGED, UpgradeCategory.STAT, 1,
+        "Shots come out of the crucible white-hot.", { "+45% damage, shots bounce once more" },
+        { s, _ -> s.damage *= 1.45f; s.bounce += 1 }
+    )
+    val SLAG_PLATING = UpgradeDef(
+        "slag_plating", "SLAG PLATING", "[#]", Rarity.FORGED, UpgradeCategory.DEFENSE, 1,
+        "Molten armor: hits spray slag back at them.", { "+200 armor, +40% max HP, +6 counter bolts" },
+        { s, _ -> s.armor += 200f; s.maxHp *= 1.4f; s.counterRing += 6 }
+    )
+    val STORM_CIRCUIT = UpgradeDef(
+        "storm_circuit", "STORM CIRCUIT", "z>z", Rarity.VOLTAIC, UpgradeCategory.STAT, 1,
+        "Live current in every bolt.", { "Shots arc to 2 more threats, +35% attack speed" },
+        { s, _ -> s.chain += 2; s.fireRate *= 1.35f }
+    )
+    val OVERVOLT_NODES = UpgradeDef(
+        "overvolt_nodes", "OVERVOLT NODES", "(z)", Rarity.VOLTAIC, UpgradeCategory.ORBIT, 1,
+        "Supercharged Packet Nodes that fire their own bolts.", { "+2 Packet Nodes, nodes fire bolts, +60% node damage" },
+        { s, _ -> s.orbCount += 2; s.orbDamage *= 1.6f; s.orbBoltInterval = if (s.orbBoltInterval <= 0f) 1.2f else s.orbBoltInterval * 0.75f }
+    )
+    val HALO_PROTOCOL = UpgradeDef(
+        "halo_protocol", "HALO PROTOCOL", "(+)", Rarity.CELESTIAL, UpgradeCategory.DEFENSE, 1,
+        "A guardian halo: tougher, and every kill patches you up.", { "+60% max HP, +50% healing, +8 HP per kill" },
+        { s, _ -> s.maxHp *= 1.6f; s.healMul *= 1.5f; s.healOnKill += 8f }
+    )
+    val STARFALL_OPTICS = UpgradeDef(
+        "starfall_optics", "STARFALL OPTICS", "*|*", Rarity.CELESTIAL, UpgradeCategory.STAT, 1,
+        "Star-tracked targeting.", { "+1 parallel shot, +15% critical chance, +60% critical damage" },
+        { s, _ -> s.parallelShots += 1; s.critChance += 0.15f; s.critMul += 0.6f }
+    )
+    val INFERNO_PROTOCOL = UpgradeDef(
+        "inferno_protocol", "INFERNO PROTOCOL", "<#>", Rarity.ABYSSAL, UpgradeCategory.DEFENSE, 1,
+        "Every bolt that lands burns HP back into you.", { "Heal 10 HP per hit" },
+        { s, _ -> s.healOnHit += 10f }
+    )
+    val HELLGATE_ROUNDS = UpgradeDef(
+        "hellgate_rounds", "HELLGATE ROUNDS", "!#!", Rarity.ABYSSAL, UpgradeCategory.STAT, 1,
+        "Rounds from the abyss.", { "+70% damage, +5% instant delete, +40% elite & boss damage" },
+        { s, _ -> s.damage *= 1.7f; s.instantDeleteChance += 0.05f; s.eliteDamageMul += 0.4f }
+    )
+
+    // --- ENCRYPTED (owner, 0.39.0: "near game breaking buffs") ----------------------
+    val ZERO_LATENCY = UpgradeDef(
+        "enc_zero_latency", "ZERO LATENCY", ">>|", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "Dash recharges twice as fast.", { "Dash cooldown −50%" },
+        { s, _ -> s.dashCooldownMul *= 0.5f }
+    )
+    val RUN_AND_GUN = UpgradeDef(
+        "enc_run_and_gun", "RUN & GUN", "~>>", Rarity.ENCRYPTED, UpgradeCategory.STAT, 1,
+        "No more standing still: your rifle fires at full rate while you move.", { "Shoot while moving, full rate" },
+        { s, _ -> s.moveFireRate = 1f }
+    )
+    val DOUBLE_PAYLOAD = UpgradeDef(
+        "enc_double_payload", "DOUBLE PAYLOAD", "x2", Rarity.ENCRYPTED, UpgradeCategory.STAT, 1,
+        "Everything you fire does double damage.", { "Damage ×2" },
+        { s, _ -> s.damage *= 2f; s.orbDamage *= 2f; s.bladeDamage *= 2f }
+    )
+    val REGEN_MATRIX = UpgradeDef(
+        "enc_regen_matrix", "REGEN MATRIX", "+x2", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "Doubles healing from every source, HP potions included.", { "Healing ×2 (all sources)" },
+        { s, _ -> s.healMul *= 2f; s.potionMul *= 2f }
+    )
+    val FULL_RESTORE = UpgradeDef(
+        "enc_full_restore", "FULL RESTORE", "[+]!", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "HP potions become abyssal draughts that heal you to full.", { "HP potions heal to full" },
+        { s, _ -> s.potionFullHeal = true }
+    )
+    val FAILSAFE = UpgradeDef(
+        "enc_failsafe", "FAILSAFE", "!+!", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "HP potions drink themselves at 20% HP, or on a hit that would kill you (you survive it).",
+        { "Auto-potion at 20% HP or a lethal hit" },
+        { s, _ -> s.autoPotion = true }
+    )
+    val PHANTOM_CODE = UpgradeDef(
+        "enc_phantom_code", "PHANTOM CODE", "~~", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "Doubles your dodge chance (up to 60%).", { "Dodge ×2, +5% dodge" },
+        { s, _ -> s.dodge += 0.05f; s.dodgeMul *= 2f }
+    )
+    val OVERCLOCK_SYNC = UpgradeDef(
+        "enc_overclock_sync", "OVERCLOCK SYNC", ">>>>", Rarity.ENCRYPTED, UpgradeCategory.STAT, 1,
+        "You and your companion fire twice as fast.", { "Fire rate ×2 (you and your pet)" },
+        { s, _ -> s.fireRate *= 2f; s.petRateMul *= 2f }
+    )
+    val VAMPIRIC_ROOT = UpgradeDef(
+        "enc_vampiric_root", "VAMPIRIC ROOT", "<3<", Rarity.ENCRYPTED, UpgradeCategory.DEFENSE, 1,
+        "Root access to their lifeblood: heal 20 HP on every hit.", { "Heal 20 HP per hit" },
+        { s, _ -> s.healOnHit += 20f }
+    )
+
     // --- Stats ---------------------------------------------------------------
     val KERNEL_OVERCLOCK = UpgradeDef(
         "kernel_overclock", "KERNEL OVERCLOCK", ">>>", Rarity.COMMON, UpgradeCategory.STAT, 5,
@@ -382,7 +508,12 @@ object Upgrades {
         ENCRYPTION_ARMOR, PACKET_EVASION, INTRUSION_COUNTER, MALWARE_PURGE, DATA_COMPRESSION,
         SYSTEM_RESTORE, CRYPTO_CACHE, DATA_DUMP,
         LOGIC_BOMBS, MALWARE_MISSILES, ARC_DISCHARGE, QUANTUM_RAILGUN, ORBITAL_STRIKE,
-        TITANIUM_CHASSIS, OMEGA_OVERCLOCK, GOLDEN_PROTOCOL
+        TITANIUM_CHASSIS, OMEGA_OVERCLOCK, GOLDEN_PROTOCOL,
+        GHOST_TRIGGER, BUFFER_OVERFLOW, STACK_SMASH, PHASE_SKIP, ROLLBACK,
+        MOLTEN_CORE, SLAG_PLATING, STORM_CIRCUIT, OVERVOLT_NODES, HALO_PROTOCOL, STARFALL_OPTICS,
+        INFERNO_PROTOCOL, HELLGATE_ROUNDS,
+        ZERO_LATENCY, RUN_AND_GUN, DOUBLE_PAYLOAD, REGEN_MATRIX, FULL_RESTORE, FAILSAFE,
+        PHANTOM_CODE, OVERCLOCK_SYNC, VAMPIRIC_ROOT
     ) + Weapons.upgrades
 
     private val byId = all.associateBy { it.id }

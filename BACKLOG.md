@@ -9,9 +9,11 @@ device, tune balance, then fill out the store/meta phases.
   - ✅ 0.38.0: eggs, incubator, Inferno Stones, pets that follow and fight, the owner's 1,005 pets and 872 eggs.
   - Next:
     - owner check of store egg prices / odds and pet power;
-    - a hatch-ready notification;
-    - pet levels or duplicates (merge?);
-    - per-pet abilities like the examples' FIRE BITE.
+    - pet levels or duplicates (merge?).
+  - ✅ 0.39.0: hatch notification, pet abilities (1–4 by rarity).
+- CO-170 POWER TIERS + HARD (owner 2026-10-17: "Hard mode is not possible past world 2").
+  - ✅ 0.39.0: GLITCHED LEGENDARY + ENCRYPTED gear/chips, FORGED…ABYSSAL chips (22 new), Golden+ gear +30%, Hard easing past World 2, 2 chips/room on Hard, boss 3 potions, elite potions 33%.
+  - Next: owner playtest of Hard World 15; check NORMAL isn't trivial late (greedy builds can one-shot basics past L100).
 - CO-150 IDLE RUNS + Android home-screen widget (owner brief 2026-10-16).
   - ✅ 0.37.0: simulator (real stats, chips, gear, 50% € / XP), 2 × 3 widget (active / defeated / no run), worker, notification, deep link, in-app page.
   - ✅ 0.37.1: runs eased (about +40% levels, ×2 duration).

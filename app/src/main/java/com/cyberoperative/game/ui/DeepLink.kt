@@ -11,4 +11,7 @@ object DeepLink {
     val pending = MutableStateFlow<MenuTarget?>(null)
 
     fun open(target: MenuTarget) { pending.value = target }
+
+    /** The hatch notification: open the CHARACTER screen on its PETS tab. */
+    @Volatile var petsTab = false
 }

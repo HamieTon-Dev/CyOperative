@@ -50,6 +50,9 @@ class Operative(val index: Int, baseStats: RunStats) {
     var petX = 0f
     var petY = 0f
     var petTimer = 0f
+    /** Pet ability cooldowns, by slot (below 0: not started yet), and RAPID FIRE seconds left. */
+    val petAbilityCd = FloatArray(com.cyberoperative.game.data.Pets.MAX_ABILITIES) { -1f }
+    var petRapid = 0f
     /** Eggs and Inferno Stones found this run (banked by the session). */
     val eggsFound = ArrayList<com.cyberoperative.game.data.PetEgg>()
     var stonesFound = 0

@@ -333,13 +333,41 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      * to OP level"): the one difficulty extra on top of the base curve, from
      * level 1, halved on EASY.
      */
-    val opHpNow: Float get() = 1f + (config.opHpMul - 1f) * config.difficulty.extraScaling
+    val opHpNow: Float get() = (1f + (config.opHpMul - 1f) * config.difficulty.extraScaling) * hardEase
+
+    /**
+     * HARD past World 2 (owner, 0.39.0: "Hard mode is not possible past world 2"): threat HP and
+     * damage ease off from World 3, down to −25% from World 5 on (Endless: every 10 levels is a
+     * world). Only HARD; INFERNO is untouched.
+     */
+    val hardEase: Float get() = hardEase(damage = false)
+    private val hardEaseDamage: Float get() = hardEase(damage = true)
+
+    /** Never eases HARD below [HARD_OVER_NORMAL] × what NORMAL would field at this level. */
+    private fun hardEase(damage: Boolean): Float {
+        val d = config.difficulty
+        if (d != Difficulty.HARD) return 1f
+        val w = if (campaign) world else 1 + level / 10
+        val ease = 1f - HARD_EASE * ((w - 2) / 3f).coerceIn(0f, 1f)
+        if (ease >= 1f) return 1f
+        val n = Difficulty.MEDIUM
+        val ratio = if (damage) {
+            val dp = Scaling.damagePressure(level) - 1f
+            d.enemyDamage * (1f + dp * d.pressure) * (1f + (config.opDamageMul - 1f) * d.extraScaling) /
+                (n.enemyDamage * (1f + dp * n.pressure) * (1f + (config.opDamageMul - 1f) * n.extraScaling))
+        } else {
+            val hp = Scaling.hpPressure(level) - 1f
+            d.enemyHp * (1f + hp * d.hpPressureShare) * (1f + (config.opHpMul - 1f) * d.extraScaling) /
+                (n.enemyHp * (1f + hp * n.hpPressureShare) * (1f + (config.opHpMul - 1f) * n.extraScaling))
+        }
+        return max(ease, HARD_OVER_NORMAL / ratio).coerceAtMost(1f)
+    }
 
     /** Post-level-10 pressure for this difficulty (owner, 2026-10-11): extra HP, damage and threat count. */
     internal fun pressureHp(lvl: Int = level): Float = 1f + (Scaling.hpPressure(lvl) - 1f) * config.difficulty.hpPressureShare
     internal fun pressureDamage(lvl: Int = level): Float = 1f + (Scaling.damagePressure(lvl) - 1f) * config.difficulty.pressure
     internal fun pressureCount(lvl: Int = level): Float = 1f + (Scaling.countPressure(lvl) - 1f) * config.difficulty.pressure
-    val opDamageNow: Float get() = 1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling
+    val opDamageNow: Float get() = (1f + (config.opDamageMul - 1f) * config.difficulty.extraScaling) * hardEaseDamage
 
     /** Boss rewards roll with extra luck until they are all picked. */
     private var bossLuckPending = false
@@ -1338,7 +1366,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         // Upgrade chips: a normal room drops the pick its clear would have given from its kills.
         if (chipRules && plan.kind != LevelKind.BOSS && plan.kind != LevelKind.SHOP) {
-            chipBudget = 1 + (if (plan.kind == LevelKind.EVENT) 1 else 0)
+            // HARD (owner, 0.39.0): two chips a normal room.
+            chipBudget = (if (config.difficulty == Difficulty.HARD) 2 else 1) + (if (plan.kind == LevelKind.EVENT) 1 else 0)
         }
     }
 
@@ -1478,7 +1507,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** Rarity luck for the next offer: deeper levels, harder difficulty and boss rewards all help. */
     private fun currentLuck(): Float =
-        level * 0.015f + config.difficulty.luck + (if (bossLuckPending) 1.2f else 0f)
+        level * 0.015f + config.difficulty.luck + (if (bossLuckPending) 1.2f else 0f) +
+            (if (config.difficulty == Difficulty.HARD) HARD_CHIP_LUCK else 0f)
 
     private fun openUpgrades(resumeCombat: Boolean = false) {
         offerLuck = currentLuck()
@@ -2246,7 +2276,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         updateArsenal(dt)
 
         // STOP = SHOOT. On PC the mouse aims instead: holding the button fires at the
-        // cursor whether or not the operative is moving.
+        // cursor whether or not the operative is moving. GHOST TRIGGER / RUN & GUN (owner,
+        // 0.39.0) fire on the move too, at [RunStats.moveFireRate] of the usual rate.
+        var rateMul = 1f
         if (cur.aiming) {
             targetUid = -1
             val dx = cur.aimX - px
@@ -2254,8 +2286,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (dx * dx + dy * dy > 1f) facing = atan2(dy, dx)
         } else {
             if (moving || stillTime < STOP_TO_FIRE_DELAY) {
-                targetUid = -1
-                return
+                if (s.moveFireRate <= 0f) {
+                    targetUid = -1
+                    return
+                }
+                rateMul = s.moveFireRate
             }
             val target = acquireTarget()
             if (target == null) {
@@ -2268,7 +2303,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
         if (fireCooldown <= 0f) {
             fireVolley(facing)
-            fireCooldown = 1f / (s.fireRate * (if (cur.overclock > 0f) OVERCLOCK_RATE else 1f))
+            fireCooldown = 1f / (s.fireRate * rateMul * (if (cur.overclock > 0f) OVERCLOCK_RATE else 1f))
             followUpLeft = s.followUpShots
             followUpTimer = FOLLOW_UP_GAP
             if (s.coneLevel > 0) fireCone(facing)
@@ -2531,7 +2566,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (o in ops) {
             if (o.gone) continue
             val ox = (o.index * 2 - (ops.size - 1)) * 18f
-            if (lootRng.nextFloat() < hpChance) placeLoot(Loot(LootKind.HP_CHARGE, x - 12f + ox, y).also { it.owner = o.index })
+            // Bosses (owner, 0.39.0): three HP potions each, every time.
+            val potions = if (hpChance >= 1f) hpChance.toInt() else if (lootRng.nextFloat() < hpChance) 1 else 0
+            for (k in 0 until potions) placeLoot(Loot(LootKind.HP_CHARGE, x - 12f + ox - k * 16f, y + k * 10f).also { it.owner = o.index })
             if (lootRng.nextFloat() < bombChance) placeLoot(Loot(LootKind.PACKET_BOMB, x + 12f + ox, y).also { it.owner = o.index })
         }
     }
@@ -2623,7 +2660,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             com.cyberoperative.game.data.GearRarity.FORGED -> { sound(GameSound.GEAR_FORGED); return }
             com.cyberoperative.game.data.GearRarity.VOLTAIC -> { sound(GameSound.GEAR_VOLTAIC); return }
             com.cyberoperative.game.data.GearRarity.CELESTIAL -> { sound(GameSound.GEAR_CELESTIAL); return }
-            com.cyberoperative.game.data.GearRarity.ABYSSAL -> { sound(GameSound.GEAR_ABYSSAL); return }
+            com.cyberoperative.game.data.GearRarity.ABYSSAL, com.cyberoperative.game.data.GearRarity.ENCRYPTED -> { sound(GameSound.GEAR_ABYSSAL); return }
+            com.cyberoperative.game.data.GearRarity.GLITCHED -> { sound(GameSound.GEAR_VOLTAIC); return }
             else -> {}
         }
         if (r >= com.cyberoperative.game.data.GearRarity.LEGENDARY) sound(GameSound.GEAR_LEGENDARY)
@@ -2782,15 +2820,23 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (!config.consumables || !o.alive || o.hpCharges <= 0 || o.consumableCooldown > 0f) return false
         if (phase == Phase.UPGRADE || phase == Phase.DEAD || phase == Phase.TRANSITION) return false
         if (o.hp >= o.build.stats.maxHp) return false
+        drinkPotion(o)
+        cur = ops[primary]
+        return true
+    }
+
+    /** One HP potion for [o]: 35% of max HP (× [RunStats.potionMul]), or all of it with FULL RESTORE. */
+    private fun drinkPotion(o: Operative) {
         o.hpCharges--
         o.consumableCooldown = CONSUMABLE_COOLDOWN
+        val prev = cur
         cur = o
         try {
-            heal(stats.maxHp * HP_CHARGE_HEAL, ignoreMul = true)
-            addPulse(o.px, o.py, 70f, 0.4f, 0xFF00FF9C)
-        } finally { cur = ops[primary] }
+            val st = o.build.stats
+            heal(if (st.potionFullHeal) st.maxHp else st.maxHp * HP_CHARGE_HEAL * st.potionMul, ignoreMul = true)
+            addPulse(o.px, o.py, 70f, 0.4f, if (st.potionFullHeal) 0xFFFF2B3A else 0xFF00FF9C)
+        } finally { cur = prev }
         sound(GameSound.REVIVE)
-        return true
     }
 
     /** Operative [index] sets off a Packet Bomb: a big blast around it that also wipes hostile shots. */
@@ -2842,7 +2888,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     fun dash(index: Int = primary): Boolean {
         val o = ops.getOrNull(index) ?: return false
         if (!config.consumables || !o.alive || o.dashCooldown > 0f || o.rooted > 0f || o.frozen > 0f || !abilityPhase()) return false
-        o.dashCooldown = DASH_COOLDOWN
+        o.dashCooldown = DASH_COOLDOWN * o.build.stats.dashCooldownMul
         o.invuln = max(o.invuln, DASH_TIME + 0.12f)
         if (o.remote) return true
         val m = sqrt(o.inputX * o.inputX + o.inputY * o.inputY)
@@ -3488,9 +3534,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val k = min(1f, dt * 6f)
         cur.petX += (tx - cur.petX) * k; cur.petY += (ty - cur.petY) * k
         cur.petTimer -= dt
-        if (cur.petTimer > 0f || phase != Phase.COMBAT) return
+        if (cur.petRapid > 0f) cur.petRapid -= dt
+        if (phase != Phase.COMBAT) return
+        updatePetAbilities(pet, dt)
+        if (cur.petTimer > 0f) return
         val t = nearestEnemy(cur.petX, cur.petY, com.cyberoperative.game.data.Pets.RANGE) ?: return
-        cur.petTimer = com.cyberoperative.game.data.Pets.fireInterval(pet.rarity)
+        cur.petTimer = com.cyberoperative.game.data.Pets.fireInterval(pet.rarity) /
+            (stats.petRateMul * (if (cur.petRapid > 0f) PET_RAPID_MUL else 1f))
         val ang = atan2(t.y - cur.petY, t.x - cur.petX)
         val p = newProjectile() ?: return
         p.active = true; p.friendly = true; p.kind = ProjKind.NODE_BOLT
@@ -3499,6 +3549,88 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         p.radius = 5f; p.damage = stats.damage * com.cyberoperative.game.data.Pets.damageMul(pet.rarity) * plan.rules.playerDamageMul; p.crit = false
         p.life = 1f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
         p.lastHitUid = -1; p.ghost = false; p.homing = 0f
+    }
+
+    /**
+     * Pet abilities (owner, 0.39.0): each on its own cooldown (shorter for rarer pets), used
+     * when there is something to use it on. Damage is a multiple of the pet's shot.
+     */
+    private fun updatePetAbilities(pet: com.cyberoperative.game.data.PetLoadout, dt: Float) {
+        val shot = stats.damage * com.cyberoperative.game.data.Pets.damageMul(pet.rarity) * plan.rules.playerDamageMul
+        for ((i, a) in pet.abilities.withIndex()) {
+            if (i >= cur.petAbilityCd.size) break
+            val full = com.cyberoperative.game.data.Pets.abilityCooldown(a, pet.rarity)
+            // Staggered first use, so a fresh room doesn't see every ability at once.
+            if (cur.petAbilityCd[i] < 0f) cur.petAbilityCd[i] = full * (0.3f + 0.15f * i)
+            cur.petAbilityCd[i] -= dt
+            if (cur.petAbilityCd[i] > 0f) continue
+            if (usePetAbility(a, shot)) cur.petAbilityCd[i] = full else cur.petAbilityCd[i] = 0.25f
+        }
+    }
+
+    /** Uses [a] now; false when there's nothing to use it on yet. */
+    private fun usePetAbility(a: com.cyberoperative.game.data.PetAbility, shot: Float): Boolean {
+        val x = cur.petX; val y = cur.petY
+        val near = nearestEnemy(x, y, com.cyberoperative.game.data.Pets.RANGE)
+        when (a) {
+            com.cyberoperative.game.data.PetAbility.FIRE_BITE -> {
+                val t = near ?: return false
+                for (e in enemies.items) {
+                    if (!e.targetable) continue
+                    val r = 70f + e.radius
+                    if (MathUtil.dist2(t.x, t.y, e.x, e.y) < r * r) damageEnemy(e, shot * 3f, false, ProjKind.NODE_BOLT, quiet = true)
+                }
+                addPulse(t.x, t.y, 70f, 0.4f, 0xFFFF8A1F)
+            }
+            com.cyberoperative.game.data.PetAbility.CHAIN_SHOCK -> {
+                val t = near ?: return false
+                val p = petShot(atan2(t.y - y, t.x - x), 640f, shot * 2f) ?: return false
+                p.chainLeft = 3
+            }
+            com.cyberoperative.game.data.PetAbility.HEAL_PULSE -> {
+                if (hp >= stats.maxHp * 0.75f) return false
+                heal(stats.maxHp * 0.12f)
+                addPulse(px, py, 60f, 0.4f, 0xFF00FF9C)
+            }
+            com.cyberoperative.game.data.PetAbility.SHIELD_BUBBLE -> {
+                if (nearestEnemy(px, py, 240f) == null) return false
+                invuln = max(invuln, 1.5f)
+                addPulse(px, py, 46f, 1.5f, 0xFF7DF9FF)
+            }
+            com.cyberoperative.game.data.PetAbility.SHOCK_NOVA -> {
+                if (nearestEnemy(x, y, 150f) == null) return false
+                firePulseDamage(x, y, 150f, shot * 2.5f, clearsProjectiles = false)
+            }
+            com.cyberoperative.game.data.PetAbility.HOMING_MISSILES -> {
+                val t = near ?: return false
+                val base = atan2(t.y - y, t.x - x)
+                for (k in 0..1) {
+                    val p = petShot(base + (k - 0.5f) * 0.9f, 300f, shot * 2.5f) ?: break
+                    p.kind = ProjKind.MISSILE; p.homing = 7f; p.seek = 600f; p.radius = 6f; p.life = 3f; p.splash = 50f
+                }
+            }
+            com.cyberoperative.game.data.PetAbility.PIERCING_LASER -> {
+                val t = near ?: return false
+                val p = petShot(atan2(t.y - y, t.x - x), 980f, shot * 4f) ?: return false
+                p.pierceLeft = 6; p.radius = 7f
+            }
+            com.cyberoperative.game.data.PetAbility.RAPID_FIRE -> {
+                if (near == null) return false
+                cur.petRapid = PET_RAPID_SECONDS
+            }
+        }
+        return true
+    }
+
+    private fun petShot(ang: Float, speed: Float, damage: Float): Projectile? {
+        val p = newProjectile() ?: return null
+        p.active = true; p.friendly = true; p.kind = ProjKind.NODE_BOLT
+        p.x = cur.petX; p.y = cur.petY
+        p.vx = cos(ang) * speed; p.vy = sin(ang) * speed
+        p.radius = 5f; p.damage = damage; p.crit = false
+        p.life = 1.2f; p.pierceLeft = 0; p.bounceLeft = 0; p.chainLeft = 0
+        p.lastHitUid = -1; p.ghost = false; p.homing = 0f; p.splash = 0f; p.armTimer = 0f
+        return p
     }
 
     /** Eggs (and, on INFERNO, Inferno Stones) from a boss or an elite: each operative rolls its own. */
@@ -3626,6 +3758,16 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             hurtFlash = 0.25f
             if (cur === ops[primary] && dmg >= s.maxHp * 0.12f) fx.shake(5f, 0.25f)
             sound(GameSound.PLAYER_HURT)
+            // FAILSAFE (owner, 0.39.0): a potion drinks itself at 20% HP, or on the hit that would
+            // have killed (the operative lives through it).
+            if (s.autoPotion && config.consumables && cur.hpCharges > 0) {
+                val lethal = hp <= 0f
+                if (lethal || (hp <= s.maxHp * AUTO_POTION_LINE && cur.consumableCooldown <= 0f)) {
+                    if (lethal) hp = 1f
+                    drinkPotion(cur)
+                    if (lethal) addText(px, py - 48f, "FAILSAFE", TextKind.CRIT)
+                }
+            }
         }
         invuln = if (ignoreInvuln) max(invuln, 0.1f) else HIT_INVULN
         if (s.counterRing > 0) {
@@ -4026,6 +4168,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         } else {
             damageEnemy(e, p.damage, p.crit, p.kind)
         }
+        // INFERNO PROTOCOL & co. (owner, 0.39.0): primary hits heal the shooter ([cur] is the owner).
+        if (p.kind == ProjKind.BOLT && s.healOnHit > 0f) heal(s.healOnHit, quiet = true)
         p.lastHitUid = e.uid
         if (p.kind == ProjKind.MISSILE) {
             p.active = false
@@ -4562,7 +4706,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         score += (scoreReward * difficultyReward).toLong()
         // Boss mods (owner, 2026-10-08): more picks, and rolled with extra luck.
         // Campaign: a world boss pays out like the end of a world (at least four boosted drops).
-        grantPick(if (campaign) max(CAMPAIGN_BOSS_PICKS, bossPicks(level) + bonusPicks) else bossPicks(level) + bonusPicks)
+        val picks = if (campaign) max(CAMPAIGN_BOSS_PICKS, bossPicks(level) + bonusPicks) else bossPicks(level) + bonusPicks
+        grantPick(if (config.difficulty == Difficulty.HARD) max(HARD_BOSS_PICKS, picks) else picks)
         // The room's own clear reward joins the same spray (the room clears after the victory sequence).
         clearPicks()
         spewing = false
@@ -4781,7 +4926,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         for (l in loot) {
             val extra = l.gear?.let { g -> gearLook(g) } ?: l.upgradeId?.let { id -> Upgrades.all.indexOfFirst { it.id == id } } ?: -1
-            w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, extra.toFloat(), l.owner.toFloat())
+            w.loot += floatArrayOf(l.kind.ordinal.toFloat(), l.x, l.y, extra.toFloat(), l.owner.toFloat(), l.age)
         }
         // The guest's newest finds (they bank them on their own device; repeats are merged by id).
         // Shared XP (owner, 0.31.0): the guest banks the same OP XP the host earns, 100%.
@@ -4999,8 +5144,13 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         loot.clear()
         for (l in w.loot) {
             val kind = LootKind.entries.getOrElse(l[0].toInt()) { LootKind.HP_CHARGE }
-            loot += if (kind == LootKind.GEAR) Loot(kind, l[1], l[2]).also { it.owner = l.getOrElse(4) { -1f }.toInt(); it.gear = gearFromLook(l[3].toInt()) }
-            else Loot(kind, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id).also { it.owner = l.getOrElse(4) { -1f }.toInt() }
+            val item = if (kind == LootKind.GEAR) Loot(kind, l[1], l[2]).also { it.gear = gearFromLook(l[3].toInt()) }
+            else Loot(kind, l[1], l[2], upgradeId = Upgrades.all.getOrNull(l[3].toInt())?.id)
+            item.owner = l.getOrElse(4) { -1f }.toInt()
+            // The host's age (0.39.0 fix): a fresh object every snapshot left age at 0, so the
+            // guest drew its own drops at the 5% pop-in size and the host's ghosts at radius 0.
+            item.age = l.getOrElse(5) { 1f }
+            loot += item
         }
         if (w.guestGear.isNotEmpty()) ops.getOrNull(1)?.let { g ->
             for (item in com.cyberoperative.game.data.Gear.decode(w.guestGear)) if (g.gearFound.none { it.uid == item.uid }) g.gearFound += item
@@ -5050,6 +5200,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val dt = delta.coerceIn(0f, MAX_FRAME)
         cur = ops[primary]
         if (bannerTimer > 0f) bannerTimer -= dt
+        for (l in loot) l.age += dt
         updateEffects(dt)
         if (slideIn > 0f) slideIn = max(0f, slideIn - dt)
         val me = ops[primary]
@@ -5260,10 +5411,22 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val MAX_HP_CHARGES = 9
         const val MAX_PACKET_BOMBS = 3
         const val HP_CHARGE_HEAL = 0.35f
+        /** FAILSAFE drinks a potion at this share of max HP. */
+        const val AUTO_POTION_LINE = 0.2f
+        /** HARD from World 5: threat HP and damage × (1 − this). */
+        const val HARD_EASE = 0.25f
+        /** ... but HARD threats always stay at least this much tougher than NORMAL's. */
+        const val HARD_OVER_NORMAL = 1.1f
+        /** HARD: extra chip luck, and at least this many boss picks. */
+        const val HARD_CHIP_LUCK = 0.35f
+        const val HARD_BOSS_PICKS = 3
+        /** Pet RAPID FIRE: fire rate × this for [PET_RAPID_SECONDS]. */
+        const val PET_RAPID_MUL = 3f
+        const val PET_RAPID_SECONDS = 4f
         const val PACKET_BOMB_RADIUS = 420f
         const val PACKET_BOMB_DAMAGE = 30f
         const val CONSUMABLE_COOLDOWN = 1f
-        const val ELITE_HP_DROP = 0.08f
+        const val ELITE_HP_DROP = 0.33f
         /** The shop's equipment pieces, and the co-op input index they start at. */
         /** Players must stand this close to trade (owner, 0.36.3: "standing next to one another"). */
         const val TRADE_RANGE = 170f
@@ -5289,7 +5452,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             )
         }
         const val ELITE_BOMB_DROP = 0.02f
-        const val BOSS_HP_DROP = 0.5f
+        const val BOSS_HP_DROP = 3f
         const val BOSS_BOMB_DROP = 0.25f
         const val LOOT_PICKUP = 34f
         const val LOOT_MAGNET = 110f
@@ -5319,7 +5482,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
         /** GOLDEN from €1,000, TITANIUM from €2,500, a little more each level. */
         fun shopPrice(rarity: com.cyberoperative.game.data.Rarity, level: Int): Int = when (rarity) {
+            com.cyberoperative.game.data.Rarity.GLITCHED -> 1800 + 40 * level
             com.cyberoperative.game.data.Rarity.TITANIUM -> 2500 + 50 * level
+            com.cyberoperative.game.data.Rarity.FORGED, com.cyberoperative.game.data.Rarity.VOLTAIC -> 3200 + 60 * level
+            com.cyberoperative.game.data.Rarity.CELESTIAL, com.cyberoperative.game.data.Rarity.ABYSSAL -> 4200 + 80 * level
+            com.cyberoperative.game.data.Rarity.ENCRYPTED -> 8000 + 150 * level
             else -> 1000 + 25 * level
         }
         const val BEAM_COOLDOWN = 3f

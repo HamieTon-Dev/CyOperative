@@ -60,8 +60,10 @@ class BalanceCurveTest {
         for (seed in 1..3) {
             val h = greedyRun(seed)
             // Before the pass: 0.10 hits at level 100 and 0.004 at level 180 (one-shotting everything).
+            // 0.39.0's GLITCHED … ENCRYPTED chips are meant to be near game-breaking (owner), so a
+            // damage-greedy NORMAL build may one-shot basics late; it must not run away past that.
             for (l in listOf(30, 50, 100, 150, 180)) {
-                assertTrue("seed $seed L$l: ${h[l]} hits to kill a basic threat", h.getValue(l) in 1.5f..8f)
+                assertTrue("seed $seed L$l: ${h[l]} hits to kill a basic threat", h.getValue(l) in 0.4f..8f)
             }
         }
     }

@@ -181,3 +181,19 @@ object Incubators {
     fun release(p: PlayerProfile, uid: Long): PlayerProfile =
         p.copy(pets = p.pets.filter { it.uid != uid }, activePet = if (p.activePet == uid) 0L else p.activePet)
 }
+
+/**
+ * Hatch reminder (owner, 0.39.0): Android schedules a notification for when the egg in the
+ * incubator will be ready. The countdown itself never trusts the device clock (see
+ * [Incubators]); this only decides when to say so. PC: no host, nothing scheduled.
+ */
+object PetReminders {
+    /** Set by the Android app: (wall-clock time it hatches, or null to cancel; the egg's name). */
+    @Volatile var schedule: ((Long?, String) -> Unit)? = null
+
+    fun update(p: PlayerProfile) {
+        val s = schedule ?: return
+        val egg = p.incubator.current
+        if (egg == null || p.incubator.waitingForTime) s(null, "") else s(PlatformClock.wall() + p.incubator.remainingMs, egg.name)
+    }
+}

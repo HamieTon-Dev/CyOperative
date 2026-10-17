@@ -129,6 +129,10 @@ data class HudSnapshot(
     val gearFound: Int = 0,
     /** PC abilities: dash and the two class spells, with seconds of cooldown left. */
     val dashCd: Float = 0f,
+    /** This operative's dash cooldown (ZERO LATENCY / PHASE SKIP shorten it). */
+    val dashMax: Float = GameEngine.DASH_COOLDOWN,
+    /** FULL RESTORE: potions heal to full (the potion icon turns abyssal red). */
+    val potionFull: Boolean = false,
     val spell1: com.cyberoperative.game.data.Spell? = null,
     val spell2: com.cyberoperative.game.data.Spell? = null,
     val spell1Cd: Float = 0f,
@@ -581,6 +585,8 @@ class GameSession(
             gearSerial = gearToastSerial,
             gearFound = g.operatives.getOrNull(g.primary)?.gearFound?.size ?: 0,
             dashCd = g.operatives.getOrNull(g.primary)?.dashCooldown ?: 0f,
+            dashMax = GameEngine.DASH_COOLDOWN * (g.operatives.getOrNull(g.primary)?.build?.stats?.dashCooldownMul ?: 1f),
+            potionFull = g.operatives.getOrNull(g.primary)?.build?.stats?.potionFullHeal == true,
             spell1 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 0) },
             spell2 = g.operatives.getOrNull(g.primary)?.takeIf { g.config.consumables }?.let { com.cyberoperative.game.data.Spells.of(it.classId, 1) },
             spell1Cd = g.operatives.getOrNull(g.primary)?.spellCd?.get(0) ?: 0f,

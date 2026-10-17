@@ -64,6 +64,7 @@ fun hatchClock(ms: Long): String {
  */
 @Composable
 fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
+    val host = com.cyberoperative.game.idle.IdleRuns.host
     var selEgg by remember { mutableStateOf<Long?>(null) }
     var selPet by remember { mutableStateOf<Long?>(null) }
     var note by remember { mutableStateOf("") }
@@ -83,6 +84,11 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
     // The countdown runs on the since-boot clock between saves (changing the phone's time doesn't move it).
     var monoNow by remember { mutableLongStateOf(PlatformClock.mono()) }
     LaunchedEffect(Unit) { while (true) { delay(250); monoNow = PlatformClock.mono() } }
+    // Keep the hatch reminder in step with what's in the incubator.
+    LaunchedEffect(p.incubator.current?.uid, p.incubator.stones, p.incubator.waitingForTime) {
+        com.cyberoperative.game.meta.PetReminders.update(p)
+        if (p.incubator.current != null) host?.requestNotifications()
+    }
     val inc = p.incubator
     val sameBoot = inc.clock.boot == PlatformClock.bootId()
     val elapsed = if (sameBoot && !inc.waitingForTime) (monoNow - inc.clock.mono).coerceAtLeast(0) else 0L
@@ -283,6 +289,7 @@ private fun PetsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect
                 Text(pet.name, color = Color(pet.rarity.color), style = MaterialTheme.typography.titleSmall)
                 Text("${pet.rarity.label} · shots deal ${(Pets.damageMul(pet.rarity) * 100).toInt()}% of your payload every ${"%.2f".format(Pets.fireInterval(pet.rarity))}s",
                     color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+                PetAbilities(pet)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val on = pet.uid == p.activePet
@@ -294,6 +301,18 @@ private fun PetsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect
                 }
             }
         }
+    }
+}
+
+/** The pet's abilities (owner, 0.39.0): one for most, up to [Pets.MAX_ABILITIES] for the rarest. */
+@Composable
+private fun PetAbilities(pet: Pet, center: Boolean = false) {
+    Spacer(Modifier.height(4.dp))
+    for (a in pet.abilities) {
+        Text("◆ ${a.label} · ${"%.0f".format(Pets.abilityCooldown(a, pet.rarity))}s", color = Color(pet.rarity.color),
+            style = MaterialTheme.typography.labelMedium, textAlign = if (center) TextAlign.Center else TextAlign.Start)
+        Text(a.text, color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall,
+            textAlign = if (center) TextAlign.Center else TextAlign.Start)
     }
 }
 
@@ -327,6 +346,7 @@ private fun HatchReveal(pet: Pet, onContinue: () -> Unit) {
             Text(pet.name, color = Color(pet.rarity.color), style = MaterialTheme.typography.titleMedium)
             Text(pet.rarity.label, color = Color(pet.rarity.color), style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.border(1.dp, Color(pet.rarity.color), RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 2.dp))
+            PetAbilities(pet, center = true)
             Spacer(Modifier.height(6.dp))
             Text("Equip it in PETS and it follows you into runs, firing at threats.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
             Spacer(Modifier.height(10.dp))

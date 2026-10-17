@@ -38,7 +38,8 @@ object LootSprites {
         for (l in g.loot) if (isMine(g, l) && l.kind == LootKind.GEAR) l.gear?.let { gear ->
             with(com.cyberoperative.game.ui.common.GearIcons) { drawLootBeam(gear.rarity, l.x, l.y + 8f, time + l.x * 0.01f, 1.3f) }
         }
-        for (l in g.loot) if (isMine(g, l)) drawOne(l, time) else ghost(l, time)
+        val abyssal = g.operatives.getOrNull(g.primary)?.build?.stats?.potionFullHeal == true
+        for (l in g.loot) if (isMine(g, l)) drawOne(l, time, abyssal) else ghost(l, time)
     }
 
     private fun isMine(g: GameEngine, l: Loot) = l.owner < 0 || l.owner == g.primary
@@ -69,9 +70,10 @@ object LootSprites {
     private fun DrawScope.beam(l: Loot, time: Float) {
         val r = rarityOf(l)
         val c = Color(r.color)
-        val h = 150f + 40f * r.ordinal
+        val step = r.ordinal.coerceAtMost(7)
+        val h = 150f + 40f * step
         val pulse = 0.75f + 0.25f * sin(time * 3f + l.x * 0.03f)
-        val w = 14f + 2f * r.ordinal
+        val w = 14f + 2f * step
         drawRect(
             Brush.verticalGradient(listOf(Color.Transparent, c.copy(alpha = 0.55f * pulse)), l.y - h, l.y),
             Offset(l.x - w / 2f, l.y - h), Size(w, h)
@@ -87,7 +89,7 @@ object LootSprites {
         }
     }
 
-    private fun DrawScope.drawOne(l: Loot, time: Float) {
+    private fun DrawScope.drawOne(l: Loot, time: Float, abyssal: Boolean = false) {
         // Pops in over 0.2 s; never exactly 0 (a zero-size glow crashes Android, 0.25.2).
         val pop = (l.age * 5f).coerceIn(0.05f, 1f)
         val bob = sin(time * 3.2f + l.x * 0.05f) * 2.5f
@@ -104,7 +106,7 @@ object LootSprites {
         scale(SCALE, Offset(x, l.y)) {
             drawOval(Color.Black.copy(alpha = 0.35f), Offset(x - 10f, l.y + 9f), Size(20f, 6f))
             when (l.kind) {
-                LootKind.HP_CHARGE -> potion(x, y, pop, time)
+                LootKind.HP_CHARGE -> potion(x, y, pop, time, abyssal)
                 LootKind.PACKET_BOMB -> bomb(x, y, pop, time)
                 LootKind.CASH -> cash(x, y, pop * (0.85f + 0.12f * ln(1f + l.amount.toFloat()).coerceAtMost(4f) / 4f))
                 LootKind.UPGRADE -> {
@@ -118,17 +120,20 @@ object LootSprites {
         }
     }
 
-    private fun DrawScope.potion(x: Float, y: Float, k: Float, time: Float) {
-        val glow = 0.25f + 0.12f * sin(time * 4f)
-        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0xFF00FF9C).copy(alpha = glow), Color.Transparent), Offset(x, y), 26f * k), 26f * k, Offset(x, y))
+    /** [abyssal]: FULL RESTORE is on: a red glowing abyssal draught (owner, 0.39.0). */
+    private fun DrawScope.potion(x: Float, y: Float, k: Float, time: Float, abyssal: Boolean = false) {
+        val glow = (if (abyssal) 0.4f else 0.25f) + 0.12f * sin(time * 4f)
+        val liquid = if (abyssal) Color(0xFFD01020) else Color(0xFF00C878)
+        val core = if (abyssal) Color(0xFFFF5A3A) else Color(0xFF00FF9C)
+        drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf((if (abyssal) Color(0xFFFF2B3A) else Color(0xFF00FF9C)).copy(alpha = glow), Color.Transparent), Offset(x, y), 26f * k), 26f * k, Offset(x, y))
         val r = 8f * k
         // Neck and cork.
         drawRect(Color(0xCCBFEFFF), Offset(x - 3f * k, y - r - 9f * k), Size(6f * k, 8f * k))
         drawRoundRect(Color(0xFF8A5A2B), Offset(x - 4f * k, y - r - 12f * k), Size(8f * k, 4f * k), CornerRadius(1.5f * k))
         // Bulb: glass, red-green charge liquid, highlight.
         drawCircle(Color(0x66BFEFFF), r + 1.5f * k, Offset(x, y))
-        drawCircle(Color(0xFF00C878), r, Offset(x, y + 1f * k))
-        drawCircle(Color(0xFF00FF9C), r * 0.62f, Offset(x - 1f * k, y + 2f * k))
+        drawCircle(liquid, r, Offset(x, y + 1f * k))
+        drawCircle(core, r * 0.62f, Offset(x - 1f * k, y + 2f * k))
         drawCircle(Color.White.copy(alpha = 0.7f), r * 0.22f, Offset(x - r * 0.4f, y - r * 0.3f))
         // A little "+".
         drawLine(Color.White, Offset(x - 3f * k, y + 1.5f * k), Offset(x + 3f * k, y + 1.5f * k), 1.6f * k)

@@ -55,10 +55,22 @@ enum class GearRarity(
     RARE("RARE", 0xFF2E9BFF, 2, 1.22f, 2),
     EPIC("EPIC", 0xFFB45CFF, 3, 1.36f, 3),
     LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 1.6f, 4),
+    /** One step above GOLDEN (owner, 0.39.0): drops on every difficulty, gold art with a glitch card. */
+    GLITCHED("GLITCHED LEGENDARY", 0xFFFF3DF2, 4, 1.72f, 5),
     @SerialName("ENCRYPTED") FORGED("FORGED", 0xFFFF8A1F, 5, 1.85f, 4, minInferno = 1, infernoBase = 0.8f),
     @SerialName("INFERNAL") VOLTAIC("VOLTAIC", 0xFFFFF04D, 6, 2.1f, 5, minInferno = 3, infernoBase = 0.7f),
     @SerialName("CRYPTO") CELESTIAL("CELESTIAL", 0xFFDDE8FF, 7, 2.4f, 6, minInferno = 5, infernoBase = 0.5f),
-    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.8f, 6, minInferno = 7, infernoBase = 0.4f);
+    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.8f, 6, minInferno = 7, infernoBase = 0.4f),
+    /**
+     * The top tier (owner, 0.39.0): near game-breaking perks, very rare on every difficulty.
+     * "ENCRYPTED" on disk is the old name of FORGED, so this one is saved as "ENCRYPTED_X".
+     */
+    @SerialName("ENCRYPTED_X") ENCRYPTED("ENCRYPTED", 0xFF00F0FF, 8, 3.1f, 6);
+
+    /** GOLDEN and up hit 30% harder (owner, 0.39.0); applied when worn, so old drops get it too. */
+    val statBoost: Float get() = if (this >= LEGENDARY) 1.3f else 1f
+    /** Animated card: the INFERNO rarities, GLITCHED and ENCRYPTED. */
+    val animated: Boolean get() = inferno || this == GLITCHED || this == ENCRYPTED
 
     /** Above BLUE: the drop gets a light beam and the sheen sound. */
     val sheen: Boolean get() = ordinal > RARE.ordinal
@@ -115,7 +127,9 @@ data class GearItem(
     val sidearm: WeaponSpec? get() = if (slot == GearSlot.SECONDARY) Gear.sidearmFor(rarity, art) else null
     fun usableBy(classId: String): Boolean = classOnly == null || classOnly == classId
     /** A rough power score for sorting and "vs equipped" (higher is better). */
-    val power: Float get() = base * (if (slot == GearSlot.SECONDARY) 40f else 1f) + affixes.sumOf { it.value.toDouble() }.toFloat() * 2f
+    /** [base] with the rarity's [GearRarity.statBoost] (SECONDARY: the weapon level, unboosted). */
+    val effectiveBase: Float get() = if (slot == GearSlot.SECONDARY) base else base * rarity.statBoost
+    val power: Float get() = effectiveBase * (if (slot == GearSlot.SECONDARY) 40f else 1f) + affixes.sumOf { it.value.toDouble() }.toFloat() * 2f
 
     /** The headline number on the item card: DAMAGE, ARMOR, etc. */
     val mainLabel: String get() = when (slot) {
@@ -126,8 +140,8 @@ data class GearItem(
         else -> "ARMOR"
     }
     val mainValue: String get() = when (slot) {
-        GearSlot.CORE, GearSlot.IMPLANT -> "+" + "%.1f".format(base).removeSuffix(".0") + "%"
-        else -> "%.0f".format(base)
+        GearSlot.CORE, GearSlot.IMPLANT -> "+" + "%.1f".format(effectiveBase).removeSuffix(".0") + "%"
+        else -> "%.0f".format(effectiveBase)
     }
     val description: String get() = when (slot) {
         GearSlot.PRIMARY -> style!!.text + (classOnly?.let { " " + Operatives.byId(it).name + " only." } ?: "")
@@ -210,10 +224,12 @@ object GearNames {
         GearRarity.RARE to listOf("Cobalt", "Vector", "Sapphire", "Ion", "Cipher", "Glacier", "Tidal", "Pulse", "Proxy", "Static"),
         GearRarity.EPIC to listOf("Void", "Phantom", "Nebula", "Hex", "Wraith", "Astral", "Umbra", "Rift", "Spectral", "Nightfall"),
         GearRarity.LEGENDARY to listOf("Solar", "Aegis", "Zenith", "Helios", "Sovereign", "Gilded", "Radiant", "Aurum", "Paragon", "Midas"),
+        GearRarity.GLITCHED to listOf("Glitched", "Corrupted", "Bugged", "Fractured", "Desynced", "Overflow", "Null", "Scrambled", "Rogue", "Hacked"),
         GearRarity.FORGED to listOf("Forged", "Molten", "Ember", "Smelted", "Crucible", "Anvil", "Slag", "Kiln", "Tempered", "Foundry"),
         GearRarity.VOLTAIC to listOf("Voltaic", "Arc", "Surge", "Thunder", "Live-Wire", "Tesla", "Storm", "Overcharge", "Lightning", "Galvanic"),
         GearRarity.CELESTIAL to listOf("Celestial", "Platinum", "Starlit", "Halo", "Seraph", "Orbital", "Eclipse", "Nova", "Aether", "Zenith"),
-        GearRarity.ABYSSAL to listOf("Abyssal", "Hellfire", "Brimstone", "Inferno", "Cinder", "Doom", "Pyre", "Demon", "Hellforged", "Infernal")
+        GearRarity.ABYSSAL to listOf("Abyssal", "Hellfire", "Brimstone", "Inferno", "Cinder", "Doom", "Pyre", "Demon", "Hellforged", "Infernal"),
+        GearRarity.ENCRYPTED to listOf("Encrypted", "Root", "Zero-Day", "Kernel", "Cipherlocked", "Quantum", "Blackbox", "Sigma", "Omega", "Hashed")
     )
     private val nouns: Map<GearSlot, List<String>> = mapOf(
         GearSlot.HELMET to listOf("Helmet", "Visor", "Hood", "Cowl", "Faceguard", "Helm", "Mask"),
@@ -254,7 +270,7 @@ object Gear {
             GearRarity.UNCOMMON -> Rarity.UNCOMMON
             GearRarity.RARE -> Rarity.RARE
             GearRarity.EPIC -> Rarity.EPIC
-            GearRarity.LEGENDARY -> Rarity.LEGENDARY
+            GearRarity.LEGENDARY, GearRarity.GLITCHED -> Rarity.LEGENDARY
             else -> Rarity.TITANIUM
         }
         val pool = Weapons.all.filter { it.rarity == r }
@@ -281,6 +297,11 @@ object Gear {
             high += w[r.ordinal]
         }
         if (high > INFERNO_CAP) { for (i in w.indices) w[i] *= INFERNO_CAP / high; high = INFERNO_CAP }
+        // GLITCHED and ENCRYPTED (owner, 0.39.0): every difficulty, a little more on INFERNO.
+        val deep = 1f + 0.15f * inferno.coerceAtMost(10)
+        w[GearRarity.GLITCHED.ordinal] = (if (boss) GLITCHED_BOSS else GLITCHED_BOSS * ELITE_SHARE) * deep * bonus
+        w[GearRarity.ENCRYPTED.ordinal] = (if (boss) ENCRYPTED_BOSS else ENCRYPTED_BOSS * ELITE_SHARE) * deep * bonus
+        high += w[GearRarity.GLITCHED.ordinal] + w[GearRarity.ENCRYPTED.ordinal]
         // Every step of luck tilts the usual five toward the rare end.
         val tilt = 1f + 0.08f * inferno.coerceAtMost(10) + luck + (if (lateBoost) 0.15f else 0f)
         val low = FloatArray(base.size) { i -> base[i] * tilt.pow(i.toFloat()) }
@@ -293,6 +314,10 @@ object Gear {
     const val ELITE_SHARE = 0.25f
     /** The four INFERNO rarities together never take more than this (percent). */
     const val INFERNO_CAP = 60f
+    /** GLITCHED LEGENDARY per boss piece (percent) before INFERNO and luck; elites a quarter. */
+    const val GLITCHED_BOSS = 2.2f
+    /** ENCRYPTED per boss piece (percent): very rare. */
+    const val ENCRYPTED_BOSS = 0.25f
 
     fun rollRarity(rng: Random, boss: Boolean, inferno: Int, luck: Float = 0f, lateBoost: Boolean = false): GearRarity {
         val o = odds(boss, inferno, luck, lateBoost)
@@ -315,6 +340,7 @@ object Gear {
         val top = GearRarity.ABYSSAL.ordinal
         val abyss = if (inferno >= GearRarity.ABYSSAL.minInferno) SHOP_ABYSSAL else 0f
         var rest = 0f
+        // ENCRYPTED never sits on a counter.
         for (i in GearRarity.EPIC.ordinal until top) rest += o[i]
         for (i in GearRarity.EPIC.ordinal until top) w[i] = o[i] / rest * (100f - abyss)
         w[top] = abyss
@@ -340,10 +366,12 @@ object Gear {
             GearRarity.RARE -> 900
             GearRarity.EPIC -> 1500
             GearRarity.LEGENDARY -> 4000
+            GearRarity.GLITCHED -> 6500
             GearRarity.FORGED -> 9000
             GearRarity.VOLTAIC -> 18000
             GearRarity.CELESTIAL -> 35000
             GearRarity.ABYSSAL -> 70000
+            GearRarity.ENCRYPTED -> 140000
         }
         return (base * (1f + 0.03f * item.level)).toInt() / 10 * 10
     }
@@ -399,17 +427,18 @@ object Gear {
     fun apply(s: RunStats, gear: Collection<GearItem>, classId: String) {
         for (g in gear) {
             if (!g.usableBy(classId)) continue
+            val b = g.effectiveBase
             when (g.slot) {
                 GearSlot.PRIMARY -> {
                     val style = g.style!!
-                    s.damage *= g.base / 20f * style.damageMul
+                    s.damage *= b / 20f * style.damageMul
                     s.fireRate *= style.rateMul
                     style.apply(s)
                 }
                 GearSlot.SECONDARY -> g.sidearm?.let { w -> s.weapons[w.id] = maxOf(s.weapons[w.id] ?: 0, g.base.toInt()) }
-                GearSlot.CORE -> s.maxHp *= 1f + g.base / 100f
-                GearSlot.IMPLANT -> s.critChance += g.base / 100f
-                else -> s.armor += g.base
+                GearSlot.CORE -> s.maxHp *= 1f + b / 100f
+                GearSlot.IMPLANT -> s.critChance += b / 100f
+                else -> s.armor += b
             }
             for (a in g.affixes) applyAffix(s, a)
             GearPerks.apply(s, g)
@@ -458,13 +487,15 @@ object GearPerks {
         else -> Kind.SYSTEM
     }
 
-    /** The perk's line on the item card, or null below LEGENDARY. */
+    /** The perk's line on the item card, or null below LEGENDARY (GOLDEN+ perks +30%, owner 0.39.0). */
     fun text(g: GearItem): String? = when (g.rarity) {
-        GearRarity.LEGENDARY -> when (kind(g)) { Kind.RIFLE -> "Shots pierce 1 more threat"; Kind.ARMOR -> "+2% dodge"; Kind.SYSTEM -> "+6% XP gain, +6% €" }
-        GearRarity.FORGED -> when (kind(g)) { Kind.RIFLE -> "Shots bounce once more, +8% damage"; Kind.ARMOR -> "Molten plating: getting hit sprays 3 slag bolts"; Kind.SYSTEM -> "+1 Packet Node" }
-        GearRarity.VOLTAIC -> when (kind(g)) { Kind.RIFLE -> "Shots arc to 1 more threat"; Kind.ARMOR -> "+7% move speed"; Kind.SYSTEM -> "Packet Nodes fire their own bolts" }
-        GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> "+1 parallel shot"; Kind.ARMOR -> "+15% healing, +3 HP per kill"; Kind.SYSTEM -> "+12% critical damage, +3% critical chance" }
-        GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> "3% chance to delete a threat outright, +25% critical damage"; Kind.ARMOR -> "Hellfire skin: hits spray 5 bolts, +3% dodge"; Kind.SYSTEM -> "+1 Packet Node, +25% node damage, +10% damage" }
+        GearRarity.LEGENDARY -> when (kind(g)) { Kind.RIFLE -> "Shots pierce 1 more threat"; Kind.ARMOR -> "+2.6% dodge"; Kind.SYSTEM -> "+8% XP gain, +8% €" }
+        GearRarity.GLITCHED -> when (kind(g)) { Kind.RIFLE -> "Fire on the move at 50% rate, +10% damage"; Kind.ARMOR -> "Heal 3 HP per hit, +3% dodge"; Kind.SYSTEM -> "Dash cooldown −25%, +15% damage" }
+        GearRarity.FORGED -> when (kind(g)) { Kind.RIFLE -> "Shots bounce once more, +10% damage"; Kind.ARMOR -> "Molten plating: getting hit sprays 4 slag bolts"; Kind.SYSTEM -> "+1 Packet Node" }
+        GearRarity.VOLTAIC -> when (kind(g)) { Kind.RIFLE -> "Shots arc to 1 more threat"; Kind.ARMOR -> "+9% move speed"; Kind.SYSTEM -> "Packet Nodes fire their own bolts" }
+        GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> "+1 parallel shot"; Kind.ARMOR -> "+20% healing, +4 HP per kill"; Kind.SYSTEM -> "+16% critical damage, +4% critical chance" }
+        GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> "4% chance to delete a threat outright, +33% critical damage"; Kind.ARMOR -> "Hellfire skin: hits spray 6 bolts, +4% dodge"; Kind.SYSTEM -> "+1 Packet Node, +33% node damage, +13% damage" }
+        GearRarity.ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> "Fire at full rate on the move, +50% damage"; Kind.ARMOR -> "HP potions drink themselves at 20% HP or on a lethal hit; heal 8 HP per hit"; Kind.SYSTEM -> "Dash cooldown −50%, double healing, companion fires twice as fast" }
         else -> null
     }
 
@@ -472,28 +503,38 @@ object GearPerks {
         when (g.rarity) {
             GearRarity.LEGENDARY -> when (kind(g)) {
                 Kind.RIFLE -> s.pierce += 1
-                Kind.ARMOR -> s.dodge += 0.02f
-                Kind.SYSTEM -> { s.xpMul *= 1.06f; s.euroMul *= 1.06f }
+                Kind.ARMOR -> s.dodge += 0.026f
+                Kind.SYSTEM -> { s.xpMul *= 1.08f; s.euroMul *= 1.08f }
+            }
+            GearRarity.GLITCHED -> when (kind(g)) {
+                Kind.RIFLE -> { s.moveFireRate = maxOf(s.moveFireRate, 0.5f); s.damage *= 1.1f }
+                Kind.ARMOR -> { s.healOnHit += 3f; s.dodge += 0.03f }
+                Kind.SYSTEM -> { s.dashCooldownMul *= 0.75f; s.damage *= 1.15f }
             }
             GearRarity.FORGED -> when (kind(g)) {
-                Kind.RIFLE -> { s.bounce += 1; s.damage *= 1.08f }
-                Kind.ARMOR -> s.counterRing += 3
+                Kind.RIFLE -> { s.bounce += 1; s.damage *= 1.1f }
+                Kind.ARMOR -> s.counterRing += 4
                 Kind.SYSTEM -> s.orbCount += 1
             }
             GearRarity.VOLTAIC -> when (kind(g)) {
                 Kind.RIFLE -> s.chain += 1
-                Kind.ARMOR -> s.moveSpeed *= 1.07f
-                Kind.SYSTEM -> if (s.orbBoltInterval <= 0f) s.orbBoltInterval = 1.6f else s.orbBoltInterval *= 0.85f
+                Kind.ARMOR -> s.moveSpeed *= 1.09f
+                Kind.SYSTEM -> if (s.orbBoltInterval <= 0f) s.orbBoltInterval = 1.4f else s.orbBoltInterval *= 0.8f
             }
             GearRarity.CELESTIAL -> when (kind(g)) {
                 Kind.RIFLE -> s.parallelShots += 1
-                Kind.ARMOR -> { s.healMul *= 1.15f; s.healOnKill += 3f }
-                Kind.SYSTEM -> { s.critMul += 0.12f; s.critChance += 0.03f }
+                Kind.ARMOR -> { s.healMul *= 1.2f; s.healOnKill += 4f }
+                Kind.SYSTEM -> { s.critMul += 0.16f; s.critChance += 0.04f }
             }
             GearRarity.ABYSSAL -> when (kind(g)) {
-                Kind.RIFLE -> { s.instantDeleteChance += 0.03f; s.critMul += 0.25f }
-                Kind.ARMOR -> { s.counterRing += 5; s.dodge += 0.03f }
-                Kind.SYSTEM -> { s.orbCount += 1; s.orbDamage *= 1.25f; s.damage *= 1.1f }
+                Kind.RIFLE -> { s.instantDeleteChance += 0.04f; s.critMul += 0.33f }
+                Kind.ARMOR -> { s.counterRing += 6; s.dodge += 0.04f }
+                Kind.SYSTEM -> { s.orbCount += 1; s.orbDamage *= 1.33f; s.damage *= 1.13f }
+            }
+            GearRarity.ENCRYPTED -> when (kind(g)) {
+                Kind.RIFLE -> { s.moveFireRate = 1f; s.damage *= 1.5f }
+                Kind.ARMOR -> { s.autoPotion = true; s.healOnHit += 8f }
+                Kind.SYSTEM -> { s.dashCooldownMul *= 0.5f; s.healMul *= 2f; s.petRateMul *= 2f }
             }
             else -> {}
         }

@@ -33,19 +33,38 @@ data class Pet(
     @SerialName("n") val fresh: Boolean = true
 ) {
     val name: String get() = Pets.petName(art)
-    val loadout: PetLoadout get() = PetLoadout(art, rarity)
+    /** Rolled from the pet's id when it hatched (so older pets have theirs too). */
+    val abilities: List<PetAbility> get() = Pets.abilitiesFor(uid, art, rarity)
+    val loadout: PetLoadout get() = PetLoadout(art, rarity, abilities)
+}
+
+/**
+ * Pet abilities (owner, 0.39.0): lower tiers have one; EPIC and up may roll a second; GLITCHED
+ * LEGENDARY and up may roll a third and a fourth (four at most). Stronger and faster by rarity.
+ */
+enum class PetAbility(val label: String, val text: String, val cooldown: Float) {
+    FIRE_BITE("FIRE BITE", "Breathes a burst of flame on the nearest threat and those around it.", 6f),
+    CHAIN_SHOCK("CHAIN SHOCK", "A bolt that arcs on to three more threats.", 5f),
+    HEAL_PULSE("HEAL PULSE", "Heals you for a share of your max HP.", 12f),
+    SHIELD_BUBBLE("SHIELD BUBBLE", "A moment where nothing can hurt you.", 16f),
+    SHOCK_NOVA("SHOCK NOVA", "A ring of energy hits every threat around the pet.", 8f),
+    HOMING_MISSILES("HOMING MISSILES", "Two missiles that seek out threats.", 7f),
+    PIERCING_LASER("PIERCING LASER", "A heavy shot that passes through threats.", 6f),
+    RAPID_FIRE("RAPID FIRE", "Triple fire rate for a few seconds.", 14f);
 }
 
 /** What a run needs to know about an equipped pet. */
-data class PetLoadout(val art: Int, val rarity: GearRarity) {
-    fun encode(): String = "$art:${rarity.name}"
+data class PetLoadout(val art: Int, val rarity: GearRarity, val abilities: List<PetAbility> = emptyList()) {
+    fun encode(): String = "$art:${rarity.name}:" + abilities.joinToString(",") { it.name }
 
     companion object {
         fun decode(s: String?): PetLoadout? {
             if (s.isNullOrBlank()) return null
-            val art = s.substringBefore(':').toIntOrNull() ?: return null
-            val r = runCatching { GearRarity.valueOf(s.substringAfter(':')) }.getOrNull() ?: return null
-            return PetLoadout(art.coerceIn(0, Pets.PET_COUNT - 1), r)
+            val parts = s.split(':')
+            val art = parts.getOrNull(0)?.toIntOrNull() ?: return null
+            val r = parts.getOrNull(1)?.let { n -> runCatching { GearRarity.valueOf(n) }.getOrNull() } ?: return null
+            val ab = parts.getOrNull(2).orEmpty().split(',').mapNotNull { n -> runCatching { PetAbility.valueOf(n) }.getOrNull() }.take(Pets.MAX_ABILITIES)
+            return PetLoadout(art.coerceIn(0, Pets.PET_COUNT - 1), r, ab)
         }
     }
 }
@@ -110,10 +129,12 @@ object Pets {
         GearRarity.RARE -> 20
         GearRarity.EPIC -> 60
         GearRarity.LEGENDARY -> 120
+        GearRarity.GLITCHED -> 150
         GearRarity.FORGED -> 180
         GearRarity.VOLTAIC -> 240
         GearRarity.CELESTIAL -> 360
         GearRarity.ABYSSAL -> 480
+        GearRarity.ENCRYPTED -> 600
     }
 
     // --- Art --------------------------------------------------------------------------------
@@ -130,10 +151,12 @@ object Pets {
 
     /** An egg picture's rarity, by its colour (matching the gear rarity colours). */
     fun eggArtRarity(i: Int): GearRarity = when (eggHue(i)) {
-        'W', 'K' -> GearRarity.COMMON
+        'W' -> GearRarity.COMMON
+        'K' -> if (i % 4 == 0) GearRarity.ENCRYPTED else GearRarity.COMMON
         'G' -> GearRarity.UNCOMMON
         'B' -> GearRarity.RARE
-        'P', 'M' -> GearRarity.EPIC
+        'P' -> GearRarity.EPIC
+        'M' -> if (i % 3 == 0) GearRarity.GLITCHED else GearRarity.EPIC
         'Y' -> if (i % 2 == 0) GearRarity.LEGENDARY else GearRarity.VOLTAIC
         'V' -> GearRarity.VOLTAIC
         'O' -> GearRarity.FORGED
@@ -171,6 +194,21 @@ object Pets {
 
     // --- Combat -------------------------------------------------------------------------------
 
+    const val MAX_ABILITIES = 4
+
+    /** How many abilities, and which, a pet has (from its id, so it never changes). */
+    fun abilitiesFor(uid: Long, art: Int, rarity: GearRarity): List<PetAbility> {
+        val rng = Random(uid * 1_000_003L + art * 7919L + 17)
+        var n = 1
+        if (rarity >= GearRarity.EPIC && rng.nextFloat() < (if (rarity >= GearRarity.GLITCHED) 0.7f else 0.45f)) n++
+        if (n == 2 && rarity >= GearRarity.GLITCHED && rng.nextFloat() < 0.4f) n++
+        if (n == 3 && rng.nextFloat() < 0.25f) n++
+        return PetAbility.entries.shuffled(rng).take(n.coerceAtMost(MAX_ABILITIES))
+    }
+
+    /** Ability power (share of the operative's payload, before the pet's rarity multiplier) and cooldown. */
+    fun abilityCooldown(a: PetAbility, r: GearRarity): Float = a.cooldown * (1f - 0.04f * r.ordinal).coerceAtLeast(0.5f)
+
     /** Pet shot damage as a share of its operative's payload. */
     fun damageMul(r: GearRarity): Float = when (r) {
         GearRarity.COMMON -> 0.30f
@@ -178,13 +216,15 @@ object Pets {
         GearRarity.RARE -> 0.44f
         GearRarity.EPIC -> 0.54f
         GearRarity.LEGENDARY -> 0.66f
+        GearRarity.GLITCHED -> 0.74f
         GearRarity.FORGED -> 0.80f
         GearRarity.VOLTAIC -> 0.95f
         GearRarity.CELESTIAL -> 1.10f
         GearRarity.ABYSSAL -> 1.30f
+        GearRarity.ENCRYPTED -> 1.55f
     }
 
-    /** Seconds between pet shots: 1.1 s for COMMON down to 0.6 s for ABYSSAL. */
+    /** Seconds between pet shots: 1.1 s for COMMON down to about 0.5 s for ENCRYPTED. */
     fun fireInterval(r: GearRarity): Float = 1.1f - 0.0625f * r.ordinal
     const val RANGE = 460f
 

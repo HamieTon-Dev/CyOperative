@@ -193,7 +193,12 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                     LaunchedEffect(Unit) { screen = Screen.Create(editing = false) }
                 } else com.cyberoperative.game.ui.menu.CharacterScreen(
                     save, ::back,
-                    startTab = if (s.target == MenuTarget.VAULT) com.cyberoperative.game.ui.menu.CharTab.VAULT else com.cyberoperative.game.ui.menu.CharTab.OVERVIEW,
+                    startTab = when {
+                        // The hatch notification opens the PETS tab.
+                        DeepLink.petsTab -> com.cyberoperative.game.ui.menu.CharTab.PETS.also { DeepLink.petsTab = false }
+                        s.target == MenuTarget.VAULT -> com.cyberoperative.game.ui.menu.CharTab.VAULT
+                        else -> com.cyberoperative.game.ui.menu.CharTab.OVERVIEW
+                    },
                     onDeploy = { click(); screen = Screen.Menu; picking = GameMode.CAMPAIGN },
                     onOverclock = { click(); screen = Screen.Sub(MenuTarget.UPGRADES) },
                     onEditLook = { click(); screen = Screen.Create(editing = true) },

@@ -116,7 +116,8 @@ object TouchLayout {
 }
 
 /** What one button shows right now. */
-data class TouchButtonState(val ready: Boolean, val cooldown: Float = 0f, val maxCooldown: Float = 1f, val count: Int = -1)
+/** [abyssal]: FULL RESTORE is on, so the potion glows abyssal red (owner, 0.39.0). */
+data class TouchButtonState(val ready: Boolean, val cooldown: Float = 0f, val maxCooldown: Float = 1f, val count: Int = -1, val abyssal: Boolean = false)
 
 /**
  * The action buttons (dash, spells, HP charge, Packet Bomb) at their layout spots. Each fires
@@ -152,10 +153,10 @@ private fun spellOf(c: TouchControl, h: HudSnapshot): Spell? = when (c) {
 }
 
 private fun stateOf(c: TouchControl, h: HudSnapshot): TouchButtonState = when (c) {
-    TouchControl.DASH -> TouchButtonState(h.dashCd <= 0f, h.dashCd, com.cyberoperative.game.engine.GameEngine.DASH_COOLDOWN)
+    TouchControl.DASH -> TouchButtonState(h.dashCd <= 0f, h.dashCd, h.dashMax)
     TouchControl.SPELL1 -> TouchButtonState(h.spell1Cd <= 0f, h.spell1Cd, h.spell1?.cooldown ?: 1f)
     TouchControl.SPELL2 -> TouchButtonState(h.spell2Cd <= 0f, h.spell2Cd, h.spell2?.cooldown ?: 1f)
-    TouchControl.HP -> TouchButtonState(h.hpCharges > 0, count = h.hpCharges)
+    TouchControl.HP -> TouchButtonState(h.hpCharges > 0, count = h.hpCharges, abyssal = h.potionFull)
     TouchControl.BOMB -> TouchButtonState(h.packetBombs > 0, count = h.packetBombs)
     TouchControl.STICK -> TouchButtonState(true)
 }
@@ -167,7 +168,7 @@ fun TouchButton(c: TouchControl, spell: Spell?, st: TouchButtonState, modifier: 
         TouchControl.DASH -> Palette.Cyan
         TouchControl.SPELL1 -> Palette.Purple
         TouchControl.SPELL2 -> Palette.Magenta
-        TouchControl.HP -> Palette.Green
+        TouchControl.HP -> if (st.abyssal) Color(0xFFFF2B3A) else Palette.Green
         TouchControl.BOMB -> Color(0xFF7DF9FF)
         TouchControl.STICK -> Palette.Cyan
     }
@@ -183,7 +184,7 @@ fun TouchButton(c: TouchControl, spell: Spell?, st: TouchButtonState, modifier: 
             }
             when (c) {
                 TouchControl.DASH -> dashIcon(o, r, accent)
-                TouchControl.HP -> potionIcon(o, r)
+                TouchControl.HP -> potionIcon(o, r, st.abyssal)
                 TouchControl.BOMB -> bombIcon(o, r)
                 else -> {}
             }
@@ -210,10 +211,11 @@ private fun DrawScope.dashIcon(o: Offset, r: Float, c: Color) {
     for (k in -1..1) drawLine(c.copy(alpha = 0.6f), Offset(o.x - r * 0.75f, o.y + k * r * 0.22f), Offset(o.x - r * 0.45f, o.y + k * r * 0.22f), r * 0.07f, cap = StrokeCap.Round)
 }
 
-private fun DrawScope.potionIcon(o: Offset, r: Float) {
+private fun DrawScope.potionIcon(o: Offset, r: Float, abyssal: Boolean = false) {
     val k = r / 22f
+    if (abyssal) drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(Color(0x99FF2B3A), Color.Transparent), Offset(o.x, o.y + 2f * k), 18f * k), 18f * k, Offset(o.x, o.y + 2f * k))
     drawRect(Color(0xCCBFEFFF), Offset(o.x - 3f * k, o.y - 15f * k), Size(6f * k, 7f * k))
-    drawCircle(Color(0xFF00C878), 9f * k, Offset(o.x, o.y + 2f * k))
+    drawCircle(if (abyssal) Color(0xFFD01020) else Color(0xFF00C878), 9f * k, Offset(o.x, o.y + 2f * k))
     drawCircle(Color(0xFFBFEFFF), 9.5f * k, Offset(o.x, o.y + 2f * k), style = Stroke(1.4f * k))
     drawLine(Color.White, Offset(o.x - 4f * k, o.y + 2f * k), Offset(o.x + 4f * k, o.y + 2f * k), 2f * k)
     drawLine(Color.White, Offset(o.x, o.y - 2f * k), Offset(o.x, o.y + 6f * k), 2f * k)

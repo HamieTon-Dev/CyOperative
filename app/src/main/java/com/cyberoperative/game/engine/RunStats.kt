@@ -16,8 +16,17 @@ class RunStats {
     var healOnKill = 0f         // flat HP per kill
     var healMul = 1f
     var counterRing = 0         // projectiles released when hit
+    // Owner, 0.39.0: the GLITCHED / ENCRYPTED buffs.
+    var healOnHit = 0f          // HP per primary shot that hits
+    var dodgeMul = 1f           // ENCRYPTED: dodge ×2 (cap raised to 0.6)
+    var potionFullHeal = false  // HP potions heal to full
+    var potionMul = 1f          // HP potion heal multiplier
+    var autoPotion = false      // HP potions drink themselves at 20% HP or on a lethal hit
+    var dashCooldownMul = 1f
+    var petRateMul = 1f         // companion fire rate
 
-    // Primary weapon (fires only while stationary)
+    // Primary weapon (fires while stationary; [moveFireRate] > 0 lets it fire on the move)
+
     var damage = 20f
     var fireRate = 1.6f         // volleys per second
     var projectileSpeed = 640f
@@ -33,6 +42,8 @@ class RunStats {
     var chainDamageMul = 0.6f
     var instantDeleteChance = 0f
     var eliteDamageMul = 1f
+    /** Share of the fire rate kept while moving (0 = stop to shoot, 1 = full rate). */
+    var moveFireRate = 0f
 
     // Movement
     // Owner, 2026-10-08: base speed +15% (was 240) — runs started a little slow.
@@ -75,6 +86,9 @@ class RunStats {
         maxHp = o.maxHp; armor = o.armor; dodge = o.dodge
         healOnKill = o.healOnKill; healMul = o.healMul
         counterRing = o.counterRing
+        healOnHit = o.healOnHit; dodgeMul = o.dodgeMul; potionFullHeal = o.potionFullHeal; potionMul = o.potionMul
+        autoPotion = o.autoPotion; dashCooldownMul = o.dashCooldownMul; petRateMul = o.petRateMul
+        moveFireRate = o.moveFireRate
         damage = o.damage; fireRate = o.fireRate; projectileSpeed = o.projectileSpeed
         range = o.range; critChance = o.critChance; critMul = o.critMul
         parallelShots = o.parallelShots; followUpShots = o.followUpShots
@@ -96,10 +110,12 @@ class RunStats {
     /** Clamp the stats that would break the game if stacked without limit. */
     fun clampLimits() {
         armor = armor.coerceAtLeast(0f)
-        dodge = dodge.coerceIn(0f, 0.4f)
+        dodge = (dodge * dodgeMul).coerceIn(0f, if (dodgeMul > 1f) 0.6f else 0.4f)
+        dashCooldownMul = dashCooldownMul.coerceIn(0.3f, 1f)
+        moveFireRate = moveFireRate.coerceIn(0f, 1f)
         critChance = critChance.coerceIn(0f, 0.85f)
         instantDeleteChance = instantDeleteChance.coerceIn(0f, 0.15f)
-        fireRate = fireRate.coerceAtMost(8f)
+        fireRate = fireRate.coerceAtMost(12f)
         orbCount = orbCount.coerceAtMost(10)
         bladeCount = bladeCount.coerceAtMost(6)
     }
