@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.43.1 (versionCode 125) — 2026-10-17 · Technician without the blaster
+### Changed (owner)
+- The TECHNICIAN no longer holds the small blaster. The Plasma Beam arm cannon still shows when that power-up is taken.
+- Operator redesign concept, v2 (`docs/operators_concept/v2_*.png`, `tools/operators/shade_operators.py`):
+  - the real figures, shaded in the pets' style;
+  - the Phantom's hood and cape are left as they were.
+  - Not in the game yet.
+
 ## 0.43.0 (versionCode 124) — 2026-10-17 · Instant hatch with €
 ### Added (owner)
 - **HATCH WITH € · €N** under the ◇ button on the incubator. It takes two taps: the second tap confirms.

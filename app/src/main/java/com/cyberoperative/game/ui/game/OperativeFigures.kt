@@ -185,7 +185,8 @@ object OperativeFigures {
         }
         if (layer) drawContext.canvas.restore()
         // Blaster on the facing side, at the icon's right shoulder.
-        if (!keeper) gun(x + dir * 21f * k, f - 44f * k, u, facing, neonCyan.copy(alpha = alpha), neonGreen.copy(alpha = alpha), neonHood.copy(alpha = alpha))
+        // No handheld blaster on the TECHNICIAN (owner, 0.43.1); the Plasma Beam arm cannon still shows.
+        if (!keeper && heavy) gun(x + dir * 21f * k, f - 44f * k, u, facing, neonCyan.copy(alpha = alpha), neonGreen.copy(alpha = alpha), neonHood.copy(alpha = alpha))
     }
 }
 
