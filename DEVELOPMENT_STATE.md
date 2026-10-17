@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.41.0 (versionCode 122) |
+| Version | 0.42.0 (versionCode 123) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.42.0 instant hatch:**
+  - Price: `Pets.instantHatchPrice` (`HATCH_PRICE_MUL` 4, owner-approved).
+  - Action: `Incubators.instantHatch` ticks first, charges from the real remaining time, then hatches through `credit`.
+  - The UI price is computed from the live countdown, so the amount charged is never higher than the price shown.
 - **0.41.0 animated ENCRYPTED pets:**
   - New art indices 1524–2023 (pages 5–7).
   - `Pets.anim(art)` returns the moving parts. `PetFx` (Kotlin) and `render_anim` (Python, used for the review sheets) must stay in step.

@@ -97,7 +97,8 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
     val hatchDue = inc.current != null && remaining == 0L && !inc.waitingForTime
     LaunchedEffect(hatchDue) { if (hatchDue) save.update { Incubators.tick(it) } }
 
-    val incubator: @Composable (Modifier) -> Unit = { m -> IncubatorPanel(p, remaining, m, { n -> save.update { Incubators.setStones(it, n) } }) { uid ->
+    val incubator: @Composable (Modifier) -> Unit = { m -> IncubatorPanel(p, remaining, m, { n -> save.update { Incubators.setStones(it, n) } },
+        onInstant = { if (Incubators.instantHatch(p) == null) note = "Not enough ◇." else { save.update { Incubators.instantHatch(it) ?: it }; note = "" } }) { uid ->
         val r = Incubators.takeBack(p, uid)
         if (r == null) note = "Egg inventory is full." else save.update { Incubators.takeBack(it, uid) ?: it }
     } }
@@ -139,7 +140,7 @@ private fun Card(modifier: Modifier, accent: Color = Palette.Divider, content: @
 }
 
 @Composable
-private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier, onStones: (Int) -> Unit, onTakeBack: (Long) -> Unit) {
+private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier, onStones: (Int) -> Unit, onInstant: () -> Unit = {}, onTakeBack: (Long) -> Unit) {
     val inc = p.incubator
     val egg = inc.current
     Card(modifier, accent = Color(0xFFFF4A1A)) {
@@ -178,6 +179,18 @@ private fun IncubatorPanel(p: PlayerProfile, remaining: Long, modifier: Modifier
                 }
                 Box(Modifier.fillMaxWidth().height(8.dp).background(Palette.SurfaceSunken, RoundedCornerShape(4.dp))) {
                     Box(Modifier.fillMaxWidth(inc.fraction).fillMaxHeight().background(Color(0xFFFF6A1A), RoundedCornerShape(4.dp)))
+                }
+                // INSTANT HATCH (owner, 0.42.0): ◇ only, the price falls as the egg hatches. Two taps.
+                val price = Pets.instantHatchPrice(egg.rarity, if (inc.waitingForTime) inc.remainingMs else remaining)
+                if (price > 0) {
+                    Spacer(Modifier.height(8.dp))
+                    var confirm by remember(egg.uid) { mutableStateOf(false) }
+                    val afford = p.diamonds >= price
+                    CyberButton(
+                        if (confirm) "CONFIRM · ◇$price" else "INSTANT HATCH · ◇$price", Modifier.fillMaxWidth(),
+                        accent = Palette.Gold, primary = confirm, enabled = afford,
+                        subtitle = if (afford) "You have ◇${p.diamonds}" else "Not enough ◇ (you have ${p.diamonds})"
+                    ) { if (confirm) { confirm = false; onInstant() } else confirm = true }
                 }
             }
             Spacer(Modifier.height(8.dp))

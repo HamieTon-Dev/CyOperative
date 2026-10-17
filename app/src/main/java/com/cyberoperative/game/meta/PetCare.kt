@@ -154,6 +154,16 @@ object Incubators {
         return q.copy(incubator = inc, pets = q.pets + pets, petSeq = next)
     }
 
+    /** Pays ◇ to hatch the egg in the incubator now; null when there's no egg or not enough ◇. */
+    fun instantHatch(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile? {
+        val q = tick(p, now)
+        val egg = q.incubator.current ?: return null
+        val price = Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs)
+        if (price <= 0 || q.diamonds < price) return null
+        val (inc, pets, next) = credit(q.incubator.copy(progress = egg.baseMs), 0L, q.petSeq)
+        return q.copy(diamonds = q.diamonds - price, incubator = inc, pets = q.pets + pets, petSeq = next)
+    }
+
     /** Wall-clock time the current egg should hatch (for a reminder notification), or null. */
     fun hatchAt(p: PlayerProfile, wall: Long = PlatformClock.wall()): Long? =
         p.incubator.current?.let { wall + p.incubator.remainingMs }

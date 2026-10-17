@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.42.0 (versionCode 123) — 2026-10-17 · Instant hatch for ◇
+### Added (owner-approved price: ×4)
+- **INSTANT HATCH · ◇N** on the incubator.
+  - Pay ◇ (diamonds only, never €) to hatch the egg now. It takes two taps: the second tap confirms.
+  - Price: 4 × ⌈rarity × minutes left ÷ 6⌉ ◇, where rarity runs from 1 (Common) to 11 (Encrypted).
+  - The price falls as the egg hatches, and Inferno Stones lower it too.
+  - Fresh-egg prices: Common ◇4, Uncommon ◇16, Rare ◇40, Epic ◇160, Legendary ◇400, Glitched Legendary ◇600, Forged ◇840, Voltaic ◇1,280, Celestial ◇2,160, Abyssal ◇3,200, Encrypted ◇4,400.
+- The button greys out, with your ◇ balance shown under it, when you can't afford it.
+
 ## 0.41.0 (versionCode 122) — 2026-10-17 · 500 animated ENCRYPTED pets
 ### Added (owner: "500 more encrypted pets in all of the variety of colors… special orbs rotating them or different moving mechanical parts")
 - **500 new ENCRYPTED pets, each with its own egg and name** (e.g. "Cyan Kernel Seeker").

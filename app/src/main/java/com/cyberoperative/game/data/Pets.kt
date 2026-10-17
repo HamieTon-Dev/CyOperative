@@ -152,6 +152,18 @@ object Pets {
     const val QUEUE = 3
     const val MAX_EGGS = 100
 
+    /**
+     * INSTANT HATCH price in ◇ (owner, 0.42.0; ◇ only, never €): ×4 of
+     * ⌈rarity × minutes remaining ÷ 6⌉, rarity 1 (COMMON) … 11 (ENCRYPTED). A fresh ENCRYPTED egg
+     * (10 h) is ◇4,400; it falls as the egg hatches and with Inferno Stones.
+     */
+    fun instantHatchPrice(r: GearRarity, remainingMs: Long): Int {
+        if (remainingMs <= 0L) return 0
+        val minutes = (remainingMs + 59_999L) / 60_000L
+        return ((r.ordinal + 1) * minutes + 5).toInt() / 6 * HATCH_PRICE_MUL
+    }
+    const val HATCH_PRICE_MUL = 4
+
     fun timeFactor(stones: Int): Float = (1f - STONE_CUT * stones.coerceIn(0, MAX_STONES)).coerceAtLeast(0.1f)
 
     /** Hatch time by rarity (owner, 0.38.0: 5 min … 8 h). */
