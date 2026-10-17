@@ -66,7 +66,8 @@ fun hatchClock(ms: Long): String {
 fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
     val host = com.cyberoperative.game.idle.IdleRuns.host
     var selEgg by remember { mutableStateOf<Long?>(null) }
-    var selPet by remember { mutableStateOf<Long?>(null) }
+    // Opens on the equipped pet, so its stats and abilities show right away.
+    var selPet by remember { mutableStateOf(p.activePet.takeIf { it != 0L }) }
     var note by remember { mutableStateOf("") }
     // Catch up when the page opens; read network time if the clock is waiting on it.
     LaunchedEffect(Unit) {

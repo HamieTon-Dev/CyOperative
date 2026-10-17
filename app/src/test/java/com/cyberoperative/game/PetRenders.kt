@@ -62,6 +62,29 @@ class PetRenders {
         save("pets_tab")
     }
 
+    @Test fun hatchReveal() {
+        assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        stocked(repo)
+        repo.update { it.copy(pets = it.pets + Pet(777L, 40, GearRarity.ENCRYPTED, fresh = true)) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { CharacterScreen(repo, {}, startTab = CharTab.PETS) } }
+        compose.mainClock.advanceTimeBy(600)
+        save("pets_hatch_reveal")
+    }
+
+    @Test @Config(qualifiers = "w1280dp-h720dp-mdpi", sdk = [35]) fun petsTabWide() {
+        assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        stocked(repo)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { CharacterScreen(repo, {}, startTab = CharTab.PETS) } }
+        compose.mainClock.advanceTimeBy(600)
+        save("pets_tab_wide")
+    }
+
     @Test fun petInRun() {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
