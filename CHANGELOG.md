@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.54.1 (versionCode 153) — 2026-10-18 · ARCADE tracks compressed like the rest
+### Changed (owner)
+- The 10 ARCADE tracks are re-encoded with the **same settings as the rest of the soundtrack**: Ogg Vorbis, 96 kbps, 44.1 kHz stereo (they were about 112 kbps). All ten now take 22 MB (was 27 MB).
+- **Cover art removed:** each MP3 carried an embedded picture. The game files hold only the audio stream, with no picture and no tags.
+- **Checked for Android:**
+  - every track maps to its `R.raw` resource (`Platform.rawMusic`, `MusicFilesTest`);
+  - all ten are in the release bundle at full size, so resource shrinking leaves them alone;
+  - each one decodes cleanly from start to finish.
+
 ## 0.54.0 (versionCode 152) — 2026-10-18 · 10 ARCADE tracks
 ### Added (owner)
 - **10 new tracks**, at the **top of the playlist** above the Main Menu tracks: New Game, Let me Solo, Wanna Trade?, Wanna Team Up?, Trade Request, Save and Quit?, Lost my GBA, Big Data Energy, Big Data Energy (2) and Memory Card.
