@@ -1945,25 +1945,32 @@ class ArenaRenderer {
         for (p in g.projectiles.items) {
             if (!p.active) continue
             if (p.kind == ProjKind.MINE) { drawMine(p.x, p.y, p.armTimer > 0f, time, p.tint); continue }
-            drawCircle(Color.Black.copy(alpha = 0.25f), p.radius * 0.8f, Offset(p.x, p.y))
+            // The player's shots are drawn at half size (owner, 0.50.2); they still hit with their full radius.
+            val k = if (p.friendly) PLAYER_SHOT_LOOK else 1f
+            val pr = p.radius * k
+            drawCircle(Color.Black.copy(alpha = 0.25f), pr * 0.8f, Offset(p.x, p.y))
             val c = Offset(p.x, p.y - lift)
-            if (p.kind == ProjKind.MISSILE) { drawMissile(c, p.vx, p.vy, time); continue }
+            if (p.kind == ProjKind.MISSILE) {
+                drawContext.canvas.save(); drawContext.transform.scale(k, k, c)
+                drawMissile(c, p.vx, p.vy, time)
+                drawContext.canvas.restore(); continue
+            }
             if (!p.friendly && p.kind == ProjKind.BOSS && p.homing > 0f && p.radius >= 14f) { drawSiegeShell(p, c, time); continue }
             if (p.kind == ProjKind.BOOMERANG) {
                 val col = if (p.tint != 0L) Color(p.tint) else Palette.Green
                 rotate(time * 900f % 360f, c) {
-                    drawCircle(col.copy(alpha = 0.25f), p.radius * 1.8f, c)
-                    drawArc(col, 20f, 140f, false, Offset(c.x - p.radius, c.y - p.radius), Size(p.radius * 2f, p.radius * 2f), style = Stroke(4f))
-                    drawArc(col, 200f, 140f, false, Offset(c.x - p.radius, c.y - p.radius), Size(p.radius * 2f, p.radius * 2f), style = Stroke(4f))
-                    drawCircle(Color.White, p.radius * 0.3f, c)
+                    drawCircle(col.copy(alpha = 0.25f), pr * 1.8f, c)
+                    drawArc(col, 20f, 140f, false, Offset(c.x - pr, c.y - pr), Size(pr * 2f, pr * 2f), style = Stroke(4f * k))
+                    drawArc(col, 200f, 140f, false, Offset(c.x - pr, c.y - pr), Size(pr * 2f, pr * 2f), style = Stroke(4f * k))
+                    drawCircle(Color.White, pr * 0.3f, c)
                 }
                 continue
             }
             if (p.kind == ProjKind.RAIL) {
                 val tail = Offset(p.x - p.vx * 0.06f, p.y - lift - p.vy * 0.06f)
-                drawLine(Color(0xFFB98CFF).copy(alpha = 0.25f), c, tail, p.radius * 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                drawLine(Color(0xFFE7D4FF).copy(alpha = 0.8f), c, tail, p.radius * 1.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                drawLine(Color.White, c, tail, p.radius * 0.45f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Color(0xFFB98CFF).copy(alpha = 0.25f), c, tail, pr * 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Color(0xFFE7D4FF).copy(alpha = 0.8f), c, tail, pr * 1.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                drawLine(Color.White, c, tail, pr * 0.45f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
                 continue
             }
             if (p.kind == ProjKind.CUBE) {
@@ -2003,11 +2010,11 @@ class ArenaRenderer {
                 }
                 val len = if (p.kind == ProjKind.LANCE) 0.07f else 0.035f
                 val tail = Offset(p.x - p.vx * len, p.y - lift - p.vy * len)
-                drawLine(col.copy(alpha = 0.18f), c, tail, p.radius * 3f)
-                drawLine(col.copy(alpha = 0.6f), c, tail, p.radius * 1.3f)
-                drawCircle(col.copy(alpha = 0.25f), p.radius * 2.2f, c)
-                drawCircle(col, p.radius, c)
-                drawCircle(Color.White.copy(alpha = 0.9f), p.radius * 0.5f, c)
+                drawLine(col.copy(alpha = 0.18f), c, tail, pr * 3f)
+                drawLine(col.copy(alpha = 0.6f), c, tail, pr * 1.3f)
+                drawCircle(col.copy(alpha = 0.25f), pr * 2.2f, c)
+                drawCircle(col, pr, c)
+                drawCircle(Color.White.copy(alpha = 0.9f), pr * 0.5f, c)
             } else {
                 // Hostile packets: hot red-orange streaks with a glow (key art).
                 val col = if (p.tint != 0L) Color(p.tint) else if (p.kind == ProjKind.BOSS) Palette.Magenta else Color(0xFFFF4A2A)
@@ -2120,6 +2127,9 @@ class ArenaRenderer {
             }
         }
     }
+
+    /** The player's shots: drawn size as a share of their hit radius (owner, 0.50.2: half). */
+    private val PLAYER_SHOT_LOOK = 0.5f
 
     /** Plasma Beam look: its drawn width as a share of its hit width. */
     private val BEAM_LOOK = 0.15f

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.50.2 (versionCode 143) — 2026-10-18 · Fewer elite potions, smaller player shots
+### Changed (owner)
+- **HP potions drop from elites half as often:** 33% → 16.5% in runs, and 8% → 4% in Idle Runs. Boss potions are unchanged.
+- **The player's shots are drawn at half size:**
+  - this covers bolts, lances, cones, node bolts, ricochet discs, railgun streaks and missiles;
+  - **they hit exactly as before**, because only the drawing shrank and the hit radius is untouched;
+  - enemy shots are unchanged.
+  - Comparison: `docs/screenshots/player_shots_half_size.png`.
+
 ## 0.50.1 (versionCode 142) — 2026-10-18 · Store eggs: GLITCHED LEGENDARY and up, priced by rarity
 ### Changed (owner: "the store sells nothing less than a glitched legendary rarity egg")
 - **DAILY EGGS** only roll GLITCHED LEGENDARY or better, priced by rarity:

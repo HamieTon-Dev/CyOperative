@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.50.2: elite potion drops halved; player shots drawn at half size.
 - ✅ 0.50.1: store eggs GLITCHED LEGENDARY and up, ◇300 + ◇100 per rarity.
 - ✅ 0.50.0: daily egg offers, animated store eggs, live skin previews, PET CODEX.
 - ✅ 0.49.1: 300 new pets and eggs; eggs drop in Idle Runs.

@@ -76,7 +76,8 @@ object IdleRunSimulator {
     /** The worst gear an idle run keeps (owner, 0.37.3: "only epic and higher drops"). */
     val MIN_DROP_RARITY = com.cyberoperative.game.data.GearRarity.EPIC
     const val IDLE_BOSS_HP_DROP = 0.5f
-    const val IDLE_ELITE_HP_DROP = 0.08f
+    // Halved with the real runs (owner, 0.50.2).
+    const val IDLE_ELITE_HP_DROP = 0.04f
     /** Share of those an idle run keeps (owner, 0.37.4: 20% less gear than at launch). */
     const val GEAR_KEEP = 0.8f
 

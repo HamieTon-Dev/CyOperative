@@ -5449,7 +5449,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val PACKET_BOMB_RADIUS = 420f
         const val PACKET_BOMB_DAMAGE = 30f
         const val CONSUMABLE_COOLDOWN = 1f
-        const val ELITE_HP_DROP = 0.33f
+        // Halved (owner, 0.50.2: "potions drop from elites 50% less often").
+        const val ELITE_HP_DROP = 0.165f
         /** The shop's equipment pieces, and the co-op input index they start at. */
         /** Players must stand this close to trade (owner, 0.36.3: "standing next to one another"). */
         const val TRADE_RANGE = 170f
