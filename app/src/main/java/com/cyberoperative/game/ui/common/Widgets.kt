@@ -104,6 +104,27 @@ fun formatAmount(v: Long): String {
     return if (tenth == 0L) "$whole$suffix" else "$whole.$tenth$suffix"
 }
 
+/**
+ * Damage numbers on Android (owner, 0.47.3): whole units, no decimals: 11867 → 11k,
+ * 100826 → 100k, 7543247 → 7m … up to 9t. From 10 trillion on, scientific ("1.2e13"), which
+ * the renderer also draws smaller ([squishedIsScientific]).
+ */
+fun squishDamage(v: Long): String {
+    if (v < 0) return "-" + squishDamage(-v)
+    if (v < 1_000L) return v.toString()
+    if (v >= 10_000_000_000_000L) {
+        val exp = kotlin.math.floor(kotlin.math.log10(v.toDouble())).toInt()
+        val mant = v / Math.pow(10.0, exp.toDouble())
+        val tenth = kotlin.math.floor(mant * 10.0).toInt()
+        return "${tenth / 10}.${tenth % 10}e$exp"
+    }
+    val units = arrayOf("k" to 1_000L, "m" to 1_000_000L, "b" to 1_000_000_000L, "t" to 1_000_000_000_000L)
+    val (suffix, size) = units.last { v >= it.second }
+    return "${v / size}$suffix"
+}
+
+fun squishedIsScientific(s: String): Boolean = 'e' in s
+
 /** The full number with thousands separators. */
 fun formatFull(v: Long): String = "%,d".format(v)
 

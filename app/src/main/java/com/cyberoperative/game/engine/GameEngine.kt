@@ -3805,7 +3805,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             crit -> TextKind.CRIT
             else -> TextKind.NORMAL
         }
-        if (showText) addText(e.x + (rng.nextFloat() - 0.5f) * 16f, e.y - e.radius, d.toInt().coerceAtLeast(1).toString(), textKind)
+        if (showText) addText(e.x + (rng.nextFloat() - 0.5f) * 16f, e.y - e.radius, d.toLong().coerceAtLeast(1L).toString(), textKind)
         if (crit) sound(GameSound.CRIT) else if (!quiet) sound(GameSound.ENEMY_HIT)
         if (e.hp <= 0f) killEnemy(e)
     }

@@ -2840,10 +2840,18 @@ class ArenaRenderer {
                 TextKind.NORMAL, TextKind.SHIELD -> 18f
                 else -> 20f
             }
-            textPaint.textSize = size
+            // Android squishes damage numbers (owner, 0.47.3): 11k, 100k, 7m … 9t, then smaller scientific.
+            var text = t.text
+            var px = size
+            if (!com.cyberoperative.game.platform.AppInfo.desktop && (t.kind == TextKind.NORMAL || t.kind == TextKind.CRIT || t.kind == TextKind.BOSS) &&
+                text.isNotEmpty() && text.length >= 4 && text.all { it.isDigit() }) {
+                text = text.toLongOrNull()?.let { com.cyberoperative.game.ui.common.squishDamage(it) } ?: text
+                if (com.cyberoperative.game.ui.common.squishedIsScientific(text)) px *= 0.72f
+            }
+            textPaint.textSize = px
             textPaint.color = color
             textPaint.alpha = (min(1f, t.life * 3f) * 255).toInt()
-            drawGameText(t.text, t.x, t.y - 30f, textPaint)
+            drawGameText(text, t.x, t.y - 30f, textPaint)
         }
     }
 

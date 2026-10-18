@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.47.2 (versionCode 135) |
+| Version | 0.47.3 (versionCode 136) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.47.3:**
+  - `squishDamage` (Widgets.kt) is applied in `ArenaRenderer.drawTexts` to all-digit NORMAL/CRIT/BOSS texts when not `AppInfo.desktop`.
+  - All three HUDs use `UpgradeBar(compact = true)`.
+  - Hint banners take their side padding from the measured widths of the INV and MAP buttons (`cornerButtonPx` / `mapButtonPx`).
+  - `DevShots` has `hud_buffs`.
 - **0.47.2 portrait HUD:** `GameHud` has no panel background. `Modifier.plate()` puts a dark plate behind each piece of text. `UpgradeBar(compact = true)` is `CompactUpgradeGrid`: a `LazyHorizontalGrid`, 3 rows of 12 dp chips. Landscape and PC still use the single-row bar.
 - **0.47.1:** the Plasma Beam is drawn at `BEAM_LOOK` (15%) of `GameEngine.beamWidth` in `ArenaRenderer.drawBeam`. Its hit width is unchanged.
 - **0.47.0 GLITCHED ENCRYPTED:**

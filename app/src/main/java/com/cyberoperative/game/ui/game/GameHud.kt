@@ -437,7 +437,8 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                         color = levelColor(h), style = mono(15.sp, FontWeight.Bold), maxLines = 1
                     )
                     Divider()
-                    com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "SCORE ")
+                    // PC has the room: score and € take what they need (they were clipped at half the rest each).
+                    com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), prefix = "SCORE ")
                     Divider()
                     com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
                 }
@@ -478,7 +479,8 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
         }
         if (h.owned.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
-            UpgradeBar(h, Modifier.fillMaxWidth())
+            // Same compact buffs as the phone (owner, 0.47.3): half size, half the gap, 3 rows.
+            UpgradeBar(h, Modifier.fillMaxWidth(), compact = true)
         }
     }
 }
@@ -513,17 +515,7 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
             HpRow(h, label = "HP", labelWidth = 26.dp)
             XpRow(h, labelWidth = 26.dp)
             if (h.coop && !h.partnerGone) PartnerRow(h)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (h.owned.isNotEmpty()) {
-                    // The chips at two-thirds size.
-                    val d = androidx.compose.ui.platform.LocalDensity.current
-                    androidx.compose.runtime.CompositionLocalProvider(
-                        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density * 0.66f, d.fontScale)
-                    ) { UpgradeBar(h, Modifier.weight(1f, fill = false)) }
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(com.cyberoperative.game.ui.common.buildStampText(), color = Color.White.copy(alpha = 0.45f), style = mono(9.sp), maxLines = 1)
-            }
+            Text(com.cyberoperative.game.ui.common.buildStampText(), color = Color.White.copy(alpha = 0.45f), style = mono(9.sp), maxLines = 1)
         }
         Spacer(Modifier.width(24.dp))
         Column(Modifier.weight(1.3f).align(Alignment.Top)) {
@@ -536,6 +528,12 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
                     color = Color(h.eventAccent), style = mono(11.sp, FontWeight.Bold),
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
                 )
+            }
+            // Buffs like the phone's portrait HUD (owner, 0.47.3): half size, half the gap, 3 rows,
+            // under the threats / boss bar so the strip stays slim.
+            if (h.owned.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                UpgradeBar(h, Modifier.fillMaxWidth(), compact = true)
             }
         }
         Spacer(Modifier.width(16.dp))

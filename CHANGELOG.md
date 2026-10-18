@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.47.3 (versionCode 136) — 2026-10-18 · Squished damage numbers, compact buffs everywhere, ■INV
+### Changed (owner)
+- **Damage numbers on Android are squished:**
+  - whole units with no decimals: 11,867 → 11k, 100,826 → 100k, 7,543,247 → 7m, up to 9t;
+  - from 10 trillion they switch to scientific notation (1.2e13), drawn smaller;
+  - PC keeps full numbers.
+  - Damage is now carried as a Long, so very big hits no longer cap at 2.1 billion.
+- **Buffs on Android landscape and PC** now match the phone portrait HUD: half size, half the gap, 3 rows.
+  - Landscape: they sit under the threats/boss bar so the strip stays slim.
+  - PC: they run under the strip, where the score no longer gets cut off.
+- **INVENTORY → ■INV.** Hint banners like "DOOR OPEN" now measure the ■INV and MAP buttons and stay clear of them, so they no longer overlap.
+- The auto-sell text now says plainly that it only sells what you pick up, never your backpack, Data Vault or locked items.
+- Review renders in `docs/screenshots/`: `hud_review_portrait.png`, `hud_review_landscape.png`, `hud_review_pc.png` and `hud_review_steamdeck.png`.
+
 ## 0.47.2 (versionCode 135) — 2026-10-18 · Slimmer, see-through phone HUD
 ### Changed (owner)
 - **The top HUD panel is as thin as possible** (portrait phones):

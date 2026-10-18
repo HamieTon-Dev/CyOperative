@@ -97,6 +97,9 @@ fun GameScreen(
     var keysMoving by remember { mutableStateOf(false) }
     /** Campaign world map overlay ([M], controller BACK, MAP button). */
     var showMap by remember { mutableStateOf(false) }
+    /** Widths of the INV and MAP corner buttons, so banners keep clear of them. */
+    val cornerButtonPx = remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    val mapButtonPx = remember { androidx.compose.runtime.mutableIntStateOf(0) }
     /** INVENTORY (CHARACTER screen over the run; owner, 2026-10-13: button top left). */
     var showInventory by remember { mutableStateOf(false) }
     fun openInventory() { session.openInventory(); showInventory = true }
@@ -327,7 +330,14 @@ fun GameScreen(
         var hintsHeightPx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
         val mapButtonShown = hud.campaign && !GameKeys.active && !session.paused && hud.phase != Phase.DEAD
         val invButtonShown = !session.paused && hud.phase != Phase.DEAD && !showInventory
-        val sideClear = if (invButtonShown) 120.dp else if (mapButtonShown) 84.dp else 12.dp
+        // Banners stay clear of the INV / MAP buttons (measured, so "+50" never overlaps; owner 0.47.3).
+        val dens = androidx.compose.ui.platform.LocalDensity.current
+        val sideClear = with(dens) {
+            maxOf(
+                if (invButtonShown) (cornerButtonPx.intValue).toDp() + 16.dp else 12.dp,
+                if (mapButtonShown) mapButtonPx.intValue.toDp() + 16.dp else 12.dp
+            )
+        }
         Column(
             Modifier
                 .align(Alignment.TopCenter)
@@ -441,6 +451,7 @@ fun GameScreen(
         if (mapButtonShown) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + 8.dp, end = 10.dp)
+                    .onSizeChanged { mapButtonPx.intValue = it.width }
                     .graphicsLayer { alpha = 0.6f }
                     .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
                     .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
@@ -458,13 +469,14 @@ fun GameScreen(
         if (invButtonShown) {
             Box(
                 Modifier.align(Alignment.TopStart).padding(top = hudHeightDp + 8.dp, start = 10.dp)
+                    .onSizeChanged { cornerButtonPx.intValue = it.width }
                     .graphicsLayer { alpha = 0.75f }
                     .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
                     .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
                     .clickable { openInventory() }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
-                Text("▦ INVENTORY" + if (hud.gearFound > 0) " +${hud.gearFound}" else "", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                Text("■INV" + if (hud.gearFound > 0) " +${hud.gearFound}" else "", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             }
         }
         if (showMap && hud.campaign) {

@@ -338,6 +338,23 @@ class ScreenshotPreviews {
         }
     }
 
+    /** 0.47.3 HUD review: 34 buffs, a cleared room's door banner, damage numbers. */
+    private fun hudReview(name: String) {
+        gameplay(name, 8f, profileSetup = { it.copy(highestLevel = 30) }) { s ->
+            val e = s.engine
+            e.debugJumpToLevel(14)
+            for (u in com.cyberoperative.game.data.Upgrades.all.filter { !it.instant && e.build.isEligible(it) }.take(34)) e.build.take(u)
+            for (k in 0 until 4) e.addText(e.px - 120f + k * 80f, e.py - 160f - k * 30f, listOf("11867", "100826", "7543247", "12345678901234")[k], com.cyberoperative.game.engine.TextKind.NORMAL)
+        }
+    }
+
+    @Test fun hudReviewPortrait() { assumeTrue(enabled); hudReview("hud_review_portrait") }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun hudReviewLandscape() {
+        assumeTrue(enabled)
+        pcMode(true) { hudReview("hud_review_landscape") }
+    }
+
     @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun pcModeLandscapeMenu() {
         assumeTrue(enabled)
         pcMode(true) {

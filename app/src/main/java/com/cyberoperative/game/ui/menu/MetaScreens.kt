@@ -437,7 +437,7 @@ private fun AutoSellCard(below: com.cyberoperative.game.data.GearRarity?, onPick
             Spacer(Modifier.height(6.dp))
             Text(
                 if (below == null) "Off: every piece you find is kept."
-                else "Gear found below ${below.label} is sold for € as soon as it's picked up. Shop purchases and trades are always kept.",
+                else "Only gear you pick up below ${below.label} is sold for €, as you pick it up. Your backpack, Data Vault, locked items, shop purchases and trades are never touched.",
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
             )
         }

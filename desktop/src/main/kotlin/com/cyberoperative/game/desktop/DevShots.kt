@@ -82,6 +82,15 @@ fun main(args: Array<String>) {
         }
         shot("chips", frames = 20) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
     }
+    run {
+        // 0.47.3 HUD review: many buffs in the compact three-row grid, with damage numbers flying.
+        val c = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
+        val e = c.engine
+        e.debugJumpToLevel(14)
+        for (u in com.cyberoperative.game.data.Upgrades.all.filter { !it.instant && e.build.isEligible(it) }.take(34)) e.build.take(u)
+        repeat(60 * 3) { e.update(1f / 60f) }
+        shot("hud_buffs", frames = 30) { GameScreen(c, showDamageNumbers = true, onExitToMenu = {}, onNewOperation = {}) }
+    }
     // Campaign: a fresh room (doors shut), the room before the boss (skull door), the map overlay.
     run {
         val c = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)
