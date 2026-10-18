@@ -13,10 +13,10 @@ class MusicTest {
 
     @Test fun wholeCyOpsSoundtrackIsIncluded() {
         // 28 CyOps tracks + 10 INFERNO tracks (0.32.0).
-        // 38 CyOps tracks + the owner's 5 NEON tracks (0.37.5).
-        assertEquals(43, MusicLibrary.all.size)
-        assertEquals(43, MusicLibrary.all.map { it.id }.toSet().size)
-        assertEquals(33, MusicLibrary.poolFor(MusicState.COMBAT).size)
+        // 38 CyOps tracks + the owner's 5 NEON tracks (0.37.5) + 10 ARCADE tracks (0.54.0).
+        assertEquals(53, MusicLibrary.all.size)
+        assertEquals(53, MusicLibrary.all.map { it.id }.toSet().size)
+        assertEquals(43, MusicLibrary.poolFor(MusicState.COMBAT).size)
         assertTrue(MusicLibrary.poolFor(MusicState.MENU).isNotEmpty())
         assertTrue(MusicLibrary.poolFor(MusicState.BOSS).isNotEmpty())
     }
@@ -24,20 +24,20 @@ class MusicTest {
     @Test fun infernoRunsPlayOnlyTheInfernoTracksAndBossesStayAtSpeed() {
         try {
             MusicLibrary.inferno = true
-            // The 8 INFERNO tracks plus the 5 NEON tracks, which play on any level (0.37.5).
-            assertEquals(13, MusicLibrary.poolFor(MusicState.COMBAT).size)
-            assertTrue(MusicLibrary.poolFor(MusicState.COMBAT).all { it.id.startsWith("inferno") || it.plain })
-            assertEquals(setOf("inferno_boss_1", "inferno_boss_2"), MusicLibrary.poolFor(MusicState.BOSS).map { it.id }.toSet())
+            // The 8 INFERNO tracks plus the 5 NEON (0.37.5) and 10 ARCADE (0.54.0) tracks, which play on any level.
+            assertEquals(23, MusicLibrary.poolFor(MusicState.COMBAT).size)
+            assertTrue(MusicLibrary.poolFor(MusicState.COMBAT).all { it.id.startsWith("inferno") || it.fixedTempo })
+            assertEquals(setOf("inferno_boss_1", "inferno_boss_2"), MusicLibrary.poolFor(MusicState.BOSS).filter { !it.id.startsWith("arcade_") }.map { it.id }.toSet())
         } finally { MusicLibrary.inferno = false }
         val m = com.cyberoperative.game.audio.BossMusicProfiles.inferno(com.cyberoperative.game.data.Bosses.byId("exfil")!!)
         for (phase in 0..2) assertEquals(1f, m.speed(phase), 0f)
         assertTrue(MusicLibrary.poolFor(MusicState.COMBAT).none { it.id.startsWith("inferno") })
         MusicLibrary.infernoUnlocked = false
-        assertEquals(33, MusicLibrary.listed.size)
+        assertEquals(43, MusicLibrary.listed.size)
     }
 
     @Test fun bossPoolHasLevel10AndBoss2Variants() {
-        val ids = MusicLibrary.poolFor(MusicState.BOSS).map { it.id }.toSet()
+        val ids = MusicLibrary.poolFor(MusicState.BOSS).map { it.id }.filter { !it.startsWith("arcade_") }.toSet()
         assertEquals(setOf("level10_1", "level10_2", "boss2_1", "boss2_2", "boss2_remix_1", "boss2_remix_2"), ids)
     }
 

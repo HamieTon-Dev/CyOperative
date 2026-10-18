@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.54.0 (versionCode 152) — 2026-10-18 · 10 ARCADE tracks
+### Added (owner)
+- **10 new tracks**, at the **top of the playlist** above the Main Menu tracks: New Game, Let me Solo, Wanna Trade?, Wanna Team Up?, Trade Request, Save and Quit?, Lost my GBA, Big Data Energy, Big Data Energy (2) and Memory Card.
+  - They play **everywhere**: the main menu, every level and **boss fights**, on **every difficulty** (Inferno included).
+  - **Shuffle** picks them like any other track, in every rotation, every boss's included.
+  - They are **never sped up or slowed** (no tempo or pitch change). The **only effect is reverb**: in a boss fight they take the boss's reverb, but not its EQ.
+  - Stored as Ogg Vorbis (about 27 MB for all ten). They ship on Android and PC.
+- Tests: `V054ArcadeMusicTest`, plus updated `MusicTest` counts.
+
 ## 0.53.4 (versionCode 151) — 2026-10-18 · Auto-sell never sells eggs
 ### Checked (owner)
 - **AUTO-SELL never touches eggs**, in matches or Idle Runs, whatever rarity it is set to. It only ever receives gear: eggs are kept in their own list and are banked separately (`bankPetFinds` in matches, `Incubators.addEggs` for Idle Runs).

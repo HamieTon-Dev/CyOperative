@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.54.0: 10 ARCADE tracks (top of playlist, everywhere, any difficulty, shuffle, reverb only).
 - ✅ 0.53.4: auto-sell confirmed gear-only (eggs never sold), with a test.
 - ✅ 0.53.3: shop counter egg slightly bigger than the gear.
 - ✅ 0.53.2: square shop counter [ : egg : ] showing gear + egg at drop size; fewer barriers, flush to the walls.

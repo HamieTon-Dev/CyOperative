@@ -192,7 +192,18 @@ private val rawMusic: Map<String, Int> = mapOf(
     "track_neon_alley_2" to R.raw.track_neon_alley_2,
     "track_neon_alley_3" to R.raw.track_neon_alley_3,
     "track_neon_afterglow" to R.raw.track_neon_afterglow,
-    "track_neon_requiem" to R.raw.track_neon_requiem
+    "track_neon_requiem" to R.raw.track_neon_requiem,
+    // ARCADE (0.54.0).
+    "track_arcade_new_game" to R.raw.track_arcade_new_game,
+    "track_arcade_let_me_solo" to R.raw.track_arcade_let_me_solo,
+    "track_arcade_wanna_trade" to R.raw.track_arcade_wanna_trade,
+    "track_arcade_wanna_team_up" to R.raw.track_arcade_wanna_team_up,
+    "track_arcade_trade_request" to R.raw.track_arcade_trade_request,
+    "track_arcade_save_and_quit" to R.raw.track_arcade_save_and_quit,
+    "track_arcade_lost_my_gba" to R.raw.track_arcade_lost_my_gba,
+    "track_arcade_big_data_energy" to R.raw.track_arcade_big_data_energy,
+    "track_arcade_big_data_energy_2" to R.raw.track_arcade_big_data_energy_2,
+    "track_arcade_memory_card" to R.raw.track_arcade_memory_card
 )
 
 fun musicResource(file: String): Int = rawMusic[file] ?: error("Unknown music file $file")

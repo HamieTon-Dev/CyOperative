@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.53.4 (versionCode 151) |
+| Version | 0.54.0 (versionCode 152) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.54.0 music:**
+  - `TrackGroup.ARCADE` (10 tracks, `track_arcade_*.ogg`) comes first in `MusicLibrary.all`.
+  - It is in every `poolFor` state (MENU, COMBAT/EVENT, BOSS, Inferno too), and the boss pools of both audio managers append `MusicLibrary.arcade`.
+  - `MusicTrack.fixedTempo` (NEON + ARCADE) pins speed and pitch at 1. `noEq` (NEON + ARCADE) skips the boss EQ. `plain` (NEON only) still means no reverb and no boss rounds.
 - **0.53.3:** the counter egg is drawn at `SHOP_EGG_PX` 68, against `SHOP_ITEM_PX` 58 for gear. versionCode jumped from 148 to 150 at the owner's request.
 - **0.53.2:**
   - `ArenaGenerator.counter()` is 340 × 170 at y 236–406. `shopRoom` places 1–2 fixtures (≤ 60 wide) flush against the walls, never inside `ArenaGenerator.shopKeepOut()` (the counter ±120, from y 0 to its bottom + 320).

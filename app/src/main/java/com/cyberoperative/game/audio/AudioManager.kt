@@ -233,20 +233,21 @@ class AudioManager(private val context: Context) {
 
     /** Tempo now: the boss's own (by phase) in a boss fight, else the state's. */
     private fun speedNow(): Float {
-        if (currentTrack?.plain == true) return 1f
+        if (currentTrack?.fixedTempo == true) return 1f
         val m = bossMusic
         return if (state == MusicState.BOSS && m != null) m.speed(bossPhase) else speedFor(state, slowRound)
     }
 
     private fun pitchNow(): Float {
-        if (currentTrack?.plain == true) return 1f
+        if (currentTrack?.fixedTempo == true) return 1f
         val m = bossMusic
         return if (state == MusicState.BOSS && m != null) m.pitch(bossGlitched) else 1f
     }
 
     private fun poolFor(s: MusicState): List<MusicTrack> {
         val m = bossMusic
-        return if (s == MusicState.BOSS && m != null) m.tier.tracks.mapNotNull { MusicLibrary.byId(it) } else MusicLibrary.poolFor(s)
+        // ARCADE tracks (0.54.0) shuffle into every boss's rotation too.
+        return if (s == MusicState.BOSS && m != null) m.tier.tracks.mapNotNull { MusicLibrary.byId(it) } + MusicLibrary.arcade else MusicLibrary.poolFor(s)
     }
 
     /** The game says which kind of music fits now (menu, combat, boss…). */
@@ -372,7 +373,8 @@ class AudioManager(private val context: Context) {
         val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true }
         try { mp.setVolume(musicGain(), musicGain()) } catch (_: Throwable) {}
         try {
-            if (m == null || (m.bassDb == 0f && m.trebleDb == 0f)) {
+            // ARCADE (0.54.0): reverb only, so no EQ tilt either.
+            if (m == null || currentTrack?.noEq == true || (m.bassDb == 0f && m.trebleDb == 0f)) {
                 eq?.enabled = false
             } else {
                 val e = eq ?: android.media.audiofx.Equalizer(0, mp.audioSessionId).also { eq = it }
@@ -413,7 +415,7 @@ class AudioManager(private val context: Context) {
 
     /** Music volume with headroom for a boss's EQ boost (half the boost), so it doesn't clip. */
     private fun musicGain(): Float {
-        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true } ?: return musicVolume
+        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.noEq != true } ?: return musicVolume
         val boost = maxOf(0f, m.bassDb, m.trebleDb)
         return musicVolume * Math.pow(10.0, (-boost * 0.5 / 20.0)).toFloat()
     }

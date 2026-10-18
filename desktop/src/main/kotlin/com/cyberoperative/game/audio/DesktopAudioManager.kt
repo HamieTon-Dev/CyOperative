@@ -142,7 +142,8 @@ class AudioManager {
 
     private fun poolFor(s: MusicState): List<MusicTrack> {
         val m = bossMusic
-        return if (s == MusicState.BOSS && m != null) m.tier.tracks.mapNotNull { MusicLibrary.byId(it) } else MusicLibrary.poolFor(s)
+        // ARCADE tracks (0.54.0) shuffle into every boss's rotation too.
+        return if (s == MusicState.BOSS && m != null) m.tier.tracks.mapNotNull { MusicLibrary.byId(it) } + MusicLibrary.arcade else MusicLibrary.poolFor(s)
     }
 
     fun setMusic(next: MusicState) {
@@ -197,7 +198,7 @@ class AudioManager {
 
     /** Music volume with headroom for a boss's (Android) EQ boost, kept so levels match. */
     private fun musicGain(): Float {
-        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.plain != true } ?: return musicVolume
+        val m = bossMusic.takeIf { state == MusicState.BOSS && currentTrack?.noEq != true } ?: return musicVolume
         val boost = maxOf(0f, m.bassDb, m.trebleDb)
         return musicVolume * Math.pow(10.0, (-boost * 0.5 / 20.0)).toFloat()
     }
