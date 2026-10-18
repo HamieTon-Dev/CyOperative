@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.53.1: shop egg shown on the counter (own sprite, rarity glow; each co-op player sees their own).
 - ✅ 0.53.0: in-run shop sells 1 pet egg (30% of shops; every INFERNO shop, GLITCHED LEGENDARY+), 2× its sell value.
 - ✅ 0.52.0: ◇5,000 pack, compact incubators in-match, 1,000 eggs, sell / vault / trade pets and eggs.
 - ✅ 0.51.0: pets change mid-match (solo + co-op), eggs can start hatching mid-match, store eggs ◇100 + ◇50 per rarity.

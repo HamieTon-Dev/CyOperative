@@ -368,6 +368,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var goingToShop = false
     /** The current operative's own shop stock. */
     val shopItems: List<ShopItem> get() = cur.shopItems
+    /** This player's own shop egg (the host sees theirs, a co-op guest theirs), shown on the counter. */
+    val shopEgg: EggShopItem? get() = cur.shopEgg
     /** Seed of the shop room (so a co-op guest builds the same room). */
     var shopSeed = 0L
         private set
@@ -1857,6 +1859,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         return EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(rarity, o.gearLevel), sold = false)
     }
 
+    /** Renders / tests: straight into the shop room. */
+    internal fun debugEnterShop() = enterShop()
     internal fun debugRollShopEgg(index: Int = 0): EggShopItem? = rollShopEgg(ops[index])
 
     /** Buys the current operative's shop egg: it joins the run's egg finds (banked into PETS). */

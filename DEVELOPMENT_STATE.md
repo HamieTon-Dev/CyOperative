@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.53.0 (versionCode 146) |
+| Version | 0.53.1 (versionCode 147) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.53.1:**
+  - The counter egg is drawn in `ArenaRenderer` (SHOP_COUNTER) from `PropRoom.shopEgg`, which comes from `GameEngine.shopEgg` (`cur.shopEgg`, i.e. the local player's).
+  - Sizes: `SHOP_EGG_PX` 38 and `SHOP_EGG_GLOW` 0.45, using the `drawLootBeam` glow clipped to the table.
+  - `debugEnterShop()` exists for renders.
 - **0.53.0 shop egg:**
   - `GameEngine.rollShopEgg` runs in `enterShop` and sets `Operative.shopEgg` (`EggShopItem`).
   - Without Inferno, `SHOP_EGG_CHANCE` (0.3) applies and the rarity uses `Gear.rollRarity(boss = true)`. With Inferno there is always an egg, using `EggOffers.rollRarity`.

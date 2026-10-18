@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -1181,6 +1182,9 @@ class ArenaRenderer {
      * What a prop needs to know about its room, so the same prop art can also be drawn outside a
      * live game (asset sheets, the Idle Run widget).
      */
+    private val SHOP_EGG_PX = 38f
+    private val SHOP_EGG_GLOW = 0.45f
+
     private class PropRoom {
         var keeper = com.cyberoperative.game.engine.KeeperLook.GOLD
         var vaultReady = false
@@ -1188,12 +1192,13 @@ class ArenaRenderer {
         var inferno = false
         var boss = false
         var shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList()
+        var shopEgg: com.cyberoperative.game.engine.EggShopItem? = null
     }
     private val liveRoom = PropRoom()
     private val aloneRoom = PropRoom()
 
     private fun propRoomOf(g: GameEngine): PropRoom = liveRoom.apply {
-        keeper = g.keeperLook; vaultReady = g.vaultReady; env = styleOf(g).env; inferno = infernoRoom(g); boss = g.plan.kind == LevelKind.BOSS; shopItems = g.shopItems
+        keeper = g.keeperLook; vaultReady = g.vaultReady; env = styleOf(g).env; inferno = infernoRoom(g); boss = g.plan.kind == LevelKind.BOSS; shopItems = g.shopItems; shopEgg = g.shopEgg
     }
 
     private fun themed(look: Look, kind: ObstacleKind, room: PropRoom): Look {
@@ -1524,6 +1529,19 @@ class ArenaRenderer {
                     tagPaint.textSize = 11f
                     tagPaint.color = (if (it.sold) Palette.TextMuted else Palette.Euro).toArgb()
                     drawGameText(if (it.sold) "---" else "€${it.price}", cx, frontTop + h * 0.7f, tagPaint)
+                }
+                // 0.53.1: the egg for sale, front and centre on the counter, standing in a small
+                // version of its rarity's loot glow. Smaller than a world drop (38 vs 58 px).
+                room.shopEgg?.takeIf { !it.sold }?.let { e ->
+                    val ex = r.centerX
+                    val ey = topY + r.height * 0.86f
+                    val bob = sin(time * 2.2f) * 1.5f
+                    // Kept low on the table, so the glow never climbs over the shopkeeper's face.
+                    clipRect(ex - 40f, ey - SHOP_EGG_PX - 14f, ex + 40f, ey + 10f) {
+                        with(com.cyberoperative.game.ui.common.GearIcons) { drawLootBeam(e.egg.rarity, ex, ey, time, SHOP_EGG_GLOW) }
+                    }
+                    drawOval(Color.Black.copy(alpha = 0.4f), Offset(ex - 11f, ey - 3f), Size(22f, 6f))
+                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(e.egg.art, ex, ey + bob, SHOP_EGG_PX) }
                 }
             }
             ObstacleKind.CRATES -> {

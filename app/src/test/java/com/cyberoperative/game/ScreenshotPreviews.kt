@@ -819,6 +819,7 @@ class ScreenshotPreviews {
         g.offerShop()
         var guard = 0
         while (!g.inShop && guard++ < 1500) { g.setInput((g.shopGateX - g.px) / 200f, (g.shopGateY - g.py) / 200f); g.update(1f / 60f) }
+        if (!g.inShop) { g.debugEnterShop(); repeat(60) { g.update(1f / 60f) } }
         g.debugGrantEuros(3000)
         guard = 0
         while (!g.atShopCounter && guard++ < 1200) { g.setInput((g.arena.width / 2f - g.px) / 100f, -1f); g.update(1f / 60f) }
@@ -845,6 +846,17 @@ class ScreenshotPreviews {
             val o = s.engine.operatives[0]
             val egg = com.cyberoperative.game.data.Pets.rollEgg(kotlin.random.Random(5), 1L, com.cyberoperative.game.data.GearRarity.FORGED)
             o.shopItems = o.shopItems.take(1); o.shopGear = o.shopGear.take(1)
+            o.shopEgg = com.cyberoperative.game.engine.EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(egg.rarity, o.gearLevel), false)
+        }
+    }
+
+    /** 0.53.1: the shop egg on the counter, front and centre. */
+    @Test fun shopCounterEgg() {
+        assumeTrue(enabled)
+        gameplay("shop_counter_egg", 0f) { s ->
+            toShopCounter(s)
+            val o = s.engine.operatives[0]
+            val egg = com.cyberoperative.game.data.Pets.rollEgg(kotlin.random.Random(7), 1L, com.cyberoperative.game.data.GearRarity.GLITCHED)
             o.shopEgg = com.cyberoperative.game.engine.EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(egg.rarity, o.gearLevel), false)
         }
     }

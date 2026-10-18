@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.53.1 (versionCode 147) — 2026-10-18 · The shop egg sits on the counter
+### Added (owner)
+- **The egg for sale is on the shopkeeper's counter, front and centre**, drawn with its own egg sprite.
+  - Behind it, on the table, is a small version of its rarity's loot glow, with that rarity's animation (Forged sparks, Voltaic arcs, the GLITCHED ENCRYPTED cyan↔red tear, and so on). The glow is kept low, so it never covers the shopkeeper.
+  - The egg is 38 px, smaller than a gear drop in the world (58 px), and bobs gently.
+  - No egg for sale means no egg on the counter. It disappears once bought.
+  - **Co-op:** each player sees **their own** egg. The host sees the host's egg and the guest sees the guest's.
+- Render: `docs/screenshots/shop_counter_egg.png`.
+
 ## 0.53.0 (versionCode 146) — 2026-10-18 · Pet eggs in the in-run shop
 ### Added (owner)
 - **The in-run shop can sell 1 PET EGG**, shown in its own row under EQUIPMENT with the animated egg, its rarity and name.
