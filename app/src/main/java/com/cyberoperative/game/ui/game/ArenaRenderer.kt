@@ -1184,6 +1184,8 @@ class ArenaRenderer {
      */
     /** Shop counter items: the same size as a gear drop in the world (LootSprites, 58). */
     private val SHOP_ITEM_PX = 58f
+    /** The egg stands slightly bigger than the gear beside it (owner, 0.53.3). */
+    private val SHOP_EGG_PX = 68f
 
     /** A small version of the rarity's loot glow, kept low on the counter (never over the keeper). */
     private fun DrawScope.tableGlow(rarity: com.cyberoperative.game.data.GearRarity, x: Float, y: Float, time: Float) {
@@ -1549,8 +1551,8 @@ class ArenaRenderer {
                     val baseY = topY + r.height * 0.7f
                     val bob = sin(time * 2.2f) * 1.5f
                     tableGlow(egg.egg.rarity, cx, baseY, time + 7f)
-                    drawOval(Color.Black.copy(alpha = 0.4f), Offset(cx - 16f, baseY - 4f), Size(32f, 8f))
-                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(egg.egg.art, cx, baseY + bob, SHOP_ITEM_PX) }
+                    drawOval(Color.Black.copy(alpha = 0.4f), Offset(cx - 19f, baseY - 4f), Size(38f, 8f))
+                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(egg.egg.art, cx, baseY + bob, SHOP_EGG_PX) }
                     tagPaint.textSize = 12f
                     tagPaint.color = Palette.Euro.toArgb()
                     drawGameText("€" + com.cyberoperative.game.ui.common.formatAmount(egg.price.toLong()), cx, frontTop + h * 0.7f, tagPaint)

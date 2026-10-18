@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.53.2 (versionCode 148) |
+| Version | 0.53.3 (versionCode 150) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.53.3:** the counter egg is drawn at `SHOP_EGG_PX` 68, against `SHOP_ITEM_PX` 58 for gear. versionCode jumped from 148 to 150 at the owner's request.
 - **0.53.2:**
   - `ArenaGenerator.counter()` is 340 × 170 at y 236–406. `shopRoom` places 1–2 fixtures (≤ 60 wide) flush against the walls, never inside `ArenaGenerator.shopKeepOut()` (the counter ±120, from y 0 to its bottom + 320).
   - `ArenaRenderer` SHOP_COUNTER draws `GameEngine.shopGear` (`cur`) as [ : egg : ]: gear 0/1 on the left (back/front), gear 2/3 on the right, the egg in the middle, at `SHOP_ITEM_PX` 58 with `tableGlow`.

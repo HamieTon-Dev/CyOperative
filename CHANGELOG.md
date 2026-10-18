@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.53.3 (versionCode 150) — 2026-10-18 · Bigger egg on the shop counter
+### Changed (owner)
+- The egg on the shop counter is slightly bigger than the gear beside it: 68 px, against 58 px for the gear.
+
 ## 0.53.2 (versionCode 148) — 2026-10-18 · Bigger shop counter showing the gear and egg for sale
 ### Changed (owner)
 - **The counter shows the gear for sale instead of the chips**, laid out **[ : egg : ]**:

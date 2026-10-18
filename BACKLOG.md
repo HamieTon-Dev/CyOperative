@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.53.3: shop counter egg slightly bigger than the gear.
 - ✅ 0.53.2: square shop counter [ : egg : ] showing gear + egg at drop size; fewer barriers, flush to the walls.
 - ✅ 0.53.1: shop egg shown on the counter (own sprite, rarity glow; each co-op player sees their own).
 - ✅ 0.53.0: in-run shop sells 1 pet egg (30% of shops; every INFERNO shop, GLITCHED LEGENDARY+), 2× its sell value.
