@@ -30,8 +30,12 @@ data class Pet(
     @SerialName("a") val art: Int,
     @SerialName("r") val rarity: GearRarity,
     /** Not looked at yet (the reveal / "NEW" tag). */
-    @SerialName("n") val fresh: Boolean = true
+    @SerialName("n") val fresh: Boolean = true,
+    /** The egg picture it hatched from (the hatch animation, 0.45.0); −1 for older pets. */
+    @SerialName("g") val eggArt: Int = -1
 ) {
+    /** The egg it came out of, for the hatch animation. */
+    val hatchedFrom: Int get() = if (eggArt >= 0) eggArt else Pets.eggPictureFor(rarity, uid)
     val name: String get() = Pets.petName(art)
     /** Rolled from the pet's id when it hatched (so older pets have theirs too). */
     val abilities: List<PetAbility> get() = Pets.abilitiesFor(uid, art, rarity)
@@ -83,25 +87,41 @@ data class ClockAnchor(
     @SerialName("v") val verified: Boolean = false
 )
 
-/** The incubator: one egg hatching, three waiting, up to six Inferno Stones socketed. */
+/** One incubator: the egg in it and its hatching progress, in no-stone milliseconds. */
+@Serializable
+data class IncubatorSlot(@SerialName("e") val egg: PetEgg, @SerialName("p") val progress: Long = 0) {
+    val fraction: Float get() = (progress.toFloat() / egg.baseMs).coerceIn(0f, 1f)
+}
+
+/**
+ * The incubators (owner, 0.45.0: three individual incubators, each hatching its own egg at the
+ * same time) and up to six Inferno Stones, which speed up all three.
+ */
 @Serializable
 data class Incubator(
+    /** Pre-0.45 (one hatching + a queue): kept only so old saves load; see Incubators.migrate. */
     @SerialName("c") val current: PetEgg? = null,
-    /** Hatching progress on [current], in no-stone milliseconds. */
     @SerialName("p") val progress: Long = 0,
     @SerialName("q") val queue: List<PetEgg> = emptyList(),
+    /** The three incubators ([Pets.SLOTS]); null = empty. */
+    @SerialName("h") val slots: List<IncubatorSlot?> = List(Pets.SLOTS) { null },
     /** Inferno Stones socketed (0..[Pets.MAX_STONES]). */
     @SerialName("s") val stones: Int = 0,
     @SerialName("k") val clock: ClockAnchor = ClockAnchor(),
     /** After a reboot the clock is paused until network time confirms the gap. */
     @SerialName("w") val waitingForTime: Boolean = false
 ) {
-    /** Milliseconds of real time left on [current] at the current stone count. */
-    val remainingMs: Long get() {
-        val e = current ?: return 0
-        return ((e.baseMs - progress).coerceAtLeast(0) * Pets.timeFactor(stones)).toLong()
+    fun slot(i: Int): IncubatorSlot? = slots.getOrNull(i)
+
+    /** Milliseconds of real time left in incubator [i] at the current stone count (0 when empty). */
+    fun remainingMs(i: Int): Long {
+        val s = slot(i) ?: return 0
+        return ((s.egg.baseMs - s.progress).coerceAtLeast(0) * Pets.timeFactor(stones)).toLong()
     }
-    val fraction: Float get() = current?.let { (progress.toFloat() / it.baseMs).coerceIn(0f, 1f) } ?: 0f
+
+    val eggsIn: List<PetEgg> get() = slots.mapNotNull { it?.egg }
+    val busy: Boolean get() = slots.any { it != null }
+    val full: Boolean get() = slots.size >= Pets.SLOTS && slots.none { it == null }
 }
 
 object Pets {
@@ -149,7 +169,8 @@ object Pets {
     const val MAX_STONES = 6
     /** Each Inferno Stone takes 15% off the hatch time; six take 90% (owner). */
     const val STONE_CUT = 0.15f
-    const val QUEUE = 3
+    /** Incubators hatching at the same time (owner, 0.45.0; was one plus a queue of three). */
+    const val SLOTS = 3
     const val MAX_EGGS = 100
 
     /**
@@ -235,6 +256,12 @@ object Pets {
 
     fun petName(art: Int): String = if (isNewArt(art)) newPets[art - NEW_BASE].name else "${hueWord[petHue(art)] ?: "Azure"} ${species[(art * 7919 + 13) % species.size]}"
     fun eggName(e: PetEgg): String = if (isNewArt(e.art)) newPets[e.art - NEW_BASE].egg else "${hueWord[eggHue(e.art)] ?: "Azure"} ${eggWords[(e.art * 31 + 7) % eggWords.size]} Egg"
+
+    /** An egg picture of [rarity] (a pet hatched before eggs were remembered). */
+    fun eggPictureFor(rarity: GearRarity, seed: Long): Int {
+        val pics = eggsByRarity.getValue(rarity)
+        return pics[(seed.mod(pics.size.toLong())).toInt()]
+    }
 
     /** A new egg of [rarity]: its picture matches the rarity's colour; the pet inside is any of them. */
     fun rollEgg(rng: Random, uid: Long, rarity: GearRarity): PetEgg {

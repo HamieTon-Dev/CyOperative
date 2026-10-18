@@ -42,14 +42,14 @@ class V038PetsTest {
 
     @Test fun eggHatchesAfterRealTimeOnTheBootClock() {
         var p = withEgg(GearRarity.EPIC)
-        assertNotNull(p.incubator.current)
+        assertNotNull(p.incubator.slot(0))
         p = Incubators.tick(p, now(59 * min))
         assertTrue(p.pets.isEmpty())
-        assertEquals(60_000L, p.incubator.remainingMs)
+        assertEquals(60_000L, p.incubator.remainingMs(0))
         p = Incubators.tick(p, now(60 * min + 1))
         assertEquals(1, p.pets.size)
         assertTrue(p.pets[0].fresh)
-        assertNull(p.incubator.current)
+        assertNull(p.incubator.slot(0))
     }
 
     @Test fun changingTheDeviceClockDoesNothing() {
@@ -57,7 +57,7 @@ class V038PetsTest {
         // Wall clock jumps a week ahead; the boot clock moved 1 minute.
         p = Incubators.tick(p, now(1 * min, wall = 1_000_000L + 7 * 24 * 60 * min))
         assertTrue(p.pets.isEmpty())
-        assertEquals(19 * min, p.incubator.remainingMs)
+        assertEquals(19 * min, p.incubator.remainingMs(0))
     }
 
     @Test fun afterARebootTimeNeedsNetworkTime() {
@@ -70,7 +70,7 @@ class V038PetsTest {
         // Online: the real gap (10 minutes) counts, not the clock the player set.
         p = Incubators.tick(p, now(20, wall = 1_000_000L + 400 * min, net = 1_000_000L + 15 * min, boot = "b2"))
         assertFalse(p.incubator.waitingForTime)
-        assertEquals(5 * min, p.incubator.remainingMs)
+        assertEquals(5 * min, p.incubator.remainingMs(0))
     }
 
     @Test fun stonesSpeedUpTheRestAndQueueRunsOn() {
@@ -78,26 +78,39 @@ class V038PetsTest {
         p = Incubators.tick(p, now(30 * min))
         p = Incubators.setStones(p, 6, now(30 * min))
         assertEquals(6, p.incubator.stones)
-        assertEquals(3 * min, p.incubator.remainingMs)
+        assertEquals(3 * min, p.incubator.remainingMs(0))
         // Can't socket more than owned.
         assertEquals(2, Incubators.setStones(p.copy(infernoStones = 2), 6, now(30 * min)).incubator.stones)
-        // Queue: two more eggs; enough time hatches all three in order.
+        // Two more eggs go into incubators 2 and 3 and hatch alongside (0.45.0).
         p = p.copy(eggs = listOf(egg(GearRarity.COMMON, 20), egg(GearRarity.COMMON, 21)))
         p = Incubators.send(p, 20, now(30 * min))!!
         p = Incubators.send(p, 21, now(30 * min))!!
-        assertEquals(2, p.incubator.queue.size)
-        p = Incubators.tick(p, now(30 * min + 3 * min + 2 * 30_000L + 10))
+        assertEquals(3, p.incubator.eggsIn.size)
+        p = Incubators.tick(p, now(30 * min + 31_000L))
+        assertEquals(2, p.pets.size)                 // the commons (5 min × 0.1)
+        p = Incubators.tick(p, now(30 * min + 3 * min + 10))
         assertEquals(3, p.pets.size)
-        assertNull(p.incubator.current)
+        assertFalse(p.incubator.busy)
     }
 
-    @Test fun queueLimitAndTakeBack() {
+    @Test fun threeIncubatorsAndTakeBack() {
         var p = withEgg(GearRarity.RARE).copy(eggs = (20L..24L).map { egg(GearRarity.COMMON, it) })
-        for (u in 20L..22L) p = Incubators.send(p, u, now(0))!!
-        assertNull(Incubators.send(p, 23, now(0)))
-        p = Incubators.takeBack(p, 21, now(0))!!
-        assertEquals(2, p.incubator.queue.size)
-        assertTrue(p.eggs.any { it.uid == 21L })
+        for (u in 20L..21L) p = Incubators.send(p, u, now(0))!!
+        assertNull(Incubators.send(p, 22, now(0)))   // all three busy
+        p = Incubators.takeBack(p, 20, now(0))!!
+        assertEquals(null, p.incubator.slot(1))
+        assertTrue(p.eggs.any { it.uid == 20L })
+        assertNotNull(Incubators.send(p, 22, now(0)))
+    }
+
+    @Test fun oldSavesMoveIntoTheThreeIncubators() {
+        val old = com.cyberoperative.game.data.Incubator(current = egg(GearRarity.EPIC, 1), progress = 5 * min,
+            queue = listOf(egg(GearRarity.RARE, 2), egg(GearRarity.RARE, 3), egg(GearRarity.RARE, 4)), slots = emptyList())
+        val p = Incubators.migrate(PlayerProfile(incubator = old))
+        assertEquals(listOf(1L, 2L, 3L), p.incubator.eggsIn.map { it.uid })
+        assertEquals(5 * min, p.incubator.slot(0)!!.progress)
+        assertEquals(listOf(4L), p.eggs.map { it.uid })
+        assertNull(p.incubator.current)
     }
 
     @Test fun eggArtMatchesRarityColourAndNamesRead() {

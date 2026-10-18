@@ -71,12 +71,33 @@ class PetRenders {
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
         stocked(repo)
-        repo.update { it.copy(pets = it.pets + Pet(777L, 40, GearRarity.ENCRYPTED, fresh = true)) }
+        // An animated ENCRYPTED pet (0.41.0) hatching: frames through the 0.45.0 animation.
+        repo.update { it.copy(pets = it.pets + Pet(777L, Pets.NEW_BASE + 500 + 3, GearRarity.ENCRYPTED, fresh = true, eggArt = Pets.NEW_BASE + 500 + 3)) }
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { CharacterScreen(repo, {}, startTab = CharTab.PETS) } }
-        compose.mainClock.advanceTimeBy(600)
-        save("pets_hatch_reveal")
+        var at = 0L
+        for ((ms, name) in listOf(1200L to "pets_hatch_1_cracking", 1820L to "pets_hatch_2_burst", 2300L to "pets_hatch_3_popout", 3400L to "pets_hatch_reveal")) {
+            while (at < ms) { compose.mainClock.advanceTimeBy(16); at += 16 }
+            save(name)
+        }
     }
+
+    /** The hatch at full burst for one rarity (0.45.0: bigger glow the rarer it is). */
+    private fun hatchAt(rarity: GearRarity, art: Int, name: String) {
+        assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        repo.update { it.copy(characterId = "c", characterName = "ZERO", pets = listOf(Pet(1L, art, rarity, fresh = true))) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { CharacterScreen(repo, {}, startTab = CharTab.PETS) } }
+        var at = 0L
+        while (at < 2600L) { compose.mainClock.advanceTimeBy(16); at += 16 }
+        save(name)
+    }
+
+    @Test fun hatchCommon() = hatchAt(GearRarity.COMMON, 12, "pets_hatch_rarity_common")
+    @Test fun hatchEpic() = hatchAt(GearRarity.EPIC, 40, "pets_hatch_rarity_epic")
+    @Test fun hatchEncrypted() = hatchAt(GearRarity.ENCRYPTED, Pets.NEW_BASE + 500 + 3, "pets_hatch_rarity_encrypted")
 
     @Test @Config(qualifiers = "w1280dp-h720dp-mdpi", sdk = [35]) fun petsTabWide() {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")

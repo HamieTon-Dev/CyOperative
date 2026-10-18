@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.44.0 (versionCode 127) |
+| Version | 0.45.0 (versionCode 128) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.45.0 incubators:**
+  - `Incubator.slots` holds 3 `IncubatorSlot`s (egg + progress). The legacy `current` / `progress` / `queue` fields are only read by `Incubators.migrate`, which runs inside `tick`.
+  - `credit` advances every slot. `send` uses the first empty slot. `instantHatch` and `instantHatchWithEuros` take a slot index.
+  - Reminders: `PetReminders.schedule(slot, at, name)` → WorkManager `pet_hatch_<slot>`, notification id `4108 + slot`.
+  - The hatch reveal is `HatchReveal` in PetsTab (timeline: crack at 1.7 s, card at 2.4 s). Its size is driven by `g` = rarity ordinal / max.
+  - `Incubators.seenOne` handles reveals one at a time. `Pet.eggArt` / `hatchedFrom` give the egg picture.
 - **0.44.0 operator redesign:**
   - `FigureShade` is applied in `ClassFigures.fillStroke`, `limb`, the lifted `look()`, and the hero figure and helmet in `OperativeEmblem`.
   - The Phantom's hood, cape and torso use `rawLook` + `flatStroke`. The Mage draws with `matte` set and has robe `folds`.

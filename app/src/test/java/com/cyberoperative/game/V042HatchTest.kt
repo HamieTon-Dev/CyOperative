@@ -25,11 +25,11 @@ class V042HatchTest {
         val now = ClockNow("b", 0, 1_000_000L, null)
         val egg = Pets.rollEgg(Random(1), 7, GearRarity.EPIC)
         val p = Incubators.send(PlayerProfile(eggs = listOf(egg), petSeq = 10, diamonds = 200, euros = 0), 7, now)!!
-        val out = Incubators.instantHatch(p, now)!!
+        val out = Incubators.instantHatch(p, 0, now)!!
         assertEquals(40, out.diamonds)
         assertEquals(1, out.pets.size)
-        assertNull(out.incubator.current)
-        assertNull(Incubators.instantHatch(Incubators.send(PlayerProfile(eggs = listOf(egg), petSeq = 10, diamonds = 159, euros = 999_999), 7, now)!!, now))
+        assertNull(out.incubator.slot(0))
+        assertNull(Incubators.instantHatch(Incubators.send(PlayerProfile(eggs = listOf(egg), petSeq = 10, diamonds = 159, euros = 999_999), 7, now)!!, 0, now))
     }
 }
 
@@ -44,9 +44,9 @@ class V043EuroHatchTest {
         assertEquals(60, Incubators.accountOpLevel(base))
         assertEquals(960_000L, Pets.instantHatchEuros(160, 60))
         val p = Incubators.send(base.copy(euros = 1_000_000L), 7, now)!!
-        val out = Incubators.instantHatchWithEuros(p, now)!!
+        val out = Incubators.instantHatchWithEuros(p, 0, now)!!
         assertEquals(40_000L, out.euros)
         assertEquals(1, out.pets.size)
-        assertNull(Incubators.instantHatchWithEuros(Incubators.send(base.copy(euros = 959_999L, diamonds = 9999), 7, now)!!, now))
+        assertNull(Incubators.instantHatchWithEuros(Incubators.send(base.copy(euros = 959_999L, diamonds = 9999), 7, now)!!, 0, now))
     }
 }

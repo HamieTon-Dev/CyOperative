@@ -179,10 +179,10 @@ fun CharacterScreen(
                         CharTab.OVERVIEW -> OverviewTab(p, wide, inRun, onEditLook, { picking = true }.takeIf { !inRun }, onDeploy)
                         CharTab.GEAR -> Column(Modifier.fillMaxSize()) {
                             // Owner: a button on the inventory to send eggs to the incubator.
-                            if (p.eggs.isNotEmpty() || p.incubator.current != null) {
+                            if (p.eggs.isNotEmpty() || p.incubator.busy) {
                                 CyberButton(
                                     "EGGS (${p.eggs.size}) → INCUBATOR", Modifier.fillMaxWidth(), accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
-                                    subtitle = p.incubator.current?.let { "HATCHING: ${it.name}" } ?: "SEND EGGS TO HATCH"
+                                    subtitle = p.incubator.eggsIn.size.takeIf { it > 0 }?.let { "HATCHING: $it of ${com.cyberoperative.game.data.Pets.SLOTS}" } ?: "SEND EGGS TO HATCH"
                                 ) { tab = CharTab.PETS; selected = null }
                                 Spacer(Modifier.height(6.dp))
                             }

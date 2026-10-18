@@ -2,6 +2,7 @@ package com.cyberoperative.game.meta
 
 import com.cyberoperative.game.data.ClockAnchor
 import com.cyberoperative.game.data.Incubator
+import com.cyberoperative.game.data.IncubatorSlot
 import com.cyberoperative.game.data.Pet
 import com.cyberoperative.game.data.PetEgg
 import com.cyberoperative.game.data.Pets
@@ -89,61 +90,66 @@ object Incubators {
         return inc.copy(clock = ClockAnchor(now.boot, now.mono, net, true), waitingForTime = false) to gap
     }
 
-    /** Spends [realMs] of hatching time; eggs that finish come back as pets (uids from [nextUid]). */
+    /** Spends [realMs] of hatching time in every incubator; eggs that finish come back as pets (uids from [nextUid]). */
     fun credit(inc: Incubator, realMs: Long, nextUid: Long): Triple<Incubator, List<Pet>, Long> {
-        var cur = inc.current
-        var progress = inc.progress
-        var queue = inc.queue
-        var units = (realMs / Pets.timeFactor(inc.stones)).toLong()
+        val units = (realMs / Pets.timeFactor(inc.stones)).toLong()
         val hatched = ArrayList<Pet>()
         var uid = nextUid
-        while (cur != null && units > 0) {
-            val need = cur.baseMs - progress
-            if (units >= need) {
-                units -= need
-                hatched += Pet(uid++, cur.pet, cur.rarity)
-                cur = queue.firstOrNull(); queue = queue.drop(1); progress = 0
-            } else { progress += units; units = 0 }
+        val slots = List(Pets.SLOTS) { i ->
+            val s = inc.slots.getOrNull(i) ?: return@List null
+            val progress = s.progress + units
+            // An egg at full progress (time passed, stones added, or paid for) hatches.
+            if (progress >= s.egg.baseMs) { hatched += Pet(uid++, s.egg.pet, s.egg.rarity, eggArt = s.egg.art); null } else s.copy(progress = progress)
         }
-        // An egg already at full progress (stones added) hatches too.
-        while (cur != null && progress >= cur.baseMs) {
-            hatched += Pet(uid++, cur.pet, cur.rarity)
-            cur = queue.firstOrNull(); queue = queue.drop(1); progress = 0
+        return Triple(inc.copy(slots = slots), hatched, uid)
+    }
+
+    /**
+     * Pre-0.45 saves had one egg hatching and a queue of three: the hatching egg keeps its progress
+     * in incubator 1, the first two queued eggs go into incubators 2 and 3, any other back to the eggs.
+     */
+    fun migrate(p: PlayerProfile): PlayerProfile {
+        val inc = p.incubator
+        val slotsOk = inc.slots.size == Pets.SLOTS
+        if (inc.current == null && inc.queue.isEmpty() && slotsOk) return p
+        val incoming = listOfNotNull(inc.current?.let { IncubatorSlot(it, inc.progress) }) + inc.queue.map { IncubatorSlot(it) }
+        val slots = MutableList<IncubatorSlot?>(Pets.SLOTS) { inc.slots.getOrNull(it) }
+        val leftover = ArrayList<PetEgg>()
+        for (s in incoming) {
+            val i = slots.indexOfFirst { it == null }
+            if (i >= 0) slots[i] = s else leftover += s.egg
         }
-        return Triple(inc.copy(current = cur, progress = progress, queue = queue), hatched, uid)
+        return p.copy(incubator = inc.copy(current = null, progress = 0, queue = emptyList(), slots = slots), eggs = p.eggs + leftover)
     }
 
     /** The save moved to [now]: hatched eggs become pets. */
     fun tick(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile {
-        val (stepped, real) = clockStep(p.incubator, now)
-        val (inc, pets, next) = credit(stepped, real, p.petSeq)
-        if (pets.isEmpty() && inc == p.incubator) return p
-        return p.copy(incubator = inc, pets = p.pets + pets, petSeq = next)
+        val m = migrate(p)
+        val (stepped, real) = clockStep(m.incubator, now)
+        val (inc, pets, next) = credit(stepped, real, m.petSeq)
+        if (pets.isEmpty() && inc == m.incubator && m === p) return p
+        return m.copy(incubator = inc, pets = m.pets + pets, petSeq = next)
     }
 
-    /** Sends egg [uid] from the inventory to the incubator (hatching now, or in the queue). */
+    /** Puts egg [uid] from the inventory into the first empty incubator (null when all three are busy). */
     fun send(p: PlayerProfile, uid: Long, now: ClockNow = TrustedClock.now()): PlayerProfile? {
         val q = tick(p, now)
         val egg = q.eggs.firstOrNull { it.uid == uid } ?: return null
-        val inc = q.incubator
-        val placed = when {
-            inc.current == null -> inc.copy(current = egg, progress = 0)
-            inc.queue.size < Pets.QUEUE -> inc.copy(queue = inc.queue + egg)
-            else -> return null
-        }
-        return q.copy(eggs = q.eggs.filter { it.uid != uid }, incubator = placed)
+        val i = q.incubator.slots.indexOfFirst { it == null }
+        if (i < 0) return null
+        val slots = q.incubator.slots.toMutableList().also { it[i] = IncubatorSlot(egg) }
+        return q.copy(eggs = q.eggs.filter { it.uid != uid }, incubator = q.incubator.copy(slots = slots))
     }
 
-    /** Takes a waiting egg (or the hatching one, losing its progress) back to the inventory. */
+    /** Takes egg [uid] out of its incubator, back to the inventory (its progress is lost). */
     fun takeBack(p: PlayerProfile, uid: Long, now: ClockNow = TrustedClock.now()): PlayerProfile? {
         val q = tick(p, now)
-        val inc = q.incubator
         if (q.eggs.size >= Pets.MAX_EGGS) return null
-        return when {
-            inc.current?.uid == uid -> q.copy(eggs = q.eggs + inc.current, incubator = inc.copy(current = inc.queue.firstOrNull(), queue = inc.queue.drop(1), progress = 0))
-            inc.queue.any { it.uid == uid } -> q.copy(eggs = q.eggs + inc.queue.first { it.uid == uid }, incubator = inc.copy(queue = inc.queue.filter { it.uid != uid }))
-            else -> null
-        }
+        val i = q.incubator.slots.indexOfFirst { it?.egg?.uid == uid }
+        if (i < 0) return null
+        val egg = q.incubator.slots[i]!!.egg
+        val slots = q.incubator.slots.toMutableList().also { it[i] = null }
+        return q.copy(eggs = q.eggs + egg, incubator = q.incubator.copy(slots = slots))
     }
 
     /** Socket [n] Inferno Stones (time so far is counted at the old speed first). */
@@ -154,33 +160,35 @@ object Incubators {
         return q.copy(incubator = inc, pets = q.pets + pets, petSeq = next)
     }
 
-    /** Pays ◇ to hatch the egg in the incubator now; null when there's no egg or not enough ◇. */
-    fun instantHatch(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile? {
+    /** Hatches incubator [slot] now (paid for). */
+    private fun hatchNow(q: PlayerProfile, slot: Int): PlayerProfile {
+        val s = q.incubator.slot(slot)!!
+        val slots = q.incubator.slots.toMutableList().also { it[slot] = s.copy(progress = s.egg.baseMs) }
+        val (inc, pets, next) = credit(q.incubator.copy(slots = slots), 0L, q.petSeq)
+        return q.copy(incubator = inc, pets = q.pets + pets, petSeq = next)
+    }
+
+    /** Pays ◇ to hatch the egg in incubator [slot] now; null when it's empty or there isn't enough ◇. */
+    fun instantHatch(p: PlayerProfile, slot: Int = 0, now: ClockNow = TrustedClock.now()): PlayerProfile? {
         val q = tick(p, now)
-        val egg = q.incubator.current ?: return null
-        val price = Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs)
+        val egg = q.incubator.slot(slot)?.egg ?: return null
+        val price = Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs(slot))
         if (price <= 0 || q.diamonds < price) return null
-        val (inc, pets, next) = credit(q.incubator.copy(progress = egg.baseMs), 0L, q.petSeq)
-        return q.copy(diamonds = q.diamonds - price, incubator = inc, pets = q.pets + pets, petSeq = next)
+        return hatchNow(q.copy(diamonds = q.diamonds - price), slot)
     }
 
     /** The highest operator level on the account (every character), for the € hatch price. */
     fun accountOpLevel(p: PlayerProfile): Int =
         (listOf(p.operativeXp) + p.otherCharacters.map { it.operativeXp }).maxOf { com.cyberoperative.game.data.OpProgress.of(it).level }
 
-    /** Pays € to hatch the egg in the incubator now; null when there's no egg or not enough €. */
-    fun instantHatchWithEuros(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile? {
+    /** Pays € to hatch the egg in incubator [slot] now; null when it's empty or there isn't enough €. */
+    fun instantHatchWithEuros(p: PlayerProfile, slot: Int = 0, now: ClockNow = TrustedClock.now()): PlayerProfile? {
         val q = tick(p, now)
-        val egg = q.incubator.current ?: return null
-        val price = Pets.instantHatchEuros(Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs), accountOpLevel(q))
+        val egg = q.incubator.slot(slot)?.egg ?: return null
+        val price = Pets.instantHatchEuros(Pets.instantHatchPrice(egg.rarity, q.incubator.remainingMs(slot)), accountOpLevel(q))
         if (price <= 0L || q.euros < price) return null
-        val (inc, pets, next) = credit(q.incubator.copy(progress = egg.baseMs), 0L, q.petSeq)
-        return q.copy(euros = q.euros - price, incubator = inc, pets = q.pets + pets, petSeq = next)
+        return hatchNow(q.copy(euros = q.euros - price), slot)
     }
-
-    /** Wall-clock time the current egg should hatch (for a reminder notification), or null. */
-    fun hatchAt(p: PlayerProfile, wall: Long = PlatformClock.wall()): Long? =
-        p.incubator.current?.let { wall + p.incubator.remainingMs }
 
     // --- Collection -----------------------------------------------------------------------------
 
@@ -194,6 +202,10 @@ object Incubators {
 
     fun equip(p: PlayerProfile, uid: Long): PlayerProfile =
         if (p.pets.any { it.uid == uid }) p.copy(activePet = if (p.activePet == uid) 0L else uid) else p
+
+    /** One pet's reveal is done (several can hatch at once; each gets its own). */
+    fun seenOne(p: PlayerProfile, uid: Long): PlayerProfile =
+        p.copy(pets = p.pets.map { if (it.uid == uid && it.fresh) it.copy(fresh = false) else it })
 
     fun seen(p: PlayerProfile): PlayerProfile =
         if (p.pets.none { it.fresh }) p else p.copy(pets = p.pets.map { if (it.fresh) it.copy(fresh = false) else it })
@@ -212,12 +224,15 @@ object Incubators {
  * [Incubators]); this only decides when to say so. PC: no host, nothing scheduled.
  */
 object PetReminders {
-    /** Set by the Android app: (wall-clock time it hatches, or null to cancel; the egg's name). */
-    @Volatile var schedule: ((Long?, String) -> Unit)? = null
+    /** Set by the Android app: (incubator, wall-clock time it hatches or null to cancel, the egg's name). */
+    @Volatile var schedule: ((Int, Long?, String) -> Unit)? = null
 
     fun update(p: PlayerProfile) {
         val s = schedule ?: return
-        val egg = p.incubator.current
-        if (egg == null || p.incubator.waitingForTime) s(null, "") else s(PlatformClock.wall() + p.incubator.remainingMs, egg.name)
+        val inc = p.incubator
+        for (i in 0 until Pets.SLOTS) {
+            val egg = inc.slot(i)?.egg
+            if (egg == null || inc.waitingForTime) s(i, null, "") else s(i, PlatformClock.wall() + inc.remainingMs(i), egg.name)
+        }
     }
 }

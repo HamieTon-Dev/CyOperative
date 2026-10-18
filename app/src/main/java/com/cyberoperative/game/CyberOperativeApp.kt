@@ -30,6 +30,6 @@ class CyberOperativeApp : Application() {
         audio.initialize()
         idle = com.cyberoperative.game.widget.AndroidIdleHost(this)
         com.cyberoperative.game.idle.IdleRuns.host = idle
-        com.cyberoperative.game.meta.PetReminders.schedule = { at, name -> com.cyberoperative.game.widget.PetHatchWorker.schedule(this, at, name) }
+        com.cyberoperative.game.meta.PetReminders.schedule = { slot, at, name -> com.cyberoperative.game.widget.PetHatchWorker.schedule(this, slot, at, name) }
     }
 }

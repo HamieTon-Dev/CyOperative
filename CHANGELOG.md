@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.45.0 (versionCode 128) — 2026-10-18 · Three incubators and the hatch animation
+### Changed (owner)
+- **Three incubators.** They hatch three eggs at the same time; there is no queue any more.
+  - Each incubator shows empty glass when it's free, or the egg you put in it, trembling more as it gets close to hatching. Each has its own countdown and progress bar.
+  - Tap an incubator to see its egg, its INSTANT HATCH (◇ / €) buttons, and TAKE OUT (confirmed, because progress is lost).
+  - Inferno Stones speed up all three.
+  - Old saves: the hatching egg keeps its progress in incubator 1, the next two queued eggs go into incubators 2 and 3, and any other queued egg goes back to your eggs.
+  - Each incubator sends its own "Your egg has hatched!" notification.
+- The incubator pictures now have empty glass (`incubator_empty_1..6`, from `tools/pets/empty_incubators.py`), and the real egg is drawn inside.
+### Added (owner: "an animation showing your new pet fully animated and its stats, rarity etc")
+- **Hatch animation:**
+  1. The egg shakes harder and harder as glowing cracks spread over it.
+  2. It bursts in a white flash, with shell pieces flying out.
+  3. The pet pops out with a bounce and floats. It is shown fully animated, including its orbs and gears for animated ENCRYPTED pets.
+  4. Its card fades in: name, rarity badge (animated for the special rarities), damage, fire rate, ability count, and each ability with its cooldown.
+- **Rarer eggs hatch bigger** (owner), all in the rarity's colour:
+  - more, longer and brighter rays, and a second counter-turning set from GLITCHED up;
+  - a wider halo and a bigger flash;
+  - up to 50 sparkles;
+  - shockwave rings rolling out from EPIC up (more rings for rarer pets).
+- Tap anywhere to skip to the card.
+- When several eggs hatch together, each pet gets its own reveal (NEXT PET).
+- Pets now remember which egg they came from.
+
 ## 0.44.0 (versionCode 127) — 2026-10-17 · Operator redesign
 ### Changed (owner-approved redesign)
 - **Every operator gets the new look.** Each class keeps its exact shapes, animations and skins, and gains the pets' shading:

@@ -19,27 +19,29 @@ import java.util.concurrent.TimeUnit
 class PetHatchWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
         val name = inputData.getString(KEY_NAME).orEmpty().ifEmpty { "Your egg" }
-        post(applicationContext, name)
+        post(applicationContext, name, inputData.getInt(KEY_SLOT, 0))
         return Result.success()
     }
 
     companion object {
         private const val WORK = "pet_hatch"
         private const val KEY_NAME = "egg"
+        private const val KEY_SLOT = "slot"
         private const val CHANNEL = "pets"
         private const val ID = 4108
 
-        /** Schedules the reminder for [atWall] (replacing any earlier one); null cancels. */
-        fun schedule(context: Context, atWall: Long?, eggName: String) {
+        /** Schedules incubator [slot]'s reminder for [atWall] (replacing any earlier one); null cancels. */
+        fun schedule(context: Context, slot: Int, atWall: Long?, eggName: String) {
             val wm = runCatching { WorkManager.getInstance(context) }.getOrNull() ?: return
-            if (atWall == null) { wm.cancelUniqueWork(WORK); return }
+            val work = "${WORK}_$slot"
+            if (atWall == null) { wm.cancelUniqueWork(work); return }
             val delay = (atWall - System.currentTimeMillis()).coerceAtLeast(0L) + 2_000L
-            wm.enqueueUniqueWork(WORK, ExistingWorkPolicy.REPLACE,
+            wm.enqueueUniqueWork(work, ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<PetHatchWorker>().setInitialDelay(delay, TimeUnit.MILLISECONDS)
-                    .setInputData(workDataOf(KEY_NAME to eggName)).build())
+                    .setInputData(workDataOf(KEY_NAME to eggName, KEY_SLOT to slot)).build())
         }
 
-        private fun post(context: Context, eggName: String) {
+        private fun post(context: Context, eggName: String, slot: Int) {
             if (!IdleRunNotifier.canPost(context)) return
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
@@ -55,7 +57,7 @@ class PetHatchWorker(context: Context, params: WorkerParameters) : Worker(contex
                 .setContentIntent(IdleRunWidget.openPets(context))
                 .setAutoCancel(true)
                 .build()
-            try { NotificationManagerCompat.from(context).notify(ID, n) } catch (_: SecurityException) {}
+            try { NotificationManagerCompat.from(context).notify(ID + slot, n) } catch (_: SecurityException) {}
         }
     }
 }
