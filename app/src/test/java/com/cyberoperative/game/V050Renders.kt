@@ -80,6 +80,22 @@ class V050Renders {
         }
     }
 
+    /** 0.51.0: the in-run INVENTORY's PETS tab (no incubator panel). */
+    @Test fun inRunPets() {
+        assumeTrue(on)
+        val r = repo()
+        val arts = listOf(Pets.NEW_BASE + 1150, Pets.NEW_BASE + 1050, Pets.NEW_BASE + 1260, Pets.NEW_BASE + 600, 17)
+        val tiers = listOf(GearRarity.GLITCHED_ENCRYPTED, GearRarity.GLITCHED, GearRarity.ENCRYPTED, GearRarity.ENCRYPTED, GearRarity.EPIC)
+        r.update { p -> p.copy(characterId = "c", characterName = "ZERO",
+            pets = arts.mapIndexed { i, a -> Pet(i + 1L, a, tiers[i], fresh = false, eggArt = a) }, activePet = 1L,
+            eggs = listOf(com.cyberoperative.game.data.PetEgg(20, GearRarity.FORGED, Pets.NEW_BASE + 100, Pets.NEW_BASE + 100),
+                com.cyberoperative.game.data.PetEgg(21, GearRarity.GLITCHED, Pets.NEW_BASE + 5, Pets.NEW_BASE + 5))) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.CharacterScreen(r, {}, startTab = com.cyberoperative.game.ui.menu.CharTab.PETS, inRun = true) } }
+        compose.mainClock.advanceTimeBy(1500)
+        shot("v051_in_run_pets")
+    }
+
     @Test fun menu() {
         assumeTrue(on)
         val r = repo()

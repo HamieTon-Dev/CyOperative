@@ -40,14 +40,14 @@ class V050StoreAndCodexTest {
         assertEquals(3, p.eggOffers.size)      // a fresh three
         assertEquals(8L, p.eggOffersAt)         // and a fresh 24 h
         assertEquals(3, p.eggs.size)
-        assertNull(StoreManager.buyEggOffer(p.copy(diamonds = 299), 0))
+        assertNull(StoreManager.buyEggOffer(p.copy(diamonds = 99), 0))
     }
 
     @Test fun offersAreGlitchedOrBetterPricedByRarity() {
         val r = Random(7)
         val seen = (0 until 4000).map { EggOffers.rollRarity(r) }.toSet()
         assertEquals(GearRarity.entries.filter { it >= GearRarity.GLITCHED }.toSet(), seen)
-        assertEquals(listOf(300L, 400L, 500L, 600L, 700L, 800L, 900L), GearRarity.entries.filter { it >= GearRarity.GLITCHED }.map { EggOffers.price(it) })
+        assertEquals(listOf(100L, 150L, 200L, 250L, 300L, 350L, 400L), GearRarity.entries.filter { it >= GearRarity.GLITCHED }.map { EggOffers.price(it) })
         // A save from 0.50.0 with lower offers gets a fresh, GLITCHED+ three.
         val old = PlayerProfile(eggOffers = listOf(PetEgg(0, GearRarity.COMMON, 1, 2)), eggOffersAt = 10L)
         assertTrue(StoreManager.eggOffers(old, now = 11L, rng = Random(1)).eggOffers.all { it.rarity >= GearRarity.GLITCHED })

@@ -146,6 +146,8 @@ class NetOp {
     var eurosIncome = 0
     /** Pressed MOVE TO NEXT WORLD (v23). */
     var worldReady = false
+    /** Companion now following (v34, owner 0.51.0: pets can change mid-run): PetLoadout.encode or "". */
+    var pet = ""
 }
 
 class NetEnemy {
@@ -210,7 +212,10 @@ data class CoopInput(
     val tradeAction: Int = 0,
     val tradeEuros: Int = 0,
     val tradePotions: Int = 0,
-    val tradeItems: String = ""
+    val tradeItems: String = "",
+    /** Pet change (v34): bumped when the guest equips another pet mid-run; [pet] is its PetLoadout ("" = none). */
+    val petSerial: Int = 0,
+    val pet: String = ""
 )
 
 object CoopCodec {
@@ -293,7 +298,7 @@ object CoopCodec {
                 for (s in p.shop) { o.var32(s[0]); o.writeByte(s[1].coerceIn(0, 255)); o.var32(s[2]); o.writeBoolean(s[3] != 0) }
                 o.writeBoolean(p.shopReady)
                 o.writeUTF(p.shopGear); o.var32(p.shopGearSold); o.writeInt(p.eurosSpent); o.writeInt(p.eurosIncome)
-                o.writeBoolean(p.worldReady)
+                o.writeBoolean(p.worldReady); o.writeUTF(p.pet)
             }
 
             o.var32(w.enemies.size)
@@ -428,6 +433,7 @@ object CoopCodec {
                 p.shopReady = i.readBoolean()
                 p.shopGear = i.readUTF(); p.shopGearSold = i.var32(); p.eurosSpent = i.readInt(); p.eurosIncome = i.readInt()
                 p.worldReady = i.readBoolean()
+                p.pet = i.readUTF()
                 w.ops += p
             }
 
@@ -538,6 +544,7 @@ object CoopCodec {
             o.var32(c.dashSerial); o.var32(c.spell1Serial); o.var32(c.spell2Serial)
             o.var32(c.shopSerial); o.writeByte(c.shopIndex); o.var32(c.shopReplace + 1); o.var32(c.nextWorldSerial)
             o.var32(c.tradeSerial); o.writeByte(c.tradeAction); o.var32(c.tradeEuros); o.writeByte(c.tradePotions.coerceIn(0, 255)); o.writeUTF(c.tradeItems)
+            o.var32(c.petSerial); o.writeUTF(c.pet)
         }
         return bytes.toByteArray()
     }
@@ -551,7 +558,8 @@ object CoopCodec {
                 aiming = i.readBoolean(), aimX = i.pos(), aimY = i.pos(), hpSerial = i.var32(), bombSerial = i.var32(),
                 dashSerial = i.var32(), spell1Serial = i.var32(), spell2Serial = i.var32(),
                 shopSerial = i.var32(), shopIndex = i.readUnsignedByte(), shopReplace = i.var32() - 1, nextWorldSerial = i.var32(),
-                tradeSerial = i.var32(), tradeAction = i.readUnsignedByte(), tradeEuros = i.var32(), tradePotions = i.readUnsignedByte(), tradeItems = i.readUTF()
+                tradeSerial = i.var32(), tradeAction = i.readUnsignedByte(), tradeEuros = i.var32(), tradePotions = i.readUnsignedByte(), tradeItems = i.readUTF(),
+                petSerial = i.var32(), pet = i.readUTF()
             )
         }
     } catch (_: Exception) {
@@ -559,5 +567,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 33
+    const val VERSION = 34
 }

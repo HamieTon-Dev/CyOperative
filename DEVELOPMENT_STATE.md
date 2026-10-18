@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.50.2 (versionCode 143) |
+| Version | 0.51.0 (versionCode 144) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.51.0 pet swap:**
+  - `GameEngine.setPet(index, loadout)` swaps the pet. `GameSession.applyPet()` calls it for solo and the host; the guest instead bumps `CoopInput.petSerial` and sends `pet`.
+  - `NetOp.pet` carries both pets in each snapshot (co-op v34).
+  - `PetsTab(inRun = true)` hides the incubator panel and calls `onPetChanged`.
+  - `EggOffers` prices: 100 + 50 per rarity above GLITCHED.
 - **0.50.2:** `ArenaRenderer.PLAYER_SHOT_LOOK` (0.5) scales how friendly projectiles are drawn; `Projectile.radius` (hits) is unchanged. `ELITE_HP_DROP` is 0.165 and `IDLE_ELITE_HP_DROP` is 0.04.
 - **0.50.0:**
   - Daily eggs: `PlayerProfile.eggOffers` and `eggOffersAt`, handled by `StoreManager.eggOffers` (rolls when empty or older than 24 h) and `buyEggOffer` (◇1500; buying the last one rolls three new). Wall clock: changing the time only re-rolls offers, which still cost ◇.

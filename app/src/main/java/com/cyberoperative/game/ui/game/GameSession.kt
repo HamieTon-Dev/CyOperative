@@ -271,6 +271,9 @@ class GameSession(
     private val netSounds = ArrayList<GameSound>()
     private var worldSeq = 0
     private var inputSeq = 0
+    /** Mid-run pet change (0.51.0): the guest tells the host; solo / host apply it at once. */
+    private var petSerial = 0
+    private var petOut = ""
     private var sendTimer = 0f
     /**
      * Snapshot / input rates. PC co-op (Steam or direct IP, 0.31.0) sends twice as often for
@@ -474,7 +477,8 @@ class GameSession(
                     CoopInput(++inputSeq, engine.localX, engine.localY, engine.localFacing, engine.localMoving, pickSerial, pickIndex, rerollSerial, engine.localLevel, replaceIndex,
                         engine.localAiming, engine.localAimX, engine.localAimY, hpSerial, bombSerial,
                         dashSerial, spell1Serial, spell2Serial, shopSerial, shopIndex, shopReplace, nextWorldSerial,
-                        tradeSerial, tradeActionSent, tradeOffer.euros, tradeOffer.potions, tradeOffer.items)
+                        tradeSerial, tradeActionSent, tradeOffer.euros, tradeOffer.potions, tradeOffer.items,
+                        petSerial = petSerial, pet = petOut)
                 )
             )
         }
@@ -930,6 +934,16 @@ class GameSession(
 
     /** The save, for the in-run INVENTORY (CHARACTER screen). */
     val saveRepo: SaveRepository get() = save
+
+    /**
+     * The player equipped another pet (or none) in the INVENTORY's PETS tab mid-run (owner, 0.51.0):
+     * solo and the co-op host swap it now; a co-op guest sends it to the host (both screens update).
+     */
+    fun applyPet() {
+        val loadout = com.cyberoperative.game.meta.Incubators.loadout(save.current)
+        if (guest) { petSerial++; petOut = loadout?.encode() ?: "" }
+        else engine.setPet(engine.primary, loadout)
+    }
 
     /** INVENTORY opened mid-run: bank what's been found so it shows in the backpack. */
     fun openInventory() {

@@ -576,6 +576,7 @@ fun GameScreen(
                 session.saveRepo, onBack = { closeInventory() },
                 startTab = com.cyberoperative.game.ui.menu.CharTab.GEAR, inRun = true, coopRun = session.isCoop,
                 onGearChanged = { session.applyGear() },
+                onPetChanged = { session.applyPet() },
                 onSold = if (session.isCoop) null else { n -> session.engine.grantEuros(n) },
                 canSell = !session.isCoop
             )

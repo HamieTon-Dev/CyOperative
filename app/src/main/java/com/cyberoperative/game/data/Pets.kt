@@ -389,13 +389,13 @@ data class PetDexEntry(
 /**
  * DAILY EGGS (owner, 0.50.0): three single eggs on sale, of random rarities and kinds. All three
  * roll again every [ROTATE_MS]; buying the last one rolls three new ones at once.
- * 0.50.1 (owner): the store sells nothing below GLITCHED LEGENDARY, priced by rarity: ◇300 for
- * GLITCHED, +◇100 per rarity above it (… ◇900 GLITCHED ENCRYPTED).
+ * 0.50.1 (owner): the store sells nothing below GLITCHED LEGENDARY, priced by rarity.
+ * 0.51.0 (owner): ◇100 for GLITCHED, +◇50 per rarity above it (… ◇400 GLITCHED ENCRYPTED).
  */
 object EggOffers {
     const val COUNT = 3
-    const val BASE_PRICE = 300L
-    const val STEP_PRICE = 100L
+    const val BASE_PRICE = 100L
+    const val STEP_PRICE = 50L
 
     fun price(r: GearRarity): Long = BASE_PRICE + STEP_PRICE * (r.ordinal - GearRarity.GLITCHED.ordinal).coerceAtLeast(0)
     const val ROTATE_MS = 24L * 60L * 60L * 1000L

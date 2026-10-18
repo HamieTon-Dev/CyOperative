@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.51.0 (versionCode 144) — 2026-10-18 · Change pets mid-match; cheaper store eggs
+### Added (owner)
+- **Change your pet in a match**, solo and co-op:
+  - INVENTORY (■INV) → **PETS** tab. There's no incubator panel there, just one line on the incubators plus your pets and eggs.
+  - EQUIP / UNEQUIP swaps the companion **at once**: it appears beside you with fresh ability cooldowns.
+  - In co-op, the guest's choice goes to the host, and both screens show each other's new pet. This is co-op protocol v34, so both players need this update.
+- **Start hatching eggs mid-match:** tap an egg in that tab to put it in a free incubator. It hatches in real time while you play, and you can equip the new pet from the same tab.
+### Changed (owner)
+- **Store egg prices:**
+
+  | Rarity | Price |
+  |---|---|
+  | GLITCHED LEGENDARY | ◇100 |
+  | FORGED | ◇150 |
+  | VOLTAIC | ◇200 |
+  | CELESTIAL | ◇250 |
+  | ABYSSAL | ◇300 |
+  | ENCRYPTED | ◇350 |
+  | GLITCHED ENCRYPTED | ◇400 |
+
+- Render: `docs/screenshots/v051_in_run_pets.png`.
+
 ## 0.50.2 (versionCode 143) — 2026-10-18 · Fewer elite potions, smaller player shots
 ### Changed (owner)
 - **HP potions drop from elites half as often:** 33% → 16.5% in runs, and 8% → 4% in Idle Runs. Boss potions are unchanged.

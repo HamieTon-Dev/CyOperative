@@ -71,7 +71,7 @@ fun hatchClock(ms: Long): String {
  * and your pets (equip one to follow you into runs).
  */
 @Composable
-fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
+fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean, inRun: Boolean = false, onPetChanged: () -> Unit = {}) {
     val host = com.cyberoperative.game.idle.IdleRuns.host
     var selEgg by remember { mutableStateOf<Long?>(null) }
     // Opens on the equipped pet, so its stats and abilities show right away.
@@ -116,11 +116,19 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
         if (r == null) note = "All three incubators are busy."
         else { save.update { Incubators.send(it, uid) ?: it }; selEgg = null; note = "" }
     } }
-    val pets: @Composable (Modifier) -> Unit = { m -> PetsPanel(p, selPet, m, { selPet = it }, { uid -> save.update { Incubators.equip(it, uid) } }) { uid ->
+    val pets: @Composable (Modifier) -> Unit = { m -> PetsPanel(p, selPet, m, { selPet = it }, { uid -> save.update { Incubators.equip(it, uid) }; onPetChanged() }) { uid ->
+        val wasActive = p.activePet == uid
         save.update { Incubators.release(it, uid) }; selPet = null
+        if (wasActive) onPetChanged()
     } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        if (wide) {
+        if (inRun) {
+            // Mid-run (owner, 0.51.0): no incubator screen, just your pets and eggs. Equipping swaps
+            // the companion in the run at once; an egg sent to a free incubator starts hatching now.
+            InRunIncubatorLine(p, remaining)
+            Spacer(Modifier.height(8.dp)); pets(Modifier)
+            Spacer(Modifier.height(10.dp)); eggs(Modifier)
+        } else if (wide) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 incubator(Modifier.weight(1f))
                 Column(Modifier.weight(1f)) { eggs(Modifier); Spacer(Modifier.height(10.dp)); pets(Modifier) }
@@ -136,6 +144,18 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean) {
     // A pet just hatched: the reveal.
     val fresh = p.pets.filter { it.fresh }
     fresh.firstOrNull()?.let { f -> key(f.uid) { HatchReveal(f, fresh.size) { save.update { Incubators.seenOne(it, f.uid) } } } }
+}
+
+/** Mid-run: one line on the incubators (busy / free, the next hatch), instead of the incubator panel. */
+@Composable
+private fun InRunIncubatorLine(p: PlayerProfile, remaining: List<Long>) {
+    val busy = (0 until Pets.SLOTS).count { p.incubator.slot(it) != null }
+    val next = (0 until Pets.SLOTS).filter { p.incubator.slot(it) != null }.minOfOrNull { remaining[it] }
+    Text(
+        "INCUBATORS $busy/${Pets.SLOTS} BUSY" + (next?.let { " · NEXT HATCH IN ${hatchClock(it)}" } ?: "") +
+            (if (busy < Pets.SLOTS) " · tap an egg to start hatching it" else ""),
+        color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium
+    )
 }
 
 @Composable

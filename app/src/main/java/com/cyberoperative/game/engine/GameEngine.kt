@@ -4761,6 +4761,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Host: last input seen from the guest. */
     private var lastPickSerial = 0
     private var lastHpSerial = 0
+    private var lastPetSerial = 0
     private var lastBombSerial = 0
     private var lastDashSerial = 0
     private var lastSpell1Serial = 0
@@ -4771,6 +4772,19 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     private var lastTradeSerial = 0
 
     /** Host: the guest's latest movement and picks. */
+    /**
+     * Swaps operative [index]'s companion mid-run (owner, 0.51.0: "change pets in a match"),
+     * or takes it away (null). The new one appears beside the operative with fresh cooldowns.
+     */
+    fun setPet(index: Int, loadout: com.cyberoperative.game.data.PetLoadout?) {
+        val o = ops.getOrNull(index) ?: return
+        if (o.pet == loadout) return
+        o.pet = loadout
+        o.petX = 0f; o.petY = 0f; o.petTimer = 0f; o.petRapid = 0f
+        o.petAbilityCd.fill(-1f)
+        if (loadout != null) addPulse(o.px, o.py - 20f, 60f, 0.4f, loadout.rarity.color)
+    }
+
     fun applyInput(index: Int, c: CoopInput) {
         val o = ops.getOrNull(index) ?: return
         if (o.gone) return
@@ -4785,6 +4799,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         // PC consumables used by the guest (serials so a lost packet never double-uses one).
         if (c.hpSerial > lastHpSerial) { lastHpSerial = c.hpSerial; useHpCharge(index) }
+        if (c.petSerial > lastPetSerial) { lastPetSerial = c.petSerial; setPet(index, com.cyberoperative.game.data.PetLoadout.decode(c.pet)) }
         if (c.bombSerial > lastBombSerial) { lastBombSerial = c.bombSerial; usePacketBomb(index) }
         if (c.dashSerial > lastDashSerial) { lastDashSerial = c.dashSerial; dash(index) }
         if (c.spell1Serial > lastSpell1Serial) { lastSpell1Serial = c.spell1Serial; castSpell(0, index) }
@@ -4869,6 +4884,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             n.downed = o.downed; n.reviveProgress = o.reviveProgress; n.gone = o.gone; n.cloaked = o.cloaked
             n.pending = o.pendingUpgrades; n.rerolls = o.rerollsLeft; n.batchTotal = o.rewardBatchTotal; n.batchTaken = o.rewardBatchTaken
             n.hpCharges = o.hpCharges; n.packetBombs = o.packetBombs
+            n.pet = o.pet?.encode() ?: ""
             for ((id, l) in o.build.owned()) upgradeIndex[id]?.let { n.owned[it] = l }
             for (c in o.offer) upgradeIndex[c.def.id]?.let { n.offer += it to c.nextLevel }
             for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
@@ -5072,6 +5088,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.downed = n.downed; o.reviveProgress = n.reviveProgress; o.gone = n.gone; o.cloaked = n.cloaked
             o.pendingUpgrades = n.pending; o.rerollsLeft = n.rerolls; o.rewardBatchTotal = n.batchTotal; o.rewardBatchTaken = n.batchTaken
             o.hpCharges = n.hpCharges; o.packetBombs = n.packetBombs
+            if ((o.pet?.encode() ?: "") != n.pet) { val pl = com.cyberoperative.game.data.PetLoadout.decode(n.pet); o.pet = pl; o.petX = 0f; o.petY = 0f }
             val owned = HashMap<String, Int>()
             for ((k, l) in n.owned) Upgrades.all.getOrNull(k)?.let { owned[it.id] = l }
             if (owned != o.build.owned()) o.build.restore(owned)

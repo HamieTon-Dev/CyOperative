@@ -117,6 +117,8 @@ fun CharacterScreen(
     onEditLook: (() -> Unit)? = null,
     onNewCharacter: (() -> Unit)? = null,
     onGearChanged: () -> Unit = {},
+    /** Mid-run: the equipped pet changed in the PETS tab (0.51.0). */
+    onPetChanged: () -> Unit = {},
     initialSelected: Long? = null,
     /** In a solo run the sale goes straight into the run's wallet (your € total, shown at once). */
     onSold: ((Int) -> Unit)? = null,
@@ -189,7 +191,7 @@ fun CharacterScreen(
                             Box(Modifier.weight(1f)) { GearTab(p, wide, selected, actions, drag, coopRun, ::drop) { tab = CharTab.VAULT; selected = null } }
                         }
                         CharTab.SKILLS -> SkillsTab(p, wide, onOverclock.takeIf { !inRun })
-                        CharTab.PETS -> PetsTab(save, p, wide)
+                        CharTab.PETS -> PetsTab(save, p, wide, inRun, onPetChanged)
                         CharTab.VAULT -> VaultTab(p, wide, selected, actions, drag, ::drop, onDepositAll = { save.update { GearBank.depositAll(it) } }) { tab = CharTab.GEAR; selected = null }
                     }
                 }

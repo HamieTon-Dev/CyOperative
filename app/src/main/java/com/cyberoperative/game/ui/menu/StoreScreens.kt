@@ -81,7 +81,7 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 }
             }
             item {
-                Text("GLITCHED LEGENDARY and up only: ◇300, then +◇100 for each rarity above (◇900 for GLITCHED ENCRYPTED). Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
+                Text("GLITCHED LEGENDARY and up only: ◇100, then +◇50 for each rarity above (◇400 for GLITCHED ENCRYPTED). Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
                     color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             }
 
