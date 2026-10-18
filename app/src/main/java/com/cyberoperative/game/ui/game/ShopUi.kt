@@ -103,8 +103,10 @@ fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidd
 fun ShopPanel(
     items: List<ShopItem>, euros: Int, onBuy: (Int) -> Unit, onClose: () -> Unit,
     modifier: Modifier = Modifier, onHold: (Int) -> Unit = {}, slotsFull: (Int) -> Boolean = { false },
-    gear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList(), onBuyGear: (Int) -> Unit = {}
+    gear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList(), onBuyGear: (Int) -> Unit = {},
+    egg: com.cyberoperative.game.engine.EggShopItem? = null, onBuyEgg: () -> Unit = {}
 ) {
+    val eggTime = com.cyberoperative.game.ui.common.rememberSlowClock(24)
     androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         // 8 items now (4 buffs, 4 equipment): a little taller than wide where there's room.
         val side = minOf(maxWidth * 0.9f, maxHeight * 0.8f, 380.dp)
@@ -221,6 +223,42 @@ fun ShopPanel(
                                 affordable -> Palette.Euro
                                 else -> Palette.Red
                             },
+                            style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
+                        )
+                    }
+                }
+                // The shop's egg (owner, 0.53.0): twice its inventory sell value, into this run's eggs.
+                if (egg != null) {
+                    val col = com.cyberoperative.game.ui.common.rarityColor(egg.egg.rarity)
+                    val affordable = euros >= egg.price
+                    val shape = RoundedCornerShape(8.dp)
+                    Spacer(Modifier.height(6.dp))
+                    Text("PET EGG", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .background(Palette.Surface, shape)
+                            .border(if (egg.sold) 1.dp else 2.dp, if (egg.sold) Palette.Divider else col, shape)
+                            .clickable(enabled = !egg.sold) { if (affordable) onBuyEgg() }
+                            .padding(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        com.cyberoperative.game.ui.common.AnimatedEgg(egg.egg.art, egg.egg.rarity, if (egg.sold) 0f else eggTime, Modifier.size(40.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(egg.egg.rarity.label + " EGG", color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Text(egg.egg.name, color = if (egg.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                            Text("Hatch it in PETS", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            when {
+                                egg.sold -> "SOLD"
+                                affordable -> "€${"%,d".format(egg.price)}"
+                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(egg.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((egg.price - euros).toLong())}"
+                            },
+                            color = when { egg.sold -> Palette.TextMuted; affordable -> Palette.Euro; else -> Palette.Red },
                             style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
                         )
                     }

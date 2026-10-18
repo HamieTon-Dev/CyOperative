@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.swipeUp
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -834,6 +835,18 @@ class ScreenshotPreviews {
     @Test fun shopWindowPortrait() {
         assumeTrue(enabled)
         gameplay("shop_window_portrait", 0f, interact = { openShop() }) { s -> toShopCounter(s) }
+    }
+
+    /** 0.53.0: the shop with its egg. */
+    @Test fun shopWindowWithEgg() {
+        assumeTrue(enabled)
+        gameplay("shop_window_egg", 0f, interact = { openShop() }) { s ->
+            toShopCounter(s)
+            val o = s.engine.operatives[0]
+            val egg = com.cyberoperative.game.data.Pets.rollEgg(kotlin.random.Random(5), 1L, com.cyberoperative.game.data.GearRarity.FORGED)
+            o.shopItems = o.shopItems.take(1); o.shopGear = o.shopGear.take(1)
+            o.shopEgg = com.cyberoperative.game.engine.EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(egg.rarity, o.gearLevel), false)
+        }
     }
 
     @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun shopWindowLandscape() {

@@ -152,6 +152,8 @@ data class HudSnapshot(
     val shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList(),
     /** The counter's equipment (0.32.0). */
     val shopGear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList(),
+    /** The shop's egg (0.53.0), or null. */
+    val shopEgg: com.cyberoperative.game.engine.EggShopItem? = null,
     /** Co-op shop: players standing in the exit gate, of how many; and whether that includes me. */
     val shopReadyCount: Int = 0,
     val shopReadyTotal: Int = 1,
@@ -611,6 +613,7 @@ class GameSession(
             atShopCounter = g.atShopCounter,
             shopItems = g.shopItems,
             shopGear = g.operatives.getOrNull(g.primary)?.shopGear ?: emptyList(),
+            shopEgg = g.operatives.getOrNull(g.primary)?.shopEgg,
             shopReadyCount = g.shopReadyCount, shopReadyTotal = g.shopReadyTotal, meShopReady = g.meShopReady,
             nearWorldServer = g.nearWorldServer(), worldReadyCount = g.worldReadyCount, worldReadyTotal = g.worldReadyTotal, meWorldReady = g.meWorldReady,
             vaultReady = g.vaultReady,
@@ -838,6 +841,20 @@ class GameSession(
             return
         }
         engine.buyShopGear(i)
+    }
+
+    /** Buy the shop's egg (co-op guests ask the host). */
+    fun buyShopEgg() {
+        if (guest) {
+            val e = engine.operatives.getOrNull(engine.primary)?.shopEgg ?: return
+            if (e.sold || engine.wallet < e.price) return
+            shopIndex = com.cyberoperative.game.engine.GameEngine.SHOP_EGG_INDEX
+            shopReplace = -1
+            shopSerial++
+            sendTimer = 1f
+            return
+        }
+        engine.buyShopEgg()
     }
 
     fun shopNeedsSlot(i: Int) = engine.shopNeedsSlot(i)

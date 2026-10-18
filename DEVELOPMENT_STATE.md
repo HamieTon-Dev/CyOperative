@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.52.0 (versionCode 145) |
+| Version | 0.53.0 (versionCode 146) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.53.0 shop egg:**
+  - `GameEngine.rollShopEgg` runs in `enterShop` and sets `Operative.shopEgg` (`EggShopItem`).
+  - Without Inferno, `SHOP_EGG_CHANCE` (0.3) applies and the rarity uses `Gear.rollRarity(boss = true)`. With Inferno there is always an egg, using `EggOffers.rollRarity`.
+  - Price = 2 × `Pets.value(rarity, gearLevel)`.
+  - `buyShopEgg` / `buyShopEggFor`; the guest sends `shopIndex = SHOP_EGG_INDEX` (200).
+  - `NetOp.shopEgg` / `shopEggPrice` / `shopEggSold`; co-op `VERSION` 36.
 - **0.52.0:**
   - The `diamonds_5000` product and Steam itemdef 1005 must exist in Play Console and Steamworks.
   - `Pets.value(rarity, level)` = 10 × `Gear.sellPrice` of a weapon. Selling goes through `Incubators.sellPet` / `sellEgg`.

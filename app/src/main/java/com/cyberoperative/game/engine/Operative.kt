@@ -89,6 +89,8 @@ class Operative(val index: Int, baseStats: RunStats) {
     var shopItems: List<ShopItem> = emptyList()
     /** Own shop equipment (0.32.0). */
     var shopGear: List<GearShopItem> = emptyList()
+    /** The shop's egg (0.53.0), or null. */
+    var shopEgg: EggShopItem? = null
     /** Co-op shop: standing in the exit gate, waiting for the partner to leave together. */
     var shopReady = false
     /** At the world server and pressed MOVE TO NEXT WORLD (co-op: waiting for the partner). */

@@ -420,6 +420,7 @@ fun GameScreen(
             ShopPanel(
                 hud.shopItems, hud.euros,
                 gear = hud.shopGear, onBuyGear = { i -> session.buyShopGear(i) },
+                egg = hud.shopEgg, onBuyEgg = { session.buyShopEgg() },
                 onBuy = { i -> if (session.shopNeedsSlot(i)) shopSwap = i else session.buyShopItem(i) },
                 onClose = { shopOpen = false },
                 // Above every other overlay (terminal message, pickup line, hints).

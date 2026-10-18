@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.53.0 (versionCode 146) — 2026-10-18 · Pet eggs in the in-run shop
+### Added (owner)
+- **The in-run shop can sell 1 PET EGG**, shown in its own row under EQUIPMENT with the animated egg, its rarity and name.
+  - **Price = 2× the egg's sell value** (2 × 10 × a same-rarity weapon's sell price at your OP level), paid in €.
+  - **Normal levels:** about **30%** of shops offer one, of any rarity. Higher rarities are rarer, using the same odds as boss gear.
+  - **INFERNO levels:** **every shop** offers one, **GLITCHED LEGENDARY or higher**. Each step up is rarer (35 / 22 / 16 / 12 / 8 / 5 / 2, the daily-egg weights).
+  - A bought egg goes to your PETS (`eggsFound`, the 1,000-egg cap), so you can hatch it mid-match from INVENTORY › PETS.
+- **Co-op:** each player gets their own shop egg. The guest's purchase goes through the host. Co-op protocol v36, so both players need this update.
+- Render: `docs/screenshots/shop_window_egg.png`.
+
 ## 0.52.0 (versionCode 145) — 2026-10-18 · ◇5,000 pack, compact incubators, selling / vaulting / trading pets and eggs
 ### Changed (owner)
 - **Store:** the ◇10,000 / $69.99 pack is replaced by **◇5,000 for $29.99**.

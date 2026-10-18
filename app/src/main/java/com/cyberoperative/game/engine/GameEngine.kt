@@ -130,6 +130,8 @@ enum class KeeperLook { GOLD, TITANIUM, BLACK, SPECTRUM;
 
 /** One piece of equipment on the shop counter (owner, 0.32.0: PURPLE and up). */
 data class GearShopItem(val item: com.cyberoperative.game.data.GearItem, val price: Int, val sold: Boolean)
+/** The shop's egg (owner, 0.53.0): one egg, at twice what it sells for in the inventory. */
+data class EggShopItem(val egg: com.cyberoperative.game.data.PetEgg, val price: Int, val sold: Boolean)
 
 /** One mod on the shop counter. */
 data class ShopItem(val def: com.cyberoperative.game.data.UpgradeDef, val nextLevel: Int, val price: Int, val sold: Boolean)
@@ -1284,7 +1286,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         victory = null
         shopGateOpen = false
         goingToShop = false
-        for (o in ops) { o.shopItems = emptyList(); o.shopGear = emptyList(); o.shopReady = false; o.worldReady = false }
+        for (o in ops) { o.shopItems = emptyList(); o.shopGear = emptyList(); o.shopEgg = null; o.shopReady = false; o.worldReady = false }
         worldServerOn = false
         previousArenaId = previousArena
         this.previousEvent = previousEvent
@@ -1820,7 +1822,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.shopReady = false
             o.worldReady = false
             cur = o
-            try { o.shopItems = rollShopItems(); o.shopGear = rollShopGear(o) } finally { cur = ops[primary] }
+            try { o.shopItems = rollShopItems(); o.shopGear = rollShopGear(o); o.shopEgg = rollShopEgg(o) } finally { cur = ops[primary] }
         }
         phaseTimer = 0f
         keeperLook = KeeperLook.forStock(ops[primary].shopItems)
@@ -1839,6 +1841,42 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val r = com.cyberoperative.game.data.Gear.rollShopRarity(gearRng, config.difficulty.inferno)
         val item = com.cyberoperative.game.data.Gear.roll(gearRng, ++gearSerial, com.cyberoperative.game.data.Gear.itemLevel(o.gearLevel, gearRng), r)
         GearShopItem(item, com.cyberoperative.game.data.Gear.shopPrice(item), sold = false)
+    }
+
+    /**
+     * The shop's egg (owner, 0.53.0): sometimes ([SHOP_EGG_CHANCE]) one egg of any rarity; on the
+     * INFERNO difficulties always one, GLITCHED LEGENDARY or better, the higher ones rarer
+     * (EggOffers.weights). Priced at twice its inventory sell value.
+     */
+    private fun rollShopEgg(o: Operative): EggShopItem? {
+        val inferno = config.difficulty.inferno > 0
+        if (!inferno && gearRng.nextFloat() >= SHOP_EGG_CHANCE) return null
+        val rarity = if (inferno) com.cyberoperative.game.data.EggOffers.rollRarity(gearRng)
+            else com.cyberoperative.game.data.Gear.rollRarity(gearRng, boss = true, inferno = 0)
+        val egg = com.cyberoperative.game.data.Pets.rollEgg(gearRng, (o.eggsFound.size + 1000L), rarity)
+        return EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(rarity, o.gearLevel), sold = false)
+    }
+
+    internal fun debugRollShopEgg(index: Int = 0): EggShopItem? = rollShopEgg(ops[index])
+
+    /** Buys the current operative's shop egg: it joins the run's egg finds (banked into PETS). */
+    fun buyShopEgg(): Boolean {
+        val o = cur
+        val e = o.shopEgg ?: return false
+        if (!inShop || e.sold || wallet < e.price) return false
+        spend(e.price)
+        o.eggsFound += e.egg
+        o.shopEgg = e.copy(sold = true)
+        addText(o.px, o.py - 40f, "-${e.price} €", TextKind.INFO)
+        sound(GameSound.CURRENCY)
+        return true
+    }
+
+    fun buyShopEggFor(opIndex: Int): Boolean {
+        val o = ops.getOrNull(opIndex) ?: return false
+        if (o.gone) return false
+        cur = o
+        try { return buyShopEgg() } finally { cur = ops[primary] }
     }
 
     /** Buys equipment piece [index] from the current operative's counter: it goes with the run's finds. */
@@ -4818,7 +4856,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         if (c.shopSerial > lastShopSerial) {
             lastShopSerial = c.shopSerial
-            if (c.shopIndex >= SHOP_GEAR_INDEX) buyShopGearFor(index, c.shopIndex - SHOP_GEAR_INDEX)
+            if (c.shopIndex == SHOP_EGG_INDEX) buyShopEggFor(index)
+            else if (c.shopIndex >= SHOP_GEAR_INDEX) buyShopGearFor(index, c.shopIndex - SHOP_GEAR_INDEX)
             else buyShopItemFor(index, c.shopIndex, Upgrades.all.getOrNull(c.shopReplace)?.id)
         }
         if (c.rerollSerial > lastRerollSerial) {
@@ -4890,6 +4929,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             for (s in o.shopItems) upgradeIndex[s.def.id]?.let { n.shop += intArrayOf(it, s.nextLevel, s.price, if (s.sold) 1 else 0) }
             n.shopGear = if (o.shopGear.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(o.shopGear.map { it.item })
             n.shopGearSold = o.shopGear.foldIndexed(0) { i, m, it -> if (it.sold) m or (1 shl i) else m }
+            n.shopEgg = o.shopEgg?.let { com.cyberoperative.game.data.Gear.json.encodeToString(com.cyberoperative.game.data.PetEgg.serializer(), it.egg) } ?: ""
+            n.shopEggPrice = o.shopEgg?.price ?: 0; n.shopEggSold = o.shopEgg?.sold ?: false
             n.eurosSpent = o.eurosSpent
             n.eurosIncome = o.eurosIncome
             n.shopReady = o.shopReady
@@ -5098,6 +5139,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.shopGear = com.cyberoperative.game.data.Gear.decode(n.shopGear).mapIndexed { gi, item ->
                 GearShopItem(item, com.cyberoperative.game.data.Gear.shopPrice(item), (n.shopGearSold shr gi) and 1 != 0)
             }
+            o.shopEgg = n.shopEgg.takeIf { it.isNotEmpty() }?.let { t ->
+                runCatching { com.cyberoperative.game.data.Gear.json.decodeFromString(com.cyberoperative.game.data.PetEgg.serializer(), t) }.getOrNull()
+            }?.let { EggShopItem(it, n.shopEggPrice, n.shopEggSold) }
             o.shopReady = n.shopReady
             o.worldReady = n.worldReady
             o.eurosSpent = n.eurosSpent
@@ -5473,6 +5517,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val TRADE_RANGE = 170f
         const val SHOP_GEAR = com.cyberoperative.game.data.Gear.SHOP_GEAR_PIECES
         const val SHOP_GEAR_INDEX = 100
+        /** Co-op input index for the shop egg (0.53.0). */
+        const val SHOP_EGG_INDEX = 200
+        /** A shop has an egg this often off INFERNO (always on INFERNO). */
+        const val SHOP_EGG_CHANCE = 0.3f
         /** Co-op smoothing: a partner further than this from where it should be jumps there. */
         const val NET_SNAP = 260f
         /** Gear (owner, 2026-10-13): chance an elite drops a piece (+2% per INFERNO tier), pieces per world boss. */
