@@ -1848,6 +1848,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (!inShop || g.sold || wallet < g.price) return false
         spend(g.price)
         o.gearFound += g.item
+        o.gearBought += g.item.uid
         o.shopGear = o.shopGear.mapIndexed { i, it -> if (i == index) it.copy(sold = true) else it }
         addText(o.px, o.py - 40f, "-${g.price} €", TextKind.INFO)
         sound(GameSound.CURRENCY)

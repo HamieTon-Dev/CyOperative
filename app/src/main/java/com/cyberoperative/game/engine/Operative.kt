@@ -58,6 +58,8 @@ class Operative(val index: Int, baseStats: RunStats) {
     var stonesFound = 0
     /** Gear picked up this run (banked into the backpack by the session). */
     val gearFound = ArrayList<com.cyberoperative.game.data.GearItem>()
+    /** Engine uids of [gearFound] pieces bought in the shop: AUTO-SELL never sells them. */
+    val gearBought = HashSet<Long>()
     /** OP level of this player: drops roll their item level from it. */
     var gearLevel = 1
     var packetBombs = 0

@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import com.cyberoperative.game.ui.common.rarityCard
 import androidx.compose.ui.unit.dp
 import com.cyberoperative.game.platform.AppInfo
 import com.cyberoperative.game.audio.AudioManager
@@ -383,6 +384,8 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                     Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            AutoSellCard(s.autoSellBelow) { set(s.copy(autoSellBelow = it)); audio.play(GameSound.UI_CLICK) }
             if (!com.cyberoperative.game.platform.GameKeys.active) {
                 Spacer(Modifier.height(10.dp))
                 ScreenCard(s, set = { set(it) }, onEditTouch = { editingTouch = true })
@@ -401,6 +404,64 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                 audio.play(GameSound.UI_CLICK)
             }
         }
+    }
+}
+
+/**
+ * AUTO-SELL (owner, 0.46.0): "sell everything below ___". The rarities are listed highest first,
+ * each in its own colour and card style; gear found below the pick is sold for € as it's banked.
+ */
+@Composable
+private fun AutoSellCard(below: com.cyberoperative.game.data.GearRarity?, onPick: (com.cyberoperative.game.data.GearRarity?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    TerminalCard {
+        Column {
+            Text("AUTO-SELL GEAR", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("SELL EVERYTHING BELOW", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(8.dp))
+                Box {
+                    Row(
+                        Modifier.border(1.dp, Palette.Divider, RoundedCornerShape(6.dp)).clickable { open = true }.padding(horizontal = 6.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AutoSellChoice(below)
+                        Text("  ▾", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge)
+                    }
+                    androidx.compose.material3.DropdownMenu(open, { open = false }, Modifier.background(Palette.Surface)) {
+                        AutoSellOptions { open = false; onPick(it) }
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (below == null) "Off: every piece you find is kept."
+                else "Gear found below ${below.label} is sold for € as soon as it's picked up. Shop purchases and trades are always kept.",
+                color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+/** The AUTO-SELL list: OFF, then the rarities highest first (COMMON is left out: nothing is below it). */
+@Composable
+internal fun AutoSellOptions(onPick: (com.cyberoperative.game.data.GearRarity?) -> Unit) {
+    androidx.compose.material3.DropdownMenuItem(text = { AutoSellChoice(null) }, onClick = { onPick(null) })
+    for (r in com.cyberoperative.game.data.GearRarity.entries.drop(1).reversed())
+        androidx.compose.material3.DropdownMenuItem(text = { AutoSellChoice(r) }, onClick = { onPick(r) })
+}
+
+/** One AUTO-SELL option: the rarity's name on its own card, in its colour (OFF in grey). */
+@Composable
+private fun AutoSellChoice(r: com.cyberoperative.game.data.GearRarity?) {
+    if (r == null) {
+        Text("OFF", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+        return
+    }
+    val c = Color(r.color)
+    Box(Modifier.rarityCard(r, corner = 4.dp).border(1.dp, c, RoundedCornerShape(4.dp)).padding(horizontal = 10.dp, vertical = 3.dp)) {
+        Text(r.label, color = c, style = MaterialTheme.typography.labelLarge)
     }
 }
 

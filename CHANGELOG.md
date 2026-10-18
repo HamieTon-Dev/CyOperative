@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.46.0 (versionCode 132) — 2026-10-18 · Auto-sell
+### Added (owner)
+- **SETTINGS → AUTO-SELL GEAR: "Sell everything below ___".**
+  - The dropdown lists OFF, then the rarities from highest to lowest: ENCRYPTED, ABYSSAL, CELESTIAL, VOLTAIC, FORGED, GLITCHED LEGENDARY, LEGENDARY, EPIC, RARE, UNCOMMON. COMMON isn't listed because nothing is below it.
+  - Each rarity is shown in its own colour and card style, including the animated ones: ENCRYPTED's code rain, ABYSSAL's flames, the glitch and holo sheens.
+  - Gear found below the chosen rarity is sold at its normal sell price as it's banked during a run. Solo runs credit the run wallet; co-op credits your saved €. "AUTO-SOLD +€X" shows over your operator.
+  - Idle Run gear is auto-sold the same way when you collect it.
+  - Never sold: shop purchases, trades and locked items.
+  - Defaults to OFF, so old saves keep everything.
+- Screens: `docs/screenshots/settings_autosell_closed.png` and `settings_autosell_open.png`.
+
 ## 0.45.3 (versionCode 131) — 2026-10-18 · NEON tracks play again
 ### Fixed (owner: "the songs I added last make no sound when played")
 - The five NEON tracks (Neon Alley 1987 1–3, Neon Afterglow 1987, Neon Requiem) were silent on Android. They were never added to the Android music file list, so the player caught an error and showed the title with no sound. They now play. PC was not affected.

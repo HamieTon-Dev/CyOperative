@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.45.3 (versionCode 131) |
+| Version | 0.46.0 (versionCode 132) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.46.0 auto-sell:**
+  - The setting is `GameSettings.autoSellBelow: GearRarity?`. `GearBank.autoSell(items, below)` returns the kept items and the €.
+  - It's applied in `GameSession.bankGear` (it skips `Operative.gearBought`, the shop purchases) and in `IdleRuns.collect`. Trades go through `GearBank.bank` directly, so they're never sold.
+  - The UI is `AutoSellCard` / `AutoSellOptions` in MetaScreens. Robolectric doesn't draw popups, so `AutoSellRenders` renders the list on its own.
 - **Adding music:** a new track needs its `.ogg` in `res/raw`, a `MusicLibrary` entry, AND a line in `rawMusic` in `platform/Platform.kt` (Android). `MusicFilesTest` fails if one is missing (the NEON tracks were silent until 0.45.3).
 - **0.45.0 incubators:**
   - `Incubator.slots` holds 3 `IncubatorSlot`s (egg + progress). The legacy `current` / `progress` / `queue` fields are only read by `Incubators.migrate`, which runs inside `tick`.

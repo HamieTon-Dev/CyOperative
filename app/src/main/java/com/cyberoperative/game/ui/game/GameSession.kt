@@ -962,7 +962,19 @@ class GameSession(
         if (found.size <= bankedGear) return
         val fresh = found.subList(bankedGear, found.size).toList()
         bankedGear = found.size
-        save.update { p -> com.cyberoperative.game.meta.GearBank.bank(p, fresh).first }
+        // AUTO-SELL (0.46.0): drops below the chosen rarity become € (never shop purchases).
+        val o = engine.operatives[engine.primary]
+        val (bought, dropped) = fresh.partition { it.uid in o.gearBought }
+        val (kept, euros) = com.cyberoperative.game.meta.GearBank.autoSell(dropped, save.current.settings.autoSellBelow)
+        val keep = fresh.filter { it in bought || it in kept }
+        if (euros > 0) {
+            // Solo: the run wallet takes it (like selling from the INVENTORY); co-op € go straight to the save.
+            if (!isCoop) engine.grantEuros(euros)
+            engine.addText(o.px, o.py - 40f, "AUTO-SOLD +€$euros", com.cyberoperative.game.engine.TextKind.INFO)
+        }
+        save.update { p ->
+            com.cyberoperative.game.meta.GearBank.bank(if (isCoop && euros > 0) p.copy(euros = p.euros + euros) else p, keep).first
+        }
     }
 
     private fun commitProgress(final: Boolean): List<String> {

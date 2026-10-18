@@ -104,6 +104,16 @@ object GearBank {
         return p.copy(backpack = bp, vault = v, gearSeq = seq) to Banked(toBp, toV, lost)
     }
 
+    /**
+     * AUTO-SELL (owner, 0.46.0): splits run / idle finds into what is kept and the € the rest sold
+     * for (each at [Gear.sellPrice]). Everything below [below] goes; null sells nothing.
+     */
+    fun autoSell(items: List<GearItem>, below: com.cyberoperative.game.data.GearRarity?): Pair<List<GearItem>, Int> {
+        if (below == null) return items to 0
+        val (sold, kept) = items.partition { it.rarity < below && !it.locked }
+        return kept to sold.sumOf { Gear.sellPrice(it) }
+    }
+
     fun find(p: PlayerProfile, uid: Long): GearItem? =
         p.equipped.values.firstOrNull { it.uid == uid } ?: p.backpack.firstOrNull { it.uid == uid } ?: p.vault.firstOrNull { it.uid == uid }
 

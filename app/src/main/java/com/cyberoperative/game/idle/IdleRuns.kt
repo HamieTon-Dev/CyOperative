@@ -41,8 +41,10 @@ object IdleRuns {
      */
     fun collect(p: PlayerProfile, s: IdleRunState): PlayerProfile {
         if (s.collected || s.active) return p
-        val items = IdleRunSimulator.dropsWithIds(s, p.gearSeq)
-        var out = p.copy(euros = p.euros + s.eurosEarned, gearSeq = p.gearSeq + items.size)
+        val all = IdleRunSimulator.dropsWithIds(s, p.gearSeq)
+        // AUTO-SELL (0.46.0) applies to idle finds too.
+        val (items, sold) = com.cyberoperative.game.meta.GearBank.autoSell(all, p.settings.autoSellBelow)
+        var out = p.copy(euros = p.euros + s.eurosEarned + sold, gearSeq = p.gearSeq + all.size)
         val mine = s.characterId.isEmpty() || s.characterId == p.characterId
         if (mine) {
             val room = (Gear.BACKPACK_SIZE - out.backpack.size).coerceAtLeast(0)

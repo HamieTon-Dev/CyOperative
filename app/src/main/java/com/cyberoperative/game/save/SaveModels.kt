@@ -122,7 +122,9 @@ data class GameSettings(
     /** Android touch controls: joystick AUTO (locked in landscape, floating in portrait), FLOAT or LOCKED. */
     val joystickMode: String = "AUTO",
     /** Android touch layout: "<P|L>.<control>.<x|y>" → fraction of the screen. */
-    val touchLayout: Map<String, Float> = emptyMap()
+    val touchLayout: Map<String, Float> = emptyMap(),
+    /** AUTO-SELL (owner, 0.46.0): gear found below this rarity is sold at once; null keeps everything. */
+    val autoSellBelow: com.cyberoperative.game.data.GearRarity? = null
 )
 
 /** Best campaign level reached with one class, per difficulty. */
