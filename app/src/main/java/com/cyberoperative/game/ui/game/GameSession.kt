@@ -778,11 +778,22 @@ class GameSession(
         val theirs = desk.done[1 - myIndex]
         val give = mine.itemList.map { it.uid }.toSet()
         val got = theirs.itemList.map { it.copy(locked = false, fresh = true) }
+        // Eggs and pets (0.52.0) move with the gear.
+        val giveEggs = mine.eggList.map { it.uid }.toSet()
+        val givePets = mine.petList.map { it.uid }.toSet()
+        var lostActive = false
         save.update { p0 ->
             // € moved between the run wallets (engine) and are saved with the run's other €.
-            val p = p0.copy(backpack = p0.backpack.filter { it.uid !in give })
-            com.cyberoperative.game.meta.GearBank.bank(p, got).first
+            lostActive = p0.activePet in givePets
+            val p = p0.copy(
+                backpack = p0.backpack.filter { it.uid !in give },
+                eggs = p0.eggs.filter { it.uid !in giveEggs }, pets = p0.pets.filter { it.uid !in givePets },
+                activePet = if (p0.activePet in givePets) 0L else p0.activePet
+            )
+            val withPets = com.cyberoperative.game.meta.Incubators.addPets(com.cyberoperative.game.meta.Incubators.addEggs(p, theirs.eggList), theirs.petList)
+            com.cyberoperative.game.meta.GearBank.bank(withPets, got).first
         }
+        if (lostActive) applyPet()
         coopNotice = "TRADE COMPLETE"
     }
 

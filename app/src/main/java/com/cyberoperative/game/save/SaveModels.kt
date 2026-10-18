@@ -80,6 +80,9 @@ data class PlayerProfile(
     val pets: List<com.cyberoperative.game.data.Pet> = emptyList(),
     /** DAILY EGGS on sale (0.50.0) and when they were rolled (ms); bought ones leave the list. */
     val eggOffers: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
+    /** Pets and eggs stored in the DATA VAULT (0.52.0); up to Pets.VAULT_SIZE together. */
+    val vaultPets: List<com.cyberoperative.game.data.Pet> = emptyList(),
+    val vaultEggs: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
     val eggOffersAt: Long = 0L,
     /** PET CODEX (0.50.0): every pet art ever hatched → its egg and best rarity. */
     val petCodex: Map<Int, com.cyberoperative.game.data.PetDexEntry> = emptyMap(),

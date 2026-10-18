@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.52.0 (versionCode 145) — 2026-10-18 · ◇5,000 pack, compact incubators, selling / vaulting / trading pets and eggs
+### Changed (owner)
+- **Store:** the ◇10,000 / $69.99 pack is replaced by **◇5,000 for $29.99**.
+  - **Owner action:** create the product **`diamonds_5000`** in Play Console, and upload `steam/itemdefs.json` to Steamworks (new item 1005; 1004 is now hidden).
+  - Any earlier 10,000 purchase still credits.
+- **Mid-match PETS tab:** **compact incubators**, three small tiles showing the egg, countdown and progress bar. Pick an egg below and SEND TO INCUBATOR to start a hatch during the match.
+- **Eggs held: 1,000** (was 100). The list shows 120 at a time, with SHOW MORE.
+### Added (owner)
+- **SELL replaces RELEASE** for pets, and eggs can be sold too.
+  - **Value = 10× the sell price of a same-rarity weapon** at your OP level. The button shows the € and asks to confirm.
+  - In a solo match the € go to the run's wallet, like gear; otherwise they go to your saved €.
+- **DATA VAULT holds pets and eggs:**
+  - TO VAULT from CHARACTER › PETS (an equipped pet is unequipped first);
+  - DATA VAULT has GEAR / PETS / EGGS sections, with TAKE OUT;
+  - pets and eggs share 1,500 vault slots.
+- **Co-op TRADE carries eggs and pets** (up to 8 of each) next to gear, € and potions. Received pets join your PET CODEX. Co-op protocol v35, so both players need this update.
+- Renders: `docs/screenshots/v051_in_run_pets.png` (compact incubators) and `v052_vault_pets.png`.
+
 ## 0.51.0 (versionCode 144) — 2026-10-18 · Change pets mid-match; cheaper store eggs
 ### Added (owner)
 - **Change your pet in a match**, solo and co-op:

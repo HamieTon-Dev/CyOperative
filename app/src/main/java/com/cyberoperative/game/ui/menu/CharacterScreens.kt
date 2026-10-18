@@ -191,8 +191,8 @@ fun CharacterScreen(
                             Box(Modifier.weight(1f)) { GearTab(p, wide, selected, actions, drag, coopRun, ::drop) { tab = CharTab.VAULT; selected = null } }
                         }
                         CharTab.SKILLS -> SkillsTab(p, wide, onOverclock.takeIf { !inRun })
-                        CharTab.PETS -> PetsTab(save, p, wide, inRun, onPetChanged)
-                        CharTab.VAULT -> VaultTab(p, wide, selected, actions, drag, ::drop, onDepositAll = { save.update { GearBank.depositAll(it) } }) { tab = CharTab.GEAR; selected = null }
+                        CharTab.PETS -> PetsTab(save, p, wide, inRun, onPetChanged, onSold.takeIf { inRun })
+                        CharTab.VAULT -> VaultSections(save, p, wide) { VaultTab(p, wide, selected, actions, drag, ::drop, onDepositAll = { save.update { GearBank.depositAll(it) } }) { tab = CharTab.GEAR; selected = null } }
                     }
                 }
             }

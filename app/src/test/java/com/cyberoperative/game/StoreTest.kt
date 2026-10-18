@@ -15,8 +15,8 @@ import org.junit.Test
 class StoreTest {
 
     @Test fun ownerPriceTable() {
-        assertEquals(listOf(150, 500, 1000, 10000), StoreCatalog.diamondPacks.map { it.diamonds })
-        assertEquals(listOf("$1.00", "$4.50", "$8.50", "$69.99"), StoreCatalog.diamondPacks.map { it.usdPrice })
+        assertEquals(listOf(150, 500, 1000, 5000), StoreCatalog.diamondPacks.map { it.diamonds }) // 0.52.0: ◇5,000 for $29.99
+        assertEquals(listOf("$1.00", "$4.50", "$8.50", "$29.99"), StoreCatalog.diamondPacks.map { it.usdPrice })
         assertEquals(listOf(1 to 100, 7 to 500, 20 to 800, 250 to 6500), StoreCatalog.revivePacks.map { it.revives to it.priceDiamonds })
         assertEquals(100, StoreCatalog.SKIN_PRICE)
         assertEquals(1400, StoreCatalog.ALL_SKINS_PRICE)

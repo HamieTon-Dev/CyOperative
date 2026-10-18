@@ -24,9 +24,10 @@ object SteamStore {
         "diamonds_150" to 1001,
         "diamonds_500" to 1002,
         "diamonds_1000" to 1003,
-        "diamonds_10000" to 1004
+        "diamonds_5000" to 1005
     )
-    private val diamondsByDef: Map<Int, Int> = mapOf(1001 to 150, 1002 to 500, 1003 to 1_000, 1004 to 10_000)
+    // 1004 (◇10,000, retired in 0.52.0 and hidden on Steam) still credits a purchase made before.
+    private val diamondsByDef: Map<Int, Int> = mapOf(1001 to 150, 1002 to 500, 1003 to 1_000, 1004 to 10_000, 1005 to 5_000)
 
     /** Credits ◇ (set by the app at start-up: adds to the save and plays the sound). */
     var onCredit: (Int) -> Unit = {}

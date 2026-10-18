@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.52.0: ◇5,000 pack, compact incubators in-match, 1,000 eggs, sell / vault / trade pets and eggs.
 - ✅ 0.51.0: pets change mid-match (solo + co-op), eggs can start hatching mid-match, store eggs ◇100 + ◇50 per rarity.
 - ✅ 0.50.2: elite potion drops halved; player shots drawn at half size.
 - ✅ 0.50.1: store eggs GLITCHED LEGENDARY and up, ◇300 + ◇100 per rarity.
@@ -156,6 +157,7 @@ device, tune balance, then fill out the store/meta phases.
 - Boss rush mode
 
 ## USER DECISIONS REQUIRED
+- Create Play product `diamonds_5000` ($29.99) and upload steam/itemdefs.json (item 1005) before release.
 - DAILY EGGS odds (defaults in `EggOffers.weights`: GLITCHED 35 … GLITCHED ENCRYPTED 2 %, priced ◇100–◇400).
 - Should the ◇ store sell a GLITCHED ENCRYPTED egg (and at what price)? Today they only drop (0.49.0).
 - GLITCHED ENCRYPTED gear defaults to check: 0.1% per boss piece, ×3.5 stats, its perks (0.47.0).

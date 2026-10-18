@@ -12,9 +12,32 @@ package com.cyberoperative.game.engine
  * state, so each side applies its own half when it sees [TradeDesk.doneSerial] go up.
  */
 
-/** One player's offer. [items] is [com.cyberoperative.game.data.Gear.encode] text. */
+/**
+ * One player's offer. [items] is [com.cyberoperative.game.data.Gear.encode] text, followed (0.52.0,
+ * owner: eggs and pets "can be sold and traded") by the eggs and pets on offer, each part JSON,
+ * separated by [SEP] — see [pack].
+ */
 data class TradeOffer(val euros: Int = 0, val potions: Int = 0, val items: String = "", val accepted: Boolean = false) {
-    val itemList get() = com.cyberoperative.game.data.Gear.decode(items)
+    private val parts: List<String> get() = items.split(SEP)
+    val itemList get() = com.cyberoperative.game.data.Gear.decode(parts[0])
+    val eggList: List<com.cyberoperative.game.data.PetEgg> get() = parts.getOrNull(1)?.takeIf { it.isNotBlank() }?.let {
+        runCatching { com.cyberoperative.game.data.Gear.json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.PetEgg.serializer()), it) }.getOrNull()
+    }.orEmpty()
+    val petList: List<com.cyberoperative.game.data.Pet> get() = parts.getOrNull(2)?.takeIf { it.isNotBlank() }?.let {
+        runCatching { com.cyberoperative.game.data.Gear.json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.Pet.serializer()), it) }.getOrNull()
+    }.orEmpty()
+
+    companion object {
+        const val SEP = '\u001E'
+        fun pack(gear: List<com.cyberoperative.game.data.GearItem>, eggs: List<com.cyberoperative.game.data.PetEgg>, pets: List<com.cyberoperative.game.data.Pet>): String {
+            val j = com.cyberoperative.game.data.Gear.json
+            val g = if (gear.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(gear)
+            if (eggs.isEmpty() && pets.isEmpty()) return g
+            val e = if (eggs.isEmpty()) "" else j.encodeToString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.PetEgg.serializer()), eggs)
+            val p = if (pets.isEmpty()) "" else j.encodeToString(kotlinx.serialization.builtins.ListSerializer(com.cyberoperative.game.data.Pet.serializer()), pets)
+            return "$g$SEP$e$SEP$p"
+        }
+    }
 }
 
 enum class TradeAction { REQUEST, AGREE, CLOSE, OFFER, ACCEPT }
@@ -49,11 +72,10 @@ class TradeDesk {
             TradeAction.AGREE -> if (allowed && requestedBy == other) { reset(); open = true }
             TradeAction.CLOSE -> reset()
             TradeAction.OFFER -> if (open) {
-                val items = com.cyberoperative.game.data.Gear.decode(offer.items).take(MAX_ITEMS)
                 val clean = TradeOffer(
                     euros = offer.euros.coerceAtLeast(0),
                     potions = offer.potions.coerceIn(0, charges[op]),
-                    items = if (items.isEmpty()) "" else com.cyberoperative.game.data.Gear.encode(items)
+                    items = TradeOffer.pack(offer.itemList.take(MAX_ITEMS), offer.eggList.take(MAX_ITEMS), offer.petList.take(MAX_ITEMS))
                 )
                 if (clean.copy(accepted = false) != offers[op].copy(accepted = false)) {
                     // A changed offer cancels both accepts.

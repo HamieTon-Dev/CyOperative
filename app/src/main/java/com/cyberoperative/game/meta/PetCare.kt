@@ -227,6 +227,62 @@ object Incubators {
     /** The equipped pet's loadout for a run, or null. */
     fun loadout(p: PlayerProfile): com.cyberoperative.game.data.PetLoadout? = p.pets.firstOrNull { it.uid == p.activePet }?.loadout
 
+    private fun level(p: PlayerProfile) = com.cyberoperative.game.data.OpProgress.of(p.operativeXp).level
+
+    /** What pet / egg [uid] sells for (0 if it isn't held). */
+    fun petValue(p: PlayerProfile, uid: Long): Int = p.pets.firstOrNull { it.uid == uid }?.let { Pets.value(it.rarity, level(p)) } ?: 0
+    fun eggValue(p: PlayerProfile, uid: Long): Int = p.eggs.firstOrNull { it.uid == uid }?.let { Pets.value(it.rarity, level(p)) } ?: 0
+
+    /** Sells pet [uid] (owner, 0.52.0: SELL replaces RELEASE); [bank] adds the € to the save (false: a run's wallet takes it). */
+    fun sellPet(p: PlayerProfile, uid: Long, bank: Boolean = true): Pair<PlayerProfile, Int> {
+        val price = petValue(p, uid)
+        if (price == 0) return p to 0
+        val q = p.copy(pets = p.pets.filter { it.uid != uid }, activePet = if (p.activePet == uid) 0L else p.activePet)
+        return (if (bank) q.copy(euros = q.euros + price) else q) to price
+    }
+
+    fun sellEgg(p: PlayerProfile, uid: Long, bank: Boolean = true): Pair<PlayerProfile, Int> {
+        val price = eggValue(p, uid)
+        if (price == 0) return p to 0
+        val q = p.copy(eggs = p.eggs.filter { it.uid != uid })
+        return (if (bank) q.copy(euros = q.euros + price) else q) to price
+    }
+
+    // --- DATA VAULT (0.52.0): pets and eggs stored away, up to Pets.VAULT_SIZE together ---
+    fun vaultRoom(p: PlayerProfile): Int = Pets.VAULT_SIZE - p.vaultPets.size - p.vaultEggs.size
+
+    /** Stores pet [uid] (unequipped first) in the vault; null when the vault is full. */
+    fun petToVault(p: PlayerProfile, uid: Long): PlayerProfile? {
+        val pet = p.pets.firstOrNull { it.uid == uid } ?: return null
+        if (vaultRoom(p) <= 0) return null
+        return p.copy(pets = p.pets.filter { it.uid != uid }, vaultPets = p.vaultPets + pet.copy(fresh = false),
+            activePet = if (p.activePet == uid) 0L else p.activePet)
+    }
+
+    fun petFromVault(p: PlayerProfile, uid: Long): PlayerProfile? {
+        val pet = p.vaultPets.firstOrNull { it.uid == uid } ?: return null
+        return p.copy(vaultPets = p.vaultPets.filter { it.uid != uid }, pets = p.pets + pet)
+    }
+
+    fun eggToVault(p: PlayerProfile, uid: Long): PlayerProfile? {
+        val egg = p.eggs.firstOrNull { it.uid == uid } ?: return null
+        if (vaultRoom(p) <= 0) return null
+        return p.copy(eggs = p.eggs.filter { it.uid != uid }, vaultEggs = p.vaultEggs + egg)
+    }
+
+    fun eggFromVault(p: PlayerProfile, uid: Long): PlayerProfile? {
+        val egg = p.vaultEggs.firstOrNull { it.uid == uid } ?: return null
+        if (p.eggs.size >= Pets.MAX_EGGS) return null
+        return p.copy(vaultEggs = p.vaultEggs.filter { it.uid != uid }, eggs = p.eggs + egg)
+    }
+
+    /** Pets received in a co-op trade (0.52.0): fresh uids, and they join the PET CODEX. */
+    fun addPets(p: PlayerProfile, got: List<com.cyberoperative.game.data.Pet>): PlayerProfile {
+        if (got.isEmpty()) return p
+        val add = got.mapIndexed { i, pet -> pet.copy(uid = p.petSeq + i, fresh = false) }
+        return p.copy(pets = p.pets + add, petSeq = p.petSeq + add.size, petCodex = dex(p.petCodex, add))
+    }
+
     /** Releases a pet (gone for good). */
     fun release(p: PlayerProfile, uid: Long): PlayerProfile =
         p.copy(pets = p.pets.filter { it.uid != uid }, activePet = if (p.activePet == uid) 0L else p.activePet)

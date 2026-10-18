@@ -175,7 +175,17 @@ object Pets {
     const val STONE_CUT = 0.15f
     /** Incubators hatching at the same time (owner, 0.45.0; was one plus a queue of three). */
     const val SLOTS = 3
-    const val MAX_EGGS = 100
+    /** Eggs held (owner, 0.52.0: 1,000). */
+    const val MAX_EGGS = 1000
+    /** Pets and eggs stored in the DATA VAULT (0.52.0), together. */
+    const val VAULT_SIZE = 1500
+
+    /**
+     * What a pet or an egg sells for (owner, 0.52.0: "10× value of similar rarity weapon"):
+     * ten times the sell price of a same-rarity weapon at the account's OP level [level].
+     */
+    fun value(rarity: GearRarity, level: Int): Int =
+        10 * Gear.sellPrice(GearItem(0L, GearSlot.PRIMARY, rarity, 0, level.coerceIn(1, OpProgress.MAX_LEVEL), 0f))
 
     /**
      * INSTANT HATCH price in ◇ (owner, 0.42.0; ◇ only, never €): ×4 of

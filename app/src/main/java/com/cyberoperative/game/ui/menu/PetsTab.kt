@@ -71,7 +71,11 @@ fun hatchClock(ms: Long): String {
  * and your pets (equip one to follow you into runs).
  */
 @Composable
-fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean, inRun: Boolean = false, onPetChanged: () -> Unit = {}) {
+fun PetsTab(
+    save: SaveRepository, p: PlayerProfile, wide: Boolean, inRun: Boolean = false, onPetChanged: () -> Unit = {},
+    /** In a solo run a sale goes into the run's wallet (like gear); otherwise to the saved €. */
+    onSold: ((Int) -> Unit)? = null
+) {
     val host = com.cyberoperative.game.idle.IdleRuns.host
     var selEgg by remember { mutableStateOf<Long?>(null) }
     // Opens on the equipped pet, so its stats and abilities show right away.
@@ -111,21 +115,36 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean, inRun: Boolea
         val r = Incubators.takeBack(p, uid)
         if (r == null) note = "Egg inventory is full." else save.update { Incubators.takeBack(it, uid) ?: it }
     } }
-    val eggs: @Composable (Modifier) -> Unit = { m -> EggsPanel(p, selEgg, m, { selEgg = it }) { uid ->
+    val eggs: @Composable (Modifier) -> Unit = { m -> EggsPanel(p, selEgg, m, { selEgg = it }, { uid ->
         val r = Incubators.send(p, uid)
         if (r == null) note = "All three incubators are busy."
         else { save.update { Incubators.send(it, uid) ?: it }; selEgg = null; note = "" }
-    } }
-    val pets: @Composable (Modifier) -> Unit = { m -> PetsPanel(p, selPet, m, { selPet = it }, { uid -> save.update { Incubators.equip(it, uid) }; onPetChanged() }) { uid ->
+    }, onVault = { uid ->
+        if (Incubators.eggToVault(p, uid) == null) note = "The DATA VAULT has no room for pets and eggs."
+        else { save.update { Incubators.eggToVault(it, uid) ?: it }; selEgg = null; note = "Egg stored in the DATA VAULT." }
+    }, onSell = { uid ->
+        var got = 0
+        save.update { val (q, n) = Incubators.sellEgg(it, uid, bank = onSold == null); got = n; q }
+        if (got > 0) onSold?.invoke(got)
+        selEgg = null; note = "Sold for € ${"%,d".format(got)}."
+    }) }
+    val pets: @Composable (Modifier) -> Unit = { m -> PetsPanel(p, selPet, m, { selPet = it }, { uid -> save.update { Incubators.equip(it, uid) }; onPetChanged() }, { uid ->
         val wasActive = p.activePet == uid
-        save.update { Incubators.release(it, uid) }; selPet = null
+        if (Incubators.petToVault(p, uid) == null) note = "The DATA VAULT has no room for pets and eggs."
+        else { save.update { Incubators.petToVault(it, uid) ?: it }; selPet = null; note = "Pet stored in the DATA VAULT."; if (wasActive) onPetChanged() }
+    }) { uid ->
+        val wasActive = p.activePet == uid
+        var got = 0
+        save.update { val (q, n) = Incubators.sellPet(it, uid, bank = onSold == null); got = n; q }
+        if (got > 0) onSold?.invoke(got)
+        selPet = null; note = "Sold for € ${"%,d".format(got)}."
         if (wasActive) onPetChanged()
     } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         if (inRun) {
             // Mid-run (owner, 0.51.0): no incubator screen, just your pets and eggs. Equipping swaps
             // the companion in the run at once; an egg sent to a free incubator starts hatching now.
-            InRunIncubatorLine(p, remaining)
+            CompactIncubators(p, remaining)
             Spacer(Modifier.height(8.dp)); pets(Modifier)
             Spacer(Modifier.height(10.dp)); eggs(Modifier)
         } else if (wide) {
@@ -146,16 +165,41 @@ fun PetsTab(save: SaveRepository, p: PlayerProfile, wide: Boolean, inRun: Boolea
     fresh.firstOrNull()?.let { f -> key(f.uid) { HatchReveal(f, fresh.size) { save.update { Incubators.seenOne(it, f.uid) } } } }
 }
 
-/** Mid-run: one line on the incubators (busy / free, the next hatch), instead of the incubator panel. */
+/**
+ * Mid-run (owner, 0.52.0: "compact incubators"): the three incubators as small tiles — the egg in
+ * each, its countdown and progress — so a hatch can be watched and started without leaving the run.
+ */
 @Composable
-private fun InRunIncubatorLine(p: PlayerProfile, remaining: List<Long>) {
-    val busy = (0 until Pets.SLOTS).count { p.incubator.slot(it) != null }
-    val next = (0 until Pets.SLOTS).filter { p.incubator.slot(it) != null }.minOfOrNull { remaining[it] }
-    Text(
-        "INCUBATORS $busy/${Pets.SLOTS} BUSY" + (next?.let { " · NEXT HATCH IN ${hatchClock(it)}" } ?: "") +
-            (if (busy < Pets.SLOTS) " · tap an egg to start hatching it" else ""),
-        color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium
-    )
+private fun CompactIncubators(p: PlayerProfile, remaining: List<Long>) {
+    Card(Modifier) {
+        Column {
+            Text("INCUBATORS", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (i in 0 until Pets.SLOTS) {
+                    val s = p.incubator.slot(i)
+                    val c = s?.let { Color(it.egg.rarity.color) } ?: Palette.Divider
+                    Column(
+                        Modifier.weight(1f).background(Palette.Surface, RoundedCornerShape(6.dp)).border(1.dp, c.copy(alpha = 0.7f), RoundedCornerShape(6.dp)).padding(6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                            if (s != null) EggIconView(s.egg, Modifier.fillMaxSize())
+                            else Text("EMPTY", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                        }
+                        if (s != null) {
+                            val total = (s.egg.baseMs * Pets.timeFactor(p.incubator.stones)).toLong().coerceAtLeast(1L)
+                            val f = (1f - remaining[i].toFloat() / total).coerceIn(0f, 1f)
+                            Text(if (remaining[i] <= 0L) "HATCHING" else hatchClock(remaining[i]), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Box(Modifier.fillMaxWidth().height(4.dp).background(Palette.SurfaceRaised, RoundedCornerShape(2.dp))) {
+                                Box(Modifier.fillMaxWidth(f).height(4.dp).background(c, RoundedCornerShape(2.dp)))
+                            }
+                        } else Text("pick an egg below", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -305,8 +349,14 @@ private fun IncubatorPanel(
 }
 
 @Composable
-private fun EggsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect: (Long?) -> Unit, onSend: (Long) -> Unit) {
-    val eggs = remember(p.eggs) { p.eggs.sortedWith(compareByDescending<PetEgg> { it.rarity.ordinal }.thenBy { it.uid }) }
+private fun EggsPanel(
+    p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect: (Long?) -> Unit, onSend: (Long) -> Unit,
+    onVault: (Long) -> Unit = {}, onSell: (Long) -> Unit = {}
+) {
+    val all = remember(p.eggs) { p.eggs.sortedWith(compareByDescending<PetEgg> { it.rarity.ordinal }.thenBy { it.uid }) }
+    // Up to 1,000 eggs (0.52.0): show them a page at a time.
+    var shown by remember { mutableStateOf(120) }
+    val eggs = all.take(shown)
     Card(modifier) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -322,7 +372,8 @@ private fun EggsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect
                         .clickable { onSelect(if (e.uid == sel) null else e.uid) }
                 ) { EggIconView(e, Modifier.fillMaxSize().padding(3.dp)) }
             }
-            val e = eggs.firstOrNull { it.uid == sel }
+            if (all.size > shown) CyberButton("SHOW MORE (${all.size - shown})", Modifier.fillMaxWidth().padding(top = 6.dp), accent = Palette.Divider) { shown += 120 }
+            val e = all.firstOrNull { it.uid == sel }
             if (e != null) {
                 Spacer(Modifier.height(8.dp))
                 Text(e.name, color = Color(e.rarity.color), style = MaterialTheme.typography.titleSmall)
@@ -333,13 +384,22 @@ private fun EggsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect
                 val free = p.incubator.slots.indexOfFirst { it == null }
                 CyberButton("SEND TO INCUBATOR", Modifier.fillMaxWidth(), accent = Color(0xFFFF6A1A), primary = true, enabled = !full,
                     subtitle = if (full) "ALL THREE INCUBATORS BUSY" else "STARTS HATCHING NOW IN INCUBATOR ${free + 1}") { onSend(e.uid) }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CyberButton("TO VAULT", Modifier.weight(1f), accent = Palette.Gold) { onVault(e.uid) }
+                    var confirm by remember(e.uid) { mutableStateOf(false) }
+                    val worth = Incubators.eggValue(p, e.uid)
+                    CyberButton(if (confirm) "CONFIRM · € ${"%,d".format(worth)}" else "SELL · € ${"%,d".format(worth)}", Modifier.weight(1f), accent = Palette.Euro) {
+                        if (confirm) onSell(e.uid) else confirm = true
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PetsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect: (Long?) -> Unit, onEquip: (Long) -> Unit, onRelease: (Long) -> Unit) {
+private fun PetsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect: (Long?) -> Unit, onEquip: (Long) -> Unit, onVault: (Long) -> Unit, onSell: (Long) -> Unit) {
     val pets = remember(p.pets) { p.pets.sortedWith(compareByDescending<Pet> { it.rarity.ordinal }.thenByDescending { it.uid }) }
     Card(modifier, accent = Palette.Cyan.copy(alpha = 0.6f)) {
         Column {
@@ -371,10 +431,14 @@ private fun PetsPanel(p: PlayerProfile, sel: Long?, modifier: Modifier, onSelect
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     val on = pet.uid == p.activePet
                     CyberButton(if (on) "UNEQUIP" else "EQUIP", Modifier.weight(1f), accent = Palette.Cyan, primary = !on) { onEquip(pet.uid) }
-                    var confirm by remember(pet.uid) { mutableStateOf(false) }
-                    CyberButton(if (confirm) "CONFIRM RELEASE" else "RELEASE", Modifier.weight(1f), accent = Palette.Red) {
-                        if (confirm) onRelease(pet.uid) else confirm = true
-                    }
+                    CyberButton("TO VAULT", Modifier.weight(1f), accent = Palette.Gold) { onVault(pet.uid) }
+                }
+                // SELL replaces RELEASE (owner, 0.52.0): 10× a same-rarity weapon's value, confirmed.
+                var confirm by remember(pet.uid) { mutableStateOf(false) }
+                val worth = Incubators.petValue(p, pet.uid)
+                Spacer(Modifier.height(6.dp))
+                CyberButton(if (confirm) "CONFIRM SELL · € ${"%,d".format(worth)}" else "SELL · € ${"%,d".format(worth)}", Modifier.fillMaxWidth(), accent = Palette.Euro) {
+                    if (confirm) onSell(pet.uid) else confirm = true
                 }
             }
         }
@@ -558,5 +622,88 @@ private fun StatBox(label: String, value: String, sub: String) {
         Text(label, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         Text(value, color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
         Text(sub, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+/**
+ * DATA VAULT sections (owner, 0.52.0: "eggs and pets can be stored in data vault"): GEAR (the
+ * gear vault, [gear]) or the stored PETS / EGGS, with TAKE OUT and SELL.
+ */
+@Composable
+fun VaultSections(save: SaveRepository, p: PlayerProfile, wide: Boolean, gear: @Composable () -> Unit) {
+    var section by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
+            for ((i, label) in listOf("GEAR", "PETS (${p.vaultPets.size})", "EGGS (${p.vaultEggs.size})").withIndex()) {
+                val on = i == section
+                Text(label, color = if (on) Palette.Gold else Palette.TextSecondary, style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier
+                        .background(if (on) Palette.Gold.copy(alpha = 0.14f) else Palette.Surface.copy(alpha = 0.8f), RoundedCornerShape(6.dp))
+                        .border(if (on) 2.dp else 1.dp, if (on) Palette.Gold else Palette.Divider, RoundedCornerShape(6.dp))
+                        .clickable { section = i }
+                        .padding(horizontal = 12.dp, vertical = 6.dp))
+            }
+        }
+        Box(Modifier.weight(1f)) {
+            if (section == 0) gear() else PetVault(save, p, eggs = section == 2)
+        }
+    }
+}
+
+@Composable
+private fun PetVault(save: SaveRepository, p: PlayerProfile, eggs: Boolean) {
+    var sel by remember(eggs) { mutableStateOf<Long?>(null) }
+    var note by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Card(Modifier) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (eggs) "STORED EGGS" else "STORED PETS", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    Text("${p.vaultPets.size + p.vaultEggs.size} / ${"%,d".format(Pets.VAULT_SIZE)}", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+                }
+                Text("Pets and eggs share the vault's ${"%,d".format(Pets.VAULT_SIZE)} pet slots. Store them from CHARACTER › PETS (TO VAULT).",
+                    color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.height(6.dp))
+                if (eggs) {
+                    val list = remember(p.vaultEggs) { p.vaultEggs.sortedByDescending { it.rarity.ordinal } }
+                    if (list.isEmpty()) Text("No eggs stored.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Grid(list.size, 6) { i ->
+                        val e = list[i]
+                        Box(Modifier.fillMaxWidth().aspectRatio(1f)
+                            .border(if (e.uid == sel) 2.dp else 1.dp, if (e.uid == sel) Color.White else Color(e.rarity.color).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                            .clickable { sel = if (e.uid == sel) null else e.uid }) { EggIconView(e, Modifier.fillMaxSize().padding(3.dp)) }
+                    }
+                    list.firstOrNull { it.uid == sel }?.let { e ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(e.name, color = Color(e.rarity.color), style = MaterialTheme.typography.titleSmall)
+                        Text(e.rarity.label, color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.height(6.dp))
+                        CyberButton("TAKE OUT", Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = true) {
+                            if (Incubators.eggFromVault(p, e.uid) == null) note = "Your eggs are full (${Pets.MAX_EGGS})."
+                            else { save.update { Incubators.eggFromVault(it, e.uid) ?: it }; sel = null; note = "" }
+                        }
+                    }
+                } else {
+                    val list = remember(p.vaultPets) { p.vaultPets.sortedByDescending { it.rarity.ordinal } }
+                    if (list.isEmpty()) Text("No pets stored.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Grid(list.size, 5) { i ->
+                        val pet = list[i]
+                        Box(Modifier.fillMaxWidth().aspectRatio(1f)
+                            .then(if (pet.uid == sel) Modifier.border(2.dp, Color.White, RoundedCornerShape(8.dp)) else Modifier)
+                            .clickable { sel = if (pet.uid == sel) null else pet.uid }) { PetIconView(pet.art, pet.rarity, Modifier.fillMaxSize()) }
+                    }
+                    list.firstOrNull { it.uid == sel }?.let { pet ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(pet.name, color = Color(pet.rarity.color), style = MaterialTheme.typography.titleSmall)
+                        Text(pet.rarity.label, color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+                        Spacer(Modifier.height(6.dp))
+                        CyberButton("TAKE OUT", Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = true) {
+                            save.update { Incubators.petFromVault(it, pet.uid) ?: it }; sel = null
+                        }
+                    }
+                }
+                if (note.isNotEmpty()) Text(note, color = Palette.Red, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 6.dp))
+            }
+        }
     }
 }

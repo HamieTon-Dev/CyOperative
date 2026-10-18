@@ -99,12 +99,17 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
     var euros by remember { mutableIntStateOf(mine.euros) }
     var potions by remember { mutableIntStateOf(mine.potions) }
     var picked by remember { mutableStateOf(mine.itemList.map { it.uid }.toSet()) }
+    var pickedEggs by remember { mutableStateOf(mine.eggList.map { it.uid }.toSet()) }
+    var pickedPets by remember { mutableStateOf(mine.petList.map { it.uid }.toSet()) }
     val tradable = p.backpack.filter { !it.locked }
-    fun send(e: Int = euros, po: Int = potions, ids: Set<Long> = picked) {
-        euros = e.coerceIn(0, myWallet); potions = po.coerceIn(0, myCharges); picked = ids
+    fun send(e: Int = euros, po: Int = potions, ids: Set<Long> = picked, eggIds: Set<Long> = pickedEggs, petIds: Set<Long> = pickedPets) {
+        euros = e.coerceIn(0, myWallet); potions = po.coerceIn(0, myCharges); picked = ids; pickedEggs = eggIds; pickedPets = petIds
         val items = tradable.filter { it.uid in picked }.take(TradeDesk.MAX_ITEMS)
-        session.trade(TradeAction.OFFER, TradeOffer(euros, potions, if (items.isEmpty()) "" else Gear.encode(items)))
+        val eggs = p.eggs.filter { it.uid in pickedEggs }.take(TradeDesk.MAX_ITEMS)
+        val pets = p.pets.filter { it.uid in pickedPets }.take(TradeDesk.MAX_ITEMS)
+        session.trade(TradeAction.OFFER, TradeOffer(euros, potions, TradeOffer.pack(items, eggs, pets)))
     }
+    fun toggle(set: Set<Long>, uid: Long) = if (uid in set) set - uid else if (set.size < TradeDesk.MAX_ITEMS) set + uid else set
     Column(
         modifier.widthIn(max = 640.dp).fillMaxWidth()
             .background(Palette.Surface.copy(alpha = 0.97f), RoundedCornerShape(10.dp))
@@ -136,6 +141,19 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
                 send(ids = ids)
             }
         }
+        // Eggs and pets (0.52.0).
+        if (p.eggs.isNotEmpty()) {
+            Text("Eggs:", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (e in p.eggs.take(200)) EggTile(e, e.uid in pickedEggs) { send(eggIds = toggle(pickedEggs, e.uid)) }
+            }
+        }
+        if (p.pets.isNotEmpty()) {
+            Text("Pets:", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (pet in p.pets.take(200)) PetTile(pet.art, pet.rarity, pet.uid in pickedPets) { send(petIds = toggle(pickedPets, pet.uid)) }
+            }
+        }
         Spacer(Modifier.height(10.dp))
         // --- Partner's offer ---
         SideHeader("PARTNER OFFERS", theirs.accepted)
@@ -146,6 +164,12 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
             for (item in list) ItemTile(item, false) {}
         }
         for (item in theirs.itemList.take(TradeDesk.MAX_ITEMS)) Text("◆ ${item.name} · ${item.rarity.label} · LV ${item.level}", color = com.cyberoperative.game.ui.common.rarityColor(item.rarity), style = MaterialTheme.typography.labelSmall)
+        if (theirs.eggList.isNotEmpty() || theirs.petList.isNotEmpty()) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (e in theirs.eggList) EggTile(e, false) {}
+            for (pet in theirs.petList) PetTile(pet.art, pet.rarity, false) {}
+        }
+        for (e in theirs.eggList) Text("◆ ${e.name} · ${e.rarity.label}", color = com.cyberoperative.game.ui.common.rarityColor(e.rarity), style = MaterialTheme.typography.labelSmall)
+        for (pet in theirs.petList) Text("◆ ${pet.name} · ${pet.rarity.label}", color = com.cyberoperative.game.ui.common.rarityColor(pet.rarity), style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CyberButton(if (mine.accepted) "ACCEPTED ✓" else "ACCEPT", Modifier.weight(1f), accent = Palette.Green, primary = !mine.accepted, enabled = !mine.accepted) {
@@ -178,4 +202,26 @@ private fun ItemTile(item: GearItem, selected: Boolean, onClick: () -> Unit) {
             .then(if (selected) Modifier.border(2.dp, Color.White, RoundedCornerShape(6.dp)) else Modifier)
             .clickable(onClick = onClick)
     ) { GearIconView(item, Modifier.size(48.dp)) }
+}
+
+@Composable
+private fun EggTile(e: com.cyberoperative.game.data.PetEgg, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(48.dp).background(Palette.Surface, RoundedCornerShape(6.dp))
+            .border(if (selected) 2.dp else 1.dp, if (selected) Color.White else com.cyberoperative.game.ui.common.rarityColor(e.rarity), RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+    ) {
+        androidx.compose.foundation.Canvas(Modifier.size(48.dp)) {
+            with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(e.art, size.width / 2f, size.height * 0.92f, size.minDimension * 0.8f) }
+        }
+    }
+}
+
+@Composable
+private fun PetTile(art: Int, rarity: com.cyberoperative.game.data.GearRarity, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.size(48.dp)
+            .then(if (selected) Modifier.border(2.dp, Color.White, RoundedCornerShape(6.dp)) else Modifier)
+            .clickable(onClick = onClick)
+    ) { com.cyberoperative.game.ui.common.PetIconView(art, rarity, Modifier.size(48.dp)) }
 }

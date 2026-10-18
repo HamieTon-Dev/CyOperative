@@ -17,7 +17,9 @@ object StoreCatalog {
         DiamondPack("diamonds_150", 150, "$1.00"),
         DiamondPack("diamonds_500", 500, "$4.50"),
         DiamondPack("diamonds_1000", 1_000, "$8.50"),
-        DiamondPack("diamonds_10000", 10_000, "$69.99")
+        // Owner, 0.52.0: ◇5,000 for $29.99 replaces ◇10,000 for $69.99 (new product: create
+        // "diamonds_5000" in Play Console; Steam itemdef 1005, steam/itemdefs.json).
+        DiamondPack("diamonds_5000", 5_000, "$29.99")
     )
 
     val revivePacks = listOf(

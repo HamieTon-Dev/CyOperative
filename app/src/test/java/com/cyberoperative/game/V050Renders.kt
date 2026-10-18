@@ -89,11 +89,28 @@ class V050Renders {
         r.update { p -> p.copy(characterId = "c", characterName = "ZERO",
             pets = arts.mapIndexed { i, a -> Pet(i + 1L, a, tiers[i], fresh = false, eggArt = a) }, activePet = 1L,
             eggs = listOf(com.cyberoperative.game.data.PetEgg(20, GearRarity.FORGED, Pets.NEW_BASE + 100, Pets.NEW_BASE + 100),
-                com.cyberoperative.game.data.PetEgg(21, GearRarity.GLITCHED, Pets.NEW_BASE + 5, Pets.NEW_BASE + 5))) }
+                com.cyberoperative.game.data.PetEgg(21, GearRarity.GLITCHED, Pets.NEW_BASE + 5, Pets.NEW_BASE + 5)),
+            incubator = p.incubator.copy(slots = listOf(
+                com.cyberoperative.game.data.IncubatorSlot(com.cyberoperative.game.data.PetEgg(30, GearRarity.ABYSSAL, Pets.NEW_BASE + 400, Pets.NEW_BASE + 400), progress = 3 * 3_600_000L),
+                null, null))) }
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.CharacterScreen(r, {}, startTab = com.cyberoperative.game.ui.menu.CharTab.PETS, inRun = true) } }
         compose.mainClock.advanceTimeBy(1500)
         shot("v051_in_run_pets")
+    }
+
+    @Test fun vaultPets() {
+        assumeTrue(on)
+        val r = repo()
+        r.update { p -> p.copy(characterId = "c", characterName = "ZERO",
+            vaultPets = (0 until 7).map { Pet(100L + it, Pets.NEW_BASE + 1050 + it * 13, if (it < 3) GearRarity.GLITCHED else GearRarity.ENCRYPTED, fresh = false) },
+            vaultEggs = (0 until 4).map { com.cyberoperative.game.data.PetEgg(200L + it, GearRarity.FORGED, Pets.NEW_BASE + 100 + it, Pets.NEW_BASE + 100 + it) }) }
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.CharacterScreen(r, {}, startTab = com.cyberoperative.game.ui.menu.CharTab.VAULT) } }
+        compose.mainClock.advanceTimeBy(800)
+        compose.onAllNodesWithText("PETS (7)")[0].performClick()
+        compose.mainClock.advanceTimeBy(800)
+        shot("v052_vault_pets")
     }
 
     @Test fun menu() {
