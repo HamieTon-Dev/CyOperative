@@ -36,7 +36,7 @@ object PetArt {
 
     /** Decodes the atlases on a background thread (app start). */
     fun preload() {
-        Thread({ for (i in 0..7) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
+        Thread({ for (i in 0..8) { image("pets_$i"); image("eggs_$i") } }, "pet-atlas").apply { isDaemon = true }.start()
     }
 
     private fun DrawScope.cell(page: String, index: Int, px: Int, dx: Float, dy: Float, size: Float, alpha: Float) {
@@ -60,8 +60,42 @@ object PetArt {
         val bob = if (anim.floats) kotlin.math.sin(time * 2.2f) * 0.035f * size else 0f
         val top = bottom - size + bob
         with(PetFx) { draw(anim, left, top, size, time, front = false, alpha = alpha) }
-        cell("pets", Pets.validPet(art), Pets.PET_PX, left, top, size, alpha)
+        if (anim.glitches) glitchCell(Pets.validPet(art), left, top, size, alpha, time)
+        else cell("pets", Pets.validPet(art), Pets.PET_PX, left, top, size, alpha)
         with(PetFx) { draw(anim, left, top, size, time, front = true, alpha = alpha) }
+    }
+
+    /**
+     * GLITCHED ENCRYPTED pets (0.49.0): now and then (like the gear's card) the sprite splits into
+     * a red and a cyan ghost and its rows tear sideways; otherwise it's drawn as is.
+     */
+    private fun DrawScope.glitchCell(index: Int, dx: Float, dy: Float, size: Float, alpha: Float, time: Float) {
+        val img = image("pets_${index / Pets.PER_PAGE}") ?: return
+        val px = Pets.PET_PX
+        val i = index % Pets.PER_PAGE
+        val sx = (i % Pets.COLS) * px; val sy = (i / Pets.COLS) * px
+        val seed = (time * 9f).toInt()
+        val burst = seed % 7 < 2
+        val d = size.toInt().coerceAtLeast(1)
+        if (!burst) {
+            drawImage(img, IntOffset(sx, sy), IntSize(px, px), IntOffset(dx.toInt(), dy.toInt()), IntSize(d, d), alpha = alpha, filterQuality = FilterQuality.Medium)
+            return
+        }
+        val shift = (size * 0.04f).coerceAtLeast(1f)
+        for ((c, s) in listOf(Color(0xFFFF2B3A) to -1f, Color(0xFF00F0FF) to 1f))
+            drawImage(img, IntOffset(sx, sy), IntSize(px, px), IntOffset((dx + shift * s).toInt(), dy.toInt()), IntSize(d, d),
+                alpha = alpha * 0.55f, colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(c, androidx.compose.ui.graphics.BlendMode.SrcIn),
+                filterQuality = FilterQuality.Medium)
+        // Four bands, each pushed sideways by its own amount.
+        val bands = 4
+        for (b in 0 until bands) {
+            val j = (((seed * 73 + b * 151) * 2654435761L) ushr 12 and 0xFF) / 255f
+            val off = ((j - 0.5f) * size * 0.12f).toInt()
+            val s0 = px * b / bands; val s1 = px * (b + 1) / bands
+            val d0 = d * b / bands; val d1 = d * (b + 1) / bands
+            drawImage(img, IntOffset(sx, sy + s0), IntSize(px, s1 - s0), IntOffset(dx.toInt() + off, dy.toInt() + d0), IntSize(d, (d1 - d0).coerceAtLeast(1)),
+                alpha = alpha, filterQuality = FilterQuality.Medium)
+        }
     }
 
     fun DrawScope.drawEgg(art: Int, cx: Float, bottom: Float, size: Float, alpha: Float = 1f) =

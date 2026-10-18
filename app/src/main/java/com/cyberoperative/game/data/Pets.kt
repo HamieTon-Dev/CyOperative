@@ -136,8 +136,11 @@ object Pets {
      * tier, name and egg name. GLITCHED and better eggs hatch these.
      */
     const val NEW_BASE = 1024
-    /** 500 from 0.40.0 (GLITCHED … ENCRYPTED) + 500 animated ENCRYPTED from 0.41.0. */
-    const val NEW_COUNT = 1000
+    /**
+     * 500 from 0.40.0 (GLITCHED … ENCRYPTED) + 500 animated ENCRYPTED from 0.41.0 + 50 animated
+     * GLITCHED ENCRYPTED from 0.49.0 (tools/pets/gen_gx_pets.py; pages 7–8).
+     */
+    const val NEW_COUNT = 1050
 
     private class NewPet(val tier: GearRarity, val name: String, val egg: String, val anim: PetAnim?)
     private val newPets: List<NewPet> by lazy {
@@ -208,7 +211,9 @@ object Pets {
         GearRarity.CELESTIAL -> 360
         GearRarity.ABYSSAL -> 480
         // Pets top out at ENCRYPTED; GLITCHED ENCRYPTED (gear only, 0.47.0) reads as it.
-        GearRarity.ENCRYPTED, GearRarity.GLITCHED_ENCRYPTED -> 600
+        GearRarity.ENCRYPTED -> 600
+        // GLITCHED ENCRYPTED pets (owner, 0.49.0): 12 h, above ENCRYPTED's 10 h.
+        GearRarity.GLITCHED_ENCRYPTED -> 720
     }
 
     // --- Art --------------------------------------------------------------------------------
@@ -264,8 +269,8 @@ object Pets {
         return pics[(seed.mod(pics.size.toLong())).toInt()]
     }
 
-    /** Pets and eggs top out at ENCRYPTED (GLITCHED ENCRYPTED is gear only, 0.47.0). */
-    val TOP = GearRarity.ENCRYPTED
+    /** Pets and eggs go all the way to GLITCHED ENCRYPTED (owner, 0.49.0: 50 of them). */
+    val TOP = GearRarity.GLITCHED_ENCRYPTED
     /** The rarities pets come in. */
     val RARITIES: List<GearRarity> get() = GearRarity.entries.filter { it <= TOP }
 
@@ -310,7 +315,8 @@ object Pets {
         GearRarity.VOLTAIC -> 0.95f
         GearRarity.CELESTIAL -> 1.10f
         GearRarity.ABYSSAL -> 1.30f
-        GearRarity.ENCRYPTED, GearRarity.GLITCHED_ENCRYPTED -> 1.55f
+        GearRarity.ENCRYPTED -> 1.55f
+        GearRarity.GLITCHED_ENCRYPTED -> 1.8f
     }
 
     /** Seconds between pet shots: 1.1 s for COMMON down to about 0.5 s for ENCRYPTED. */
@@ -349,11 +355,13 @@ object Pets {
  * drawn live by `ui/common/PetFx`.
  */
 class PetAnim(val parts: List<Part>) {
-    enum class Kind { ORBS, RING, GEARS, PROP, SHARDS, HELIX, SCAN, PULSE, FLOAT }
-    /** [color] is ARGB, or null for RAINBOW (cycles every rarity colour). */
-    class Part(val kind: Kind, val count: Int, val color: Long?, val speed: Float)
+    /** GLITCH (0.49.0): the sprite itself tears into red / cyan slices now and then. */
+    enum class Kind { ORBS, RING, GEARS, PROP, SHARDS, HELIX, SCAN, PULSE, FLOAT, GLITCH }
+    /** [color] is ARGB, or null for RAINBOW (cycles every rarity colour); [gx]: cyan ↔ red (GLITCHED ENCRYPTED). */
+    class Part(val kind: Kind, val count: Int, val color: Long?, val speed: Float, val gx: Boolean = false)
 
     val floats: Boolean get() = parts.any { it.kind == Kind.FLOAT }
+    val glitches: Boolean get() = parts.any { it.kind == Kind.GLITCH }
 
     companion object {
         fun parse(s: String?): PetAnim? {
@@ -361,8 +369,9 @@ class PetAnim(val parts: List<Part>) {
             val parts = s.split(';').mapNotNull { p ->
                 val f = p.split(':')
                 val kind = runCatching { Kind.valueOf(f[0]) }.getOrNull() ?: return@mapNotNull null
-                val color = f.getOrNull(2)?.let { if (it == "RAINBOW") null else (0xFF000000L or (it.toLongOrNull(16) ?: 0xFFFFFFL)) }
-                Part(kind, f.getOrNull(1)?.toIntOrNull() ?: 1, color, f.getOrNull(3)?.toFloatOrNull() ?: 1f)
+                val gx = f.getOrNull(2) == "GX"
+                val color = f.getOrNull(2)?.let { if (it == "RAINBOW" || it == "GX") null else (0xFF000000L or (it.toLongOrNull(16) ?: 0xFFFFFFL)) }
+                Part(kind, f.getOrNull(1)?.toIntOrNull() ?: 1, color, f.getOrNull(3)?.toFloatOrNull() ?: 1f, gx)
             }
             return if (parts.isEmpty()) null else PetAnim(parts)
         }

@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.48.1 (versionCode 138) |
+| Version | 0.49.0 (versionCode 139) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.49.0 GLITCHED ENCRYPTED pets:**
+  - `Pets.NEW_COUNT` is 1050 and `Pets.TOP` is GLITCHED_ENCRYPTED.
+  - They come from `tools/pets/gen_gx_pets.py`, which must run AFTER `gen_new_pets.py` (that script rewrites `new_pets.txt` and pages 4–7). It fills page 7's cells 232–255 and page 8.
+  - `PetAnim.Part.gx` uses the `RarityFx.gxColor` colour. `Kind.GLITCH` is drawn by `PetArt.glitchCell`.
 - **0.48.1:**
   - `squish` (GameScreen) is true for portrait, not desktop, and `settings.compactHud`. Landscape always pads the arena under its strip (`hudAbove = landscape`).
   - `TouchLayout.seeThrough` (from `settings.seeThroughButtons`) picks between opaque and see-through drawing for buttons, the stick and INV/MAP.

@@ -26,14 +26,14 @@ class V040PetsTest {
 
     @Test fun aThousandNamedPetsSurviveTheLoadoutCodec() {
         val names = (0 until Pets.NEW_COUNT).map { Pets.petName(Pets.NEW_BASE + it) }
-        assertEquals(1000, names.toSet().size)
+        assertEquals(Pets.NEW_COUNT, names.toSet().size) // 1,050 since 0.49.0, every name unique
         val last = Pets.NEW_BASE + Pets.NEW_COUNT - 1
         assertEquals(last, PetLoadout.decode(Pet(1, last, GearRarity.ENCRYPTED).loadout.encode())!!.art)
         assertEquals(Pets.PET_COUNT - 1, Pets.validPet(Pets.PET_COUNT + 3))
     }
 
     @Test fun fiveHundredAnimatedEncryptedPets() {
-        val animated = (0 until Pets.NEW_COUNT).map { Pets.NEW_BASE + it }.filter { Pets.anim(it) != null }
+        val animated = (0 until Pets.NEW_COUNT).map { Pets.NEW_BASE + it }.filter { Pets.anim(it) != null && Pets.designedTier(it) == GearRarity.ENCRYPTED }
         assertEquals(500, animated.size)
         assertTrue(animated.all { Pets.designedTier(it) == GearRarity.ENCRYPTED })
         assertTrue(animated.all { a -> Pets.anim(a)!!.parts.any { it.kind != com.cyberoperative.game.data.PetAnim.Kind.FLOAT } })

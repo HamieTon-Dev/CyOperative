@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.49.0 (versionCode 139) — 2026-10-18 · 50 GLITCHED ENCRYPTED pets and eggs
+### Added (owner)
+- **50 GLITCHED ENCRYPTED pets, each with its own egg** (`tools/pets/gen_gx_pets.py`):
+  - Encrypted-style bodies in cyan and red, with torn glitch slices, a red/cyan fringe and scanlines, like the gear.
+  - All of them are animated. Their orbs, rings, gears, shards and scanners switch between cyan and red.
+  - The new GLITCH effect tears the sprite into red and cyan ghosts every so often, in runs and in menus.
+  - Review sheet: `docs/pets_new/glitched_encrypted_pets.png`. Clips: `glitched_encrypted_pets.gif` and the in-game hatch, `glitched_encrypted_hatch.gif`.
+- **Stats:**
+  - **12 h** hatch time (Encrypted is 10 h);
+  - shots deal **180%** of your payload (Encrypted 155%);
+  - instant hatch from full is 5,760 ◇ with the approved formula;
+  - the hatch glow is the full 2×, in the shifting colour.
+- **Drops:** a boss or elite egg can now roll GLITCHED ENCRYPTED, at the same tiny rate as the gear (0.1% of boss egg rarities). The ◇ store eggs are unchanged.
+- The pets sit after the existing 1,000 (art 2024–2073), on atlas page 7's free cells and a new page 8. The old pets are pixel-identical.
+
 ## 0.48.1 (versionCode 138) — 2026-10-18 · Squish polish: portrait only, opaque buttons, boss HP
 ### Changed (owner)
 - **The compact HUD is portrait only.** Landscape phones are back to the slim strip (with the compact 3-row buffs).

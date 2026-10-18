@@ -63,3 +63,27 @@ class V047GlitchedEncryptedTest {
         assertEquals(gx, back.rarity); assertEquals(GearSlot.PRIMARY, back.slot); assertEquals(299, back.art)
     }
 }
+
+/** 0.49.0: the 50 GLITCHED ENCRYPTED pets and eggs. */
+class V049GlitchedEncryptedPetsTest {
+    private val gx = GearRarity.GLITCHED_ENCRYPTED
+
+    @Test fun fiftyAnimatedGlitchingPetsWithTheirOwnEggs() {
+        val arts = (0 until com.cyberoperative.game.data.Pets.NEW_COUNT).map { com.cyberoperative.game.data.Pets.NEW_BASE + it }
+            .filter { com.cyberoperative.game.data.Pets.designedTier(it) == gx }
+        assertEquals(50, arts.size)
+        for (a in arts) {
+            val anim = com.cyberoperative.game.data.Pets.anim(a)!!
+            assertTrue(anim.glitches)
+            assertTrue(anim.parts.any { it.gx })
+        }
+        val r = Random(9)
+        repeat(30) {
+            val e = com.cyberoperative.game.data.Pets.rollEgg(r, it.toLong(), gx)
+            assertEquals(gx, e.rarity); assertTrue(e.art in arts); assertEquals(e.art, e.pet)
+        }
+        assertEquals(720L * 60_000L, com.cyberoperative.game.data.Pets.hatchMs(gx))
+        val res = listOf(File("src/main/resources/pets"), File("app/src/main/resources/pets")).first { it.isDirectory }
+        assertTrue(File(res, "pets_8.webp").isFile && File(res, "eggs_8.webp").isFile)
+    }
+}

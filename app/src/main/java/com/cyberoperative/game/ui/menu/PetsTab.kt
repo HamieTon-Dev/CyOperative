@@ -404,11 +404,11 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
     // The hatch sound as the egg bursts (also when the player taps ahead past it).
     val burst = t >= crack
     LaunchedEffect(pet.uid, burst) { if (burst) com.cyberoperative.game.engine.UiSound.play(com.cyberoperative.game.engine.GameSound.PET_HATCH) }
-    val c = Color(pet.rarity.color)
+    // GLITCHED ENCRYPTED shifts cyan ↔ red (0.49.0); every other rarity keeps its colour.
+    val c = com.cyberoperative.game.ui.common.rarityColor(pet.rarity)
     // Rarer eggs hatch bigger (owner, 0.45.1): the glow is the base size for COMMON and grows
-    // evenly to twice that for ENCRYPTED.
-    // Pets top out at ENCRYPTED (2×).
-    val scale = 1f + pet.rarity.ordinal.coerceAtMost(com.cyberoperative.game.data.GearRarity.ENCRYPTED.ordinal) / com.cyberoperative.game.data.GearRarity.ENCRYPTED.ordinal.toFloat()
+    // evenly to twice that for the top pet rarity (GLITCHED ENCRYPTED since 0.49.0).
+    val scale = 1f + pet.rarity.ordinal / com.cyberoperative.game.data.Pets.TOP.ordinal.toFloat()
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.86f))
             .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {

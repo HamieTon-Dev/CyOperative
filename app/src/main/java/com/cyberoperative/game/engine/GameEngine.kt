@@ -3629,9 +3629,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (o in ops) {
             if (o.gone) continue
             if (petRng.nextFloat() < (if (boss) com.cyberoperative.game.data.Pets.BOSS_EGG else com.cyberoperative.game.data.Pets.ELITE_EGG)) {
-                // Eggs top out at ENCRYPTED: GLITCHED ENCRYPTED is gear only (0.47.0).
+                // Every rarity, GLITCHED ENCRYPTED included (its 50 pets, 0.49.0).
                 val rarity = com.cyberoperative.game.data.Gear.rollRarity(petRng, boss, inf, (config.difficulty.luck * 0.3f).coerceAtLeast(0f), false)
-                    .coerceAtMost(com.cyberoperative.game.data.GearRarity.ENCRYPTED)
                 o.eggsFound += com.cyberoperative.game.data.Pets.rollEgg(petRng, (o.eggsFound.size + 1).toLong(), rarity)
                 if (o === ops[primary]) addText(x, y - 56f, "EGG FOUND", TextKind.INFO)
             }

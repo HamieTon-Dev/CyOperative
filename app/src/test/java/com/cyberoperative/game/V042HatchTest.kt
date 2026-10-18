@@ -15,7 +15,7 @@ class V042HatchTest {
     private val min = 60_000L
 
     @Test fun pricesMatchTheApprovedChart() {
-        val want = listOf(4, 16, 40, 160, 400, 600, 840, 1280, 2160, 3200, 4400)
+        val want = listOf(4, 16, 40, 160, 400, 600, 840, 1280, 2160, 3200, 4400, 5760) // + GLITCHED ENCRYPTED (0.49.0, 12 h)
         for ((i, r) in Pets.RARITIES.withIndex()) assertEquals("$r", want[i], Pets.instantHatchPrice(r, Pets.hatchMs(r)))
         assertEquals(2200, Pets.instantHatchPrice(GearRarity.ENCRYPTED, 300 * min))
         assertEquals(0, Pets.instantHatchPrice(GearRarity.ENCRYPTED, 0))

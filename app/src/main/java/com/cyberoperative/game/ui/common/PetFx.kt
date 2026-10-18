@@ -24,6 +24,7 @@ object PetFx {
 
     private fun color(p: PetAnim.Part, t: Float, i: Int): Color {
         p.color?.let { return Color(it) }
+        if (p.gx) return RarityFx.gxColor(t + i * 0.3f)
         val f = ((t * 0.6f + i * 0.13f) % 1f) * rainbow.size
         val a = rainbow[f.toInt() % rainbow.size]; val b = rainbow[(f.toInt() + 1) % rainbow.size]
         return lerp(Color(a), Color(b), f - f.toInt())
@@ -92,7 +93,7 @@ object PetFx {
                     val v = 0.42f + (sin(t * 2.5f * abs(p.speed)) * 0.5f + 0.5f) * 0.2f
                     drawLine(color(p, t, 0).copy(alpha = 0.86f * alpha), Offset(x(0.28f), y(v)), Offset(x(0.72f), y(v)), 0.012f * size)
                 }
-                PetAnim.Kind.FLOAT -> {}
+                PetAnim.Kind.FLOAT, PetAnim.Kind.GLITCH -> {}
             }
         }
     }

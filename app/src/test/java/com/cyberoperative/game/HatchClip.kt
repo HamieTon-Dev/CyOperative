@@ -28,14 +28,18 @@ import java.io.File
 class HatchClip {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun frames() {
+    @Test fun frames() = clip("hatch_frames", Pets.NEW_BASE + 500 + 3, GearRarity.ENCRYPTED)
+
+    /** 0.49.0: a GLITCHED ENCRYPTED pet hatching (docs/pets_new/glitched_encrypted_hatch.gif). */
+    @Test fun gxFrames() = clip("hatch_frames_gx", Pets.NEW_BASE + 1000 + 7, GearRarity.GLITCHED_ENCRYPTED)
+
+    private fun clip(dir: String, art: Int, rarity: GearRarity) {
         assumeTrue(System.getProperty("cyberop.renderPreviews") == "true")
-        val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens", "../../app/build/hatch_frames").canonicalFile
+        val out = File(System.getProperty("cyberop.previewDir") ?: "build/screens", "../../app/build/$dir").canonicalFile
         out.deleteRecursively(); out.mkdirs()
         val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
         val repo = SaveRepository(ctx)
-        val art = Pets.NEW_BASE + 500 + 3
-        repo.update { it.copy(characterId = "c", characterName = "ZERO", pets = listOf(Pet(1L, art, GearRarity.ENCRYPTED, fresh = true, eggArt = art))) }
+        repo.update { it.copy(characterId = "c", characterName = "ZERO", pets = listOf(Pet(1L, art, rarity, fresh = true, eggArt = art))) }
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { CharacterScreen(repo, {}, startTab = CharTab.PETS) } }
         val view = compose.activity.window.decorView

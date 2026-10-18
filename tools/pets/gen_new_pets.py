@@ -654,6 +654,9 @@ def anim_spec(rnd, accent, eye):
 
 
 def _col(c, t, i=0):
+    if c == "GX":  # GLITCHED ENCRYPTED (0.49.0): cyan <-> red, like RarityFx.gxColor
+        s = 0.5 + 0.5 * math.tanh(4 * math.sin(t * 2.6 + i * 0.3))
+        return mix((0, 240, 255), (255, 43, 58), s)
     if c == "RAINBOW":
         f = (t * 0.6 + i * 0.13) % 1.0 * len(RAINBOW)
         a, b = RAINBOW[int(f) % len(RAINBOW)], RAINBOW[(int(f) + 1) % len(RAINBOW)]
