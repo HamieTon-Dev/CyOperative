@@ -186,7 +186,13 @@ private val rawMusic: Map<String, Int> = mapOf(
     "track_inferno4" to R.raw.track_inferno4,
     "track_inferno4_2" to R.raw.track_inferno4_2,
     "track_inferno_boss_1" to R.raw.track_inferno_boss_1,
-    "track_inferno_boss_2" to R.raw.track_inferno_boss_2
+    "track_inferno_boss_2" to R.raw.track_inferno_boss_2,
+    // NEON (0.37.5): missing here until 0.45.3, so they played silently on Android.
+    "track_neon_alley_1" to R.raw.track_neon_alley_1,
+    "track_neon_alley_2" to R.raw.track_neon_alley_2,
+    "track_neon_alley_3" to R.raw.track_neon_alley_3,
+    "track_neon_afterglow" to R.raw.track_neon_afterglow,
+    "track_neon_requiem" to R.raw.track_neon_requiem
 )
 
 fun musicResource(file: String): Int = rawMusic[file] ?: error("Unknown music file $file")

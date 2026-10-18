@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.45.3 (versionCode 131) — 2026-10-18 · NEON tracks play again
+### Fixed (owner: "the songs I added last make no sound when played")
+- The five NEON tracks (Neon Alley 1987 1–3, Neon Afterglow 1987, Neon Requiem) were silent on Android. They were never added to the Android music file list, so the player caught an error and showed the title with no sound. They now play. PC was not affected.
+- New test `MusicFilesTest`: every soundtrack track must have its Android resource and its file, so a new song can't go silent this way again.
+
 ## 0.45.2 (versionCode 130) — 2026-10-18 · Hatch sound
 ### Added (owner)
 - **Hatch sound.** When the egg bursts there is a shell crack, a soft pop, and a rising bell chime that sparkles out. It plays once per pet, on Android and PC, and it follows the SFX volume.

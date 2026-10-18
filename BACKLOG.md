@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.45.3: fixed the silent NEON tracks on Android (missing from `rawMusic`), guarded by `MusicFilesTest`.
 - CO-160 COMPANIONS (owner brief 2026-10-17).
   - ✅ 0.38.0: eggs, incubator, Inferno Stones, pets that follow and fight, the owner's 1,005 pets and 872 eggs.
   - ✅ 0.45.2: hatch sound and a hatch clip.
