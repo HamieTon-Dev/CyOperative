@@ -9,5 +9,16 @@ enum class GameSound {
     /** Gear drops (owner, 2026-10-13): a sheen above BLUE, a bigger one for GOLDEN and up. */
     GEAR_SHEEN, GEAR_LEGENDARY,
     /** INFERNO rarity drops (owner's recorded sounds, 0.36.0): T1 Forged … T4 Abyssal. */
-    GEAR_FORGED, GEAR_VOLTAIC, GEAR_CELESTIAL, GEAR_ABYSSAL
+    GEAR_FORGED, GEAR_VOLTAIC, GEAR_CELESTIAL, GEAR_ABYSSAL,
+    /** An egg bursting open in the hatch reveal (owner, 0.45.2; tools/sfx/pet_hatch.py). */
+    PET_HATCH
+}
+
+/**
+ * Sounds from menu screens that have no AudioManager to hand (the PETS tab's hatch reveal):
+ * each platform's app sets [player] when its audio starts.
+ */
+object UiSound {
+    @Volatile var player: ((GameSound) -> Unit)? = null
+    fun play(sound: GameSound) { player?.invoke(sound) }
 }

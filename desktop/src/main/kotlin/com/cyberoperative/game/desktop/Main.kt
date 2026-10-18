@@ -44,6 +44,7 @@ fun main(args: Array<String>) {
         hapticsEnabled = false
         initialize()
     }
+    com.cyberoperative.game.engine.UiSound.player = { audio.play(it) }
     com.cyberoperative.game.ui.common.KeyBinds.map = save.current.settings.keyBinds
     // Steam co-op when Steam is running; otherwise direct IP co-op (host / join by address).
     val coop: CoopBackend = if (SteamService.running) SteamCoopBackend(SteamService) else com.cyberoperative.game.lan.DirectIpCoopBackend()

@@ -30,7 +30,8 @@ object SoundBank {
         GameSound.GEAR_FORGED to ("sfx/drop_forged.wav" to 0.75f),
         GameSound.GEAR_VOLTAIC to ("sfx/drop_voltaic.wav" to 0.8f),
         GameSound.GEAR_CELESTIAL to ("sfx/drop_celestial.wav" to 0.85f),
-        GameSound.GEAR_ABYSSAL to ("sfx/drop_abyssal.wav" to 0.95f)
+        GameSound.GEAR_ABYSSAL to ("sfx/drop_abyssal.wav" to 0.95f),
+        GameSound.PET_HATCH to ("sfx/pet_hatch.wav" to 0.9f)
     )
 
     /** Playback gain for [sound], recorded or synthesized. */

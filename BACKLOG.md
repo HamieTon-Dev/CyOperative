@@ -7,6 +7,7 @@ device, tune balance, then fill out the store/meta phases.
 ## IN PROGRESS
 - CO-160 COMPANIONS (owner brief 2026-10-17).
   - ✅ 0.38.0: eggs, incubator, Inferno Stones, pets that follow and fight, the owner's 1,005 pets and 872 eggs.
+  - ✅ 0.45.2: hatch sound and a hatch clip.
   - Next:
     - owner check of store egg prices / odds and pet power;
     - pet levels or duplicates (merge?).

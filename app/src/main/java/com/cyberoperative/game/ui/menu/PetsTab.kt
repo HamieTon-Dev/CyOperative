@@ -401,6 +401,9 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
     }
     val crack = 1.7f      // the egg bursts
     val card = 2.4f       // the stats fade in
+    // The hatch sound as the egg bursts (also when the player taps ahead past it).
+    val burst = t >= crack
+    LaunchedEffect(pet.uid, burst) { if (burst) com.cyberoperative.game.engine.UiSound.play(com.cyberoperative.game.engine.GameSound.PET_HATCH) }
     val c = Color(pet.rarity.color)
     // Rarer eggs hatch bigger (owner, 0.45.1): the glow is the base size for COMMON and grows
     // evenly to twice that for ENCRYPTED.

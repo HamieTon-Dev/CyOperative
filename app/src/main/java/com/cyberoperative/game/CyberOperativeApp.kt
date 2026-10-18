@@ -28,6 +28,7 @@ class CyberOperativeApp : Application() {
         audio.setVolumes(s.musicVolume, s.sfxVolume)
         audio.hapticsEnabled = s.haptics
         audio.initialize()
+        com.cyberoperative.game.engine.UiSound.player = { audio.play(it) }
         idle = com.cyberoperative.game.widget.AndroidIdleHost(this)
         com.cyberoperative.game.idle.IdleRuns.host = idle
         com.cyberoperative.game.meta.PetReminders.schedule = { slot, at, name -> com.cyberoperative.game.widget.PetHatchWorker.schedule(this, slot, at, name) }

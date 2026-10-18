@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.45.2 (versionCode 130) — 2026-10-18 · Hatch sound
+### Added (owner)
+- **Hatch sound.** When the egg bursts there is a shell crack, a soft pop, and a rising bell chime that sparkles out. It plays once per pet, on Android and PC, and it follows the SFX volume.
+  - The sound is `sfx/pet_hatch.wav`, made by `tools/sfx/pet_hatch.py`.
+  - Menu screens can now play sounds through `UiSound`.
+- **Hatch clip:** `docs/pets_new/hatch_animation.mp4` shows a full hatch from start to finish, with sound and the stats card. It is built by `HatchClip` (`-PrenderPreviews`) and `tools/sfx/hatch_clip.sh`.
+
 ## 0.45.1 (versionCode 129) — 2026-10-18 · Hatch glow scales with rarity
 ### Changed (owner)
 - The hatch glow is one animation, always in the rarity's colour, that grows with rarity. COMMON gets the base glow; each rarity is a step bigger, up to twice the size for ENCRYPTED. The rays, halo, sparkles, flash and the egg's glow while it cracks all scale together.
