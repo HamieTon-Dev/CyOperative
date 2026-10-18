@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.47.1 (versionCode 134) — 2026-10-18 · Thinner Plasma Beam
+### Changed (owner: "it covers a whole line on the screen")
+- The Plasma Beam is drawn at 15% of its old thickness: its glow, core, pulses, muzzle flare and impact all shrink. What it hits and its damage are unchanged.
+- `docs/store-screenshots/01_plasma_beam.png` re-rendered.
+
 ## 0.47.0 (versionCode 133) — 2026-10-18 · GLITCHED ENCRYPTED gear
 ### Added (owner)
 - **GLITCHED ENCRYPTED**, a new top gear rarity above ENCRYPTED.

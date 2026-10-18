@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.47.0 (versionCode 133) |
+| Version | 0.47.1 (versionCode 134) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.47.1:** the Plasma Beam is drawn at `BEAM_LOOK` (15%) of `GameEngine.beamWidth` in `ArenaRenderer.drawBeam`. Its hit width is unchanged.
 - **0.47.0 GLITCHED ENCRYPTED:**
   - It is the last `GearRarity`, with `artTier = GearArt.GX_TIER` (9). Its art is a separate sheet, `<slot>_gx.webp` (`GearIcons.gxAtlas`), drawn at cells `0..count-1`.
   - PRIMARY art: 0–49 are shared rifles, then 50 per class in `GunStyle.classed` order. Use `GunStyle.forArt(art, rarity)`.

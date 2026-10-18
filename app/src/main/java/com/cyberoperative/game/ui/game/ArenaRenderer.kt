@@ -2121,6 +2121,9 @@ class ArenaRenderer {
         }
     }
 
+    /** Plasma Beam look: its drawn width as a share of its hit width. */
+    private val BEAM_LOOK = 0.15f
+
     /** Plasma Beam: layered cyan glow with a white-hot core, muzzle flare and impact sparks. */
     private fun DrawScope.drawBeam(g: GameEngine, time: Float, lift: Float) {
         if (!g.beamActive) return
@@ -2129,14 +2132,16 @@ class ArenaRenderer {
         val sy = g.py - lift - 6f + sin(ang) * 30f
         val ex = g.beamX2
         val ey = g.beamY2 - lift
-        val w = g.beamWidth
+        // Drawn at 15% of its old thickness (owner, 0.47.1: "it covers a whole line on the screen");
+        // what it hits is unchanged (GameEngine.beamWidth).
+        val w = (g.beamWidth * BEAM_LOOK).coerceAtLeast(2.5f)
         val flick = 0.85f + 0.15f * sin(time * 60f)
         val a = Offset(sx, sy)
         val b = Offset(ex, ey)
         drawLine(Palette.Cyan.copy(alpha = 0.10f), a, b, w * 2.6f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         drawLine(Palette.Cyan.copy(alpha = 0.30f * flick), a, b, w * 1.5f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
         drawLine(Color(0xFF7DF9FF).copy(alpha = 0.85f), a, b, w * 0.75f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        drawLine(Color.White.copy(alpha = 0.95f * flick), a, b, w * 0.3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(Color.White.copy(alpha = 0.95f * flick), a, b, (w * 0.3f).coerceAtLeast(1f), cap = androidx.compose.ui.graphics.StrokeCap.Round)
         // Energy pulses travelling down the beam.
         val len = kotlin.math.hypot(ex - sx, ey - sy)
         if (len > 1f) for (k in 0 until 4) {
