@@ -370,6 +370,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     val shopItems: List<ShopItem> get() = cur.shopItems
     /** This player's own shop egg (the host sees theirs, a co-op guest theirs), shown on the counter. */
     val shopEgg: EggShopItem? get() = cur.shopEgg
+    /** This player's own gear for sale, laid out on the counter. */
+    val shopGear: List<GearShopItem> get() = cur.shopGear
     /** Seed of the shop room (so a co-op guest builds the same room). */
     var shopSeed = 0L
         private set

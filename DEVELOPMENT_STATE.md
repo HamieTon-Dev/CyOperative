@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.53.1 (versionCode 147) |
+| Version | 0.53.2 (versionCode 148) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.53.2:**
+  - `ArenaGenerator.counter()` is 340 × 170 at y 236–406. `shopRoom` places 1–2 fixtures (≤ 60 wide) flush against the walls, never inside `ArenaGenerator.shopKeepOut()` (the counter ±120, from y 0 to its bottom + 320).
+  - `ArenaRenderer` SHOP_COUNTER draws `GameEngine.shopGear` (`cur`) as [ : egg : ]: gear 0/1 on the left (back/front), gear 2/3 on the right, the egg in the middle, at `SHOP_ITEM_PX` 58 with `tableGlow`.
+  - The chips are no longer on the table; they are only in the panel.
+  - Co-op `VERSION` 37.
 - **0.53.1:**
   - The counter egg is drawn in `ArenaRenderer` (SHOP_COUNTER) from `PropRoom.shopEgg`, which comes from `GameEngine.shopEgg` (`cur.shopEgg`, i.e. the local player's).
   - Sizes: `SHOP_EGG_PX` 38 and `SHOP_EGG_GLOW` 0.45, using the `drawLootBeam` glow clipped to the table.

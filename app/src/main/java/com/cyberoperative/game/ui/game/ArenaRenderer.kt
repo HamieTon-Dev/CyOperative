@@ -1182,8 +1182,15 @@ class ArenaRenderer {
      * What a prop needs to know about its room, so the same prop art can also be drawn outside a
      * live game (asset sheets, the Idle Run widget).
      */
-    private val SHOP_EGG_PX = 38f
-    private val SHOP_EGG_GLOW = 0.45f
+    /** Shop counter items: the same size as a gear drop in the world (LootSprites, 58). */
+    private val SHOP_ITEM_PX = 58f
+
+    /** A small version of the rarity's loot glow, kept low on the counter (never over the keeper). */
+    private fun DrawScope.tableGlow(rarity: com.cyberoperative.game.data.GearRarity, x: Float, y: Float, time: Float) {
+        clipRect(x - 50f, y - SHOP_ITEM_PX - 18f, x + 50f, y + 12f) {
+            with(com.cyberoperative.game.ui.common.GearIcons) { drawLootBeam(rarity, x, y, time, 0.55f) }
+        }
+    }
 
     private class PropRoom {
         var keeper = com.cyberoperative.game.engine.KeeperLook.GOLD
@@ -1193,12 +1200,13 @@ class ArenaRenderer {
         var boss = false
         var shopItems: List<com.cyberoperative.game.engine.ShopItem> = emptyList()
         var shopEgg: com.cyberoperative.game.engine.EggShopItem? = null
+        var shopGear: List<com.cyberoperative.game.engine.GearShopItem> = emptyList()
     }
     private val liveRoom = PropRoom()
     private val aloneRoom = PropRoom()
 
     private fun propRoomOf(g: GameEngine): PropRoom = liveRoom.apply {
-        keeper = g.keeperLook; vaultReady = g.vaultReady; env = styleOf(g).env; inferno = infernoRoom(g); boss = g.plan.kind == LevelKind.BOSS; shopItems = g.shopItems; shopEgg = g.shopEgg
+        keeper = g.keeperLook; vaultReady = g.vaultReady; env = styleOf(g).env; inferno = infernoRoom(g); boss = g.plan.kind == LevelKind.BOSS; shopItems = g.shopItems; shopEgg = g.shopEgg; shopGear = g.shopGear
     }
 
     private fun themed(look: Look, kind: ObstacleKind, room: PropRoom): Look {
@@ -1504,44 +1512,48 @@ class ArenaRenderer {
                 drawCircle(Palette.Red.copy(alpha = 0.6f + 0.4f * p), 3.5f, Offset(r.centerX, topY + r.height / 2f))
             }
             ObstacleKind.SHOP_COUNTER -> {
-                // Glowing gold edge and the mods for sale laid out on the counter.
+                // 0.53.2 (owner): the gear for sale laid out [ : egg : ], two pieces (back and front)
+                // each side of the egg, at world-drop size over a table-high glow of its rarity, spaced
+                // so no two sprites touch. Each co-op player sees their own stock.
                 drawLine(Palette.Gold.copy(alpha = 0.5f), Offset(r.left + 4f, topY + 2f), Offset(r.right - 4f, topY + 2f), 2f)
-                val items = room.shopItems
-                val n = items.size.coerceAtLeast(1)
-                for ((i, it) in items.withIndex()) {
-                    val cx = r.left + r.width * (i + 0.5f) / n
-                    val cy = topY + r.height / 2f
-                    val col = Color(it.def.rarity.color)
-                    val bob = sin(time * 2.4f + i) * 2f
+                val gear = room.shopGear
+                val egg = room.shopEgg?.takeIf { !it.sold }
+                val colX = floatArrayOf(r.left + r.width / 6f, r.centerX, r.right - r.width / 6f)
+                val backY = topY + r.height * 0.41f
+                val frontY = topY + r.height * 0.92f
+                // Gear i: column 0 (left) or 2 (right), back row first so the front row overlaps it.
+                for (row in 0..1) for (side in 0..1) {
+                    val idx = side * 2 + row
+                    val it = gear.getOrNull(idx) ?: continue
+                    val cx = colX[side * 2]
+                    val baseY = if (row == 0) backY else frontY
+                    val bob = sin(time * 2.4f + idx) * 1.5f
                     if (!it.sold) {
-                        drawCircle(col.copy(alpha = 0.22f), 22f, Offset(cx, cy - 10f + bob))
-                        drawRoundRect(Color(0xFF0A0D14), Offset(cx - 16f, cy - 26f + bob), Size(32f, 26f), CornerRadius(4f))
-                        drawRoundRect(col, Offset(cx - 16f, cy - 26f + bob), Size(32f, 26f), CornerRadius(4f), style = Stroke(2f))
-                        tagPaint.textSize = 10f
-                        tagPaint.color = col.toArgb()
-                        drawGameText(it.def.glyph.take(5), cx, cy - 9f + bob, tagPaint)
+                        tableGlow(it.item.rarity, cx, baseY, time + idx)
+                        drawOval(Color.Black.copy(alpha = 0.4f), Offset(cx - 20f, baseY - 4f), Size(40f, 8f))
+                        with(com.cyberoperative.game.ui.common.GearIcons) { drawGear(it.item, cx, baseY - SHOP_ITEM_PX / 2f - 2f + bob, SHOP_ITEM_PX) }
                     } else {
-                        tagPaint.textSize = 10f
+                        tagPaint.textSize = 11f
                         tagPaint.color = Palette.TextMuted.toArgb()
-                        drawGameText("SOLD", cx, cy - 9f, tagPaint)
+                        drawGameText("SOLD", cx, baseY - 20f, tagPaint)
                     }
-                    // Price tag on the counter front.
-                    tagPaint.textSize = 11f
+                    // Back row: price on the table under the item; front row: on the counter front.
+                    tagPaint.textSize = if (row == 0) 11f else 12f
                     tagPaint.color = (if (it.sold) Palette.TextMuted else Palette.Euro).toArgb()
-                    drawGameText(if (it.sold) "---" else "€${it.price}", cx, frontTop + h * 0.7f, tagPaint)
+                    val label = if (it.sold) "---" else "€" + com.cyberoperative.game.ui.common.formatAmount(it.price.toLong())
+                    drawGameText(label, cx, if (row == 0) baseY + 12f else frontTop + h * 0.7f, tagPaint)
                 }
-                // 0.53.1: the egg for sale, front and centre on the counter, standing in a small
-                // version of its rarity's loot glow. Smaller than a world drop (38 vs 58 px).
-                room.shopEgg?.takeIf { !it.sold }?.let { e ->
-                    val ex = r.centerX
-                    val ey = topY + r.height * 0.86f
+                // The egg, front and centre, between the two columns. No egg for sale, nothing here.
+                if (egg != null) {
+                    val cx = colX[1]
+                    val baseY = topY + r.height * 0.7f
                     val bob = sin(time * 2.2f) * 1.5f
-                    // Kept low on the table, so the glow never climbs over the shopkeeper's face.
-                    clipRect(ex - 40f, ey - SHOP_EGG_PX - 14f, ex + 40f, ey + 10f) {
-                        with(com.cyberoperative.game.ui.common.GearIcons) { drawLootBeam(e.egg.rarity, ex, ey, time, SHOP_EGG_GLOW) }
-                    }
-                    drawOval(Color.Black.copy(alpha = 0.4f), Offset(ex - 11f, ey - 3f), Size(22f, 6f))
-                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(e.egg.art, ex, ey + bob, SHOP_EGG_PX) }
+                    tableGlow(egg.egg.rarity, cx, baseY, time + 7f)
+                    drawOval(Color.Black.copy(alpha = 0.4f), Offset(cx - 16f, baseY - 4f), Size(32f, 8f))
+                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(egg.egg.art, cx, baseY + bob, SHOP_ITEM_PX) }
+                    tagPaint.textSize = 12f
+                    tagPaint.color = Palette.Euro.toArgb()
+                    drawGameText("€" + com.cyberoperative.game.ui.common.formatAmount(egg.price.toLong()), cx, frontTop + h * 0.7f, tagPaint)
                 }
             }
             ObstacleKind.CRATES -> {

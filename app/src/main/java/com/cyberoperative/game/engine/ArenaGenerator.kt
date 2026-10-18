@@ -246,7 +246,7 @@ object ArenaGenerator {
         ObstacleKind.REACTOR -> 86f to 86f
         ObstacleKind.ENERGY_BARRIER -> 170f to 26f
         ObstacleKind.ANTENNA_TOWER -> 36f to 36f
-        ObstacleKind.SHOP_COUNTER -> 320f to 50f
+        ObstacleKind.SHOP_COUNTER -> 340f to 170f
         ObstacleKind.BARRIER_CUBE, ObstacleKind.LOCK_CUBE -> 52f to 52f
     }
 
@@ -313,16 +313,20 @@ object ArenaGenerator {
         repeat(20) {
             val height = 820f + rng.nextInt(0, 3) * 40f
             val placed = ArrayList<ObstacleSpec>()
-            placed += ObstacleSpec(Rect(W / 2f - 160f, 250f, W / 2f + 160f, 300f), ObstacleKind.SHOP_COUNTER)
+            placed += counter()
             val fixtures = listOf(ObstacleKind.CRATES, ObstacleKind.SMALL_SERVER, ObstacleKind.REACTOR, ObstacleKind.ANTENNA_TOWER, ObstacleKind.COOLANT_PIPES, ObstacleKind.POWER_UNIT)
             var tries = 0
-            while (placed.size < 4 + rng.nextInt(3) && tries++ < 60) {
+            // 0.53.2 (owner): fewer fixtures (1-2), slim and flush against the side walls, never in
+            // the clear zone round the counter ([shopKeepOut]).
+            val keepOut = shopKeepOut()
+            while (placed.size < 2 + rng.nextInt(2) && tries++ < 60) {
                 val k = fixtures[rng.nextInt(fixtures.size)]
-                val (w, h) = sizeOf(k, rng).let { (a, b) -> minOf(a, 110f) to minOf(b, 110f) }
+                val (w, h) = sizeOf(k, rng).let { (a, b) -> minOf(a, FIXTURE_MAX_W) to minOf(b, 110f) }
                 val left = rng.nextBoolean()
-                val cx = if (left) MARGIN + 20f + w / 2f else W - MARGIN - 20f - w / 2f
-                val cy = 380f + rng.nextFloat() * (height - 640f)
+                val cx = if (left) w / 2f else W - w / 2f
+                val cy = 160f + rng.nextFloat() * (height - 380f)
                 val r = Rect(cx - w / 2f, cy - h / 2f, cx + w / 2f, cy + h / 2f)
+                if (r.intersectsRect(keepOut.left, keepOut.top, keepOut.right, keepOut.bottom)) continue
                 if (placed.any { o -> r.intersectsRect(o.rect.left - GAP, o.rect.top - GAP, o.rect.right + GAP, o.rect.bottom + GAP) }) continue
                 placed += ObstacleSpec(r, k)
             }
@@ -330,8 +334,30 @@ object ArenaGenerator {
             val a = Arena(t)
             if (a.isFree(a.spawnX, a.spawnY, 40f) && a.isFree(a.portalX, a.portalY, 50f) && reachable(a)) return t
         }
-        return ArenaTemplate("shop", "UPGRADE SHOP", 820f, listOf(ObstacleSpec(Rect(W / 2f - 160f, 250f, W / 2f + 160f, 300f), ObstacleKind.SHOP_COUNTER)))
+        return ArenaTemplate("shop", "UPGRADE SHOP", 820f, listOf(counter()))
     }
+
+    /**
+     * The shopkeeper's counter (0.53.2, owner): a squarer table, [ : egg : ], two pieces of gear
+     * (front and back) on each side of the egg, all at world-drop size without touching. Narrow
+     * enough to leave a wide walk round both ends on every screen.
+     */
+    private fun counter(): ObstacleSpec {
+        val w = minOf(COUNTER_WIDTH, W - 80f)
+        return ObstacleSpec(Rect(W / 2f - w / 2f, COUNTER_TOP, W / 2f + w / 2f, COUNTER_BOTTOM), ObstacleKind.SHOP_COUNTER)
+    }
+    /**
+     * The shop's clear zone (owner, 0.53.2): the counter plus 120 on each side, from the top wall
+     * to 320 below it. No fixture may touch it.
+     */
+    fun shopKeepOut(): Rect {
+        val c = counter().rect
+        return Rect(c.left - 120f, 0f, c.right + 120f, c.bottom + 320f)
+    }
+    private const val FIXTURE_MAX_W = 60f
+    private const val COUNTER_WIDTH = 340f
+    private const val COUNTER_TOP = 236f
+    private const val COUNTER_BOTTOM = 406f
 
     /** Grid flood fill: can the operative walk from spawn to the gate? */
     fun reachable(a: Arena): Boolean = reachableTo(a, a.portalX, a.portalY)

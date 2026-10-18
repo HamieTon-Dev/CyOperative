@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.53.2 (versionCode 148) — 2026-10-18 · Bigger shop counter showing the gear and egg for sale
+### Changed (owner)
+- **The counter shows the gear for sale instead of the chips**, laid out **[ : egg : ]**:
+  - two weapons / armor pieces (back and front) on each side, with the egg (if any) **in the middle**;
+  - every item is **drop-sized** (58 px, like gear in the world), including the egg;
+  - each item stands over a low glow in its rarity's colour and animation, and no two sprites touch;
+  - sold items show SOLD;
+  - prices use short numbers (€1.5k, €6k): back-row prices on the table, front-row and egg prices on the counter front;
+  - each co-op player still sees their own stock.
+- **Bigger, squarer counter:** 340 × 170 (was 320 × 50). It leaves a wide walk round both ends on every screen, about 190 px each side in portrait.
+- **Fewer barriers, pushed to the walls:** 1–2 fixtures (was 3–5), at most 60 wide and flush against the side walls.
+- **A clear zone barriers can never enter:** the counter plus 120 on each side, from the top gate down to 320 below the counter. `V053ShopCounterTest` checks 300 rooms each in phone and PC widths.
+- The room layout changed, so the co-op protocol is now v37 and both players need this update.
+
 ## 0.53.1 (versionCode 147) — 2026-10-18 · The shop egg sits on the counter
 ### Added (owner)
 - **The egg for sale is on the shopkeeper's counter, front and centre**, drawn with its own egg sprite.
