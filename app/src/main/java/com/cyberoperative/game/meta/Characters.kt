@@ -107,6 +107,7 @@ object GearBank {
     /**
      * AUTO-SELL (owner, 0.46.0): splits run / idle finds into what is kept and the € the rest sold
      * for (each at [Gear.sellPrice]). Everything below [below] goes; null sells nothing.
+     * Gear only: eggs (and pets) never pass through here, so AUTO-SELL can't sell them (owner, 0.53.4).
      */
     fun autoSell(items: List<GearItem>, below: com.cyberoperative.game.data.GearRarity?): Pair<List<GearItem>, Int> {
         if (below == null) return items to 0

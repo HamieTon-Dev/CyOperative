@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.53.4 (versionCode 151) — 2026-10-18 · Auto-sell never sells eggs
+### Checked (owner)
+- **AUTO-SELL never touches eggs**, in matches or Idle Runs, whatever rarity it is set to. It only ever receives gear: eggs are kept in their own list and are banked separately (`bankPetFinds` in matches, `Incubators.addEggs` for Idle Runs).
+- New test: `V053AutoSellEggsTest` collects an Idle Run with one egg of every rarity, with auto-sell set to the highest rarity, and every egg is kept.
+
 ## 0.53.3 (versionCode 150) — 2026-10-18 · Bigger egg on the shop counter
 ### Changed (owner)
 - The egg on the shop counter is slightly bigger than the gear beside it: 68 px, against 58 px for the gear.
