@@ -850,6 +850,17 @@ class ScreenshotPreviews {
         }
     }
 
+    /** 0.53.2: a GLITCHED ENCRYPTED egg on the counter. */
+    @Test fun shopCounterGxEgg() {
+        assumeTrue(enabled)
+        gameplay("shop_counter_gx_egg", 0f) { s ->
+            toShopCounter(s)
+            val o = s.engine.operatives[0]
+            val egg = com.cyberoperative.game.data.Pets.rollEgg(kotlin.random.Random(11), 1L, com.cyberoperative.game.data.GearRarity.GLITCHED_ENCRYPTED)
+            o.shopEgg = com.cyberoperative.game.engine.EggShopItem(egg, 2 * com.cyberoperative.game.data.Pets.value(egg.rarity, o.gearLevel), false)
+        }
+    }
+
     /** 0.53.1: the shop egg on the counter, front and centre. */
     @Test fun shopCounterEgg() {
         assumeTrue(enabled)
