@@ -128,7 +128,8 @@ def main():
 
     path = os.path.join(g.RES, "new_pets.txt")
     lines = [l for l in open(path).read().splitlines() if l.strip()]
-    lines = [l for l in lines if not l.startswith("GLITCHED_ENCRYPTED|")][:FIRST] + meta
+    # keep anything after its 50 (gen_more_pets.py's 300, 0.49.1)
+    lines = lines[:FIRST] + meta + lines[FIRST + COUNT:]
     open(path, "w").write("\n".join(lines) + "\n")
     print("pets", len(lines))
 

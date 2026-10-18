@@ -71,7 +71,7 @@ class V049GlitchedEncryptedPetsTest {
     @Test fun fiftyAnimatedGlitchingPetsWithTheirOwnEggs() {
         val arts = (0 until com.cyberoperative.game.data.Pets.NEW_COUNT).map { com.cyberoperative.game.data.Pets.NEW_BASE + it }
             .filter { com.cyberoperative.game.data.Pets.designedTier(it) == gx }
-        assertEquals(50, arts.size)
+        assertEquals(150, arts.size) // 50 (0.49.0) + 100 (0.49.1)
         for (a in arts) {
             val anim = com.cyberoperative.game.data.Pets.anim(a)!!
             assertTrue(anim.glitches)

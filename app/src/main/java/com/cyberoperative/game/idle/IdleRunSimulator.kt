@@ -164,6 +164,7 @@ object IdleRunSimulator {
         var xp = s0.normalXp
         val chipLog = ArrayList(s0.chipLog)
         val drops = ArrayList(s0.drops)
+        val eggs = ArrayList(s0.eggs)
         var highest = s0.highestLevel
 
         /** Monster level, as in the engine: the OP level, or the run level / 2.5 when deeper. */
@@ -333,6 +334,15 @@ object IdleRunSimulator {
                     if (r.nextFloat() < GameEngine.ELITE_GEAR_CHANCE + 0.02f * inf.coerceAtMost(10)) drop(r, boss = false, count = 1)
                 }
             }
+            // Eggs (owner, 0.49.1): bosses and elites, at the normal-run odds and rarities. Their own
+            // random stream, so the gear / charge rolls of older runs stay the same.
+            if (e.boss || e.elite != null) {
+                val er = rng(13, kills)
+                if (er.nextFloat() < (if (e.boss) com.cyberoperative.game.data.Pets.BOSS_EGG else com.cyberoperative.game.data.Pets.ELITE_EGG)) {
+                    val rarity = Gear.rollRarity(er, e.boss, inf, (difficulty.luck * 0.3f).coerceAtLeast(0f), false)
+                    eggs += com.cyberoperative.game.data.Pets.rollEgg(er, (eggs.size + 1).toLong(), rarity)
+                }
+            }
             if (queue.isEmpty()) levelCleared()
         }
 
@@ -422,7 +432,7 @@ object IdleRunSimulator {
             level = level, queue = queue.toList(), roomSize = roomSize, enemy = enemy, pause = pause,
             hp = hp, maxHp = stats.maxHp, charges = charges, kills = kills, elites = elites, bosses = bosses,
             normalEuros = euros, normalXp = xp,
-            chips = LinkedHashMap(build.owned()), chipLog = chipLog, drops = drops,
+            chips = LinkedHashMap(build.owned()), chipLog = chipLog, drops = drops, eggs = eggs,
             highestLevel = highest
         )
     }

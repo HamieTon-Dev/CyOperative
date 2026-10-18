@@ -184,6 +184,26 @@ def shaded_ellipse(c, cx, cy, rx, ry, color, spec=0.9, rim=None, amb=0.5):
     return m
 
 
+def shaded_box(c, cx, cy, rx, ry, color, spec=0.9, rim=None, amb=0.5):
+    """A rounded-square body (superellipse), lit like shaded_ellipse (0.49.1 'cube' body)."""
+    nx = (c.x - cx) / rx
+    ny = (c.y - cy) / ry
+    q = np.abs(nx) ** 4 + np.abs(ny) ** 4
+    m = np.clip((1 - q) * min(rx, ry) / (1.2 * 4), 0, 1)
+    nz = np.sqrt(np.clip(1 - np.sqrt(q), 0, 1))
+    L = np.array([-0.5, -0.65, 0.58]); L = L / np.linalg.norm(L)
+    gx, gy = np.sign(nx) * np.abs(nx) ** 3, np.sign(ny) * np.abs(ny) ** 3
+    diff = np.clip(gx * L[0] + gy * L[1] + nz * L[2], 0, 1)
+    col = np.asarray(color, np.float32)[None, None, :] * (amb + (1 - amb) * diff)[..., None]
+    H = L + np.array([0, 0, 1.0]); H = H / np.linalg.norm(H)
+    col = col + 255 * (np.clip(gx * H[0] + gy * H[1] + nz * H[2], 0, 1) ** 24 * spec)[..., None]
+    edge = np.clip((q - 0.62) / 0.38, 0, 1)
+    rimc = np.asarray(rim if rim else (0, 0, 0), np.float32)
+    col = col * (1 - edge[..., None] * 0.45) + rimc[None, None, :] * edge[..., None] * 0.45
+    c.put(m, col)
+    return m
+
+
 def poly_mask(n, pts):
     img = Image.new("L", (n, n), 0)
     ImageDraw.Draw(img).polygon([(float(x), float(y)) for x, y in pts], fill=255)
@@ -240,6 +260,10 @@ def draw_pet(tier, rnd, pal_override=None):
     if shape == "tall": rx, ry = N * 0.25, N * 0.30
     if shape == "egg": rx, ry = N * 0.27, N * 0.29
     if shape == "capsule": rx, ry = N * 0.31, N * 0.25
+    # 0.49.1 shapes (only the newest pets use them; older pets keep their exact look)
+    if shape == "cube": rx, ry = N * 0.27, N * 0.25
+    if shape == "twin": rx, ry = N * 0.34, N * 0.24
+    if shape == "pear": rx, ry = N * 0.27, N * 0.29
     rx *= rnd.uniform(0.92, 1.05); ry *= rnd.uniform(0.92, 1.05)
     if legs == "hover": cy -= N * 0.03
     bottom = cy + ry
@@ -285,6 +309,19 @@ def draw_pet(tier, rnd, pal_override=None):
     elif legs == "stubby":
         for sgn in (-1, 1):
             shaded_ellipse(c, cx + sgn * rx * 0.5, bottom + N * 0.02, N * 0.08, N * 0.055, trim, spec=0.4)
+    elif legs == "wheels":
+        for sgn in (-1, 1):
+            wx = cx + sgn * rx * 0.62
+            shaded_ellipse(c, wx, bottom + N * 0.03, N * 0.075, N * 0.075, (30, 32, 40), spec=0.5)
+            c.put(ellipse_mask(c, wx, bottom + N * 0.03, N * 0.03, N * 0.03), accent)
+    elif legs == "tentacles":
+        for k in range(4):
+            bx = cx + (k - 1.5) * rx * 0.42
+            pts = [(bx, bottom - N * 0.04)]
+            for j in range(3):
+                pts.append((pts[-1][0] + (N * 0.03 if (j + k) % 2 else -N * 0.03), pts[-1][1] + N * 0.045))
+            tube(c, pts, N * 0.05, leg_col)
+            c.put(ellipse_mask(c, pts[-1][0], pts[-1][1], N * 0.022, N * 0.022), accent)
     elif legs == "hover":
         thr = ellipse_mask(c, cx, bottom + N * 0.09, N * 0.10, N * 0.035)
         c.glow(thr, accent, 6 * S / 4, 1.0)
@@ -314,7 +351,19 @@ def draw_pet(tier, rnd, pal_override=None):
         c.put(line_mask(N, [(tx - rx * 0.5, ty + ry * 0.1), (tx + rx * 0.5, ty + ry * 0.1)], S * 2) * ellipse_mask(c, tx, ty, rx * 0.8, ry * 0.62), accent, 0.8)
         cy -= ry * 0.3
         rx *= 0.86; ry *= 0.8
-    body_mask = shaded_ellipse(c, cx, cy, rx, ry, body, spec=1.0, rim=accent if tier in ("ENCRYPTED", "VOLTAIC") else None)
+    rim = accent if tier in ("ENCRYPTED", "VOLTAIC", "GLITCHED_ENCRYPTED") else None
+    if shape == "cube":
+        body_mask = shaded_box(c, cx, cy, rx, ry, body, spec=1.0, rim=rim)
+    elif shape == "twin":
+        a = shaded_ellipse(c, cx - rx * 0.42, cy + ry * 0.05, rx * 0.62, ry * 0.95, body, spec=1.0, rim=rim)
+        b = shaded_ellipse(c, cx + rx * 0.42, cy + ry * 0.05, rx * 0.62, ry * 0.95, body, spec=1.0, rim=rim)
+        body_mask = np.maximum(a, b)
+    elif shape == "pear":
+        a = shaded_ellipse(c, cx, cy + ry * 0.25, rx, ry * 0.75, body, spec=1.0, rim=rim)
+        b = shaded_ellipse(c, cx, cy - ry * 0.35, rx * 0.7, ry * 0.62, body, spec=1.0, rim=rim)
+        body_mask = np.maximum(a, b)
+    else:
+        body_mask = shaded_ellipse(c, cx, cy, rx, ry, body, spec=1.0, rim=rim)
     # plating seam
     seam = line_mask(N, [(cx - rx * 0.95, cy - ry * 0.05), (cx - rx * 0.4, cy + ry * 0.12), (cx + rx * 0.4, cy + ry * 0.12), (cx + rx * 0.95, cy - ry * 0.05)], S * 1.5)
     c.put(seam * body_mask, mix(body, (0, 0, 0), 0.5), 0.7)
@@ -381,6 +430,25 @@ def draw_pet(tier, rnd, pal_override=None):
         m = poly_mask(N, [(cx - vw * 0.75, vy - vh * 0.2), (cx + vw * 0.75, vy - vh * 0.2), (cx + vw * 0.65, vy + vh * 0.3), (cx - vw * 0.65, vy + vh * 0.3)])
         c.glow(m, eye, 3, 0.9); c.put(m, eye)
         c.put(line_mask(N, [(cx - vw * 0.6, vy - vh * 0.08), (cx + vw * 0.6, vy - vh * 0.08)], S), (255, 255, 255), 0.7)
+    elif eyes == "x":
+        for sgn in (-1, 1):
+            ex = cx + sgn * vw * 0.42; r = vh * 0.38
+            m = np.maximum(line_mask(N, [(ex - r, vy - r), (ex + r, vy + r)], S * 1.6), line_mask(N, [(ex - r, vy + r), (ex + r, vy - r)], S * 1.6))
+            c.glow(m, eye, 3, 0.9); c.put(m, eye)
+    elif eyes == "ring":
+        for sgn in (-1, 1):
+            ex = cx + sgn * vw * 0.42; r = vh * 0.42
+            m = np.clip(ellipse_mask(c, ex, vy, r, r) - ellipse_mask(c, ex, vy, r * 0.55, r * 0.55) * 1.5, 0, 1)
+            c.glow(m, eye, 3, 0.9); c.put(m, eye)
+            c.put(ellipse_mask(c, ex, vy, r * 0.22, r * 0.22), (255, 255, 255))
+    elif eyes == "pixel":
+        px = vh * 0.2
+        for sgn in (-1, 1):
+            for gx in range(2):
+                for gy in range(2):
+                    x0 = cx + sgn * vw * 0.42 + (gx - 1) * px * 1.2; y0 = vy + (gy - 1) * px * 1.2
+                    m = poly_mask(N, [(x0, y0), (x0 + px, y0), (x0 + px, y0 + px), (x0, y0 + px)])
+                    c.glow(m, eye, 2, 0.7); c.put(m, eye)
     if rnd.random() < 0.35:  # little mouth / grille
         c.put(line_mask(N, [(cx - vw * 0.18, vy + vh * 0.65), (cx + vw * 0.18, vy + vh * 0.65)], S * 1.3), mix(eye, (0, 0, 0), 0.3), 0.8)
 
@@ -473,6 +541,26 @@ def draw_pet(tier, rnd, pal_override=None):
         m = poly_mask(N, [(cx - N * 0.02, top - N * 0.14), (cx + N * 0.14, top - N * 0.04), (cx + N * 0.06, top - N * 0.12)])
         c.put(m, mix(body, (255, 255, 255), 0.3))
         c.put(ellipse_mask(c, cx + N * 0.05, top - N * 0.09, N * 0.015, N * 0.015), accent)
+    elif topper == "fin":
+        m = poly_mask(N, [(cx - N * 0.07, top + N * 0.05), (cx + N * 0.02, top - N * 0.17), (cx + N * 0.09, top + N * 0.05)])
+        c.put(m, mix(accent, trim, 0.25))
+        c.put(line_mask(N, [(cx - N * 0.03, top + N * 0.02), (cx + N * 0.02, top - N * 0.11)], S * 1.2), mix(accent, (255, 255, 255), 0.4), 0.8)
+    elif topper == "mohawk":
+        for k in range(5):
+            ox = (k - 2) * N * 0.045
+            h = N * (0.09 + 0.04 * (2 - abs(k - 2)))
+            m = poly_mask(N, [(cx + ox - N * 0.025, top + N * 0.05), (cx + ox + N * 0.01, top - h), (cx + ox + N * 0.025, top + N * 0.05)])
+            c.glow(m, accent, 2, 0.6); c.put(m, accent)
+    elif topper == "sat":
+        tube(c, [(cx + rx * 0.3, top + N * 0.03), (cx + rx * 0.45, top - N * 0.1)], N * 0.025, trim)
+        shaded_ellipse(c, cx + rx * 0.45, top - N * 0.12, N * 0.05, N * 0.03, mix(body, (255, 255, 255), 0.3), spec=0.7)
+        c.put(np.clip(ellipse_mask(c, cx + rx * 0.45, top - N * 0.12, N * 0.09, N * 0.03) - ellipse_mask(c, cx + rx * 0.45, top - N * 0.12, N * 0.07, N * 0.018) * 2, 0, 1), accent)
+    elif topper == "horns_tech":
+        for sgn in (-1, 1):
+            bx = cx + sgn * rx * 0.4
+            m = poly_mask(N, [(bx - N * 0.03, top + N * 0.05), (bx + sgn * N * 0.05, top - N * 0.06), (bx + sgn * N * 0.11, top - N * 0.08), (bx + sgn * N * 0.04, top + N * 0.05)])
+            c.put(m, trim)
+            c.put(line_mask(N, [(bx + sgn * N * 0.03, top - N * 0.02), (bx + sgn * N * 0.1, top - N * 0.075)], S * 1.3), accent)
     elif topper == "shards":
         for k in range(3):
             ox = (k - 1) * N * 0.08

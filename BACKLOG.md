@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.49.1: 300 new pets and eggs; eggs drop in Idle Runs.
 - ✅ 0.49.0: 50 GLITCHED ENCRYPTED pets and eggs (animated, glitch-tearing, 12 h hatch).
 - ✅ 0.48.1: compact HUD portrait-only and switchable in Settings, [+] auto-hides, opaque buttons (see-through switch), boss bar with HP numbers and phase blocks.
 - ✅ 0.48.0: UI SQUISH corner HUD on phones, thin boss bar.

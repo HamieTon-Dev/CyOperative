@@ -231,6 +231,14 @@ private fun Loot(s: IdleRunState) {
             else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (g in s.drops) GearIconView(g, Modifier.size(44.dp))
             }
+            Spacer(Modifier.height(8.dp))
+            Text("EGGS (${s.eggs.size})", color = Palette.Magenta, style = MaterialTheme.typography.labelLarge)
+            if (s.eggs.isEmpty()) Text("Bosses and elites can drop pet eggs.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (e in s.eggs) androidx.compose.foundation.Canvas(Modifier.size(40.dp)) {
+                    with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(e.art, size.width / 2f, size.height, size.minDimension) }
+                }
+            }
         }
     }
 }
@@ -254,14 +262,15 @@ private fun Summary(s: IdleRunState, time: Float) {
                 Triple("XP EARNED", amount(s.xpEarned), Palette.Cyan)
             )
             Text(
-                if (s.collected) "Rewards added: € to your account, XP and ${s.drops.size} gear to ${s.characterName.ifEmpty { "your character" }}."
+                if (s.collected) "Rewards added: € to your account, XP and ${s.drops.size} gear to ${s.characterName.ifEmpty { "your character" }}" +
+                    (if (s.eggs.isNotEmpty()) ", ${s.eggs.size} egg${if (s.eggs.size == 1) "" else "s"} to your PETS." else ".")
                 else "Collecting rewards…",
                 color = Palette.Green, style = MaterialTheme.typography.labelSmall
             )
         }
     }
     Spacer(Modifier.height(10.dp))
-    if (s.drops.isNotEmpty() || s.chipLog.isNotEmpty()) { Loot(s); Spacer(Modifier.height(10.dp)) }
+    if (s.drops.isNotEmpty() || s.chipLog.isNotEmpty() || s.eggs.isNotEmpty()) { Loot(s); Spacer(Modifier.height(10.dp)) }
 }
 
 @Composable

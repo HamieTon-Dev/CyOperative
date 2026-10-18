@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.49.1 (versionCode 140) — 2026-10-18 · 300 new pets and eggs, eggs from Idle Runs
+### Added (owner)
+- **300 new pets, each with its own new egg** (`tools/pets/gen_more_pets.py`):
+  - **100 GLITCHED LEGENDARY** (now 190): gold, magenta, pink, purple and silver, torn and chroma-split. In the game they flicker into magenta and cyan ghosts.
+  - **100 GLITCHED ENCRYPTED** (now 150): cyan and red, glitch-torn, with moving parts that switch between cyan and red and the red/cyan tear.
+  - **100 ENCRYPTED** (now 670): animated, in the 14 colourways plus 6 new ones (Teal, Crimson, Lime, Indigo, Rose, Steel).
+  - **Never-before-seen designs.** Every one uses at least one part no earlier pet has:
+    - new bodies: cube, twin-lobed and pear;
+    - new legs: wheels and tentacles;
+    - new eyes: X, ring and pixel;
+    - new head pieces: fin, mohawk, mini satellite and tech horns.
+    Older pets are unchanged.
+  - Review sheets: `docs/pets_new/glitched_legendary_new_100.png`, `glitched_encrypted_new_100.png` and `encrypted_new_100.png`, plus `new_300_pets.gif`. In-game: `docs/screenshots/pets_0491_in_game.png`.
+- **Eggs drop in Idle Runs:**
+  - bosses and elites drop eggs at the normal-run odds (35% / 2%) and with the normal rarity roll;
+  - the Idle Run screen lists them (EGGS) and collecting adds them to your PETS;
+  - the gear rules for Idle Runs are unchanged.
+
 ## 0.49.0 (versionCode 139) — 2026-10-18 · 50 GLITCHED ENCRYPTED pets and eggs
 ### Added (owner)
 - **50 GLITCHED ENCRYPTED pets, each with its own egg** (`tools/pets/gen_gx_pets.py`):

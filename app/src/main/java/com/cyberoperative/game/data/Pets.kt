@@ -138,9 +138,10 @@ object Pets {
     const val NEW_BASE = 1024
     /**
      * 500 from 0.40.0 (GLITCHED … ENCRYPTED) + 500 animated ENCRYPTED from 0.41.0 + 50 animated
-     * GLITCHED ENCRYPTED from 0.49.0 (tools/pets/gen_gx_pets.py; pages 7–8).
+     * GLITCHED ENCRYPTED from 0.49.0 (tools/pets/gen_gx_pets.py; pages 7–8) + 0.49.1's 100
+     * GLITCHED, 100 GLITCHED ENCRYPTED and 100 ENCRYPTED (tools/pets/gen_more_pets.py; pages 8–9).
      */
-    const val NEW_COUNT = 1050
+    const val NEW_COUNT = 1350
 
     private class NewPet(val tier: GearRarity, val name: String, val egg: String, val anim: PetAnim?)
     private val newPets: List<NewPet> by lazy {

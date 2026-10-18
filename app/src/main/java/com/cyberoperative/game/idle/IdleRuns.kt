@@ -45,6 +45,8 @@ object IdleRuns {
         // AUTO-SELL (0.46.0) applies to idle finds too.
         val (items, sold) = com.cyberoperative.game.meta.GearBank.autoSell(all, p.settings.autoSellBelow)
         var out = p.copy(euros = p.euros + s.eurosEarned + sold, gearSeq = p.gearSeq + all.size)
+        // Eggs go to the account's egg list, like eggs found in a run (0.49.1).
+        out = com.cyberoperative.game.meta.Incubators.addEggs(out, s.eggs)
         val mine = s.characterId.isEmpty() || s.characterId == p.characterId
         if (mine) {
             val room = (Gear.BACKPACK_SIZE - out.backpack.size).coerceAtLeast(0)

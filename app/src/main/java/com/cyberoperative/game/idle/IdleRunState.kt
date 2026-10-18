@@ -82,6 +82,8 @@ data class IdleRunState(
     val chipLog: List<String> = emptyList(),
     /** Gear found (uids are reassigned when collected). */
     val drops: List<GearItem> = emptyList(),
+    /** Pet eggs found (owner, 0.49.1: "allow eggs to drop in idle runs"); uids reassigned when collected. */
+    val eggs: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
     val highestLevel: Int = 1,
     /** Rewards already moved into the save. */
     val collected: Boolean = false,

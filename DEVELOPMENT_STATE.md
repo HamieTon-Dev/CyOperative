@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.49.0 (versionCode 139) |
+| Version | 0.49.1 (versionCode 140) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.49.1:**
+  - `Pets.NEW_COUNT` is 1350.
+  - Pet scripts run in this order: `gen_new_pets.py` → `gen_gx_pets.py` → `gen_more_pets.py`. The last one fills page 8 from cell 26, then page 9.
+  - New draw parts in `draw_pet` (cube/twin/pear, wheels/tentacles, x/ring/pixel, fin/mohawk/sat/horns_tech) are only used by `gen_more_pets.py`.
+  - The GLITCH part's colour sets the first ghost's colour in `PetArt.glitchCell`.
+  - Idle eggs live in `IdleRunState.eggs`, rolled on their own stream (`rng(13, kills)`), and are collected with `Incubators.addEggs`.
 - **0.49.0 GLITCHED ENCRYPTED pets:**
   - `Pets.NEW_COUNT` is 1050 and `Pets.TOP` is GLITCHED_ENCRYPTED.
   - They come from `tools/pets/gen_gx_pets.py`, which must run AFTER `gen_new_pets.py` (that script rewrites `new_pets.txt` and pages 4–7). It fills page 7's cells 232–255 and page 8.

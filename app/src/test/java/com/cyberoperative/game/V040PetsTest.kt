@@ -34,10 +34,10 @@ class V040PetsTest {
 
     @Test fun fiveHundredAnimatedEncryptedPets() {
         val animated = (0 until Pets.NEW_COUNT).map { Pets.NEW_BASE + it }.filter { Pets.anim(it) != null && Pets.designedTier(it) == GearRarity.ENCRYPTED }
-        assertEquals(500, animated.size)
+        assertEquals(600, animated.size) // 500 (0.41.0) + 100 (0.49.1)
         assertTrue(animated.all { Pets.designedTier(it) == GearRarity.ENCRYPTED })
         assertTrue(animated.all { a -> Pets.anim(a)!!.parts.any { it.kind != com.cyberoperative.game.data.PetAnim.Kind.FLOAT } })
-        // ENCRYPTED eggs are mostly the animated ones now (500 of 570).
+        // ENCRYPTED eggs are mostly the animated ones now (600 of 670).
         val r = Random(9)
         val hits = (0 until 200).count { Pets.anim(Pets.rollEgg(r, it.toLong(), GearRarity.ENCRYPTED).pet) != null }
         assertTrue("$hits", hits in 150..195)
