@@ -26,6 +26,8 @@ import kotlin.math.sin
 object GearIcons {
     private val atlases = arrayOfNulls<ImageBitmap>(GearSlot.entries.size)
     private val tried = BooleanArray(GearSlot.entries.size)
+    private val gxAtlases = arrayOfNulls<ImageBitmap>(GearSlot.entries.size)
+    private val gxTried = BooleanArray(GearSlot.entries.size)
     @Volatile private var preloading = false
 
     @Synchronized
@@ -38,6 +40,17 @@ object GearIcons {
         return atlases[i]
     }
 
+    /** GLITCHED ENCRYPTED's own sheet (0.47.0, tools/gear/glitched_encrypted.py). */
+    @Synchronized
+    fun gxAtlas(slot: GearSlot): ImageBitmap? {
+        val i = slot.ordinal
+        if (!gxTried[i]) {
+            gxTried[i] = true
+            gxAtlases[i] = runCatching { com.cyberoperative.game.platform.loadImageResource("gear/${slot.sheet}_gx.webp") }.getOrNull()
+        }
+        return gxAtlases[i]
+    }
+
     /** Decodes every atlas on a background thread (app start / run start). */
     fun preload() {
         if (preloading) return
@@ -47,7 +60,7 @@ object GearIcons {
 
     /** Draws a piece's art centred on ([cx], [cy]) in a [size] square. */
     fun DrawScope.drawGear(slot: GearSlot, rarity: GearRarity, art: Int, cx: Float, cy: Float, size: Float, alpha: Float = 1f) {
-        val img = atlas(slot) ?: return
+        val img = (if (rarity.artTier == GearArt.GX_TIER) gxAtlas(slot) else atlas(slot)) ?: return
         val cell = GearArt.cell(slot, rarity.artTier, art)
         val src = IntOffset((cell % GearArt.COLS) * GearArt.CELL, (cell / GearArt.COLS) * GearArt.CELL)
         val d = size.toInt().coerceAtLeast(1)
@@ -66,7 +79,7 @@ object GearIcons {
      * behind them"): a soft column of the rarity colour, taller and brighter for better rarities.
      */
     fun DrawScope.drawLootBeam(rarity: GearRarity, x: Float, y: Float, t: Float, scale: Float = 1f) {
-        val c = Color(rarity.color)
+        val c = if (rarity == GearRarity.GLITCHED_ENCRYPTED) RarityFx.gxColor(t) else Color(rarity.color)
         val tier = rarity.ordinal
         val h = (90f + 38f * tier) * scale
         val w = (16f + 3f * tier) * scale
@@ -99,6 +112,7 @@ object GearIcons {
             GearRarity.ABYSSAL -> abyssFlames(x, y, w, t, scale)
             GearRarity.GLITCHED -> glitchBlocks(x, y, h, w, t, scale)
             GearRarity.ENCRYPTED -> { abyssFlames(x, y, w, t, scale); codeColumn(c, x, y, h, w, t, scale) }
+            GearRarity.GLITCHED_ENCRYPTED -> gxBeam(x, y, h, w, t, scale)
             else -> {}
         }
     }
@@ -162,6 +176,28 @@ object GearIcons {
         }
     }
 
+    /**
+     * GLITCHED ENCRYPTED (0.47.0): the column tears like GLITCHED (red / cyan blocks jumping
+     * around it), splits into a red and a cyan ghost now and then, and code streams up the middle.
+     */
+    private fun DrawScope.gxBeam(x: Float, y: Float, h: Float, w: Float, t: Float, scale: Float) {
+        val seed = (t * 9f).toInt()
+        val burst = seed % 6 < 2
+        // Split ghosts: a red column shoved left, a cyan one right.
+        val dx = (if (burst) 7f else 2.5f) * scale
+        for ((c, s) in listOf(Color(0xFFFF2B3A) to -1f, Color(0xFF00F0FF) to 1f))
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent, c.copy(alpha = if (burst) 0.45f else 0.2f)), startY = y - h, endY = y),
+                topLeft = Offset(x - w * 0.5f + dx * s, y - h), size = androidx.compose.ui.geometry.Size(w, h))
+        for (k in 0 until (if (burst) 10 else 6)) {
+            val j = (((seed * 31 + k * 97) * 2654435761L) ushr 16 and 0xFF) / 255f
+            val bx = x + (j - 0.5f) * w * (if (burst) 3f else 2.2f)
+            val by = y - h * ((k + j) / 10.5f)
+            val c = if (k % 2 == 0) Color(0xFFFF2B3A) else Color(0xFF00F0FF)
+            drawRect(c.copy(alpha = 0.8f), Offset(bx, by), androidx.compose.ui.geometry.Size((6f + 10f * j) * scale, 3f * scale))
+        }
+        codeColumn(RarityFx.gxColor(t + 0.7f), x, y, h, w, t, scale)
+    }
+
     /** ENCRYPTED: green code glyphs streaming up the beam. */
     private fun DrawScope.codeColumn(c: Color, x: Float, y: Float, h: Float, w: Float, t: Float, scale: Float) {
         for (k in 0 until 12) {
@@ -195,9 +231,10 @@ object GearIcons {
 /** A gear slot icon for menus: the art over a rarity-tinted tile ([frame] draws the border too). */
 @Composable
 fun GearIconView(item: GearItem?, modifier: Modifier = Modifier, frame: Boolean = true, dim: Boolean = false) {
+    val tint = rarityColor(item?.rarity)
     Box(modifier.rarityCard(item?.rarity?.takeIf { !dim }, corner = 4.dp, over = true)) {
         Canvas(Modifier.matchParentSize()) {
-            val c = item?.let { Color(it.rarity.color) } ?: Color(0xFF3A4A5C)
+            val c = tint
             val r = androidx.compose.ui.geometry.CornerRadius(size.minDimension * 0.08f)
             drawRoundRect(SafeBrush.radialGradient(listOf(c.copy(alpha = 0.22f), Color(0xFF0B1220)), center, size.maxDimension * 0.7f), cornerRadius = r)
             if (frame) drawRoundRect(c.copy(alpha = if (item == null) 0.5f else 0.95f), cornerRadius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(width = (size.minDimension * 0.035f).coerceAtLeast(1.5f)))

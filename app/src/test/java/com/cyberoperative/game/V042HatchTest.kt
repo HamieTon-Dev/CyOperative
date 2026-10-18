@@ -16,7 +16,7 @@ class V042HatchTest {
 
     @Test fun pricesMatchTheApprovedChart() {
         val want = listOf(4, 16, 40, 160, 400, 600, 840, 1280, 2160, 3200, 4400)
-        for ((i, r) in GearRarity.entries.withIndex()) assertEquals("$r", want[i], Pets.instantHatchPrice(r, Pets.hatchMs(r)))
+        for ((i, r) in Pets.RARITIES.withIndex()) assertEquals("$r", want[i], Pets.instantHatchPrice(r, Pets.hatchMs(r)))
         assertEquals(2200, Pets.instantHatchPrice(GearRarity.ENCRYPTED, 300 * min))
         assertEquals(0, Pets.instantHatchPrice(GearRarity.ENCRYPTED, 0))
     }

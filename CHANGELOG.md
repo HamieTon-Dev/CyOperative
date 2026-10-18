@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.47.0 (versionCode 133) — 2026-10-18 · GLITCHED ENCRYPTED gear
+### Added (owner)
+- **GLITCHED ENCRYPTED**, a new top gear rarity above ENCRYPTED.
+  - **650 new pieces:**
+    - 50 for every slot (helmet, chest, gloves, boots, implant, core, sidearm and rifle);
+    - plus 50 class weapons for each class (Operative, Technician, Juggernaut, Phantom, Packet Mage);
+    - each class weapon has a small class glyph.
+  - **The look:** each piece is drawn in a cyan and red split, with torn glitch slices, a red/cyan colour fringe and scanlines. It's made by `tools/gear/glitched_encrypted.py` and stored in `gear/<slot>_gx.webp`; review sheets are in `docs/gear_gx/`.
+  - **Animations, like GLITCHED LEGENDARY:**
+    - the colour switches between cyan and red, with a hard glitch flip now and then;
+    - the outline in the gear menu and the item name follow that colour, and the outline splits into red and cyan ghosts when it glitches;
+    - the card tears into red and cyan slices;
+    - the drop beam splits into red and cyan columns, with glitch blocks and code streaming up.
+    - Clip: `docs/gear_gx/gx_animation.gif`.
+  - **Drops:** 0.1% per boss piece, on every difficulty, slightly more on INFERNO. That is under half the ENCRYPTED rate. Elites drop it at a quarter of the boss rate. It never appears in the shop, and Idle Runs give GOLDEN instead.
+  - **Stats:** ×3.5 base stats and 6 affixes.
+  - **Signature perks:**
+    - Rifle: full fire rate on the move, +65% damage, shots pierce 1 more threat.
+    - Armour: auto-drinking potions, heal 10 HP per hit, +5% dodge.
+    - Sidearm, implant and core: dash cooldown −50%, double healing, companion fires twice as fast, +20% damage.
+  - Shop price 280k, which also sets its sell price.
+- It appears at the top of the AUTO-SELL list.
+### Notes
+- Pets and eggs stay ENCRYPTED at most.
+- Co-op snapshots carry 10 art bits now, so the co-op version is 33 and both players need this update.
+
 ## 0.46.0 (versionCode 132) — 2026-10-18 · Auto-sell
 ### Added (owner)
 - **SETTINGS → AUTO-SELL GEAR: "Sell everything below ___".**

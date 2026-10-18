@@ -145,7 +145,7 @@ private fun TradeWindow(session: GameSession, desk: TradeDesk, me: Int, modifier
             if (list.isEmpty()) Text("No items", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             for (item in list) ItemTile(item, false) {}
         }
-        for (item in theirs.itemList.take(TradeDesk.MAX_ITEMS)) Text("◆ ${item.name} · ${item.rarity.label} · LV ${item.level}", color = Color(item.rarity.color), style = MaterialTheme.typography.labelSmall)
+        for (item in theirs.itemList.take(TradeDesk.MAX_ITEMS)) Text("◆ ${item.name} · ${item.rarity.label} · LV ${item.level}", color = com.cyberoperative.game.ui.common.rarityColor(item.rarity), style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             CyberButton(if (mine.accepted) "ACCEPTED ✓" else "ACCEPT", Modifier.weight(1f), accent = Palette.Green, primary = !mine.accepted, enabled = !mine.accepted) {

@@ -54,6 +54,7 @@ object RarityFx {
                 GearRarity.ABYSSAL -> flames(t)
                 GearRarity.GLITCHED -> glitch(t)
                 GearRarity.ENCRYPTED -> codeRain(t)
+                GearRarity.GLITCHED_ENCRYPTED -> gxCard(t)
                 else -> sheen(Color(rarity.color), t)
             }
         }
@@ -61,6 +62,17 @@ object RarityFx {
             val pulse = 0.55f + 0.3f * sin(t * 3f)
             drawRoundRect(Color(0xFF00F0FF).copy(alpha = pulse), cornerRadius = CornerRadius(corner),
                 style = Stroke(width = (size.minDimension * 0.03f).coerceIn(1.5f, 3f)))
+        }
+        if (rarity == GearRarity.GLITCHED_ENCRYPTED) {
+            // The outline shifts cyan ↔ red, with a red / cyan split when it glitches.
+            val stroke = (size.minDimension * 0.035f).coerceIn(1.5f, 3.5f)
+            val seed = (t * 9f).toInt()
+            if (seed % 6 < 2) {
+                val o = stroke * 1.2f
+                drawRoundRect(Color(0xFFFF2B3A).copy(alpha = 0.8f), Offset(-o, 0f), size, CornerRadius(corner), style = Stroke(width = stroke))
+                drawRoundRect(Color(0xFF00F0FF).copy(alpha = 0.8f), Offset(o, 0f), size, CornerRadius(corner), style = Stroke(width = stroke))
+            }
+            drawRoundRect(gxColor(t), cornerRadius = CornerRadius(corner), style = Stroke(width = stroke))
         }
         if (rarity == GearRarity.ABYSSAL) {
             val flick = 0.55f + 0.25f * sin(t * 11f) * sin(t * 4.3f)
@@ -114,6 +126,38 @@ object RarityFx {
         }
     }
 
+    /**
+     * GLITCHED ENCRYPTED's colour (owner, 0.47.0: "will change between cyan and red"): a smooth
+     * swing every ~2.4 s, with a hard glitch flip to the other colour for a frame now and then.
+     */
+    fun gxColor(t: Float): Color {
+        // Sits on cyan or red and switches quickly between them (no long washed-out middle).
+        val s = 0.5f + 0.5f * kotlin.math.tanh(4f * sin(t * 2.6f))
+        val seed = (t * 12f).toInt()
+        val flip = ((seed.toLong() * 2654435761L) ushr 13 and 15L) == 0L
+        return androidx.compose.ui.graphics.lerp(GX_CYAN, GX_RED, if (flip) 1f - s else s)
+    }
+    val GX_CYAN = Color(0xFF00F0FF)
+    val GX_RED = Color(0xFFFF2B3A)
+
+    /** GLITCHED ENCRYPTED's card: a sheen in the shifting colour that tears into red / cyan slices (like GLITCHED). */
+    private fun DrawScope.gxCard(t: Float) {
+        val w = size.width; val h = size.height
+        sheen(gxColor(t), t)
+        val seed = (t * 9f).toInt()
+        val burst = seed % 6 < 2
+        val n = if (burst) 6 else 2
+        for (k in 0 until n) {
+            val j = (((seed * 73 + k * 151) * 2654435761L) ushr 12 and 0xFFFF) / 65535f
+            val y = h * j
+            val bh = h * (0.03f + 0.07f * ((k * 37 + seed) % 5) / 5f)
+            val dx = (j - 0.5f) * w * (if (burst) 0.16f else 0.05f)
+            val a = if (burst) 0.36f else 0.14f
+            drawRect(GX_RED.copy(alpha = a), Offset(dx, y), androidx.compose.ui.geometry.Size(w, bh))
+            drawRect(GX_CYAN.copy(alpha = a * 0.85f), Offset(-dx, y + bh * 0.5f), androidx.compose.ui.geometry.Size(w, bh * 0.5f))
+        }
+    }
+
     /** ENCRYPTED (owner, 0.39.0): falling green code over a dark sheen. */
     private fun DrawScope.codeRain(t: Float) {
         val w = size.width; val h = size.height
@@ -161,4 +205,17 @@ object RarityFx {
             drawCircle(Color(0xFFFF9A40).copy(alpha = (1f - ph) * 0.8f), (size.minDimension * 0.012f).coerceAtLeast(1.2f), Offset(ex, ey))
         }
     }
+}
+
+/**
+ * A rarity's text / outline colour in menus: GLITCHED ENCRYPTED shifts between cyan and red
+ * (0.47.0); every other rarity is its fixed colour.
+ */
+@androidx.compose.runtime.Composable
+fun rarityColor(rarity: GearRarity?): Color {
+    if (rarity != GearRarity.GLITCHED_ENCRYPTED) return rarity?.let { Color(it.color) } ?: Color(0xFF3A4A5C)
+    val t by rememberInfiniteTransition(label = "gx").animateFloat(
+        0f, 600f, infiniteRepeatable(tween(600_000, easing = LinearEasing), RepeatMode.Restart), label = "t"
+    )
+    return RarityFx.gxColor(t)
 }

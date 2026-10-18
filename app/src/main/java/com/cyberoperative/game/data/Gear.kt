@@ -65,12 +65,18 @@ enum class GearRarity(
      * The top tier (owner, 0.39.0): near game-breaking perks, very rare on every difficulty.
      * "ENCRYPTED" on disk is the old name of FORGED, so this one is saved as "ENCRYPTED_X".
      */
-    @SerialName("ENCRYPTED_X") ENCRYPTED("ENCRYPTED", 0xFF00F0FF, 8, 3.1f, 6);
+    @SerialName("ENCRYPTED_X") ENCRYPTED("ENCRYPTED", 0xFF00F0FF, 8, 3.1f, 6),
+    /**
+     * The new top tier (owner, 0.47.0): its own art (50 per slot + 50 class weapons per class,
+     * resources/gear/<slot>_gx.webp), a colour that shifts between cyan and red ([color] is the
+     * static fallback; RarityFx.gxColor animates it) and GLITCHED-style tearing on cards and beams.
+     */
+    GLITCHED_ENCRYPTED("GLITCHED ENCRYPTED", 0xFFFF2E4D, GearArt.GX_TIER, 3.5f, 6);
 
     /** GOLDEN and up hit 30% harder (owner, 0.39.0); applied when worn, so old drops get it too. */
     val statBoost: Float get() = if (this >= LEGENDARY) 1.3f else 1f
     /** Animated card: the INFERNO rarities, GLITCHED and ENCRYPTED. */
-    val animated: Boolean get() = inferno || this == GLITCHED || this == ENCRYPTED
+    val animated: Boolean get() = inferno || this == GLITCHED || this == ENCRYPTED || this == GLITCHED_ENCRYPTED
 
     /** Above BLUE: the drop gets a light beam and the sheen sound. */
     val sheen: Boolean get() = ordinal > RARE.ordinal
@@ -120,7 +126,7 @@ data class GearItem(
     @SerialName("n") val fresh: Boolean = true
 ) {
     val name: String get() = GearNames.name(this)
-    val style: GunStyle? get() = if (slot == GearSlot.PRIMARY) GunStyle.forArt(art) else null
+    val style: GunStyle? get() = if (slot == GearSlot.PRIMARY) GunStyle.forArt(art, rarity) else null
     /** Class this weapon is built for (only that class can equip it), or null. */
     val classOnly: String? get() = style?.classId
     /** SECONDARY: the arsenal weapon it carries. */
@@ -187,7 +193,13 @@ enum class GunStyle(
     companion object {
         private val shared = listOf(PULSE, BURST, SCATTER, RAIL, SMG, ARC, RICOCHET, TWIN)
         private val classed = listOf(TACTICAL, SIGNAL, SIEGE, GHOST, HEX)
-        fun forArt(art: Int): GunStyle = if (art % 5 == 4) classed[(art / 5) % classed.size] else shared[(art - art / 5) % shared.size]
+        fun forArt(art: Int, rarity: GearRarity? = null): GunStyle = when {
+            // GLITCHED ENCRYPTED (0.47.0): 50 shared rifles, then 50 class weapons per class.
+            rarity == GearRarity.GLITCHED_ENCRYPTED ->
+                if (art < GearArt.GX_PER_SLOT) shared[art.mod(shared.size)] else classed[((art - GearArt.GX_PER_SLOT) / GearArt.GX_PER_SLOT).coerceIn(0, classed.size - 1)]
+            art % 5 == 4 -> classed[(art / 5) % classed.size]
+            else -> shared[(art - art / 5) % shared.size]
+        }
     }
 }
 
@@ -195,6 +207,11 @@ enum class GunStyle(
 object GearArt {
     const val COLS = 16
     const val CELL = 96
+    /** GLITCHED ENCRYPTED's art lives in its own sheets (<slot>_gx.webp), drawn 0..count-1. */
+    const val GX_TIER = 9
+    const val GX_PER_SLOT = 50
+    /** PRIMARY: 50 shared rifles + 50 class weapons for each of the 5 classes. */
+    const val GX_PRIMARY = GX_PER_SLOT * 6
     private val counts: Map<GearSlot, IntArray> = mapOf(
         GearSlot.PRIMARY to intArrayOf(21, 19, 15, 17, 28, 5, 5, 5, 5),
         GearSlot.SECONDARY to intArrayOf(20, 20, 19, 21, 20, 5, 5, 5, 5),
@@ -206,10 +223,12 @@ object GearArt {
         GearSlot.CORE to intArrayOf(20, 20, 20, 20, 20, 5, 5, 5, 5)
     )
 
-    fun count(slot: GearSlot, tier: Int): Int = counts.getValue(slot)[tier]
+    fun count(slot: GearSlot, tier: Int): Int =
+        if (tier == GX_TIER) (if (slot == GearSlot.PRIMARY) GX_PRIMARY else GX_PER_SLOT) else counts.getValue(slot)[tier]
 
     /** Cell index in the slot's atlas. */
     fun cell(slot: GearSlot, tier: Int, art: Int): Int {
+        if (tier == GX_TIER) return art.mod(count(slot, tier))
         val c = counts.getValue(slot)
         var off = 0
         for (t in 0 until tier) off += c[t]
@@ -229,7 +248,8 @@ object GearNames {
         GearRarity.VOLTAIC to listOf("Voltaic", "Arc", "Surge", "Thunder", "Live-Wire", "Tesla", "Storm", "Overcharge", "Lightning", "Galvanic"),
         GearRarity.CELESTIAL to listOf("Celestial", "Platinum", "Starlit", "Halo", "Seraph", "Orbital", "Eclipse", "Nova", "Aether", "Zenith"),
         GearRarity.ABYSSAL to listOf("Abyssal", "Hellfire", "Brimstone", "Inferno", "Cinder", "Doom", "Pyre", "Demon", "Hellforged", "Infernal"),
-        GearRarity.ENCRYPTED to listOf("Encrypted", "Root", "Zero-Day", "Kernel", "Cipherlocked", "Quantum", "Blackbox", "Sigma", "Omega", "Hashed")
+        GearRarity.ENCRYPTED to listOf("Encrypted", "Root", "Zero-Day", "Kernel", "Cipherlocked", "Quantum", "Blackbox", "Sigma", "Omega", "Hashed"),
+        GearRarity.GLITCHED_ENCRYPTED to listOf("Corrupted Root", "Split-Key", "Desync Cipher", "Bitrot", "Redshift", "Null-Hash", "Shardlock", "Overclocked Kernel", "Paradox", "Dual-Phase")
     )
     private val nouns: Map<GearSlot, List<String>> = mapOf(
         GearSlot.HELMET to listOf("Helmet", "Visor", "Hood", "Cowl", "Faceguard", "Helm", "Mask"),
@@ -244,7 +264,7 @@ object GearNames {
         val p = prefixes.getValue(item.rarity)
         val prefix = p[item.art.mod(p.size)]
         val noun = when (item.slot) {
-            GearSlot.PRIMARY -> GunStyle.forArt(item.art).noun
+            GearSlot.PRIMARY -> GunStyle.forArt(item.art, item.rarity).noun
             GearSlot.SECONDARY -> item.sidearm?.name?.lowercase()?.split(' ')?.joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } } ?: "Pistol"
             else -> nouns.getValue(item.slot).let { it[(item.art / p.size + item.art).mod(it.size)] }
         }
@@ -301,7 +321,8 @@ object Gear {
         val deep = 1f + 0.15f * inferno.coerceAtMost(10)
         w[GearRarity.GLITCHED.ordinal] = (if (boss) GLITCHED_BOSS else GLITCHED_BOSS * ELITE_SHARE) * deep * bonus
         w[GearRarity.ENCRYPTED.ordinal] = (if (boss) ENCRYPTED_BOSS else ENCRYPTED_BOSS * ELITE_SHARE) * deep * bonus
-        high += w[GearRarity.GLITCHED.ordinal] + w[GearRarity.ENCRYPTED.ordinal]
+        w[GearRarity.GLITCHED_ENCRYPTED.ordinal] = (if (boss) GLITCHED_ENCRYPTED_BOSS else GLITCHED_ENCRYPTED_BOSS * ELITE_SHARE) * deep * bonus
+        high += w[GearRarity.GLITCHED.ordinal] + w[GearRarity.ENCRYPTED.ordinal] + w[GearRarity.GLITCHED_ENCRYPTED.ordinal]
         // Every step of luck tilts the usual five toward the rare end.
         val tilt = 1f + 0.08f * inferno.coerceAtMost(10) + luck + (if (lateBoost) 0.15f else 0f)
         val low = FloatArray(base.size) { i -> base[i] * tilt.pow(i.toFloat()) }
@@ -318,6 +339,8 @@ object Gear {
     const val GLITCHED_BOSS = 2.2f
     /** ENCRYPTED per boss piece (percent): very rare. */
     const val ENCRYPTED_BOSS = 0.25f
+    /** GLITCHED ENCRYPTED per boss piece (percent, 0.47.0): the rarest drop, under half of ENCRYPTED. */
+    const val GLITCHED_ENCRYPTED_BOSS = 0.1f
 
     fun rollRarity(rng: Random, boss: Boolean, inferno: Int, luck: Float = 0f, lateBoost: Boolean = false): GearRarity {
         val o = odds(boss, inferno, luck, lateBoost)
@@ -372,6 +395,7 @@ object Gear {
             GearRarity.CELESTIAL -> 35000
             GearRarity.ABYSSAL -> 70000
             GearRarity.ENCRYPTED -> 140000
+            GearRarity.GLITCHED_ENCRYPTED -> 280000
         }
         return (base * (1f + 0.03f * item.level)).toInt() / 10 * 10
     }
@@ -394,7 +418,10 @@ object Gear {
 
     /** A fresh item. */
     fun roll(rng: Random, uid: Long, level: Int, rarity: GearRarity, slot: GearSlot = rollSlot(rng)): GearItem {
-        val art = rng.nextInt(GearArt.count(slot, rarity.artTier))
+        val art = if (rarity == GearRarity.GLITCHED_ENCRYPTED && slot == GearSlot.PRIMARY) {
+            // One in five is a class weapon (like the other tiers), spread over the five classes.
+            if (rng.nextFloat() < 0.2f) GearArt.GX_PER_SLOT + rng.nextInt(GearArt.GX_PER_SLOT * 5) else rng.nextInt(GearArt.GX_PER_SLOT)
+        } else rng.nextInt(GearArt.count(slot, rarity.artTier))
         val l = level.coerceIn(1, OpProgress.MAX_LEVEL)
         val variance = 0.92f + rng.nextFloat() * 0.16f
         val base = when (slot) {
@@ -496,6 +523,7 @@ object GearPerks {
         GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> "+1 parallel shot"; Kind.ARMOR -> "+20% healing, +4 HP per kill"; Kind.SYSTEM -> "+16% critical damage, +4% critical chance" }
         GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> "4% chance to delete a threat outright, +33% critical damage"; Kind.ARMOR -> "Hellfire skin: hits spray 6 bolts, +4% dodge"; Kind.SYSTEM -> "+1 Packet Node, +33% node damage, +13% damage" }
         GearRarity.ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> "Fire at full rate on the move, +50% damage"; Kind.ARMOR -> "HP potions drink themselves at 20% HP or on a lethal hit; heal 8 HP per hit"; Kind.SYSTEM -> "Dash cooldown −50%, double healing, companion fires twice as fast" }
+        GearRarity.GLITCHED_ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> "Fire at full rate on the move, +65% damage, shots pierce 1 more threat"; Kind.ARMOR -> "HP potions drink themselves at 20% HP or on a lethal hit; heal 10 HP per hit, +5% dodge"; Kind.SYSTEM -> "Dash cooldown −50%, double healing, companion fires twice as fast, +20% damage" }
         else -> null
     }
 
@@ -535,6 +563,11 @@ object GearPerks {
                 Kind.RIFLE -> { s.moveFireRate = 1f; s.damage *= 1.5f }
                 Kind.ARMOR -> { s.autoPotion = true; s.healOnHit += 8f }
                 Kind.SYSTEM -> { s.dashCooldownMul *= 0.5f; s.healMul *= 2f; s.petRateMul *= 2f }
+            }
+            GearRarity.GLITCHED_ENCRYPTED -> when (kind(g)) {
+                Kind.RIFLE -> { s.moveFireRate = 1f; s.damage *= 1.65f; s.pierce += 1 }
+                Kind.ARMOR -> { s.autoPotion = true; s.healOnHit += 10f; s.dodge += 0.05f }
+                Kind.SYSTEM -> { s.dashCooldownMul *= 0.5f; s.healMul *= 2f; s.petRateMul *= 2f; s.damage *= 1.2f }
             }
             else -> {}
         }

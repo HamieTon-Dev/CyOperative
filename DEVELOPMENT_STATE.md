@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.46.0 (versionCode 132) |
+| Version | 0.47.0 (versionCode 133) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,12 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.47.0 GLITCHED ENCRYPTED:**
+  - It is the last `GearRarity`, with `artTier = GearArt.GX_TIER` (9). Its art is a separate sheet, `<slot>_gx.webp` (`GearIcons.gxAtlas`), drawn at cells `0..count-1`.
+  - PRIMARY art: 0–49 are shared rifles, then 50 per class in `GunStyle.classed` order. Use `GunStyle.forArt(art, rarity)`.
+  - The animated colour is `RarityFx.gxColor(t)` (composable: `rarityColor(r)`). Its static `color` is only a fallback.
+  - Pets cap at `Pets.TOP` (ENCRYPTED) and loop over `Pets.RARITIES`.
+  - `gearLook` packs 10 art bits (co-op version 33).
 - **0.46.0 auto-sell:**
   - The setting is `GameSettings.autoSellBelow: GearRarity?`. `GearBank.autoSell(items, below)` returns the kept items and the €.
   - It's applied in `GameSession.bankGear` (it skips `Operative.gearBought`, the shop purchases) and in `IdleRuns.collect`. Trades go through `GearBank.bank` directly, so they're never sold.

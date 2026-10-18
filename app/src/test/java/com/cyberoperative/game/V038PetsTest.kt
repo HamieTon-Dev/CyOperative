@@ -114,7 +114,7 @@ class V038PetsTest {
     }
 
     @Test fun eggArtMatchesRarityColourAndNamesRead() {
-        for (r in GearRarity.entries) {
+        for (r in Pets.RARITIES) {
             val e = Pets.rollEgg(Random(3), 1, r)
             assertEquals(r, Pets.eggArtRarity(e.art))
             assertTrue(e.name.endsWith("Egg"))

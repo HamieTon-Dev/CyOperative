@@ -407,7 +407,8 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
     val c = Color(pet.rarity.color)
     // Rarer eggs hatch bigger (owner, 0.45.1): the glow is the base size for COMMON and grows
     // evenly to twice that for ENCRYPTED.
-    val scale = 1f + pet.rarity.ordinal / (com.cyberoperative.game.data.GearRarity.entries.size - 1f)
+    // Pets top out at ENCRYPTED (2×).
+    val scale = 1f + pet.rarity.ordinal.coerceAtMost(com.cyberoperative.game.data.GearRarity.ENCRYPTED.ordinal) / com.cyberoperative.game.data.GearRarity.ENCRYPTED.ordinal.toFloat()
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.86f))
             .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {

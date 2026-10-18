@@ -342,7 +342,7 @@ object IdleRunSimulator {
             repeat(count) {
                 // Idle never drops GLITCHED or ENCRYPTED (owner, 0.39.1): those come out as GOLDEN.
                 val rolled = Gear.rollRarity(r, boss, inf, luck, boss && level >= 120)
-                val rarity = if (rolled == com.cyberoperative.game.data.GearRarity.GLITCHED || rolled == com.cyberoperative.game.data.GearRarity.ENCRYPTED) com.cyberoperative.game.data.GearRarity.LEGENDARY else rolled
+                val rarity = if (rolled == com.cyberoperative.game.data.GearRarity.GLITCHED || rolled >= com.cyberoperative.game.data.GearRarity.ENCRYPTED) com.cyberoperative.game.data.GearRarity.LEGENDARY else rolled
                 val item = Gear.roll(r, (drops.size + 1).toLong(), Gear.itemLevel(cfg.gearLevel, r), rarity)
                 // Idle Runs keep only EPIC and better (owner, 0.37.3), and 20% fewer of those (0.37.4).
                 // The roll itself is the normal one; the keep roll is always drawn so runs stay seeded.

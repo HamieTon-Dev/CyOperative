@@ -559,5 +559,5 @@ object CoopCodec {
     }
 
     /** Bump when the format changes; mismatched builds refuse each other's packets. */
-    const val VERSION = 32
+    const val VERSION = 33
 }

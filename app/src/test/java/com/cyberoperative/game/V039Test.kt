@@ -20,7 +20,8 @@ import org.junit.Test
 class V039Test {
     @Test fun newRaritiesSitWhereTheOwnerAskedAndOldSavesStillLoad() {
         assertEquals(GearRarity.LEGENDARY.ordinal + 1, GearRarity.GLITCHED.ordinal)
-        assertEquals(GearRarity.entries.last(), GearRarity.ENCRYPTED)
+        assertEquals(GearRarity.entries.last(), GearRarity.GLITCHED_ENCRYPTED) // 0.47.0: above ENCRYPTED
+        assertEquals(GearRarity.GLITCHED_ENCRYPTED.ordinal - 1, GearRarity.ENCRYPTED.ordinal)
         assertEquals(Rarity.LEGENDARY.ordinal + 1, Rarity.GLITCHED.ordinal)
         // "ENCRYPTED" on disk was FORGED's old name and must stay FORGED.
         val old = Gear.decode("""[{"u":1,"s":"CORE","r":"ENCRYPTED","a":0,"l":10,"b":5.0}]""").single()

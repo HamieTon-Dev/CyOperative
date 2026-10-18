@@ -2648,7 +2648,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             com.cyberoperative.game.data.GearRarity.FORGED -> { sound(GameSound.GEAR_FORGED); return }
             com.cyberoperative.game.data.GearRarity.VOLTAIC -> { sound(GameSound.GEAR_VOLTAIC); return }
             com.cyberoperative.game.data.GearRarity.CELESTIAL -> { sound(GameSound.GEAR_CELESTIAL); return }
-            com.cyberoperative.game.data.GearRarity.ABYSSAL, com.cyberoperative.game.data.GearRarity.ENCRYPTED -> { sound(GameSound.GEAR_ABYSSAL); return }
+            com.cyberoperative.game.data.GearRarity.ABYSSAL, com.cyberoperative.game.data.GearRarity.ENCRYPTED,
+            com.cyberoperative.game.data.GearRarity.GLITCHED_ENCRYPTED -> { sound(GameSound.GEAR_ABYSSAL); return }
             com.cyberoperative.game.data.GearRarity.GLITCHED -> { sound(GameSound.GEAR_VOLTAIC); return }
             else -> {}
         }
@@ -3628,7 +3629,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         for (o in ops) {
             if (o.gone) continue
             if (petRng.nextFloat() < (if (boss) com.cyberoperative.game.data.Pets.BOSS_EGG else com.cyberoperative.game.data.Pets.ELITE_EGG)) {
+                // Eggs top out at ENCRYPTED: GLITCHED ENCRYPTED is gear only (0.47.0).
                 val rarity = com.cyberoperative.game.data.Gear.rollRarity(petRng, boss, inf, (config.difficulty.luck * 0.3f).coerceAtLeast(0f), false)
+                    .coerceAtMost(com.cyberoperative.game.data.GearRarity.ENCRYPTED)
                 o.eggsFound += com.cyberoperative.game.data.Pets.rollEgg(petRng, (o.eggsFound.size + 1).toLong(), rarity)
                 if (o === ops[primary]) addText(x, y - 56f, "EGG FOUND", TextKind.INFO)
             }
@@ -5463,13 +5466,14 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         const val GUEST_GEAR_SENT = 6
 
         /** Packs a drop's look into one int for the co-op snapshot: rarity, slot, art. */
-        fun gearLook(g: com.cyberoperative.game.data.GearItem): Int = ((g.rarity.ordinal * 8 + g.slot.ordinal) shl 8) or (g.art and 0xFF)
+        // 10 art bits (0.47.0): GLITCHED ENCRYPTED rifles go up to art 299.
+        fun gearLook(g: com.cyberoperative.game.data.GearItem): Int = ((g.rarity.ordinal * 8 + g.slot.ordinal) shl 10) or (g.art and 0x3FF)
         fun gearFromLook(v: Int): com.cyberoperative.game.data.GearItem {
-            val rs = (v shr 8).coerceAtLeast(0)
+            val rs = (v shr 10).coerceAtLeast(0)
             return com.cyberoperative.game.data.GearItem(
                 0L, com.cyberoperative.game.data.GearSlot.entries[rs % 8],
                 com.cyberoperative.game.data.GearRarity.entries.getOrElse(rs / 8) { com.cyberoperative.game.data.GearRarity.COMMON },
-                v and 0xFF, 1, 0f
+                v and 0x3FF, 1, 0f
             )
         }
         const val ELITE_BOMB_DROP = 0.02f

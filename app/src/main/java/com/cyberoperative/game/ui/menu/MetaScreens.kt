@@ -459,7 +459,7 @@ private fun AutoSellChoice(r: com.cyberoperative.game.data.GearRarity?) {
         Text("OFF", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
         return
     }
-    val c = Color(r.color)
+    val c = com.cyberoperative.game.ui.common.rarityColor(r)
     Box(Modifier.rarityCard(r, corner = 4.dp).border(1.dp, c, RoundedCornerShape(4.dp)).padding(horizontal = 10.dp, vertical = 3.dp)) {
         Text(r.label, color = c, style = MaterialTheme.typography.labelLarge)
     }

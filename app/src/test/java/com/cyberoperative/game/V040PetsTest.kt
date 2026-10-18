@@ -13,7 +13,7 @@ import kotlin.random.Random
 class V040PetsTest {
     @Test fun highRarityEggsHatchTheNewPetsOfThatTier() {
         val r = Random(3)
-        for (rar in GearRarity.entries) repeat(40) { i ->
+        for (rar in Pets.RARITIES) repeat(40) { i ->
             val e = Pets.rollEgg(r, i.toLong(), rar)
             if (rar >= GearRarity.GLITCHED) {
                 assertTrue(Pets.isNewArt(e.pet))

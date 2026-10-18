@@ -536,7 +536,7 @@ internal var currentClass: String = "operative"
 @Composable
 private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, actions: GearActions) {
     currentClass = p.selectedOperative
-    Panel(modifier, accent = item?.let { Color(it.rarity.color).copy(alpha = 0.7f) } ?: Palette.Divider, rarity = item?.rarity) {
+    Panel(modifier, accent = item?.let { com.cyberoperative.game.ui.common.rarityColor(it.rarity).copy(alpha = 0.7f) } ?: Palette.Divider, rarity = item?.rarity) {
         if (item == null) {
             Column {
                 Text("SELECT AN ITEM", color = Palette.TextSecondary, style = MaterialTheme.typography.titleMedium)
@@ -549,7 +549,7 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
         }
         var confirmDiscard by remember(item.uid) { mutableStateOf(false) }
         val where = whereOf(p, item.uid)
-        val c = Color(item.rarity.color)
+        val c = com.cyberoperative.game.ui.common.rarityColor(item.rarity)
         Column(Modifier.verticalScroll(rememberScrollState())) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(item.name.uppercase(), color = c, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
@@ -616,9 +616,9 @@ private fun RarityLegend() {
     Column {
         for (r in com.cyberoperative.game.data.GearRarity.entries) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 1.dp)) {
-                Box(Modifier.size(10.dp).background(Color(r.color), RoundedCornerShape(2.dp)))
+                Box(Modifier.size(10.dp).background(com.cyberoperative.game.ui.common.rarityColor(r), RoundedCornerShape(2.dp)))
                 Spacer(Modifier.width(6.dp))
-                Text(r.label + if (r.minInferno > 0) "  · INFERNO ${roman(r.minInferno)}+" else "", color = Color(r.color), style = MaterialTheme.typography.labelSmall)
+                Text(r.label + if (r.minInferno > 0) "  · INFERNO ${roman(r.minInferno)}+" else "", color = com.cyberoperative.game.ui.common.rarityColor(r), style = MaterialTheme.typography.labelSmall)
             }
         }
     }

@@ -207,7 +207,8 @@ object Pets {
         GearRarity.VOLTAIC -> 240
         GearRarity.CELESTIAL -> 360
         GearRarity.ABYSSAL -> 480
-        GearRarity.ENCRYPTED -> 600
+        // Pets top out at ENCRYPTED; GLITCHED ENCRYPTED (gear only, 0.47.0) reads as it.
+        GearRarity.ENCRYPTED, GearRarity.GLITCHED_ENCRYPTED -> 600
     }
 
     // --- Art --------------------------------------------------------------------------------
@@ -263,8 +264,14 @@ object Pets {
         return pics[(seed.mod(pics.size.toLong())).toInt()]
     }
 
-    /** A new egg of [rarity]: its picture matches the rarity's colour; the pet inside is any of them. */
-    fun rollEgg(rng: Random, uid: Long, rarity: GearRarity): PetEgg {
+    /** Pets and eggs top out at ENCRYPTED (GLITCHED ENCRYPTED is gear only, 0.47.0). */
+    val TOP = GearRarity.ENCRYPTED
+    /** The rarities pets come in. */
+    val RARITIES: List<GearRarity> get() = GearRarity.entries.filter { it <= TOP }
+
+    /** A new egg of [wanted] rarity (capped at [TOP]): its picture matches the rarity's colour; the pet inside is any of them. */
+    fun rollEgg(rng: Random, uid: Long, wanted: GearRarity): PetEgg {
+        val rarity = wanted.coerceAtMost(TOP)
         val pics = eggsByRarity.getValue(rarity)
         // GLITCHED and up: one of the 0.40.0 pets designed for that rarity, in its own egg.
         newByTier[rarity]?.takeIf { it.isNotEmpty() }?.let { ks ->
@@ -303,7 +310,7 @@ object Pets {
         GearRarity.VOLTAIC -> 0.95f
         GearRarity.CELESTIAL -> 1.10f
         GearRarity.ABYSSAL -> 1.30f
-        GearRarity.ENCRYPTED -> 1.55f
+        GearRarity.ENCRYPTED, GearRarity.GLITCHED_ENCRYPTED -> 1.55f
     }
 
     /** Seconds between pet shots: 1.1 s for COMMON down to about 0.5 s for ENCRYPTED. */
