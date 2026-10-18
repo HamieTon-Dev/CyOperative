@@ -5,6 +5,14 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.49.0: 50 GLITCHED ENCRYPTED pets and eggs (animated, glitch-tearing, 12 h hatch).
+- ✅ 0.48.1: compact HUD portrait-only and switchable in Settings, [+] auto-hides, opaque buttons (see-through switch), boss bar with HP numbers and phase blocks.
+- ✅ 0.48.0: UI SQUISH corner HUD on phones, thin boss bar.
+- ✅ 0.47.3: squished Android damage numbers, compact buffs on every layout, ■INV with banners kept clear.
+- ✅ 0.47.2: slimmer, see-through portrait HUD; buffs at half size in 3 rows.
+- ✅ 0.47.1: thinner Plasma Beam (drawn at 15%; hit width unchanged).
+- ✅ 0.47.0: GLITCHED ENCRYPTED gear (650 pieces).
+- ✅ 0.46.0: AUTO-SELL in Settings ("sell everything below ___").
 - ✅ 0.45.3: fixed the silent NEON tracks on Android (missing from `rawMusic`), guarded by `MusicFilesTest`.
 - CO-160 COMPANIONS (owner brief 2026-10-17).
   - ✅ 0.38.0: eggs, incubator, Inferno Stones, pets that follow and fight, the owner's 1,005 pets and 872 eggs.
@@ -143,6 +151,8 @@ device, tune balance, then fill out the store/meta phases.
 - Boss rush mode
 
 ## USER DECISIONS REQUIRED
+- Should the ◇ store sell a GLITCHED ENCRYPTED egg (and at what price)? Today they only drop (0.49.0).
+- GLITCHED ENCRYPTED gear defaults to check: 0.1% per boss piece, ×3.5 stats, its perks (0.47.0).
 3. **Living background price**: currently provisional ◇150 each / ◇600 all.
 3. **Power-up names, icons and boss-drop rule**: pick on the Power-Up Board
    (https://claude.ai/artifact/8fjDBEvGFPJp68SNZUZgQP).
