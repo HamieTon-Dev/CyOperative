@@ -10,12 +10,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -132,4 +134,44 @@ fun EggIconView(egg: PetEgg, modifier: Modifier = Modifier, alpha: Float = 1f) {
 fun PetPicture(name: String, modifier: Modifier = Modifier, alpha: Float = 1f) {
     val img = PetArt.image(name) ?: run { Box(modifier); return }
     Image(img, null, modifier, contentScale = ContentScale.Fit, alpha = alpha)
+}
+
+/**
+ * An egg as it looks in the game (owner, 0.50.0: "animate the eggs … not a still life icon"):
+ * it bobs, rocks, gives a little shake now and then like in the incubator, and sits in a small
+ * soft glow of its rarity colour. [time] comes from the screen (one shared clock, kept cheap).
+ */
+@Composable
+fun AnimatedEgg(art: Int, rarity: GearRarity, time: Float, modifier: Modifier = Modifier) {
+    val c = rarityColor(rarity)
+    Canvas(modifier) {
+        val s = size.minDimension
+        val cx = size.width / 2f
+        val bottom = size.height * 0.9f
+        val pulse = 0.75f + 0.25f * kotlin.math.sin(time * 2.4f)
+        val gc = Offset(cx, size.height * 0.55f)
+        drawCircle(SafeBrush.radialGradient(listOf(c.copy(alpha = 0.34f * pulse), Color.Transparent), gc, s * 0.46f), s * 0.46f, gc)
+        drawOval(Color.Black.copy(alpha = 0.35f), topLeft = Offset(cx - s * 0.2f, bottom - s * 0.05f), size = androidx.compose.ui.geometry.Size(s * 0.4f, s * 0.08f))
+        val bob = kotlin.math.sin(time * 2f) * s * 0.025f
+        val shake = if ((time % 3.4f) < 0.4f) kotlin.math.sin(time * 42f) * 7f else 0f
+        val tilt = kotlin.math.sin(time * 1.7f) * 4f + shake
+        rotate(tilt, Offset(cx, bottom)) {
+            with(PetArt) { drawEgg(art, cx, bottom - s * 0.03f + bob, s * 0.72f) }
+        }
+    }
+}
+
+/** A clock (seconds) that ticks only [fps] times a second: cheap shared time for list previews. */
+@Composable
+fun rememberSlowClock(fps: Int = 24): Float {
+    var t by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    androidx.compose.runtime.LaunchedEffect(fps) {
+        val start = androidx.compose.runtime.withFrameNanos { it }
+        val step = 1f / fps
+        while (true) androidx.compose.runtime.withFrameNanos {
+            val now = (it - start) / 1e9f
+            if (now - t >= step) t = now
+        }
+    }
+    return t
 }

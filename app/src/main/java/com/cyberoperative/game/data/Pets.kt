@@ -378,3 +378,36 @@ class PetAnim(val parts: List<Part>) {
         }
     }
 }
+
+/** PET CODEX (0.50.0): a pet you've hatched — the egg it came from and the best rarity you've had it in. */
+@Serializable
+data class PetDexEntry(
+    @SerialName("e") val egg: Int,
+    @SerialName("r") val best: GearRarity
+)
+
+/**
+ * DAILY EGGS (owner, 0.50.0): three single eggs on sale for ◇[PRICE] each, of random rarities and
+ * kinds. All three roll again every [ROTATE_MS]; buying the last one rolls three new ones at once.
+ */
+object EggOffers {
+    const val PRICE = 1500L
+    const val COUNT = 3
+    const val ROTATE_MS = 24L * 60L * 60L * 1000L
+
+    /** Rarity weights (sum 100): any rarity can show up, the rarest seldom. Defaults: tune here. */
+    val weights: List<Pair<GearRarity, Float>> = listOf(
+        GearRarity.COMMON to 6f, GearRarity.UNCOMMON to 8f, GearRarity.RARE to 12f, GearRarity.EPIC to 17f,
+        GearRarity.LEGENDARY to 20f, GearRarity.GLITCHED to 13f, GearRarity.FORGED to 8f, GearRarity.VOLTAIC to 6f,
+        GearRarity.CELESTIAL to 4.5f, GearRarity.ABYSSAL to 3f, GearRarity.ENCRYPTED to 2f, GearRarity.GLITCHED_ENCRYPTED to 0.5f
+    )
+
+    fun rollRarity(rng: Random): GearRarity {
+        var x = rng.nextFloat() * weights.sumOf { it.second.toDouble() }.toFloat()
+        for ((r, w) in weights) { x -= w; if (x <= 0f) return r }
+        return weights.last().first
+    }
+
+    /** Three fresh offers (uids are set when bought). */
+    fun roll(rng: Random): List<PetEgg> = List(COUNT) { Pets.rollEgg(rng, 0L, rollRarity(rng)) }
+}

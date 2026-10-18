@@ -122,13 +122,27 @@ object Incubators {
         return p.copy(incubator = inc.copy(current = null, progress = 0, queue = emptyList(), slots = slots), eggs = p.eggs + leftover)
     }
 
+    /** PET CODEX: newly hatched [pets] join the record (their egg, and the best rarity seen). */
+    fun dex(old: Map<Int, com.cyberoperative.game.data.PetDexEntry>, pets: List<com.cyberoperative.game.data.Pet>): Map<Int, com.cyberoperative.game.data.PetDexEntry> {
+        if (pets.isEmpty()) return old
+        val out = old.toMutableMap()
+        for (pet in pets) {
+            val cur = out[pet.art]
+            if (cur == null || pet.rarity > cur.best) out[pet.art] = com.cyberoperative.game.data.PetDexEntry(cur?.egg ?: pet.hatchedFrom, maxOf(pet.rarity, cur?.best ?: pet.rarity))
+        }
+        return out
+    }
+
+    /** The codex including pets owned from before it existed. */
+    fun codex(p: PlayerProfile): Map<Int, com.cyberoperative.game.data.PetDexEntry> = dex(p.petCodex, p.pets)
+
     /** The save moved to [now]: hatched eggs become pets. */
     fun tick(p: PlayerProfile, now: ClockNow = TrustedClock.now()): PlayerProfile {
         val m = migrate(p)
         val (stepped, real) = clockStep(m.incubator, now)
         val (inc, pets, next) = credit(stepped, real, m.petSeq)
         if (pets.isEmpty() && inc == m.incubator && m === p) return p
-        return m.copy(incubator = inc, pets = m.pets + pets, petSeq = next)
+        return m.copy(incubator = inc, pets = m.pets + pets, petCodex = dex(m.petCodex, pets), petSeq = next)
     }
 
     /** Puts egg [uid] from the inventory into the first empty incubator (null when all three are busy). */
@@ -157,7 +171,7 @@ object Incubators {
         val q = tick(p, now)
         val stones = n.coerceIn(0, minOf(Pets.MAX_STONES, q.infernoStones))
         val (inc, pets, next) = credit(q.incubator.copy(stones = stones), 0L, q.petSeq)
-        return q.copy(incubator = inc, pets = q.pets + pets, petSeq = next)
+        return q.copy(incubator = inc, pets = q.pets + pets, petCodex = dex(q.petCodex, pets), petSeq = next)
     }
 
     /** Hatches incubator [slot] now (paid for). */
@@ -165,7 +179,7 @@ object Incubators {
         val s = q.incubator.slot(slot)!!
         val slots = q.incubator.slots.toMutableList().also { it[slot] = s.copy(progress = s.egg.baseMs) }
         val (inc, pets, next) = credit(q.incubator.copy(slots = slots), 0L, q.petSeq)
-        return q.copy(incubator = inc, pets = q.pets + pets, petSeq = next)
+        return q.copy(incubator = inc, pets = q.pets + pets, petCodex = dex(q.petCodex, pets), petSeq = next)
     }
 
     /** Pays ◇ to hatch the egg in incubator [slot] now; null when it's empty or there isn't enough ◇. */

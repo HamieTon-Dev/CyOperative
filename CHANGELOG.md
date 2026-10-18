@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.50.0 (versionCode 141) — 2026-10-18 · Daily eggs, live store previews, PET CODEX
+### Added (owner)
+- **DAILY EGGS** (top of the STORE): three separate eggs, each with its own card and BUY button, at **◇1,500** each.
+  - Rarities and egg kinds are random. Default weights, from Common to Glitched Encrypted: 6 / 8 / 12 / 17 / 20 / 13 / 8 / 6 / 4.5 / 3 / 2 / 0.5 %. Tune them in `EggOffers.weights`.
+  - All three change every 24 h; the header counts down.
+  - Buying the third one rolls three new eggs at once (and restarts the 24 h).
+  - What you see is exactly the egg you get. The pet inside stays a surprise.
+- **PET CODEX** (main menu, next to BOSS CODEX):
+  - Shows all 2,355 pets, grouped by rarity, with 'x / y discovered' per group.
+  - Hatched pets show and move; the rest are dark silhouettes.
+  - Tap one for its page: the pet animated, its name and rarity (or COMMON – LEGENDARY for the originals), and its potential **damage, fire rate, abilities and hatch time**.
+  - The page also shows **its egg**, animated. Designed pets show their own egg; originals show the egg yours came from.
+  - Every hatch is recorded, so pets you release stay in the codex. Pets you already own count as discovered.
+### Changed (owner)
+- **Skins:** the icon on the left is now **your operator wearing that skin**, walking. All previews share one 20 fps clock, to keep it light.
+- **Store eggs move like in the game:** they bob, rock and give an occasional shake, in a small glow of their rarity colour. This covers the daily eggs and the ◇ egg packs, which show an egg of their best rarity.
+- Renders: `docs/screenshots/v050_store_top.png`, `v050_store.gif`, `v050_skins.png`, `v050_skin.gif`, `v050_pet_codex.png`, `v050_pet_codex_page(_original).png` and `v050_main_menu.png`.
+
 ## 0.49.1 (versionCode 140) — 2026-10-18 · 300 new pets and eggs, eggs from Idle Runs
 ### Added (owner)
 - **300 new pets, each with its own new egg** (`tools/pets/gen_more_pets.py`):

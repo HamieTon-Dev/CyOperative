@@ -135,6 +135,21 @@ object StoreManager {
     /** Credit a verified ◇ purchase (from Google Play, or a debug test grant). */
     fun grantDiamonds(p: PlayerProfile, amount: Int): PlayerProfile = p.copy(diamonds = p.diamonds + amount)
 
+    /** DAILY EGGS (0.50.0): the offers as of [now], rolled again when 24 h have passed or none are left. */
+    fun eggOffers(p: PlayerProfile, now: Long = System.currentTimeMillis(), rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile =
+        if (p.eggOffers.isNotEmpty() && now >= p.eggOffersAt && now - p.eggOffersAt < com.cyberoperative.game.data.EggOffers.ROTATE_MS) p
+        else p.copy(eggOffers = com.cyberoperative.game.data.EggOffers.roll(rng), eggOffersAt = now)
+
+    /** Buys daily offer [index] for ◇1500; buying the last one rolls three new offers at once. */
+    fun buyEggOffer(p: PlayerProfile, index: Int, now: Long = System.currentTimeMillis(), rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile? {
+        val price = com.cyberoperative.game.data.EggOffers.PRICE
+        val egg = p.eggOffers.getOrNull(index) ?: return null
+        if (p.diamonds < price || p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS) return null
+        val left = p.eggOffers.filterIndexed { i, _ -> i != index }
+        val bought = p.copy(diamonds = p.diamonds - price, eggs = p.eggs + egg.copy(uid = p.petSeq), petSeq = p.petSeq + 1, eggOffers = left)
+        return if (left.isEmpty()) bought.copy(eggOffers = com.cyberoperative.game.data.EggOffers.roll(rng), eggOffersAt = now) else bought
+    }
+
     /** A pet egg for ◇ (0.38.0): rarity rolled from that egg's odds, the pet inside rolled too. */
     fun buyEgg(p: PlayerProfile, egg: com.cyberoperative.game.data.Pets.StoreEgg, rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile? {
         if (p.diamonds < egg.price || p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS) return null

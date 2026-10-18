@@ -78,6 +78,11 @@ data class PlayerProfile(
     /** Unhatched eggs (up to 100). */
     val eggs: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
     val pets: List<com.cyberoperative.game.data.Pet> = emptyList(),
+    /** DAILY EGGS on sale (0.50.0) and when they were rolled (ms); bought ones leave the list. */
+    val eggOffers: List<com.cyberoperative.game.data.PetEgg> = emptyList(),
+    val eggOffersAt: Long = 0L,
+    /** PET CODEX (0.50.0): every pet art ever hatched → its egg and best rarity. */
+    val petCodex: Map<Int, com.cyberoperative.game.data.PetDexEntry> = emptyMap(),
     /** The pet that follows the operative into runs (uid, 0 = none). */
     val activePet: Long = 0,
     /** Inferno Stones owned (those socketed in the incubator count too). */

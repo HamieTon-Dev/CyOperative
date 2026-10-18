@@ -208,3 +208,19 @@ fun FigurePreview(
         with(OperativeFigures) { drawFigure(style, skin, size.width / 2f, size.height * 0.9f, uu, -0.4f + turn, moving, time, look = look) }
     }
 }
+
+/**
+ * The same figure drawn at a [time] the caller owns (no animation loop of its own): lists of
+ * previews share one slow clock, so they stay light (owner, 0.50.0 store skins).
+ */
+@androidx.compose.runtime.Composable
+fun FigureAt(
+    style: BodyStyle, skin: OperativeSkin, time: Float, modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
+    look: com.cyberoperative.game.save.CharacterLook? = null, moving: Boolean = true
+) {
+    androidx.compose.foundation.Canvas(modifier) {
+        val u = size.height / 80f
+        val uu = minOf(u, size.width / 60f)
+        with(OperativeFigures) { drawFigure(style, skin, size.width / 2f, size.height * 0.92f, uu, -0.4f, moving, time, look = look) }
+    }
+}

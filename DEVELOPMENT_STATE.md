@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.49.1 (versionCode 140) |
+| Version | 0.50.0 (versionCode 141) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.50.0:**
+  - Daily eggs: `PlayerProfile.eggOffers` and `eggOffersAt`, handled by `StoreManager.eggOffers` (rolls when empty or older than 24 h) and `buyEggOffer` (◇1500; buying the last one rolls three new). Wall clock: changing the time only re-rolls offers, which still cost ◇.
+  - PET CODEX: `PlayerProfile.petCodex` (art → `PetDexEntry`) is recorded by `Incubators.dex` on every hatch. `Incubators.codex(p)` adds the pets already owned.
+  - `AnimatedEgg` and `rememberSlowClock` live in PetArt.kt; `FigureAt` in OperativeFigures.kt.
 - **0.49.1:**
   - `Pets.NEW_COUNT` is 1350.
   - Pet scripts run in this order: `gen_new_pets.py` → `gen_gx_pets.py` → `gen_more_pets.py`. The last one fills page 8 from cell 26, then page 9.

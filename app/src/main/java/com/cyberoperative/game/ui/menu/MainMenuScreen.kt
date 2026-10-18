@@ -44,7 +44,7 @@ import com.cyberoperative.game.ui.theme.Palette
 import kotlin.math.sin
 
 enum class MenuTarget(val label: String) {
-    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("CHARACTER"), VAULT("DATA VAULT"), UPGRADES("OVERCLOCK"), ARMORY("ARMORY"), CODEX("BOSS CODEX"),
+    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("CHARACTER"), VAULT("DATA VAULT"), UPGRADES("OVERCLOCK"), ARMORY("ARMORY"), CODEX("BOSS CODEX"), PET_CODEX("PET CODEX"),
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
     SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE"),
     /** IDLE RUNS (0.37.0): Android only (the PC build has no Idle Runs host). */

@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.50.0: daily egg offers, animated store eggs, live skin previews, PET CODEX.
 - ✅ 0.49.1: 300 new pets and eggs; eggs drop in Idle Runs.
 - ✅ 0.49.0: 50 GLITCHED ENCRYPTED pets and eggs (animated, glitch-tearing, 12 h hatch).
 - ✅ 0.48.1: compact HUD portrait-only and switchable in Settings, [+] auto-hides, opaque buttons (see-through switch), boss bar with HP numbers and phase blocks.
@@ -152,6 +153,7 @@ device, tune balance, then fill out the store/meta phases.
 - Boss rush mode
 
 ## USER DECISIONS REQUIRED
+- DAILY EGGS rarity weights (defaults in `EggOffers.weights`; a COMMON at ◇1,500 is possible, but you see the egg before buying).
 - Should the ◇ store sell a GLITCHED ENCRYPTED egg (and at what price)? Today they only drop (0.49.0).
 - GLITCHED ENCRYPTED gear defaults to check: 0.1% per boss piece, ×3.5 stats, its perks (0.47.0).
 3. **Living background price**: currently provisional ◇150 each / ◇600 all.

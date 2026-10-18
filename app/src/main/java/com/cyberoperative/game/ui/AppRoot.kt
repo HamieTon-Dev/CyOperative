@@ -206,6 +206,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 )
                 MenuTarget.ARMORY -> ArmoryScreen(::back)
                 MenuTarget.CODEX -> com.cyberoperative.game.ui.menu.BossCodexScreen(profile, ::back)
+                MenuTarget.PET_CODEX -> com.cyberoperative.game.ui.menu.PetCodexScreen(profile, ::back)
                 MenuTarget.ACHIEVEMENTS -> AchievementsScreen(profile, ::back)
                 MenuTarget.LEADERBOARD -> LeaderboardScreen(profile, ::back)
                 MenuTarget.SETTINGS -> SettingsScreen(save, audio, ::back)

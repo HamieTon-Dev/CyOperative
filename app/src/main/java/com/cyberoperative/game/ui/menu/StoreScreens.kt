@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxSize
+import com.cyberoperative.game.ui.common.rarityCard
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -61,8 +63,28 @@ private fun spend(save: SaveRepository, audio: AudioManager, op: (PlayerProfile)
 fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, onOpenSkins: () -> Unit) {
     val p by save.profile.collectAsState()
     var notice by remember { mutableStateOf<String?>(null) }
+    // One cheap shared clock animates every egg on the page (0.50.0).
+    val time = com.cyberoperative.game.ui.common.rememberSlowClock(30)
+    // DAILY EGGS: roll on opening, and again when the 24 h are up while the store is open.
+    val left = p.eggOffersAt + com.cyberoperative.game.data.EggOffers.ROTATE_MS - System.currentTimeMillis()
+    LaunchedEffect(left <= 0L, p.eggOffers.isEmpty()) { save.update { StoreManager.eggOffers(it) } }
     ScreenScaffold("STORE", onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // DAILY EGGS (owner, 0.50.0): three single eggs, each its own offer, ◇1500 each. First on the page.
+            item {
+                val mins = (left.coerceAtLeast(0L) / 60_000L).toInt() + (time * 0).toInt()
+                Header("DAILY EGGS  ·  NEW IN ${mins / 60}h ${mins % 60}m")
+            }
+            items(p.eggOffers.size, key = { "offer_" + p.eggOffersAt + "_" + p.eggOffers[it].art + "_" + it }) { i ->
+                DailyEggCard(p.eggOffers[i], time, full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS, canPay = p.diamonds >= com.cyberoperative.game.data.EggOffers.PRICE) {
+                    spend(save, audio) { StoreManager.buyEggOffer(it, i) }
+                }
+            }
+            item {
+                Text("Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
+                    color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            }
+
             item { Header("◇ GOLD") }
             items(StoreCatalog.diamondPacks, key = { it.productId }) { pack ->
                 StoreRow(title = "◇ ${"%,d".format(pack.diamonds)}", subtitle = "Premium currency", price = pack.usdPrice, accent = Palette.Diamond) {
@@ -95,7 +117,10 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             item { Header("PET EGGS  ·  OWNED: ${p.eggs.size}/${com.cyberoperative.game.data.Pets.MAX_EGGS}") }
             items(com.cyberoperative.game.data.Pets.StoreEgg.entries.toList(), key = { "egg_" + it.name }) { egg ->
                 val full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS
+                // Shown with an egg of its best rarity, moving like in the game (0.50.0).
+                val top = egg.odds.maxBy { it.first.ordinal }.first
                 StoreRow(
+                    leading = { com.cyberoperative.game.ui.common.AnimatedEgg(com.cyberoperative.game.data.Pets.eggPictureFor(top, egg.ordinal.toLong()), top, time + egg.ordinal * 0.9f, Modifier.size(56.dp)) },
                     title = egg.label,
                     subtitle = egg.odds.joinToString(" · ") { (r, w) -> "${r.label} ${w.toInt()}%" } + " — hatch it in the INCUBATOR (CHARACTER › PETS)",
                     price = if (full) "FULL" else "◇${"%,d".format(egg.price)}", accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
@@ -145,15 +170,41 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
     }
 }
 
+/** One DAILY EGG: the egg moving in its rarity glow, its rarity and name, and its own BUY. */
+@Composable
+private fun DailyEggCard(egg: com.cyberoperative.game.data.PetEgg, time: Float, full: Boolean, canPay: Boolean, onBuy: () -> Unit) {
+    val c = com.cyberoperative.game.ui.common.rarityColor(egg.rarity)
+    TerminalCard(accent = c.copy(alpha = 0.6f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.cyberoperative.game.ui.common.AnimatedEgg(egg.art, egg.rarity, time + egg.art * 0.37f, Modifier.size(72.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Box(Modifier.rarityCard(egg.rarity, corner = 4.dp).border(1.dp, c, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                    Text(egg.rarity.label, color = c, style = MaterialTheme.typography.labelSmall)
+                }
+                Spacer(Modifier.height(3.dp))
+                Text(egg.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+                val h = com.cyberoperative.game.data.Pets.hatchMs(egg.rarity) / 3_600_000L
+                val m = (com.cyberoperative.game.data.Pets.hatchMs(egg.rarity) / 60_000L) % 60
+                Text("Hatches in ${if (h > 0) "${h}h " else ""}${if (m > 0) "${m}m" else ""}".trim() + " · the pet inside is a surprise",
+                    color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.width(8.dp))
+            CyberButton(if (full) "FULL" else "◇${"%,d".format(com.cyberoperative.game.data.EggOffers.PRICE)}", accent = c, enabled = !full && canPay, onClick = onBuy)
+        }
+    }
+}
+
 @Composable
 private fun Header(t: String) {
     Text(t, color = Palette.Cyan, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
 }
 
 @Composable
-private fun StoreRow(title: String, subtitle: String, price: String, accent: Color, enabled: Boolean = true, onClick: () -> Unit) {
+private fun StoreRow(title: String, subtitle: String, price: String, accent: Color, enabled: Boolean = true, leading: (@Composable () -> Unit)? = null, onClick: () -> Unit) {
     TerminalCard(accent = accent.copy(alpha = 0.5f)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            if (leading != null) { leading(); Spacer(Modifier.width(8.dp)) }
             Column(Modifier.weight(1f)) {
                 Text(title, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                 Text(subtitle, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
@@ -169,6 +220,8 @@ private fun StoreRow(title: String, subtitle: String, price: String, accent: Col
 fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
     val p by save.profile.collectAsState()
     var tab by remember { mutableStateOf(0) }
+    // Skin previews share one slow clock (owner, 0.50.0: "animate it but light weight").
+    val time = com.cyberoperative.game.ui.common.rememberSlowClock(20)
     ScreenScaffold("SKINS", onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CyberButton("OPERATIVE", Modifier.weight(1f), accent = if (tab == 0) Palette.Green else Palette.Divider) { tab = 0 }
@@ -193,7 +246,12 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
                     TerminalCard(accent = if (equipped) Palette.Green else Palette.Divider) {
                       Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            OperativeMarkIcon(skin, Modifier.size(56.dp))
+                            // Your operator wearing it, walking (owner, 0.50.0).
+                            Box(Modifier.size(64.dp, 76.dp).background(Color(skin.edge).copy(alpha = 0.10f), RoundedCornerShape(6.dp))) {
+                                com.cyberoperative.game.ui.game.FigureAt(
+                                    com.cyberoperative.game.ui.game.BodyStyle.byId(cls.bodyId), skin, time, Modifier.fillMaxSize(), look = p.look
+                                )
+                            }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(skin.name, color = Color(skin.edge), style = MaterialTheme.typography.titleSmall)
