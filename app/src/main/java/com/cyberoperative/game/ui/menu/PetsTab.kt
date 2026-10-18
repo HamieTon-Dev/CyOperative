@@ -402,8 +402,9 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
     val crack = 1.7f      // the egg bursts
     val card = 2.4f       // the stats fade in
     val c = Color(pet.rarity.color)
-    // Rarer eggs hatch bigger (owner, 0.45.0): 0 for COMMON up to 1 for ENCRYPTED.
-    val g = pet.rarity.ordinal / (com.cyberoperative.game.data.GearRarity.entries.size - 1f)
+    // Rarer eggs hatch bigger (owner, 0.45.1): the glow is the base size for COMMON and grows
+    // evenly to twice that for ENCRYPTED.
+    val scale = 1f + pet.rarity.ordinal / (com.cyberoperative.game.data.GearRarity.entries.size - 1f)
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.86f))
             .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
@@ -412,7 +413,8 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            Modifier.widthIn(max = 380.dp).fillMaxWidth(0.9f).verticalScroll(rememberScrollState()),
+            // No scroll here: a scroll container clips, and the ENCRYPTED glow reaches past the column.
+            Modifier.widthIn(max = 380.dp).fillMaxWidth(0.9f),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(if (t < crack) "SOMETHING IS HATCHING…" else "NEW PET HATCHED!", color = if (t < crack) Palette.TextSecondary else Palette.Gold,
@@ -425,38 +427,22 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
                 val after = (t - crack).coerceAtLeast(0f)
                 // Rays in the rarity colour, turning slowly once it has hatched.
                 if (t >= crack) {
+                    // Rays and halo in the rarity colour: the base size for COMMON, twice it for ENCRYPTED.
                     val a = (after / 0.6f).coerceIn(0f, 1f)
-                    val pulse = 1f + 0.08f * g * kotlin.math.sin(after * 4f)
-                    // Rays: more, longer and brighter the rarer the pet; the top tiers get a second,
-                    // counter-turning set.
-                    val rays = 8 + (g * 16).toInt()
-                    val len = h * (0.42f + 0.38f * g) * pulse
-                    for (layer in 0..(if (g >= 0.5f) 1 else 0)) {
-                        val dirSpin = if (layer == 0) 1f else -1.4f
-                        rotate(after * 18f * dirSpin + layer * 7f, Offset(cx, cy)) {
-                            for (k in 0 until rays) {
-                                rotate(k * 360f / rays, Offset(cx, cy)) {
-                                    val half = w * (0.05f + 0.04f * g) * (if (layer == 0) 1f else 0.6f)
-                                    val path = androidx.compose.ui.graphics.Path().apply {
-                                        moveTo(cx, cy); lineTo(cx - half, cy - len); lineTo(cx + half, cy - len); close()
-                                    }
-                                    drawPath(path, Brush.verticalGradient(listOf(Color.Transparent, c.copy(alpha = (0.26f + 0.3f * g) * a * (if (layer == 0) 1f else 0.6f))), startY = cy - len, endY = cy))
+                    val len = h * 0.5f * scale
+                    val half = w * 0.07f * scale
+                    rotate(after * 18f, Offset(cx, cy)) {
+                        for (k in 0 until 12) {
+                            rotate(k * 30f, Offset(cx, cy)) {
+                                val path = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(cx, cy); lineTo(cx - half, cy - len); lineTo(cx + half, cy - len); close()
                                 }
+                                drawPath(path, Brush.verticalGradient(listOf(Color.Transparent, c.copy(alpha = 0.32f * a)), startY = cy - len, endY = cy))
                             }
                         }
                     }
-                    // Halo: wider and stronger with rarity.
-                    val halo = w * (0.36f + 0.36f * g) * pulse
-                    drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = (0.4f + 0.4f * g) * a), c.copy(alpha = 0.12f * g * a), Color.Transparent), Offset(cx, cy), halo), halo, Offset(cx, cy))
-                    // EPIC and up: shockwave rings rolling out in the rarity colour, again and again.
-                    if (pet.rarity >= com.cyberoperative.game.data.GearRarity.EPIC) {
-                        val rings = 1 + (g * 3).toInt()
-                        for (r in 0 until rings) {
-                            val ph = ((after * 0.7f + r.toFloat() / rings) % 1f)
-                            drawCircle(c.copy(alpha = (1f - ph) * (0.35f + 0.4f * g) * a), w * (0.15f + 0.6f * ph) * (0.8f + 0.4f * g), Offset(cx, cy),
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f + 5f * g * (1f - ph)))
-                        }
-                    }
+                    val halo = w * 0.42f * scale
+                    drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.45f * a), Color.Transparent), Offset(cx, cy), halo), halo, Offset(cx, cy))
                 }
                 if (t < crack) {
                     // The egg: shaking harder, glowing cracks spreading over it.
@@ -465,8 +451,8 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
                     val ew = w * 0.42f
                     val ex = cx + shake
                     val bottom = cy + ew * 0.5f
-                    val eg = ew * (0.9f + 0.6f * g * k)
-                    drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.15f + (0.4f + 0.3f * g) * k), Color.Transparent), Offset(ex, cy), eg), eg, Offset(ex, cy))
+                    val eg = ew * 0.9f * (1f + (scale - 1f) * k)
+                    drawCircle(com.cyberoperative.game.ui.common.SafeBrush.radialGradient(listOf(c.copy(alpha = 0.15f + 0.4f * k), Color.Transparent), Offset(ex, cy), eg), eg, Offset(ex, cy))
                     with(PetArt) { drawEgg(pet.hatchedFrom, ex, bottom, ew) }
                     val lines = (k * 6f).toInt()
                     for (i in 0 until lines) {
@@ -501,19 +487,15 @@ private fun HatchReveal(pet: Pet, left: Int, onContinue: () -> Unit) {
                     val bob = if (p >= 1f) kotlin.math.sin(after * 2.4f) * h * 0.015f else 0f
                     if (size > 1f) with(PetArt) { drawPet(pet.art, cx, cy + w * 0.3f + bob, size, time = t) }
                     // Rising sparkles.
-                    val sparks = 10 + (g * 40).toInt()
-                    for (i in 0 until sparks) {
-                        val ph = ((after * 0.45f + i.toFloat() / sparks) % 1f)
-                        val sx = cx + kotlin.math.sin(i * 2.3f + after) * w * (0.36f + 0.2f * g)
-                        val sy = cy + h * 0.25f - ph * h * (0.6f + 0.3f * g)
-                        drawCircle(c.copy(alpha = (1f - ph) * 0.9f), 3f + (i % 3) + 2f * g, Offset(sx, sy))
+                    for (i in 0 until 10) {
+                        val ph = ((after * 0.45f + i * 0.1f) % 1f)
+                        val sx = cx + kotlin.math.sin(i * 2.3f + after) * w * 0.36f * scale
+                        val sy = cy + h * 0.25f - ph * h * 0.6f * scale
+                        drawCircle(c.copy(alpha = (1f - ph) * 0.9f), (3f + (i % 3)) * scale, Offset(sx, sy))
                     }
                     // The flash.
-                    val f = (1f - after / (0.35f + 0.25f * g)).coerceIn(0f, 1f)
-                    if (f > 0f) {
-                        drawCircle(c.copy(alpha = f * 0.6f * g), w * (0.3f + (0.9f + 0.6f * g) * (1f - f)), Offset(cx, cy))
-                        drawCircle(Color.White.copy(alpha = f * 0.9f), w * (0.2f + (0.6f + 0.3f * g) * (1f - f)), Offset(cx, cy))
-                    }
+                    val f = (1f - after / 0.35f).coerceIn(0f, 1f)
+                    if (f > 0f) drawCircle(Color.White.copy(alpha = f * 0.9f), w * (0.2f + 0.6f * (1f - f)) * scale, Offset(cx, cy))
                 }
             }
             // The card: name, rarity, stats, abilities.

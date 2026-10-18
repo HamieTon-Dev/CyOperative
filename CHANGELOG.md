@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.45.1 (versionCode 129) — 2026-10-18 · Hatch glow scales with rarity
+### Changed (owner)
+- The hatch glow is one animation, always in the rarity's colour, that grows with rarity. COMMON gets the base glow; each rarity is a step bigger, up to twice the size for ENCRYPTED. The rays, halo, sparkles, flash and the egg's glow while it cracks all scale together.
+- Replaces 0.45.0's extra ray sets and shockwave rings.
+- The reveal no longer clips the larger glow at the sides.
+
 ## 0.45.0 (versionCode 128) — 2026-10-18 · Three incubators and the hatch animation
 ### Changed (owner)
 - **Three incubators.** They hatch three eggs at the same time; there is no queue any more.
