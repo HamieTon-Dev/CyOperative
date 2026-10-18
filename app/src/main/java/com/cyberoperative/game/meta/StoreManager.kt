@@ -137,13 +137,14 @@ object StoreManager {
 
     /** DAILY EGGS (0.50.0): the offers as of [now], rolled again when 24 h have passed or none are left. */
     fun eggOffers(p: PlayerProfile, now: Long = System.currentTimeMillis(), rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile =
-        if (p.eggOffers.isNotEmpty() && now >= p.eggOffersAt && now - p.eggOffersAt < com.cyberoperative.game.data.EggOffers.ROTATE_MS) p
+        // (offers rolled before 0.50.1 could be below GLITCHED: those roll again)
+        if (p.eggOffers.isNotEmpty() && p.eggOffers.all { it.rarity >= com.cyberoperative.game.data.GearRarity.GLITCHED } && now >= p.eggOffersAt && now - p.eggOffersAt < com.cyberoperative.game.data.EggOffers.ROTATE_MS) p
         else p.copy(eggOffers = com.cyberoperative.game.data.EggOffers.roll(rng), eggOffersAt = now)
 
-    /** Buys daily offer [index] for ◇1500; buying the last one rolls three new offers at once. */
+    /** Buys daily offer [index] at its rarity's price; buying the last one rolls three new offers at once. */
     fun buyEggOffer(p: PlayerProfile, index: Int, now: Long = System.currentTimeMillis(), rng: kotlin.random.Random = kotlin.random.Random.Default): PlayerProfile? {
-        val price = com.cyberoperative.game.data.EggOffers.PRICE
         val egg = p.eggOffers.getOrNull(index) ?: return null
+        val price = com.cyberoperative.game.data.EggOffers.price(egg.rarity)
         if (p.diamonds < price || p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS) return null
         val left = p.eggOffers.filterIndexed { i, _ -> i != index }
         val bought = p.copy(diamonds = p.diamonds - price, eggs = p.eggs + egg.copy(uid = p.petSeq), petSeq = p.petSeq + 1, eggOffers = left)

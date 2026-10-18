@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.50.1 (versionCode 142) — 2026-10-18 · Store eggs: GLITCHED LEGENDARY and up, priced by rarity
+### Changed (owner: "the store sells nothing less than a glitched legendary rarity egg")
+- **DAILY EGGS** only roll GLITCHED LEGENDARY or better, priced by rarity:
+
+  | Rarity | Price |
+  |---|---|
+  | GLITCHED LEGENDARY | ◇300 |
+  | FORGED | ◇400 |
+  | VOLTAIC | ◇500 |
+  | CELESTIAL | ◇600 |
+  | ABYSSAL | ◇700 |
+  | ENCRYPTED | ◇800 |
+  | GLITCHED ENCRYPTED | ◇900 |
+
+  - Default odds, in the same order: 35 / 22 / 16 / 12 / 8 / 5 / 2 % (`EggOffers.weights`).
+  - The three offers still rotate every 24 h, or all at once when the last one is bought.
+  - Offers rolled under 0.50.0 that were below GLITCHED roll again.
+- The old MYSTERY / EPIC / LEGENDARY egg packs are no longer sold.
+
 ## 0.50.0 (versionCode 141) — 2026-10-18 · Daily eggs, live store previews, PET CODEX
 ### Added (owner)
 - **DAILY EGGS** (top of the STORE): three separate eggs, each with its own card and BUY button, at **◇1,500** each.

@@ -73,15 +73,15 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             // DAILY EGGS (owner, 0.50.0): three single eggs, each its own offer, ◇1500 each. First on the page.
             item {
                 val mins = (left.coerceAtLeast(0L) / 60_000L).toInt() + (time * 0).toInt()
-                Header("DAILY EGGS  ·  NEW IN ${mins / 60}h ${mins % 60}m")
+                Header("DAILY EGGS  ·  NEW IN ${mins / 60}h ${mins % 60}m  ·  OWNED ${p.eggs.size}/${com.cyberoperative.game.data.Pets.MAX_EGGS}")
             }
             items(p.eggOffers.size, key = { "offer_" + p.eggOffersAt + "_" + p.eggOffers[it].art + "_" + it }) { i ->
-                DailyEggCard(p.eggOffers[i], time, full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS, canPay = p.diamonds >= com.cyberoperative.game.data.EggOffers.PRICE) {
+                DailyEggCard(p.eggOffers[i], time, full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS, canPay = p.diamonds >= com.cyberoperative.game.data.EggOffers.price(p.eggOffers[i].rarity)) {
                     spend(save, audio) { StoreManager.buyEggOffer(it, i) }
                 }
             }
             item {
-                Text("Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
+                Text("GLITCHED LEGENDARY and up only: ◇300, then +◇100 for each rarity above (◇900 for GLITCHED ENCRYPTED). Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
                     color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             }
 
@@ -114,19 +114,8 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 ) { spend(save, audio) { StoreManager.buyRevives(it, pack) } }
             }
 
-            item { Header("PET EGGS  ·  OWNED: ${p.eggs.size}/${com.cyberoperative.game.data.Pets.MAX_EGGS}") }
-            items(com.cyberoperative.game.data.Pets.StoreEgg.entries.toList(), key = { "egg_" + it.name }) { egg ->
-                val full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS
-                // Shown with an egg of its best rarity, moving like in the game (0.50.0).
-                val top = egg.odds.maxBy { it.first.ordinal }.first
-                StoreRow(
-                    leading = { com.cyberoperative.game.ui.common.AnimatedEgg(com.cyberoperative.game.data.Pets.eggPictureFor(top, egg.ordinal.toLong()), top, time + egg.ordinal * 0.9f, Modifier.size(56.dp)) },
-                    title = egg.label,
-                    subtitle = egg.odds.joinToString(" · ") { (r, w) -> "${r.label} ${w.toInt()}%" } + " — hatch it in the INCUBATOR (CHARACTER › PETS)",
-                    price = if (full) "FULL" else "◇${"%,d".format(egg.price)}", accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
-                    enabled = !full && p.diamonds >= egg.price
-                ) { spend(save, audio) { com.cyberoperative.game.meta.StoreManager.buyEgg(it, egg) } }
-            }
+            // 0.50.1 (owner): the store sells no egg below GLITCHED LEGENDARY, so the old
+            // MYSTERY / EPIC / LEGENDARY packs are gone: the DAILY EGGS above are the store's eggs.
 
             item { Header("OPERATIVE SKINS") }
             item {
@@ -190,7 +179,7 @@ private fun DailyEggCard(egg: com.cyberoperative.game.data.PetEgg, time: Float, 
                     color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.width(8.dp))
-            CyberButton(if (full) "FULL" else "◇${"%,d".format(com.cyberoperative.game.data.EggOffers.PRICE)}", accent = c, enabled = !full && canPay, onClick = onBuy)
+            CyberButton(if (full) "FULL" else "◇${"%,d".format(com.cyberoperative.game.data.EggOffers.price(egg.rarity))}", accent = c, enabled = !full && canPay, onClick = onBuy)
         }
     }
 }

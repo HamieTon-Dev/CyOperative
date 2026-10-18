@@ -387,19 +387,23 @@ data class PetDexEntry(
 )
 
 /**
- * DAILY EGGS (owner, 0.50.0): three single eggs on sale for ◇[PRICE] each, of random rarities and
- * kinds. All three roll again every [ROTATE_MS]; buying the last one rolls three new ones at once.
+ * DAILY EGGS (owner, 0.50.0): three single eggs on sale, of random rarities and kinds. All three
+ * roll again every [ROTATE_MS]; buying the last one rolls three new ones at once.
+ * 0.50.1 (owner): the store sells nothing below GLITCHED LEGENDARY, priced by rarity: ◇300 for
+ * GLITCHED, +◇100 per rarity above it (… ◇900 GLITCHED ENCRYPTED).
  */
 object EggOffers {
-    const val PRICE = 1500L
     const val COUNT = 3
+    const val BASE_PRICE = 300L
+    const val STEP_PRICE = 100L
+
+    fun price(r: GearRarity): Long = BASE_PRICE + STEP_PRICE * (r.ordinal - GearRarity.GLITCHED.ordinal).coerceAtLeast(0)
     const val ROTATE_MS = 24L * 60L * 60L * 1000L
 
-    /** Rarity weights (sum 100): any rarity can show up, the rarest seldom. Defaults: tune here. */
+    /** Rarity weights (sum 100), GLITCHED LEGENDARY and up only; the rarest seldom. Defaults: tune here. */
     val weights: List<Pair<GearRarity, Float>> = listOf(
-        GearRarity.COMMON to 6f, GearRarity.UNCOMMON to 8f, GearRarity.RARE to 12f, GearRarity.EPIC to 17f,
-        GearRarity.LEGENDARY to 20f, GearRarity.GLITCHED to 13f, GearRarity.FORGED to 8f, GearRarity.VOLTAIC to 6f,
-        GearRarity.CELESTIAL to 4.5f, GearRarity.ABYSSAL to 3f, GearRarity.ENCRYPTED to 2f, GearRarity.GLITCHED_ENCRYPTED to 0.5f
+        GearRarity.GLITCHED to 35f, GearRarity.FORGED to 22f, GearRarity.VOLTAIC to 16f, GearRarity.CELESTIAL to 12f,
+        GearRarity.ABYSSAL to 8f, GearRarity.ENCRYPTED to 5f, GearRarity.GLITCHED_ENCRYPTED to 2f
     )
 
     fun rollRarity(rng: Random): GearRarity {
