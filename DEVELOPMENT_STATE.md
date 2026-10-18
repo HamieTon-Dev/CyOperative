@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.48.0 (versionCode 137) |
+| Version | 0.48.1 (versionCode 138) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,11 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.48.1:**
+  - `squish` (GameScreen) is true for portrait, not desktop, and `settings.compactHud`. Landscape always pads the arena under its strip (`hudAbove = landscape`).
+  - `TouchLayout.seeThrough` (from `settings.seeThroughButtons`) picks between opaque and see-through drawing for buttons, the stick and INV/MAP.
+  - `HudSnapshot.bossHp`, `bossMaxHp` and `bossBreaks` (the phase `below` values) feed `SquishBossBar`.
+  - SquishHud auto-folds through `UpgradeBar(onInteract, onDetails)`.
 - **0.48.0 UI SQUISH:**
   - Phones use `SquishHud` (SquishHud.kt) in both orientations. `GameHud` and `CompactHudStrip` are no longer used on phones; PC still uses `PcHudStrip`.
   - `onBaseHeight` reports the folded card's bottom edge as `hudHeightPx`.

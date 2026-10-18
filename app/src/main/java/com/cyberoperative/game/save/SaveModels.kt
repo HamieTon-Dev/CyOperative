@@ -124,7 +124,11 @@ data class GameSettings(
     /** Android touch layout: "<P|L>.<control>.<x|y>" → fraction of the screen. */
     val touchLayout: Map<String, Float> = emptyMap(),
     /** AUTO-SELL (owner, 0.46.0): gear found below this rarity is sold at once; null keeps everything. */
-    val autoSellBelow: com.cyberoperative.game.data.GearRarity? = null
+    val autoSellBelow: com.cyberoperative.game.data.GearRarity? = null,
+    /** Portrait HUD (owner, 0.48.1): the compact corner card (true) or the classic top panel. */
+    val compactHud: Boolean = true,
+    /** Touch buttons see-through (owner, 0.48.1: opaque by default, "feel real and necessary"). */
+    val seeThroughButtons: Boolean = false
 )
 
 /** Best campaign level reached with one class, per difficulty. */

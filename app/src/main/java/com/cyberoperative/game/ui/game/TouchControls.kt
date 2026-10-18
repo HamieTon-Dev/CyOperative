@@ -111,8 +111,12 @@ object TouchLayout {
         else -> landscape
     }
 
-    /** How see-through the controls are: always see-through, a little more while recharging. */
-    const val ALPHA = 0.55f
+    /**
+     * Opaque by default (owner, 0.48.1); [seeThrough] (TOUCH CONTROLS → SEE-THROUGH BUTTONS)
+     * brings back the old 55%. Set from the settings by the game screen and the editor.
+     */
+    @Volatile var seeThrough = false
+    val ALPHA: Float get() = if (seeThrough) 0.55f else 1f
 }
 
 /** What one button shows right now. */
@@ -172,11 +176,12 @@ fun TouchButton(c: TouchControl, spell: Spell?, st: TouchButtonState, modifier: 
         TouchControl.BOMB -> Color(0xFF7DF9FF)
         TouchControl.STICK -> Palette.Cyan
     }
-    Box(modifier.graphicsLayer { alpha = if (st.ready) TouchLayout.ALPHA else TouchLayout.ALPHA * 0.6f }, contentAlignment = Alignment.Center) {
+    val see = TouchLayout.seeThrough
+    Box(modifier.graphicsLayer { alpha = if (st.ready || !see) TouchLayout.ALPHA else TouchLayout.ALPHA * 0.6f }, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val r = size.minDimension / 2f
             val o = Offset(size.width / 2f, size.height / 2f)
-            drawCircle(Color(0xFF05080F).copy(alpha = 0.65f), r, o)
+            drawCircle(if (see) Color(0xFF05080F).copy(alpha = 0.65f) else Color(0xFF0B1424), r, o)
             drawCircle(accent, r - 1.5f, o, style = Stroke(2.5f))
             if (!st.ready && st.cooldown > 0f) {
                 val f = (st.cooldown / st.maxCooldown).coerceIn(0f, 1f)
@@ -231,9 +236,17 @@ private fun DrawScope.bombIcon(o: Offset, r: Float) {
 
 /** The joystick graphic (also used by the layout editor). */
 fun DrawScope.drawStick(base: Offset, knob: Offset, radius: Float, active: Boolean) {
-    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.16f else 0.07f), radius, base)
-    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.6f else 0.25f), radius, base, style = Stroke(3f))
-    drawCircle(Palette.Cyan.copy(alpha = if (active) 0.85f else 0.3f), radius * 0.42f, knob)
+    if (TouchLayout.seeThrough) {
+        drawCircle(Palette.Cyan.copy(alpha = if (active) 0.16f else 0.07f), radius, base)
+        drawCircle(Palette.Cyan.copy(alpha = if (active) 0.6f else 0.25f), radius, base, style = Stroke(3f))
+        drawCircle(Palette.Cyan.copy(alpha = if (active) 0.85f else 0.3f), radius * 0.42f, knob)
+        return
+    }
+    // Opaque (0.48.1): a solid pad with a bright rim and a solid knob.
+    drawCircle(Color(0xFF0B1424), radius, base)
+    drawCircle(Palette.Cyan.copy(alpha = if (active) 1f else 0.75f), radius, base, style = Stroke(3f))
+    drawCircle(Color(0xFF0E3A4A), radius * 0.42f, knob)
+    drawCircle(Palette.Cyan, radius * 0.42f, knob, style = Stroke(3f))
 }
 
 /**

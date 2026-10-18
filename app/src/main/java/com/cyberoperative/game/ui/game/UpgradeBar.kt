@@ -59,9 +59,12 @@ import kotlinx.coroutines.launch
  * overheat-cooldown meter.
  */
 @Composable
-fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun UpgradeBar(
+    h: HudSnapshot, modifier: Modifier = Modifier, compact: Boolean = false,
+    onInteract: () -> Unit = {}, onDetails: (Boolean) -> Unit = {}
+) {
     if (h.owned.isEmpty()) return
-    if (compact) { CompactUpgradeGrid(h, modifier); return }
+    if (compact) { CompactUpgradeGrid(h, modifier, onInteract, onDetails); return }
     var selected by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -132,7 +135,7 @@ fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier, compact: Boolean =
  * scroll sideways; "+N" counts the ones out of view (tap it to jump there).
  */
 @Composable
-private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier) {
+private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier, onInteract: () -> Unit, onDetails: (Boolean) -> Unit) {
     var selected by remember { mutableStateOf<String?>(null) }
     val grid = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
     val scope = rememberCoroutineScope()
@@ -143,7 +146,10 @@ private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier) {
             (h.owned.size - 1 - lastFull).coerceAtLeast(0)
         }
     }
-    LaunchedEffect(selected) { if (selected != null) { delay(4000); selected = null } }
+    LaunchedEffect(selected) {
+        onDetails(selected != null)
+        if (selected != null) { delay(4000); selected = null }
+    }
     val gridH = SMALL_CHIP * 3 + SMALL_GAP * 2
     Box(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -163,7 +169,7 @@ private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier) {
                             selected = selected == id,
                             beamHeat = if (id == Upgrades.PLASMA_BEAM.id) h.beamHeat else 0f,
                             beamCooldown = if (id == Upgrades.PLASMA_BEAM.id) h.beamCooldown else 0f,
-                            onTap = { selected = if (selected == id) null else id },
+                            onTap = { onInteract(); selected = if (selected == id) null else id },
                             small = true
                         )
                     }
@@ -175,6 +181,7 @@ private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier) {
                     modifier = Modifier
                         .padding(start = 3.dp)
                         .clickable(role = Role.Button, onClickLabel = "Show more buffs") {
+                            onInteract()
                             scope.launch { grid.animateScrollToItem(h.owned.size - 1) }
                         }
                         .semantics { contentDescription = "$hiddenCount more buffs" }

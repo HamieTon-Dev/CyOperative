@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.48.1 (versionCode 138) — 2026-10-18 · Squish polish: portrait only, opaque buttons, boss HP
+### Changed (owner)
+- **The compact HUD is portrait only.** Landscape phones are back to the slim strip (with the compact 3-row buffs).
+- **Choose your HUD:** Settings → **COMPACT HUD (PORTRAIT)**, on by default. Off brings back the classic top panel.
+- **[+] auto-hides:** it folds itself after 4 s untouched. Tapping a buff shows its description and keeps the panel open; once the description closes, the 4 s start again.
+- **Opaque buttons:** the joystick, dash, spells, HP charge, Packet Bomb, ■INV and MAP are now solid. The touch-control editor (TOUCH CONTROLS LAYOUT) has a **SEE-THROUGH BUTTONS** switch to bring back the old look.
+- **Boss bar** (between ■INV and MAP):
+  - shows `HP 812k/1.2m` instead of %, on a dark plate, without making the bar bigger;
+  - split into blocks, one per boss phase, cut exactly where the phases change;
+  - never shows HP above the maximum.
+- Renders: `docs/screenshots/hud_review_*` and `touch_editor_opaque.png`.
+
 ## 0.48.0 (versionCode 137) — 2026-10-18 · UI SQUISH (phones)
 ### Changed (owner: "make our bars and icons super compact … a cleaner layout")
 - **Phones, portrait and landscape:** the top bar is replaced by a small card in the top-left corner that floats over the room:

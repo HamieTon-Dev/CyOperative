@@ -199,13 +199,16 @@ fun GameScreen(
         // PC: the canvas itself starts below the HUD strip, so no inset inside it.
         val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
         // Only the PC strip sits above the arena; phones float the SQUISH card over it (0.48.0).
-        val hudAbove = landscape && com.cyberoperative.game.platform.AppInfo.desktop
+        val hudAbove = landscape
+        // UI SQUISH: portrait phones only, and only if the player keeps the compact HUD (0.48.1).
+        val squish = !landscape && !com.cyberoperative.game.platform.AppInfo.desktop && session.settings.compactHud
         val topInsetPx = with(density) { if (landscape) 0f else (hudHeightDp + 4.dp).toPx() }
         val bottomInsetPx = with(density) { (if (landscape) 24.dp else 150.dp).toPx() }
         val restX = constraints.maxWidth / 2f
         val restY = constraints.maxHeight - with(density) { 110.dp.toPx() }
         // Touch layout (Settings → TOUCH CONTROLS): locked joystick spot, and the PC-mode buttons.
         val touchSettings = session.settings
+        TouchLayout.seeThrough = touchSettings.seeThroughButtons
         val stickLocked = !GameKeys.active && TouchLayout.stickLocked(touchSettings, landscape)
         val lockPos = TouchLayout.place(touchSettings, TouchControl.STICK, landscape, maxWidth.value, maxHeight.value)
         val lockX = lockPos.x * constraints.maxWidth
@@ -297,11 +300,9 @@ fun GameScreen(
             val atLayout = stickLocked || (!GameKeys.active && session.engine.config.consumables)
             val bx = if (stickActive) originX else if (atLayout) lockX else restX
             val by = if (stickActive) originY else if (atLayout) lockY else restY
-            drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.16f else 0.07f), stickRadiusPx, Offset(bx, by))
-            drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.6f else 0.25f), stickRadiusPx, Offset(bx, by), style = Stroke(3f))
             val kx = if (stickActive) knobX else bx
             val ky = if (stickActive) knobY else by
-            drawCircle(Palette.Cyan.copy(alpha = if (stickActive) 0.85f else 0.3f), stickRadiusPx * 0.42f, Offset(kx, ky))
+            drawStick(Offset(bx, by), Offset(kx, ky), stickRadiusPx, stickActive)
         }
 
         if (!GameKeys.active && session.engine.config.consumables && !session.paused && hud.phase != Phase.DEAD && hud.phase != Phase.UPGRADE) {
@@ -353,7 +354,7 @@ fun GameScreen(
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
         ) {
             // Phones: the thin boss bar between ■INV and MAP (owner, 0.48.0).
-            if (hud.bossName != null && !com.cyberoperative.game.platform.AppInfo.desktop) {
+            if (hud.bossName != null && squish) {
                 SquishBossBar(hud, Modifier.fillMaxWidth())
             }
             if (hud.phase == Phase.PORTAL) {
@@ -458,8 +459,8 @@ fun GameScreen(
             Box(
                 Modifier.align(Alignment.TopEnd).padding(top = hudHeightDp + 8.dp, end = 10.dp)
                     .onSizeChanged { mapButtonPx.intValue = it.width }
-                    .graphicsLayer { alpha = 0.6f }
-                    .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
+                    .graphicsLayer { alpha = if (TouchLayout.seeThrough) 0.6f else 1f }
+                    .background(if (TouchLayout.seeThrough) Color(0xCC05080F) else Color(0xFF0B1424), RoundedCornerShape(8.dp))
                     .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
                     .clickable { showMap = !showMap }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -476,8 +477,9 @@ fun GameScreen(
             Box(
                 Modifier.align(Alignment.TopStart).padding(top = hudHeightDp + 8.dp, start = 10.dp)
                     .onSizeChanged { cornerButtonPx.intValue = it.width }
-                    .graphicsLayer { alpha = 0.75f }
-                    .background(Color(0xCC05080F), RoundedCornerShape(8.dp))
+                    // Opaque (owner, 0.48.1), unless the player picked see-through buttons.
+                    .graphicsLayer { alpha = if (TouchLayout.seeThrough) 0.75f else 1f }
+                    .background(if (TouchLayout.seeThrough) Color(0xCC05080F) else Color(0xFF0B1424), RoundedCornerShape(8.dp))
                     .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
                     .clickable { openInventory() }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
@@ -587,8 +589,8 @@ fun GameScreen(
           // Steam (owner, 0.31.0: "text at the top is really small on a large screen"): 2× that,
           // and a little more on very wide windows.
           val hudScale = if (com.cyberoperative.game.platform.AppInfo.desktop) HUD_PC_SCALE * 2f * pcWide else HUD_PC_SCALE
-          if (!com.cyberoperative.game.platform.AppInfo.desktop) {
-            // Phones, portrait and landscape: the UI SQUISH corner card (owner, 0.48.0).
+          if (squish) {
+            // Portrait phones: the UI SQUISH corner card (owner, 0.48.0; portrait only, 0.48.1).
             SquishHud(
                 hud, paused = session.paused,
                 onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },

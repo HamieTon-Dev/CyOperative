@@ -64,6 +64,10 @@ data class HudSnapshot(
     /** Seconds into the boss entrance (quantized), or -1 when none is running. */
     val bossIntro: Float = -1f,
     val bossPercent: Int = 0,
+    /** Boss HP now / max, and where its phases change (fractions of max HP), for the blocks bar. */
+    val bossHp: Long = 0,
+    val bossMaxHp: Long = 0,
+    val bossBreaks: List<Float> = emptyList(),
     val bossPhase: String = "",
     val eventName: String? = null,
     val eventAccent: Long = 0,
@@ -539,6 +543,10 @@ class GameSession(
             bossAbilities = if (b != null && g.bossIntroElapsed >= 0f) b.boss?.def?.abilityNames() ?: emptyList() else emptyList(),
             bossIntro = g.bossIntroElapsed.let { if (it < 0f) -1f else (it * 30f).toInt() / 30f },
             bossPercent = if (b != null) ((b.hp / b.maxHp) * 100).toInt().coerceIn(0, 100) else 0,
+            bossHp = if (b != null) kotlin.math.ceil(b.hp.coerceAtLeast(0f).toDouble()).toLong() else 0L,
+            // HP can sit a little over maxHp after a rescale; never show more than full.
+            bossMaxHp = if (b != null) kotlin.math.ceil(maxOf(b.maxHp, b.hp).toDouble()).toLong() else 0L,
+            bossBreaks = b?.boss?.def?.phases?.drop(1)?.map { it.below } ?: emptyList(),
             bossPhase = g.bossPhaseLabel,
             eventName = ev?.name,
             eventAccent = ev?.accent ?: 0,

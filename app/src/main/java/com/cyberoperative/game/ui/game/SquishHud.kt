@@ -67,6 +67,13 @@ private val ThreatPink = Color(0xFFFF2D6F)
 @Composable
 fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight: (Int) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
+    // Opened with +: folds itself after 4 s untouched (owner, 0.48.1); tapping a buff shows its
+    // details and keeps it open until those close, then the 4 s start again.
+    var taps by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var details by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(open, taps, details) {
+        if (open && !details) { kotlinx.coroutines.delay(4000); open = false }
+    }
     Box(
         modifier
             .fillMaxWidth()
@@ -125,7 +132,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                     )
                 }
                 Spacer(Modifier.height(3.dp))
-                ExpandChip(open, h.owned.size) { open = !open }
+                ExpandChip(open, h.owned.size) { open = !open; details = false; taps++ }
             }
             if (open) {
                 Spacer(Modifier.height(4.dp))
@@ -136,7 +143,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                 }
                 if (h.owned.isNotEmpty()) {
                     Spacer(Modifier.height(3.dp))
-                    UpgradeBar(h, Modifier.fillMaxWidth(), compact = true)
+                    UpgradeBar(h, Modifier.fillMaxWidth(), compact = true, onInteract = { taps++ }, onDetails = { details = it })
                 }
             }
         }
@@ -156,25 +163,33 @@ fun SquishBossBar(h: HudSnapshot, modifier: Modifier = Modifier) {
     val name = h.bossName ?: return
     val bc = Color(h.bossColor).takeIf { h.bossColor != 0L } ?: Palette.Red
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = "$name ${h.bossPercent} percent" }) {
+        // Name left, "HP 812k/1.2m" right, both on dark plates above the bar (the bar stays thin).
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 name.uppercase(), color = bc, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false,
                 modifier = Modifier.weight(1f, fill = false).background(CardBg, RoundedCornerShape(3.dp)).padding(horizontal = 4.dp)
             )
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.weight(1f))
             Text(
-                "${h.bossPercent}%", color = Palette.TextPrimary, style = mono(9.sp, FontWeight.Medium), maxLines = 1,
-                modifier = Modifier.background(CardBg, RoundedCornerShape(3.dp)).padding(horizontal = 3.dp)
+                "HP " + com.cyberoperative.game.ui.common.formatAmount(h.bossHp) + "/" + com.cyberoperative.game.ui.common.formatAmount(h.bossMaxHp),
+                color = Palette.TextPrimary, style = mono(9.sp, FontWeight.Bold), maxLines = 1, softWrap = false,
+                modifier = Modifier.background(CardBg, RoundedCornerShape(3.dp)).padding(horizontal = 4.dp)
             )
         }
         Spacer(Modifier.height(2.dp))
-        Canvas(Modifier.fillMaxWidth().height(4.dp)) {
-            val r = CornerRadius(2.dp.toPx())
-            drawRoundRect(Color(0xCC05080F), cornerRadius = r)
-            val fw = size.width * (h.bossPercent / 100f).coerceIn(0f, 1f)
-            if (fw > 0f) {
-                drawRoundRect(bc.copy(alpha = 0.3f), Offset(0f, -1.5.dp.toPx()), Size(fw, size.height + 3.dp.toPx()), r)
-                drawRoundRect(bc, size = Size(fw, size.height), cornerRadius = r)
+        // One block per phase (cut where the boss changes phase), filled up to its HP.
+        Canvas(Modifier.fillMaxWidth().height(5.dp)) {
+            val r = CornerRadius(1.5.dp.toPx())
+            val gap = 2.dp.toPx()
+            val frac = (h.bossHp.toFloat() / h.bossMaxHp.coerceAtLeast(1L)).coerceIn(0f, 1f)
+            val cuts = (listOf(0f) + h.bossBreaks.filter { it in 0.01f..0.99f }.sorted() + listOf(1f)).distinct()
+            for (i in 0 until cuts.size - 1) {
+                val x0 = size.width * cuts[i] + (if (i > 0) gap / 2f else 0f)
+                val x1 = size.width * cuts[i + 1] - (if (i < cuts.size - 2) gap / 2f else 0f)
+                if (x1 <= x0) continue
+                drawRoundRect(Color(0xE605080F), Offset(x0, 0f), Size(x1 - x0, size.height), r)
+                val fx = minOf(x1, size.width * frac)
+                if (fx > x0) drawRoundRect(bc, Offset(x0, 0f), Size(fx - x0, size.height), r)
             }
         }
     }

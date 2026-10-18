@@ -32,6 +32,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import org.junit.Rule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -353,9 +355,24 @@ class ScreenshotPreviews {
     @Test fun hudReviewPortrait() { assumeTrue(enabled); hudReview("hud_review_portrait") }
     @Test fun hudReviewPortraitOpen() { assumeTrue(enabled); hudReview("hud_review_portrait_open", expand = true) }
 
-    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun hudReviewLandscapeOpen() {
+
+    @Test fun hudReviewClassic() {
         assumeTrue(enabled)
-        pcMode(true) { hudReview("hud_review_landscape_open", expand = true) }
+        gameplay("hud_review_portrait_classic", 8f, profileSetup = { it.copy(settings = it.settings.copy(compactHud = false)) }) { s ->
+            for (u in com.cyberoperative.game.data.Upgrades.all.filter { !it.instant && s.engine.build.isEligible(it) }.take(20)) s.engine.build.take(u)
+        }
+    }
+
+    @Test fun touchEditorSeeThroughSwitch() {
+        assumeTrue(enabled)
+        val ctx = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val repo = SaveRepository(ctx)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { CyberOperativeTheme { com.cyberoperative.game.ui.menu.SettingsScreen(repo, AudioManager(ctx)) {} } }
+        compose.mainClock.advanceTimeBy(300)
+        compose.onNodeWithText("TOUCH CONTROLS LAYOUT").performScrollTo().performClick()
+        compose.mainClock.advanceTimeBy(500)
+        save("touch_editor_opaque")
     }
 
     @Test fun hudReviewBoss() {

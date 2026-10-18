@@ -382,6 +382,8 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                     if (!com.cyberoperative.game.platform.GameKeys.active) Toggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
                     Toggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
                     Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+                    // Portrait HUD (owner, 0.48.1): the compact corner card, or the classic top panel.
+                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle("COMPACT HUD (PORTRAIT)", s.compactHud) { set(s.copy(compactHud = it)) }
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -645,6 +647,7 @@ private fun ScreenCard(s: GameSettings, set: (GameSettings) -> Unit, onEditTouch
 @Composable
 private fun TouchControlsEditor(s: GameSettings, onChange: (GameSettings) -> Unit, onDone: () -> Unit) {
     val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
+    com.cyberoperative.game.ui.game.TouchLayout.seeThrough = s.seeThroughButtons
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         com.cyberoperative.game.ui.common.LivingBackground(Modifier.fillMaxSize(), intensity = 0.5f)
         Column(Modifier.align(Alignment.TopCenter).padding(top = 18.dp, start = 16.dp, end = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -656,6 +659,14 @@ private fun TouchControlsEditor(s: GameSettings, onChange: (GameSettings) -> Uni
                 CyberButton("JOYSTICK: ${if (s.joystickMode == "FLOAT") "FREE FLOAT" else s.joystickMode}") { onChange(s.copy(joystickMode = next)) }
                 CyberButton("RESET") { onChange(s.copy(touchLayout = com.cyberoperative.game.ui.game.TouchLayout.reset(s, landscape))) }
                 CyberButton("DONE", accent = Palette.Green, primary = true) { onDone() }
+            }
+            // Opaque by default (owner, 0.48.1); this brings back see-through buttons.
+            // Left-aligned, clear of the MAP keep-clear zone in the top-right.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.Start).padding(top = 4.dp)) {
+                Text("SEE-THROUGH BUTTONS", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.width(10.dp))
+                Switch(s.seeThroughButtons, { onChange(s.copy(seeThroughButtons = it)) },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Palette.Background, checkedTrackColor = Palette.Green))
             }
         }
         com.cyberoperative.game.ui.game.TouchLayoutEditor(s, landscape) { onChange(s.copy(touchLayout = it)) }
