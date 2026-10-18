@@ -116,6 +116,14 @@ class StoreScreenshots {
         shoot("04_power_ups", 0f, profile = { strong(it).copy(permanentUpgrades = mapOf("starting_power" to 1)) })
     }
 
+    /** 0.47.2 HUD check (not a store shot): many buffs in the compact three-row grid. */
+    @Test fun s9_hudManyBuffs() {
+        assumeTrue(enabled)
+        shoot("hud_many_buffs", 20f, profile = { strong(it) }, setup = { s ->
+            for (u in Upgrades.all.filter { !it.instant && s.engine.build.isEligible(it) }.take(34)) s.engine.build.take(u)
+        })
+    }
+
     @Test fun s5_combatMech() {
         assumeTrue(enabled)
         shoot("05_sentinel_mech", 5f, profile = { strong(it).copy(operativeBody = "mech", selectedSkin = "zero_day_hunter") }, setup = { s ->

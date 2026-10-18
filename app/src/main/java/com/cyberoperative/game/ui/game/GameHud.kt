@@ -74,8 +74,12 @@ import java.util.Locale
  * small diamond + clock pill.
  */
 
-/** Near-black navy behind the HUD; fades out toward the battlefield. */
+/** Near-black navy: the plates behind HUD text. */
 private val HudNavy = Color(0xFF05080F)
+
+/** A dark plate behind one piece of HUD text (the HUD itself is see-through, owner 0.47.2). */
+private fun Modifier.plate(): Modifier =
+    background(HudNavy.copy(alpha = 0.78f), RoundedCornerShape(3.dp)).padding(horizontal = 3.dp)
 private val HudHairline = Palette.Cyan.copy(alpha = 0.28f)
 private val ThreatPink = Color(0xFFFF2D6F)
 
@@ -116,13 +120,8 @@ fun GameHud(
         modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha }
-.background(Brush.verticalGradient(listOf(HudNavy.copy(alpha = 0.94f), HudNavy.copy(alpha = 0.78f))))
-            .drawBehind {
-                val y = size.height - 0.5.dp.toPx()
-                drawLine(HudHairline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx())
-            }
+            // See-through (owner, 0.47.2): no panel; only text and buff chips get dark plates.
             .windowInsetsPadding(HudInsets)
-            .padding(top = 4.dp)
     ) {
         if (collapsed) {
             CollapsedRow(h, paused, onPause)
@@ -135,18 +134,18 @@ fun GameHud(
                 ProgressRow(h)
                 if (h.owned.isNotEmpty()) {
                     Spacer(Modifier.height(2.dp))
-                    UpgradeBar(h, Modifier.fillMaxWidth())
+                    UpgradeBar(h, Modifier.fillMaxWidth(), compact = true)
                 }
                 val boss = h.bossName
                 if (boss != null) {
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(2.dp))
                     BossHealthBar(h)
                 } else if (h.eventName != null) {
                     Text(
                         h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
                         color = Color(h.eventAccent), style = mono(11.sp, FontWeight.Bold),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = 2.dp).plate()
                     )
                 }
             }
@@ -169,19 +168,21 @@ private fun HeaderRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
         val tight = maxWidth < 360.dp
         val big = if (tight) 13.sp else 15.sp
         val small = if (tight) 11.sp else 12.sp
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 30.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     h.roomLabel,
-                    color = levelColor(h), style = mono(big, FontWeight.Bold), maxLines = 1, softWrap = false
+                    color = levelColor(h), style = mono(big, FontWeight.Bold), maxLines = 1, softWrap = false,
+                    modifier = Modifier.plate()
                 )
-                Divider()
-                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "SCORE ")
-                Divider()
-                com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
+                // The plates separate the items now (no divider lines, so the numbers keep their room).
+                Spacer(Modifier.width(4.dp))
+                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false).plate(), prefix = "SCORE ")
+                Spacer(Modifier.width(4.dp))
+                com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false).plate(), prefix = "€ ")
             }
-            HudClock(Modifier.padding(start = 6.dp))
-            PauseButton(paused, onPause)
+            HudClock(Modifier.padding(start = 4.dp).plate())
+            PauseButton(paused, onPause, compact = true)
         }
     }
 }
@@ -200,7 +201,7 @@ private fun Divider() {
 @Composable
 private fun CollapsedRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 12.dp, end = 4.dp),
+        Modifier.fillMaxWidth().heightIn(min = 30.dp).padding(start = 12.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // The diamond doubles as a quiet core-health light while the bar is folded away.
@@ -214,9 +215,9 @@ private fun CollapsedRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
             drawPath(p, c.copy(alpha = 0.25f))
             drawPath(p, c, style = Stroke(1.5.dp.toPx()))
         }
-        HudClock(Modifier.padding(start = 8.dp))
+        HudClock(Modifier.padding(start = 8.dp).plate())
         Spacer(Modifier.weight(1f))
-        PauseButton(paused, onPause)
+        PauseButton(paused, onPause, compact = true)
     }
 }
 
@@ -253,16 +254,17 @@ private fun formatClock(is24: Boolean): String {
 }
 
 @Composable
-private fun PauseButton(paused: Boolean, onPause: () -> Unit) {
+private fun PauseButton(paused: Boolean, onPause: () -> Unit, compact: Boolean = false) {
     Box(
         Modifier
-            .size(48.dp)
+            .size(if (compact) 34.dp else 48.dp)
             .clickable(role = Role.Button, onClickLabel = if (paused) "Resume" else "Pause", onClick = onPause)
             .semantics { contentDescription = if (paused) "Resume" else "Pause" },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.size(30.dp)) {
+        Canvas(Modifier.size(if (compact) 24.dp else 30.dp)) {
             val r = CornerRadius(5.dp.toPx())
+            drawRoundRect(HudNavy.copy(alpha = 0.8f), cornerRadius = r)
             drawRoundRect(Palette.Cyan.copy(alpha = 0.10f), cornerRadius = r)
             drawRoundRect(Palette.Cyan.copy(alpha = 0.75f), cornerRadius = r, style = Stroke(1.dp.toPx()))
             val cx = size.width / 2f
@@ -352,13 +354,15 @@ private fun StatRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .height(16.dp)
+            .height(14.dp)
             .semantics(mergeDescendants = true) { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = labelColor, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.widthIn(min = labelWidth))
+        Box(Modifier.widthIn(min = labelWidth)) {
+            Text(label, color = labelColor, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.plate())
+        }
         ThinBar(fraction, color, overlay, Modifier.weight(1f).height(8.dp))
-        Text(value, color = Palette.TextPrimary, style = mono(10.sp, FontWeight.Medium), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 8.dp))
+        Text(value, color = Palette.TextPrimary, style = mono(10.sp, FontWeight.Medium), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 6.dp).plate())
         if (extra != null) {
             Text(extra, color = Palette.Cyan, style = mono(10.sp, FontWeight.Bold), maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 6.dp))
         }
@@ -389,7 +393,7 @@ private fun ThinBar(fraction: Float, color: Color, overlay: Float, modifier: Mod
 private fun PullHandle(collapsed: Boolean, onToggle: () -> Unit, modifier: Modifier) {
     Box(
         modifier
-            .size(width = 72.dp, height = 22.dp)
+            .size(width = 72.dp, height = 14.dp)
             .clickable(role = Role.Button, onClickLabel = if (collapsed) "Show HUD" else "Hide HUD", onClick = onToggle)
             .semantics { contentDescription = if (collapsed) "Show HUD" else "Hide HUD" },
         contentAlignment = Alignment.Center

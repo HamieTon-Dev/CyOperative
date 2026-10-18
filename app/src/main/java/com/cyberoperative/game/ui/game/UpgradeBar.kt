@@ -59,8 +59,9 @@ import kotlinx.coroutines.launch
  * overheat-cooldown meter.
  */
 @Composable
-fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
+fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier, compact: Boolean = false) {
     if (h.owned.isEmpty()) return
+    if (compact) { CompactUpgradeGrid(h, modifier); return }
     var selected by remember { mutableStateOf<String?>(null) }
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -126,6 +127,78 @@ fun UpgradeBar(h: HudSnapshot, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Phone portrait HUD (owner, 0.47.2): chips at half size, half the gap, stacked in three rows that
+ * scroll sideways; "+N" counts the ones out of view (tap it to jump there).
+ */
+@Composable
+private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier) {
+    var selected by remember { mutableStateOf<String?>(null) }
+    val grid = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    val hiddenCount by remember(h.owned.size) {
+        derivedStateOf {
+            val info = grid.layoutInfo
+            val lastFull = info.visibleItemsInfo.filter { it.offset.x + it.size.width <= info.viewportEndOffset }.maxOfOrNull { it.index } ?: -1
+            (h.owned.size - 1 - lastFull).coerceAtLeast(0)
+        }
+    }
+    LaunchedEffect(selected) { if (selected != null) { delay(4000); selected = null } }
+    val gridH = SMALL_CHIP * 3 + SMALL_GAP * 2
+    Box(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.lazy.grid.LazyHorizontalGrid(
+                rows = androidx.compose.foundation.lazy.grid.GridCells.Fixed(3),
+                state = grid,
+                modifier = Modifier.weight(1f).height(gridH),
+                horizontalArrangement = Arrangement.spacedBy(SMALL_GAP),
+                verticalArrangement = Arrangement.spacedBy(SMALL_GAP)
+            ) {
+                items(h.owned.size, key = { h.owned[it].first }) { i ->
+                    val (id, level) = h.owned[i]
+                    val def = Upgrades.all.firstOrNull { it.id == id }
+                    if (def != null) {
+                        BuffChip(
+                            def, level,
+                            selected = selected == id,
+                            beamHeat = if (id == Upgrades.PLASMA_BEAM.id) h.beamHeat else 0f,
+                            beamCooldown = if (id == Upgrades.PLASMA_BEAM.id) h.beamCooldown else 0f,
+                            onTap = { selected = if (selected == id) null else id },
+                            small = true
+                        )
+                    }
+                }
+            }
+            if (hiddenCount > 0) {
+                Text(
+                    "+$hiddenCount", color = Palette.Cyan, fontSize = 9.sp, fontFamily = TerminalFont, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 3.dp)
+                        .clickable(role = Role.Button, onClickLabel = "Show more buffs") {
+                            scope.launch { grid.animateScrollToItem(h.owned.size - 1) }
+                        }
+                        .semantics { contentDescription = "$hiddenCount more buffs" }
+                        .background(Palette.Background.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
+                        .border(1.dp, Palette.Cyan.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                )
+            }
+        }
+        val selDef = selected?.let { id -> Upgrades.all.firstOrNull { it.id == id } }
+        if (selDef != null) {
+            Popup(offset = IntOffset(0, with(LocalDensity.current) { (gridH + 4.dp).roundToPx() })) {
+                Box(Modifier.clickable { selected = null }) {
+                    UpgradeTooltip(selDef, h.owned.firstOrNull { it.first == selDef.id }?.second ?: 1, h.beamHeat, h.beamCooldown)
+                }
+            }
+        }
+    }
+}
+
+/** Compact chips: half the 24dp chip, half the 4dp gap. */
+private val SMALL_CHIP = 12.dp
+private val SMALL_GAP = 2.dp
+
 /** Visible chip height inside a taller touch row. */
 private val CHIP_TOUCH = 36.dp
 private val CHIP_SHAPE = RoundedCornerShape(5.dp)
@@ -133,31 +206,34 @@ private val CHIP_SHAPE = RoundedCornerShape(5.dp)
 @Composable
 private fun BuffChip(
     def: UpgradeDef, level: Int, selected: Boolean,
-    beamHeat: Float, beamCooldown: Float, onTap: () -> Unit
+    beamHeat: Float, beamCooldown: Float, onTap: () -> Unit, small: Boolean = false
 ) {
     val c = Color(def.rarity.color)
+    // [small]: the compact HUD's half-size chip (no taller touch row: the three rows are the target).
+    val k = if (small) 0.5f else 1f
+    val shape = if (small) RoundedCornerShape(3.dp) else CHIP_SHAPE
     Box(
         Modifier
-            .height(CHIP_TOUCH)
-            .widthIn(min = 36.dp)
+            .height(if (small) SMALL_CHIP else CHIP_TOUCH)
+            .widthIn(min = 36.dp * k)
             .clickable(role = Role.Button, onClickLabel = "Details", onClick = onTap)
             .semantics { contentDescription = "${def.name}, level $level" },
         contentAlignment = Alignment.Center
     ) {
         Box(
             Modifier
-                .height(24.dp)
+                .height(24.dp * k)
                 .drawBehind {
                     // Soft neon glow around the outline.
-                    val g = 2.dp.toPx()
+                    val g = 2.dp.toPx() * k
                     drawRoundRect(
                         c.copy(alpha = if (selected) 0.35f else 0.16f),
                         topLeft = androidx.compose.ui.geometry.Offset(-g, -g),
                         size = androidx.compose.ui.geometry.Size(size.width + 2 * g, size.height + 2 * g),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(7.dp.toPx())
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(7.dp.toPx() * k)
                     )
                 }
-                .background(Palette.Background.copy(alpha = 0.9f), CHIP_SHAPE)
+                .background(Palette.Background.copy(alpha = 0.9f), shape)
                 .drawBehind {
                     // Beam: heat fills from the bottom; during overheat the chip shows a countdown.
                     val f = when {
@@ -174,21 +250,23 @@ private fun BuffChip(
                         )
                     }
                 }
-                .border(1.dp, c.copy(alpha = if (selected) 1f else 0.85f), CHIP_SHAPE),
+                .border(if (small) 0.75.dp else 1.dp, c.copy(alpha = if (selected) 1f else 0.85f), shape),
             contentAlignment = Alignment.Center
         ) {
-            Row(Modifier.padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(horizontal = 6.dp * k), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     if (beamCooldown > 0f) "%.0f".format(kotlin.math.ceil(beamCooldown)) else def.glyph,
                     color = if (beamCooldown > 0f) Palette.Red else c,
-                    fontSize = 10.sp, fontFamily = TerminalFont, fontWeight = FontWeight.Bold,
-                    maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center
+                    fontSize = if (small) 6.5.sp else 10.sp, fontFamily = TerminalFont, fontWeight = FontWeight.Bold,
+                    maxLines = 1, overflow = TextOverflow.Clip, textAlign = TextAlign.Center,
+                    lineHeight = if (small) 7.sp else androidx.compose.ui.unit.TextUnit.Unspecified
                 )
                 if (level > 1) {
                     Text(
                         if (level >= 1000) "${level / 1000}k" else "$level",
-                        color = Palette.TextPrimary, fontSize = 9.sp, fontFamily = TerminalFont,
-                        modifier = Modifier.padding(start = 3.dp)
+                        color = Palette.TextPrimary, fontSize = if (small) 5.5.sp else 9.sp, fontFamily = TerminalFont,
+                        lineHeight = if (small) 6.sp else androidx.compose.ui.unit.TextUnit.Unspecified,
+                        modifier = Modifier.padding(start = 3.dp * k)
                     )
                 }
             }

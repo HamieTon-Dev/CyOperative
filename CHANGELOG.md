@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.47.2 (versionCode 135) — 2026-10-18 · Slimmer, see-through phone HUD
+### Changed (owner)
+- **The top HUD panel is as thin as possible** (portrait phones):
+  - the header row went from 48 dp to 30 dp, with a 24 dp pause button (34 dp touch target);
+  - the bar rows went from 16 dp to 14 dp;
+  - the fold handle went from 22 dp to 14 dp;
+  - the top padding is gone.
+- **Buffs:**
+  - chips are half size (12 dp) with half the gap (2 dp);
+  - they're stacked in 3 rows that scroll sideways;
+  - "+N" still counts the ones out of view, and tapping a chip still shows its details.
+- **See-through:** the panel's background and bottom line are gone, so the room shows behind the HUD. Only the text (room, score, €, clock, bar labels and values, event name) and the buff chips get dark plates. The divider lines between room, score and € became small gaps, so the numbers keep their room.
+- Landscape and PC HUDs are unchanged. Screens: `docs/store-screenshots/04_power_ups.png` and `hud_many_buffs.png`.
+
 ## 0.47.1 (versionCode 134) — 2026-10-18 · Thinner Plasma Beam
 ### Changed (owner: "it covers a whole line on the screen")
 - The Plasma Beam is drawn at 15% of its old thickness: its glow, core, pulses, muzzle flare and impact all shrink. What it hits and its damage are unchanged.
