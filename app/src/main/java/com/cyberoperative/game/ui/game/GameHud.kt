@@ -154,7 +154,7 @@ fun GameHud(
     }
 }
 
-private fun levelColor(h: HudSnapshot): Color = when (h.kind) {
+internal fun levelColor(h: HudSnapshot): Color = when (h.kind) {
     LevelKind.BOSS -> Palette.Red
     LevelKind.EVENT -> Color(h.eventAccent)
     LevelKind.NORMAL -> Palette.Cyan
@@ -227,7 +227,7 @@ private fun CollapsedRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
  * per second for it.
  */
 @Composable
-private fun HudClock(modifier: Modifier = Modifier) {
+internal fun HudClock(modifier: Modifier = Modifier) {
     val is24 = com.cyberoperative.game.platform.rememberIs24Hour()
     var text by remember { mutableStateOf(formatClock(is24)) }
     LaunchedEffect(is24) {
@@ -254,7 +254,7 @@ private fun formatClock(is24: Boolean): String {
 }
 
 @Composable
-private fun PauseButton(paused: Boolean, onPause: () -> Unit, compact: Boolean = false) {
+internal fun PauseButton(paused: Boolean, onPause: () -> Unit, compact: Boolean = false) {
     Box(
         Modifier
             .size(if (compact) 34.dp else 48.dp)

@@ -198,6 +198,8 @@ fun GameScreen(
         val pcWide = (maxWidth / 1600.dp).coerceIn(1f, 1.5f)
         // PC: the canvas itself starts below the HUD strip, so no inset inside it.
         val landscape = com.cyberoperative.game.ui.common.PlayMode.landscape
+        // Only the PC strip sits above the arena; phones float the SQUISH card over it (0.48.0).
+        val hudAbove = landscape && com.cyberoperative.game.platform.AppInfo.desktop
         val topInsetPx = with(density) { if (landscape) 0f else (hudHeightDp + 4.dp).toPx() }
         val bottomInsetPx = with(density) { (if (landscape) 24.dp else 150.dp).toPx() }
         val restX = constraints.maxWidth / 2f
@@ -208,13 +210,13 @@ fun GameScreen(
         val lockPos = TouchLayout.place(touchSettings, TouchControl.STICK, landscape, maxWidth.value, maxHeight.value)
         val lockX = lockPos.x * constraints.maxWidth
         // The canvas starts under the HUD strip in landscape: its touches are relative to that.
-        val lockY = lockPos.y * constraints.maxHeight - (if (landscape) hudHeightPx.toFloat() else 0f)
+        val lockY = lockPos.y * constraints.maxHeight - (if (hudAbove) hudHeightPx.toFloat() else 0f)
 
         Canvas(
             Modifier
                 .fillMaxSize()
                 // PC: the arena lives below the HUD strip and never draws under it.
-                .then(if (landscape) Modifier.padding(top = hudHeightDp).clipToBounds() else Modifier)
+                .then(if (hudAbove) Modifier.padding(top = hudHeightDp).clipToBounds() else Modifier)
                 // Steering thumbs near the side edges shouldn't trigger the system Back swipe.
                 // Android honours up to 200dp per edge, bottom-most first: where the stick lives.
                 .platformGestureExclusion()
@@ -350,6 +352,10 @@ fun GameScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(6.dp)
         ) {
+            // Phones: the thin boss bar between ■INV and MAP (owner, 0.48.0).
+            if (hud.bossName != null && !com.cyberoperative.game.platform.AppInfo.desktop) {
+                SquishBossBar(hud, Modifier.fillMaxWidth())
+            }
             if (hud.phase == Phase.PORTAL) {
                 HintChip(
                     if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else hud.doorHint.ifEmpty { "▲ GATE OPEN — WALK THROUGH TO CONTINUE" },
@@ -581,7 +587,14 @@ fun GameScreen(
           // Steam (owner, 0.31.0: "text at the top is really small on a large screen"): 2× that,
           // and a little more on very wide windows.
           val hudScale = if (com.cyberoperative.game.platform.AppInfo.desktop) HUD_PC_SCALE * 2f * pcWide else HUD_PC_SCALE
-          if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
+          if (!com.cyberoperative.game.platform.AppInfo.desktop) {
+            // Phones, portrait and landscape: the UI SQUISH corner card (owner, 0.48.0).
+            SquishHud(
+                hud, paused = session.paused,
+                onPause = { if (hud.phase != Phase.DEAD) session.paused = !session.paused },
+                onBaseHeight = { hudHeightPx = it }
+            )
+          } else if (com.cyberoperative.game.ui.common.PlayMode.landscape) androidx.compose.runtime.CompositionLocalProvider(
               LocalDensity provides androidx.compose.ui.unit.Density(density.density * hudScale, density.fontScale)
           ) {
             // Android landscape gets the slim strip (owner, 2026-10-12); the PC keeps its key chips.

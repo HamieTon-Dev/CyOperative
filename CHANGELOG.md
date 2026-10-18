@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.48.0 (versionCode 137) — 2026-10-18 · UI SQUISH (phones)
+### Changed (owner: "make our bars and icons super compact … a cleaner layout")
+- **Phones, portrait and landscape:** the top bar is replaced by a small card in the top-left corner that floats over the room:
+  - `W3·R7`, then a heart with a short segmented HP bar and the HP number;
+  - an enemy icon with a short threats bar and the count, then `OP37` with a tiny XP bar;
+  - the co-op partner's HP and the event name/timer, when there are any;
+  - a **[+ 34]** button that opens €, score and the full buff grid (tap any buff to read it). [−] folds it away again.
+- The clock and a small pause button sit in the top-right corner.
+- **Bosses:** a thin bar in the boss's colour between ■INV and MAP, with the boss's name in small type above it and the % beside it, both on dark backgrounds.
+- Only the folded card counts as HUD height, so opening it never moves the room or the buttons. In landscape, the room now starts at the top of the screen under the card.
+- PC/Steam keeps its strip above the arena, since it covers nothing.
+- Renders: `docs/screenshots/hud_review_portrait(_open).png`, `hud_review_landscape(_open).png` and `hud_review_boss.png`.
+
 ## 0.47.3 (versionCode 136) — 2026-10-18 · Squished damage numbers, compact buffs everywhere, ■INV
 ### Changed (owner)
 - **Damage numbers on Android are squished:**

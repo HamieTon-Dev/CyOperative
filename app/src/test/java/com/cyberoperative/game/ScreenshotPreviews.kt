@@ -339,8 +339,10 @@ class ScreenshotPreviews {
     }
 
     /** 0.47.3 HUD review: 34 buffs, a cleared room's door banner, damage numbers. */
-    private fun hudReview(name: String) {
-        gameplay(name, 8f, profileSetup = { it.copy(highestLevel = 30) }) { s ->
+    private fun hudReview(name: String, expand: Boolean = false) {
+        gameplay(name, 8f, profileSetup = { it.copy(highestLevel = 30) }, interact = {
+            if (expand) compose.onNodeWithContentDescription("Show HUD details").performClick()
+        }) { s ->
             val e = s.engine
             e.debugJumpToLevel(14)
             for (u in com.cyberoperative.game.data.Upgrades.all.filter { !it.instant && e.build.isEligible(it) }.take(34)) e.build.take(u)
@@ -349,6 +351,17 @@ class ScreenshotPreviews {
     }
 
     @Test fun hudReviewPortrait() { assumeTrue(enabled); hudReview("hud_review_portrait") }
+    @Test fun hudReviewPortraitOpen() { assumeTrue(enabled); hudReview("hud_review_portrait_open", expand = true) }
+
+    @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun hudReviewLandscapeOpen() {
+        assumeTrue(enabled)
+        pcMode(true) { hudReview("hud_review_landscape_open", expand = true) }
+    }
+
+    @Test fun hudReviewBoss() {
+        assumeTrue(enabled)
+        gameplay("hud_review_boss", 3f) { s -> s.engine.debugJumpToLevel(10) }
+    }
 
     @Test @Config(qualifiers = "w891dp-h411dp-xxhdpi") fun hudReviewLandscape() {
         assumeTrue(enabled)
