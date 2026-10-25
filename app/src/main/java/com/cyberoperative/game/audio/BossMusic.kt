@@ -1,5 +1,6 @@
 package com.cyberoperative.game.audio
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.BossDef
 import com.cyberoperative.game.data.Bosses
 
@@ -14,15 +15,15 @@ import com.cyberoperative.game.data.Bosses
  */
 enum class MusicTier(val label: String, val tracks: List<String>, val speed: Float) {
     /** Low-threat classics. */
-    I("TIER I", listOf("level10_1", "level10_2"), 1.35f),
+    I(tr("TIER I"), listOf("level10_1", "level10_2"), 1.35f),
     /** High-threat classics. */
-    II("TIER II", listOf("boss2_1", "boss2_2"), 1.45f),
+    II(tr("TIER II"), listOf("boss2_1", "boss2_2"), 1.45f),
     /** Expansion bosses. */
-    III("TIER III", listOf("boss2_1", "boss2_2", "boss2_remix_1", "boss2_remix_2"), 1.5f),
+    III(tr("TIER III"), listOf("boss2_1", "boss2_2", "boss2_remix_1", "boss2_remix_2"), 1.5f),
     /** Pack Gamma, the hardest four. */
-    IV("TIER IV", listOf("boss2_remix_1", "boss2_remix_2"), 1.55f),
+    IV(tr("TIER IV"), listOf("boss2_remix_1", "boss2_remix_2"), 1.55f),
     /** INFERNO difficulties (owner, 0.32.0): the Inferno boss pair at its own speed, never sped up. */
-    INFERNO("INFERNO", listOf("inferno_boss_1", "inferno_boss_2"), 1f)
+    INFERNO(tr("INFERNO"), listOf("inferno_boss_1", "inferno_boss_2"), 1f)
 }
 
 /** Reverb space, mapped onto Android's PresetReverb presets. */

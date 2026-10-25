@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Bosses (§22–25). One every 10 levels; the roster cycles once exhausted and
  * every cycle is stronger (Scaling.bossHp + faster patterns).
@@ -242,31 +244,31 @@ data class BossPhase(
 
 /** What kind of fight a boss is (owner's Boss Expansion sheets, 2026-10-10). */
 enum class BossRole(val label: String, val color: Long) {
-    BRUISER("BRUISER", 0xFFFF2D55),
-    TANK("TANK", 0xFF2E9BFF),
-    ASSASSIN("ASSASSIN", 0xFFFF2E6C),
-    AREA_CONTROL("AREA CONTROL", 0xFFA259FF),
-    SUMMONER("SUMMONER", 0xFFFF2EC4),
-    CONTROLLER("CONTROLLER", 0xFFFF2D55),
-    STATUS("STATUS", 0xFF7DF9FF),
-    COMMANDER("COMMANDER", 0xFFFF4A6A),
-    HUNTER("HUNTER", 0xFFFF2EC4),
+    BRUISER(tr("BRUISER"), 0xFFFF2D55),
+    TANK(tr("TANK"), 0xFF2E9BFF),
+    ASSASSIN(tr("ASSASSIN"), 0xFFFF2E6C),
+    AREA_CONTROL(tr("AREA CONTROL"), 0xFFA259FF),
+    SUMMONER(tr("SUMMONER"), 0xFFFF2EC4),
+    CONTROLLER(tr("CONTROLLER"), 0xFFFF2D55),
+    STATUS(tr("STATUS"), 0xFF7DF9FF),
+    COMMANDER(tr("COMMANDER"), 0xFFFF4A6A),
+    HUNTER(tr("HUNTER"), 0xFFFF2EC4),
     // Boss Pack Gamma roles (owner sheet, 2026-10-10).
-    AMBUSHER("AMBUSHER", 0xFFFF2E9A),
-    LOCKDOWN("LOCKDOWN", 0xFFFF3B3B),
-    AREA_DENIAL("AREA DENIAL", 0xFFFF6A1A),
-    BLACKOUT_HUNTER("BLACKOUT HUNTER", 0xFFD040FF),
+    AMBUSHER(tr("AMBUSHER"), 0xFFFF2E9A),
+    LOCKDOWN(tr("LOCKDOWN"), 0xFFFF3B3B),
+    AREA_DENIAL(tr("AREA DENIAL"), 0xFFFF6A1A),
+    BLACKOUT_HUNTER(tr("BLACKOUT HUNTER"), 0xFFD040FF),
     // INFERNO packs (owner sheets, 0.35.0).
-    SUPPORT("SUPPORT", 0xFF2E9BFF),
-    RITUALIST("RITUALIST", 0xFFD040FF),
-    APEX("APEX BOSS", 0xFFFF2EC4)
+    SUPPORT(tr("SUPPORT"), 0xFF2E9BFF),
+    RITUALIST(tr("RITUALIST"), 0xFFD040FF),
+    APEX(tr("APEX BOSS"), 0xFFFF2EC4)
 }
 
 /** Threat tier skulls: 1 LOW · 2 MEDIUM · 3 HIGH · 4 EXTREME. */
 object ThreatTier {
-    fun label(tier: Int) = when (tier) { 1 -> "LOW"; 2 -> "MEDIUM"; 3 -> "HIGH"; else -> "EXTREME" }
+    fun label(tier: Int) = when (tier) { 1 -> tr("LOW"); 2 -> tr("MEDIUM"); 3 -> tr("HIGH"); else -> tr("EXTREME") }
     fun blurb(tier: Int) = when (tier) {
-        1 -> "Learn the pattern"; 2 -> "Increased complexity"; 3 -> "Multiple mechanics"; else -> "Relentless pressure"
+        1 -> tr("Learn the pattern"); 2 -> tr("Increased complexity"); 3 -> tr("Multiple mechanics"); else -> tr("Relentless pressure")
     }
 }
 
@@ -316,62 +318,62 @@ data class BossDef(
 /** Player-facing name of a pattern (dossier card, codex). */
 val Pattern.displayName: String
     get() = when (this) {
-        is Pattern.Radial -> "Burst Ring"
-        is Pattern.Aimed -> "Aimed Volley"
-        is Pattern.Spiral -> "Spiral Stream"
-        is Pattern.Charge -> "Dash Strike"
-        is Pattern.Summon -> "Reinforcements"
-        is Pattern.ShockRing -> "Shockwave"
-        is Pattern.Blasts -> "Strike Markers"
-        is Pattern.Zones -> "Corruption Pools"
-        Pattern.Teleport -> "Blink"
-        is Pattern.Beam -> "Data Beam"
-        is Pattern.Homing -> "Homing Packets"
-        is Pattern.CoverDeploy -> "Cover Deploy"
-        is Pattern.Lockdown -> "Lockdown Cube"
-        is Pattern.SweepBeam -> "Laser Sweep"
-        is Pattern.Mortar -> "Pulse Mortar"
-        is Pattern.Burrow -> "Burrow Drift"
-        is Pattern.SpikeEruption -> "Spike Eruption"
-        is Pattern.Infect -> "Infected Zone"
-        is Pattern.Bloom -> "Rootkit Bloom"
-        is Pattern.GhostDash -> "Ghost Dash"
-        is Pattern.Needles -> "Static Needles"
-        is Pattern.SparkAmbush -> "Spark Ambush"
-        is Pattern.GridSurge -> "Grid Reboot Surge"
-        is Pattern.KeyZone -> "Key Zone"
-        is Pattern.LockGrid -> "Lock Grid"
-        is Pattern.RoyalSeizure -> "Royal Seizure"
-        is Pattern.RansomPulse -> "Ransom Pulse"
-        is Pattern.FirewallRing -> "Firewall Ring"
-        is Pattern.BurnSector -> "Burn Sector"
-        is Pattern.HeatCollapse -> "Heat Collapse"
-        is Pattern.PurgeSpin -> "Purge Spin"
-        is Pattern.LineWarp -> "Line Warp"
-        is Pattern.CrossBeam -> "Cross Beam"
-        is Pattern.BishopMines -> "Bishop Mines"
-        is Pattern.ConvergenceFlash -> "Convergence Flash"
-        is Pattern.DashSlash -> if (trail) "Trail Burst" else "Dash Slash"
-        is Pattern.Scythes -> "Packet Scythes"
-        is Pattern.BacklineDive -> "Backline Dive"
-        is Pattern.SwarmHatch -> "Swarm Hatch"
-        is Pattern.CorruptionTrail -> "Corruption Trail"
-        is Pattern.QueenRoar -> "Queen Roar"
-        is Pattern.CorruptFloor -> "Corrupt Floor"
-        is Pattern.CubeBarrage -> "Cube Barrage"
-        is Pattern.CorePulse -> "Core Pulse"
-        is Pattern.DroneRing -> "Drone Ring"
-        is Pattern.OrbitalBarrage -> "Orbital Barrage"
-        is Pattern.SyncBurst -> "Sync Burst"
-        is Pattern.SplitHeads -> "Split Heads"
-        is Pattern.BeamArc -> "Beam Arc"
-        is Pattern.SegmentBurst -> "Neck Volley"
-        is Pattern.HeadBite -> "Head Bite"
-        is Pattern.CoilCrush -> "Coil Crush"
-        is Pattern.IceLaser -> "Ice Laser"
-        is Pattern.FreezePatch -> "Freeze Patch"
-        is Pattern.CrystalVolley -> "Crystal Volley"
-        is Pattern.PermafrostShell -> "Permafrost Shell"
+        is Pattern.Radial -> tr("Burst Ring")
+        is Pattern.Aimed -> tr("Aimed Volley")
+        is Pattern.Spiral -> tr("Spiral Stream")
+        is Pattern.Charge -> tr("Dash Strike")
+        is Pattern.Summon -> tr("Reinforcements")
+        is Pattern.ShockRing -> tr("Shockwave")
+        is Pattern.Blasts -> tr("Strike Markers")
+        is Pattern.Zones -> tr("Corruption Pools")
+        Pattern.Teleport -> tr("Blink")
+        is Pattern.Beam -> tr("Data Beam")
+        is Pattern.Homing -> tr("Homing Packets")
+        is Pattern.CoverDeploy -> tr("Cover Deploy")
+        is Pattern.Lockdown -> tr("Lockdown Cube")
+        is Pattern.SweepBeam -> tr("Laser Sweep")
+        is Pattern.Mortar -> tr("Pulse Mortar")
+        is Pattern.Burrow -> tr("Burrow Drift")
+        is Pattern.SpikeEruption -> tr("Spike Eruption")
+        is Pattern.Infect -> tr("Infected Zone")
+        is Pattern.Bloom -> tr("Rootkit Bloom")
+        is Pattern.GhostDash -> tr("Ghost Dash")
+        is Pattern.Needles -> tr("Static Needles")
+        is Pattern.SparkAmbush -> tr("Spark Ambush")
+        is Pattern.GridSurge -> tr("Grid Reboot Surge")
+        is Pattern.KeyZone -> tr("Key Zone")
+        is Pattern.LockGrid -> tr("Lock Grid")
+        is Pattern.RoyalSeizure -> tr("Royal Seizure")
+        is Pattern.RansomPulse -> tr("Ransom Pulse")
+        is Pattern.FirewallRing -> tr("Firewall Ring")
+        is Pattern.BurnSector -> tr("Burn Sector")
+        is Pattern.HeatCollapse -> tr("Heat Collapse")
+        is Pattern.PurgeSpin -> tr("Purge Spin")
+        is Pattern.LineWarp -> tr("Line Warp")
+        is Pattern.CrossBeam -> tr("Cross Beam")
+        is Pattern.BishopMines -> tr("Bishop Mines")
+        is Pattern.ConvergenceFlash -> tr("Convergence Flash")
+        is Pattern.DashSlash -> if (trail) tr("Trail Burst") else tr("Dash Slash")
+        is Pattern.Scythes -> tr("Packet Scythes")
+        is Pattern.BacklineDive -> tr("Backline Dive")
+        is Pattern.SwarmHatch -> tr("Swarm Hatch")
+        is Pattern.CorruptionTrail -> tr("Corruption Trail")
+        is Pattern.QueenRoar -> tr("Queen Roar")
+        is Pattern.CorruptFloor -> tr("Corrupt Floor")
+        is Pattern.CubeBarrage -> tr("Cube Barrage")
+        is Pattern.CorePulse -> tr("Core Pulse")
+        is Pattern.DroneRing -> tr("Drone Ring")
+        is Pattern.OrbitalBarrage -> tr("Orbital Barrage")
+        is Pattern.SyncBurst -> tr("Sync Burst")
+        is Pattern.SplitHeads -> tr("Split Heads")
+        is Pattern.BeamArc -> tr("Beam Arc")
+        is Pattern.SegmentBurst -> tr("Neck Volley")
+        is Pattern.HeadBite -> tr("Head Bite")
+        is Pattern.CoilCrush -> tr("Coil Crush")
+        is Pattern.IceLaser -> tr("Ice Laser")
+        is Pattern.FreezePatch -> tr("Freeze Patch")
+        is Pattern.CrystalVolley -> tr("Crystal Volley")
+        is Pattern.PermafrostShell -> tr("Permafrost Shell")
     }
 
 object Bosses {
@@ -381,267 +383,267 @@ object Bosses {
     private const val P3 = 0.25f
 
     val BREACH = BossDef(
-        "breach", "BREACH", "[!!!]", "Coordinated Intrusion",
-        "A coordinated breach attempt. No tricks, just weight — learn its rhythm: " +
-            "a fan, a ring, then a charge when it gets desperate.",
+        "breach", "BREACH", "[!!!]", tr("Coordinated Intrusion"),
+        tr("A coordinated breach attempt. No tricks, just weight — learn its rhythm: " +
+            "a fan, a ring, then a charge when it gets desperate."),
         0xFFFF2D55, 48f, 1400f, 70f, 20f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.3f, listOf(
                 Pattern.Aimed(3, 30f, 250f, 12f, bursts = 2),
                 Pattern.Radial(12, 190f, 10f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.15f, 1.1f, listOf(
                 Pattern.Aimed(5, 50f, 270f, 12f, bursts = 2),
                 Pattern.Charge(0.8f, 640f, 520f, 22f),
                 Pattern.Radial(14, 200f, 10f, waves = 2, rotateDeg = 12f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.3f, 0.9f, listOf(
                 Pattern.Radial(16, 210f, 11f, waves = 3, rotateDeg = 11f),
                 Pattern.Charge(0.7f, 700f, 560f, 22f, repeats = 2),
                 Pattern.Aimed(5, 60f, 290f, 12f, bursts = 3)
-            ), "BREACH CRITICAL")
+            ), tr("BREACH CRITICAL"))
         ), euros = 120, score = 2000, role = BossRole.BRUISER, tier = 1
     )
 
     val BOTMASTER = BossDef(
-        "botmaster", "BOTMASTER", "[B∞]", "Botnet Commander",
-        "Commands a botnet and keeps calling it in. Thin the swarm, but keep " +
-            "damage on the master.",
+        "botmaster", "BOTMASTER", "[B∞]", tr("Botnet Commander"),
+        tr("Commands a botnet and keeps calling it in. Thin the swarm, but keep " +
+            "damage on the master."),
         0xFFFF2EC4, 46f, 1500f, 60f, 18f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.Summon("bot", 4),
                 Pattern.Aimed(3, 24f, 240f, 11f, bursts = 3, burstGap = 0.3f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.1f, 1.2f, listOf(
                 Pattern.Summon("bot", 6),
                 Pattern.Spiral(3, 2.4f, 10f, 90f, 190f, 10f),
                 Pattern.Aimed(5, 40f, 250f, 11f, bursts = 2)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.2f, 1.0f, listOf(
                 Pattern.Summon("malware", 3),
                 Pattern.Spiral(4, 3f, 12f, -110f, 200f, 10f),
                 Pattern.Radial(18, 210f, 10f)
-            ), "BOTNET OVERDRIVE")
+            ), tr("BOTNET OVERDRIVE"))
         ), euros = 150, score = 2400, role = BossRole.SUMMONER, tier = 1
     )
 
     val WORM = BossDef(
-        "worm_prime", "WORM PRIME", "[~~>]", "Self-Replicating Threat",
-        "It leaves corrupted sectors behind and sheds fragments of itself. " +
-            "Keep moving — standing in its trail is a mistake.",
+        "worm_prime", "WORM PRIME", "[~~>]", tr("Self-Replicating Threat"),
+        tr("It leaves corrupted sectors behind and sheds fragments of itself. " +
+            "Keep moving — standing in its trail is a mistake."),
         0xFFFF5A36, 44f, 1650f, 95f, 22f, BossMove.CHASE, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.Zones(3, 70f, 6f, 16f),
                 Pattern.Radial(10, 180f, 11f, waves = 2, rotateDeg = 18f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.15f, 1.2f, listOf(
                 Pattern.Summon("wormlet", 4),
                 Pattern.Zones(4, 76f, 6f, 18f),
                 Pattern.Aimed(3, 20f, 260f, 12f, bursts = 3)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.3f, 1.0f, listOf(
                 Pattern.Spiral(2, 3f, 12f, 140f, 200f, 11f),
                 Pattern.Summon("wormlet", 5),
                 Pattern.Zones(5, 80f, 7f, 20f)
-            ), "REPLICATION STORM")
+            ), tr("REPLICATION STORM"))
         ), euros = 170, score = 2800, role = BossRole.AREA_CONTROL, tier = 2
     )
 
     val RANSOM = BossDef(
-        "ransom", "RANSOM", "[RM]", "Encryption Extortion",
-        "Locks down sections of the arena with encryption blasts. Watch the " +
-            "marked sectors and be somewhere else when they detonate.",
+        "ransom", "RANSOM", "[RM]", tr("Encryption Extortion"),
+        tr("Locks down sections of the arena with encryption blasts. Watch the " +
+            "marked sectors and be somewhere else when they detonate."),
         0xFFFFD426, 46f, 1800f, 65f, 20f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.Blasts(3, 90f, 1.2f, 22f),
                 Pattern.Aimed(4, 36f, 250f, 12f, bursts = 2)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.1f, 1.2f, listOf(
                 Pattern.Blasts(5, 95f, 1.1f, 24f, targeted = true),
                 Pattern.Radial(16, 200f, 11f),
                 Pattern.Homing(3, 150f, 1.6f, 14f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.25f, 1.0f, listOf(
                 Pattern.Blasts(7, 95f, 1.0f, 26f),
                 Pattern.Zones(3, 85f, 6f, 20f),
                 Pattern.Aimed(6, 70f, 270f, 12f, bursts = 3)
-            ), "PAY OR PERISH")
+            ), tr("PAY OR PERISH"))
         ), euros = 190, score = 3200, role = BossRole.CONTROLLER, tier = 2
     )
 
     val ROOTKIT = BossDef(
-        "rootkit_king", "ROOTKIT", "[r00t]", "Kernel-Level Phantom",
-        "Hides between attacks and reappears somewhere new. It always flickers " +
-            "in before it fires — track the flicker.",
+        "rootkit_king", "ROOTKIT", "[r00t]", tr("Kernel-Level Phantom"),
+        tr("Hides between attacks and reappears somewhere new. It always flickers " +
+            "in before it fires — track the flicker."),
         0xFFB0304A, 42f, 1700f, 0f, 18f, BossMove.TELEPORT, listOf(
             BossPhase(P1, 1f, 1.2f, listOf(
                 Pattern.Teleport,
                 Pattern.Aimed(5, 60f, 250f, 12f, bursts = 2),
                 Pattern.Homing(2, 150f, 1.5f, 14f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1f, 1.0f, listOf(
                 Pattern.Teleport,
                 Pattern.Radial(14, 210f, 11f, waves = 2, rotateDeg = 13f),
                 Pattern.Homing(4, 160f, 1.7f, 14f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1f, 0.8f, listOf(
                 Pattern.Teleport,
                 Pattern.Aimed(7, 80f, 280f, 12f, bursts = 3),
                 Pattern.Summon("rootkit", 2)
-            ), "PRIVILEGE ESCALATION")
+            ), tr("PRIVILEGE ESCALATION"))
         ), euros = 210, score = 3600, role = BossRole.ASSASSIN, tier = 2
     )
 
     val SYN_STORM = BossDef(
-        "syn_storm", "SYN-STORM", "[SS]", "Handshake Flood",
-        "Floods the arena with half-open connections. The spirals have gaps; " +
-            "find them and stay in them.",
+        "syn_storm", "SYN-STORM", "[SS]", tr("Handshake Flood"),
+        tr("Floods the arena with half-open connections. The spirals have gaps; " +
+            "find them and stay in them."),
         0xFFFF6A2E, 48f, 1900f, 55f, 20f, BossMove.DRIFT, listOf(
             BossPhase(P1, 1f, 1.2f, listOf(
                 Pattern.Spiral(2, 3f, 10f, 100f, 190f, 11f),
                 Pattern.Radial(12, 190f, 11f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.1f, 1.0f, listOf(
                 Pattern.Spiral(3, 3.2f, 12f, -120f, 200f, 11f),
                 Pattern.ShockRing(330f, 230f, 18f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.2f, 0.8f, listOf(
                 Pattern.Spiral(4, 3.5f, 14f, 140f, 210f, 11f),
                 Pattern.Radial(20, 220f, 11f, waves = 2, rotateDeg = 9f),
                 Pattern.ShockRing(360f, 250f, 18f)
-            ), "FULL FLOOD")
+            ), tr("FULL FLOOD"))
         ), euros = 230, score = 4000, role = BossRole.AREA_CONTROL, tier = 2
     )
 
     val KERNEL_PANIC = BossDef(
-        "kernel_panic", "KERNEL PANIC", "[KP]", "System Crash",
-        "Every attack sends shockwaves through the system. Rings expand from " +
-            "it — step back out of reach or slip between waves.",
+        "kernel_panic", "KERNEL PANIC", "[KP]", tr("System Crash"),
+        tr("Every attack sends shockwaves through the system. Rings expand from " +
+            "it — step back out of reach or slip between waves."),
         0xFFFF9A1A, 50f, 2100f, 50f, 22f, BossMove.HOVER, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.ShockRing(300f, 220f, 18f),
                 Pattern.Aimed(3, 30f, 250f, 12f, bursts = 2)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.1f, 1.2f, listOf(
                 Pattern.ShockRing(340f, 240f, 20f),
                 Pattern.Blasts(4, 85f, 1.1f, 22f),
                 Pattern.Radial(16, 200f, 11f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.2f, 1.0f, listOf(
                 Pattern.ShockRing(380f, 260f, 20f),
                 Pattern.Spiral(3, 2.6f, 12f, 130f, 200f, 11f),
                 Pattern.Blasts(6, 85f, 1.0f, 24f)
-            ), "BLUE SCREEN")
+            ), tr("BLUE SCREEN"))
         ), euros = 250, score = 4400, role = BossRole.CONTROLLER, tier = 3
     )
 
     val EXFIL = BossDef(
-        "exfil", "EXFIL", "[XX]", "Data Exfiltration",
-        "Fast and greedy: it dashes across the arena to grab what it can. " +
-            "Read the charge lines and sidestep.",
+        "exfil", "EXFIL", "[XX]", tr("Data Exfiltration"),
+        tr("Fast and greedy: it dashes across the arena to grab what it can. " +
+            "Read the charge lines and sidestep."),
         0xFFFF4060, 40f, 1800f, 120f, 22f, BossMove.CHASE, listOf(
             BossPhase(P1, 1f, 1.2f, listOf(
                 Pattern.Charge(0.8f, 680f, 520f, 22f),
                 Pattern.Aimed(3, 26f, 270f, 12f, bursts = 2)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.15f, 1.0f, listOf(
                 Pattern.Charge(0.7f, 720f, 560f, 22f, repeats = 2),
                 Pattern.Radial(14, 210f, 11f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.3f, 0.8f, listOf(
                 Pattern.Charge(0.6f, 760f, 600f, 24f, repeats = 3),
                 Pattern.Homing(4, 170f, 1.8f, 14f)
-            ), "SMASH AND GRAB")
+            ), tr("SMASH AND GRAB"))
         ), euros = 270, score = 4800, role = BossRole.ASSASSIN, tier = 3
     )
 
     val WHITE_EYE = BossDef(
-        "white_eye", "WHITE EYE", "[○_○]", "Offensive Watcher",
-        "Watches everything and fires data beams along what it sees. The beam " +
-            "sight is shown first — leave the line before it fires.",
+        "white_eye", "WHITE EYE", "[○_○]", tr("Offensive Watcher"),
+        tr("Watches everything and fires data beams along what it sees. The beam " +
+            "sight is shown first — leave the line before it fires."),
         0xFFE6EEFA, 44f, 2000f, 0f, 18f, BossMove.TELEPORT, listOf(
             BossPhase(P1, 1f, 1.3f, listOf(
                 Pattern.Beam(0.9f, 0.5f, 34f, 26f),
                 Pattern.Teleport,
                 Pattern.Aimed(5, 50f, 250f, 12f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1f, 1.1f, listOf(
                 Pattern.Beam(0.85f, 0.5f, 34f, 26f, count = 3, spreadDeg = 40f),
                 Pattern.Teleport,
                 Pattern.Radial(16, 210f, 11f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1f, 0.9f, listOf(
                 Pattern.Beam(0.8f, 0.55f, 36f, 28f, count = 5, spreadDeg = 72f),
                 Pattern.Teleport,
                 Pattern.Homing(4, 170f, 1.7f, 14f)
-            ), "TOTAL SURVEILLANCE")
+            ), tr("TOTAL SURVEILLANCE"))
         ), euros = 290, score = 5200, role = BossRole.CONTROLLER, tier = 3
     )
 
     val ZOMBIE = BossDef(
-        "zombie", "ZOMBIE", "[ZZ]", "Undead Process",
-        "A process that refuses to terminate. It shambles, it spits, and it " +
-            "gets angrier the closer it is to dying.",
+        "zombie", "ZOMBIE", "[ZZ]", tr("Undead Process"),
+        tr("A process that refuses to terminate. It shambles, it spits, and it " +
+            "gets angrier the closer it is to dying."),
         0xFFE0405A, 52f, 2400f, 70f, 24f, BossMove.CHASE, listOf(
             BossPhase(P1, 1f, 1.4f, listOf(
                 Pattern.Aimed(5, 40f, 230f, 12f, bursts = 2),
                 Pattern.Zones(2, 80f, 6f, 18f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.2f, 1.2f, listOf(
                 Pattern.Summon("malware", 4),
                 Pattern.Radial(18, 200f, 11f, waves = 2, rotateDeg = 10f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.45f, 0.9f, listOf(
                 Pattern.Charge(0.7f, 620f, 480f, 24f, repeats = 2),
                 Pattern.Radial(22, 220f, 11f, waves = 3, rotateDeg = 8f),
                 Pattern.Summon("worm", 2)
-            ), "UNDEAD FRENZY")
+            ), tr("UNDEAD FRENZY"))
         ), euros = 310, score = 5600, role = BossRole.BRUISER, tier = 3
     )
 
     val SPOOFER = BossDef(
-        "spoofer", "SPOOFER", "[¿¿]", "Identity Forger",
-        "Forges copies of other threats to soak your fire. Kill the decoys " +
-            "only when you must — the real target is the forger.",
+        "spoofer", "SPOOFER", "[¿¿]", tr("Identity Forger"),
+        tr("Forges copies of other threats to soak your fire. Kill the decoys " +
+            "only when you must — the real target is the forger."),
         0xFFFF55AA, 42f, 2100f, 0f, 18f, BossMove.TELEPORT, listOf(
             BossPhase(P1, 1f, 1.3f, listOf(
                 Pattern.Summon("phisher", 2),
                 Pattern.Teleport,
                 Pattern.Aimed(4, 40f, 260f, 12f, bursts = 2)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1f, 1.1f, listOf(
                 Pattern.Summon("sniffer", 2),
                 Pattern.Teleport,
                 Pattern.Homing(4, 160f, 1.7f, 14f)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1f, 0.9f, listOf(
                 Pattern.Summon("rootkit", 2),
                 Pattern.Teleport,
                 Pattern.Spiral(3, 2.5f, 12f, 150f, 210f, 11f)
-            ), "MASS FORGERY")
+            ), tr("MASS FORGERY"))
         ), euros = 330, score = 6000, role = BossRole.SUMMONER, tier = 3
     )
 
     val GOOD_GAME = BossDef(
-        "good_game", "GOOD GAME", "[GG]", "Heavy Siege Platform",
-        "Enormous, armoured and slow. Every pattern it has is heavy. Patience " +
-            "beats panic.",
+        "good_game", "GOOD GAME", "[GG]", tr("Heavy Siege Platform"),
+        tr("Enormous, armoured and slow. Every pattern it has is heavy. Patience " +
+            "beats panic."),
         0xFFC8102E, 64f, 3000f, 40f, 30f, BossMove.CHASE, listOf(
             BossPhase(P1, 1f, 1.5f, listOf(
                 Pattern.Radial(20, 170f, 13f, waves = 2, rotateDeg = 9f),
                 Pattern.ShockRing(320f, 200f, 22f)
-            ), "PHASE 1"),
+            ), tr("PHASE 1")),
             BossPhase(P2, 1.1f, 1.3f, listOf(
                 Pattern.Blasts(6, 100f, 1.2f, 26f),
                 Pattern.Radial(24, 180f, 13f, waves = 2, rotateDeg = 7f),
                 Pattern.Summon("trojan", 2)
-            ), "PHASE 2"),
+            ), tr("PHASE 2")),
             BossPhase(P3, 1.25f, 1.1f, listOf(
                 Pattern.ShockRing(380f, 230f, 24f),
                 Pattern.Spiral(4, 3.5f, 12f, 90f, 190f, 12f),
                 Pattern.Blasts(8, 100f, 1.1f, 26f)
-            ), "GAME OVER?")
+            ), tr("GAME OVER?"))
         ), euros = 360, score = 6600, role = BossRole.TANK, tier = 3, siegeCannon = true,
-        abilities = listOf("Siege Cannon", "Burst Ring", "Shockwave", "Strike Markers")
+        abilities = listOf(tr("Siege Cannon"), tr("Burst Ring"), tr("Shockwave"), tr("Strike Markers"))
     )
 
     /** The original twelve, levels 10–120. */

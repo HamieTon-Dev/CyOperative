@@ -1,5 +1,6 @@
 package com.cyberoperative.game.steam
 
+import com.cyberoperative.game.i18n.tr
 import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamFriendsCallback
 import com.codedisaster.steamworks.SteamID
@@ -89,7 +90,7 @@ class SteamCoopBackend(private val steam: SteamService) : CoopBackend {
     private fun addInvite(lobby: SteamID, from: SteamID?) {
         val id = steam.idOf(lobby).toString()
         if (inviteList.value.any { it.roomId == id } || room?.roomId == id) return
-        val name = from?.let { steam.friends.getFriendPersonaName(it) } ?: "A friend"
+        val name = from?.let { steam.friends.getFriendPersonaName(it) } ?: tr("A friend")
         inviteList.value = inviteList.value + Invite(id, from?.let { steam.idOf(it).toString() } ?: "", name, id, System.currentTimeMillis())
     }
 
@@ -100,7 +101,7 @@ class SteamCoopBackend(private val steam: SteamService) : CoopBackend {
     }
 
     override suspend fun register(callsign: String): Result<CoopProfile> =
-        profileFlow.value?.let { Result.success(it) } ?: Result.failure(IllegalStateException("Steam isn't signed in"))
+        profileFlow.value?.let { Result.success(it) } ?: Result.failure(IllegalStateException(tr("Steam isn't signed in")))
 
     override fun friends(): Flow<List<Friend>> = flow {
         while (true) {
@@ -120,7 +121,7 @@ class SteamCoopBackend(private val steam: SteamService) : CoopBackend {
     }
 
     override fun friendRequests(): Flow<List<FriendRequest>> = MutableStateFlow(emptyList())
-    override suspend fun sendFriendRequest(code: String) = Result.failure<String>(IllegalStateException("Add friends through Steam"))
+    override suspend fun sendFriendRequest(code: String) = Result.failure<String>(IllegalStateException(tr("Add friends through Steam")))
     override suspend fun answerFriendRequest(request: FriendRequest, accept: Boolean) = Result.success(Unit)
     override suspend fun removeFriend(uid: String) = Result.success(Unit)
 
@@ -131,7 +132,7 @@ class SteamCoopBackend(private val steam: SteamService) : CoopBackend {
         val c = CompletableDeferred<SteamID?>().also { created = it }
         val e = CompletableDeferred<SteamID?>().also { entered = it }
         steam.matchmaking.createLobby(SteamMatchmaking.LobbyType.FriendsOnly, 2)
-        val lobby = withTimeoutOrNull(15_000) { c.await() } ?: return Result.failure(IllegalStateException("Steam couldn't create a lobby"))
+        val lobby = withTimeoutOrNull(15_000) { c.await() } ?: return Result.failure(IllegalStateException(tr("Steam couldn't create a lobby")))
         withTimeoutOrNull(10_000) { e.await() }
         val r = SteamRoom(lobby, isHost = true)
         room = r
@@ -150,7 +151,7 @@ class SteamCoopBackend(private val steam: SteamService) : CoopBackend {
         val lobbyId = steam.idFrom(invite.roomId.toLong())
         val e = CompletableDeferred<SteamID?>().also { entered = it }
         steam.matchmaking.joinLobby(lobbyId)
-        val lobby = withTimeoutOrNull(15_000) { e.await() } ?: return Result.failure(IllegalStateException("That lobby is closed"))
+        val lobby = withTimeoutOrNull(15_000) { e.await() } ?: return Result.failure(IllegalStateException(tr("That lobby is closed")))
         val r = SteamRoom(lobby, isHost = false)
         room = r
         steam.matchmaking.setLobbyMemberData(lobby, "player", encode(me))

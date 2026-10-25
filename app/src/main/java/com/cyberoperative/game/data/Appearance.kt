@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.save.CharacterLook
 import kotlin.random.Random
 
@@ -10,7 +11,7 @@ import kotlin.random.Random
  */
 object Appearance {
     const val OPTIONS = 3
-    val parts = listOf("HEAD", "FACE", "BODY", "LEGS")
+    val parts = listOf(tr("HEAD"), tr("FACE"), tr("BODY"), tr("LEGS"))
 
     private fun short(classId: String) = when (classId) {
         "technician" -> "Tech"
@@ -21,14 +22,14 @@ object Appearance {
     }
 
     private fun headNoun(classId: String) = when (classId) {
-        "technician" -> "Tech Hood"
-        "juggernaut" -> "Juggernaut Helm"
-        "phantom" -> "Shadow Hood"
-        "packet_mage" -> "Mage Cowl"
-        else -> "Tactical Hood"
+        "technician" -> tr("Tech Hood")
+        "juggernaut" -> tr("Juggernaut Helm")
+        "phantom" -> tr("Shadow Hood")
+        "packet_mage" -> tr("Mage Cowl")
+        else -> tr("Tactical Hood")
     }
 
-    private val faces = listOf("Signature Face", "Digital Face", "Hunter Face")
+    private val faces = listOf(tr("Signature Face"), tr("Digital Face"), tr("Hunter Face"))
     private val letters = listOf("A", "B", "C")
 
     fun partName(classId: String, part: Int, option: Int): String {
@@ -36,8 +37,8 @@ object Appearance {
         return when (part) {
             0 -> "${headNoun(classId)} ${letters[o]}"
             1 -> faces[o]
-            2 -> "${short(classId)} Armor ${letters[o]}"
-            else -> "${short(classId)} Legs ${letters[o]}"
+            2 -> tr("{0} Armor {1}", short(classId), letters[o])
+            else -> tr("{0} Legs {1}", short(classId), letters[o])
         }
     }
 

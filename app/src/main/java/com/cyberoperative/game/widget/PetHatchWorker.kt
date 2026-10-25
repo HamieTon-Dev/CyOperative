@@ -1,5 +1,6 @@
 package com.cyberoperative.game.widget
 
+import com.cyberoperative.game.i18n.tr
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit
 /** "Your egg has hatched!" when the incubator's egg is due (owner, 0.39.0). */
 class PetHatchWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result {
-        val name = inputData.getString(KEY_NAME).orEmpty().ifEmpty { "Your egg" }
+        val name = inputData.getString(KEY_NAME).orEmpty().ifEmpty { tr("Your egg") }
         post(applicationContext, name, inputData.getInt(KEY_SLOT, 0))
         return Result.success()
     }
@@ -45,15 +46,15 @@ class PetHatchWorker(context: Context, params: WorkerParameters) : Worker(contex
             if (!IdleRunNotifier.canPost(context)) return
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
-                nm.createNotificationChannel(NotificationChannel(CHANNEL, "Pets", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "When an egg in the incubator has hatched"
+                nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Pets"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = tr("When an egg in the incubator has hatched")
                 })
             }
             val n = NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_stat_idle_run)
                 .setColor(0xFFFF6A1A.toInt())
-                .setContentTitle("Your egg has hatched!")
-                .setContentText("$eggName is ready. Open the incubator to meet your new pet.")
+                .setContentTitle(tr("Your egg has hatched!"))
+                .setContentText(tr("{0} is ready. Open the incubator to meet your new pet.", eggName))
                 .setContentIntent(IdleRunWidget.openPets(context))
                 .setAutoCancel(true)
                 .build()

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
@@ -47,14 +48,14 @@ data class Pet(
  * LEGENDARY and up may roll a third and a fourth (four at most). Stronger and faster by rarity.
  */
 enum class PetAbility(val label: String, val text: String, val cooldown: Float) {
-    FIRE_BITE("FIRE BITE", "Breathes a burst of flame on the nearest threat and those around it.", 6f),
-    CHAIN_SHOCK("CHAIN SHOCK", "A bolt that arcs on to three more threats.", 5f),
-    HEAL_PULSE("HEAL PULSE", "Heals you for a share of your max HP.", 12f),
-    SHIELD_BUBBLE("SHIELD BUBBLE", "A moment where nothing can hurt you.", 16f),
-    SHOCK_NOVA("SHOCK NOVA", "A ring of energy hits every threat around the pet.", 8f),
-    HOMING_MISSILES("HOMING MISSILES", "Two missiles that seek out threats.", 7f),
-    PIERCING_LASER("PIERCING LASER", "A heavy shot that passes through threats.", 6f),
-    RAPID_FIRE("RAPID FIRE", "Triple fire rate for a few seconds.", 14f);
+    FIRE_BITE(tr("FIRE BITE"), tr("Breathes a burst of flame on the nearest threat and those around it."), 6f),
+    CHAIN_SHOCK(tr("CHAIN SHOCK"), tr("A bolt that arcs on to three more threats."), 5f),
+    HEAL_PULSE(tr("HEAL PULSE"), tr("Heals you for a share of your max HP."), 12f),
+    SHIELD_BUBBLE(tr("SHIELD BUBBLE"), tr("A moment where nothing can hurt you."), 16f),
+    SHOCK_NOVA(tr("SHOCK NOVA"), tr("A ring of energy hits every threat around the pet."), 8f),
+    HOMING_MISSILES(tr("HOMING MISSILES"), tr("Two missiles that seek out threats."), 7f),
+    PIERCING_LASER(tr("PIERCING LASER"), tr("A heavy shot that passes through threats."), 6f),
+    RAPID_FIRE(tr("RAPID FIRE"), tr("Triple fire rate for a few seconds."), 14f);
 }
 
 /** What a run needs to know about an equipped pet. */
@@ -348,9 +349,9 @@ object Pets {
 
     /** Store eggs (◇). Defaults: change prices / odds here. */
     enum class StoreEgg(val label: String, val price: Long, val odds: List<Pair<GearRarity, Float>>) {
-        MYSTERY("MYSTERY EGG", 150, listOf(GearRarity.COMMON to 40f, GearRarity.UNCOMMON to 30f, GearRarity.RARE to 20f, GearRarity.EPIC to 8f, GearRarity.LEGENDARY to 2f)),
-        EPIC("EPIC EGG", 600, listOf(GearRarity.EPIC to 85f, GearRarity.LEGENDARY to 15f)),
-        LEGENDARY("LEGENDARY EGG", 1500, listOf(GearRarity.LEGENDARY to 100f));
+        MYSTERY(tr("MYSTERY EGG"), 150, listOf(GearRarity.COMMON to 40f, GearRarity.UNCOMMON to 30f, GearRarity.RARE to 20f, GearRarity.EPIC to 8f, GearRarity.LEGENDARY to 2f)),
+        EPIC(tr("EPIC EGG"), 600, listOf(GearRarity.EPIC to 85f, GearRarity.LEGENDARY to 15f)),
+        LEGENDARY(tr("LEGENDARY EGG"), 1500, listOf(GearRarity.LEGENDARY to 100f));
 
         fun roll(rng: Random): GearRarity {
             var x = rng.nextFloat() * odds.sumOf { it.second.toDouble() }.toFloat()

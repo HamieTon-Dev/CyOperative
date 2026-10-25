@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -36,12 +37,12 @@ import kotlin.math.roundToInt
 
 /** The on-screen controls of Android's PC mode (owner, 2026-10-11). */
 enum class TouchControl(val key: String, val label: String, val sizeDp: Int) {
-    STICK("stick", "JOYSTICK", 112),
-    DASH("dash", "DASH", 66),
-    SPELL1("spell1", "SPELL 1", 58),
-    SPELL2("spell2", "SPELL 2", 58),
-    HP("hp", "HP CHARGE", 48),
-    BOMB("bomb", "PACKET BOMB", 48)
+    STICK("stick", tr("JOYSTICK"), 112),
+    DASH("dash", tr("DASH"), 66),
+    SPELL1("spell1", tr("SPELL 1"), 58),
+    SPELL2("spell2", tr("SPELL 2"), 58),
+    HP("hp", tr("HP CHARGE"), 48),
+    BOMB("bomb", tr("PACKET BOMB"), 48)
 }
 
 /** Where each control sits, as fractions of the screen (customisable per orientation in Settings). */
@@ -269,7 +270,7 @@ fun TouchLayoutEditor(settings: GameSettings, landscape: Boolean, onChange: (Map
                 .border(1.dp, Palette.Cyan.copy(alpha = 0.5f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
                 .background(Palette.Cyan.copy(alpha = 0.06f), androidx.compose.foundation.shape.RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center
-        ) { Text("MAP\n(KEEP CLEAR)", color = Palette.Cyan.copy(alpha = 0.8f), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
+        ) { Text(tr("MAP\n(KEEP CLEAR)"), color = Palette.Cyan.copy(alpha = 0.8f), fontSize = 9.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
         for (c in TouchControl.entries) {
             val p = TouchLayout.place(settings, c, landscape, wDp, hDp)
             val half = with(density) { (c.sizeDp / 2).dp.toPx() }

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.engine.RunStats
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -17,14 +18,14 @@ import kotlin.random.Random
  */
 
 enum class GearSlot(val label: String, val sheet: String) {
-    PRIMARY("PRIMARY", "primary"),
-    SECONDARY("SECONDARY", "secondary"),
-    HELMET("HELMET", "helmet"),
-    CHEST("CHEST", "chest"),
-    GLOVES("GLOVES", "gloves"),
-    BOOTS("BOOTS", "boots"),
-    IMPLANT("IMPLANT", "implant"),
-    CORE("CORE", "core");
+    PRIMARY(tr("PRIMARY"), "primary"),
+    SECONDARY(tr("SECONDARY"), "secondary"),
+    HELMET(tr("HELMET"), "helmet"),
+    CHEST(tr("CHEST"), "chest"),
+    GLOVES(tr("GLOVES"), "gloves"),
+    BOOTS(tr("BOOTS"), "boots"),
+    IMPLANT(tr("IMPLANT"), "implant"),
+    CORE(tr("CORE"), "core");
 
     val weapon: Boolean get() = this == PRIMARY || this == SECONDARY
     val armorPiece: Boolean get() = this == HELMET || this == CHEST || this == GLOVES || this == BOOTS
@@ -50,28 +51,28 @@ enum class GearRarity(
     /** Boss drop chance per piece (percent) at INFERNO I; multiplied by the INFERNO level. */
     val infernoBase: Float = 0f
 ) {
-    COMMON("COMMON", 0xFFB8C4D6, 0, 1.0f, 0),
-    UNCOMMON("UNCOMMON", 0xFF3CFF6E, 1, 1.1f, 1),
-    RARE("RARE", 0xFF2E9BFF, 2, 1.22f, 2),
-    EPIC("EPIC", 0xFFB45CFF, 3, 1.36f, 3),
-    LEGENDARY("LEGENDARY", 0xFFFFC21A, 4, 1.6f, 4),
+    COMMON(tr("COMMON"), 0xFFB8C4D6, 0, 1.0f, 0),
+    UNCOMMON(tr("UNCOMMON"), 0xFF3CFF6E, 1, 1.1f, 1),
+    RARE(tr("RARE"), 0xFF2E9BFF, 2, 1.22f, 2),
+    EPIC(tr("EPIC"), 0xFFB45CFF, 3, 1.36f, 3),
+    LEGENDARY(tr("LEGENDARY"), 0xFFFFC21A, 4, 1.6f, 4),
     /** One step above GOLDEN (owner, 0.39.0): drops on every difficulty, gold art with a glitch card. */
-    GLITCHED("GLITCHED LEGENDARY", 0xFFFF3DF2, 4, 1.72f, 5),
-    @SerialName("ENCRYPTED") FORGED("FORGED", 0xFFFF8A1F, 5, 1.85f, 4, minInferno = 1, infernoBase = 0.8f),
-    @SerialName("INFERNAL") VOLTAIC("VOLTAIC", 0xFFFFF04D, 6, 2.1f, 5, minInferno = 3, infernoBase = 0.7f),
-    @SerialName("CRYPTO") CELESTIAL("CELESTIAL", 0xFFDDE8FF, 7, 2.4f, 6, minInferno = 5, infernoBase = 0.5f),
-    ABYSSAL("ABYSSAL", 0xFFFF2B3A, 8, 2.8f, 6, minInferno = 7, infernoBase = 0.4f),
+    GLITCHED(tr("GLITCHED LEGENDARY"), 0xFFFF3DF2, 4, 1.72f, 5),
+    @SerialName("ENCRYPTED") FORGED(tr("FORGED"), 0xFFFF8A1F, 5, 1.85f, 4, minInferno = 1, infernoBase = 0.8f),
+    @SerialName("INFERNAL") VOLTAIC(tr("VOLTAIC"), 0xFFFFF04D, 6, 2.1f, 5, minInferno = 3, infernoBase = 0.7f),
+    @SerialName("CRYPTO") CELESTIAL(tr("CELESTIAL"), 0xFFDDE8FF, 7, 2.4f, 6, minInferno = 5, infernoBase = 0.5f),
+    ABYSSAL(tr("ABYSSAL"), 0xFFFF2B3A, 8, 2.8f, 6, minInferno = 7, infernoBase = 0.4f),
     /**
      * The top tier (owner, 0.39.0): near game-breaking perks, very rare on every difficulty.
      * "ENCRYPTED" on disk is the old name of FORGED, so this one is saved as "ENCRYPTED_X".
      */
-    @SerialName("ENCRYPTED_X") ENCRYPTED("ENCRYPTED", 0xFF00F0FF, 8, 3.1f, 6),
+    @SerialName("ENCRYPTED_X") ENCRYPTED(tr("ENCRYPTED"), 0xFF00F0FF, 8, 3.1f, 6),
     /**
      * The new top tier (owner, 0.47.0): its own art (50 per slot + 50 class weapons per class,
      * resources/gear/<slot>_gx.webp), a colour that shifts between cyan and red ([color] is the
      * static fallback; RarityFx.gxColor animates it) and GLITCHED-style tearing on cards and beams.
      */
-    GLITCHED_ENCRYPTED("GLITCHED ENCRYPTED", 0xFFFF2E4D, GearArt.GX_TIER, 3.5f, 6);
+    GLITCHED_ENCRYPTED(tr("GLITCHED ENCRYPTED"), 0xFFFF2E4D, GearArt.GX_TIER, 3.5f, 6);
 
     /** GOLDEN and up hit 30% harder (owner, 0.39.0); applied when worn, so old drops get it too. */
     val statBoost: Float get() = if (this >= LEGENDARY) 1.3f else 1f
@@ -86,18 +87,18 @@ enum class GearRarity(
 
 /** Stats an affix can roll. Values are stored in display units (percent as 0–100). */
 enum class GearStat(val label: String, val percent: Boolean, val lo: Float, val hi: Float) {
-    MAX_HP("Max HP", true, 2f, 6f),
-    DAMAGE("Damage", true, 2f, 6f),
-    CRIT_CHANCE("Critical chance", true, 1f, 3f),
-    CRIT_DAMAGE("Critical damage", true, 5f, 15f),
-    ATTACK_SPEED("Attack speed", true, 2f, 5f),
-    MOVE_SPEED("Move speed", true, 1f, 4f),
-    ARMOR("Armor", false, 3f, 8f),
-    DODGE("Dodge", true, 0.5f, 2f),
-    HEAL_ON_KILL("HP per kill", false, 1f, 3f),
-    ELITE_DAMAGE("Damage to elites & bosses", true, 4f, 10f),
-    XP_GAIN("XP gain", true, 2f, 6f),
-    NODE_DAMAGE("Packet Node damage", true, 4f, 10f);
+    MAX_HP(tr("Max HP"), true, 2f, 6f),
+    DAMAGE(tr("Damage"), true, 2f, 6f),
+    CRIT_CHANCE(tr("Critical chance"), true, 1f, 3f),
+    CRIT_DAMAGE(tr("Critical damage"), true, 5f, 15f),
+    ATTACK_SPEED(tr("Attack speed"), true, 2f, 5f),
+    MOVE_SPEED(tr("Move speed"), true, 1f, 4f),
+    ARMOR(tr("Armor"), false, 3f, 8f),
+    DODGE(tr("Dodge"), true, 0.5f, 2f),
+    HEAL_ON_KILL(tr("HP per kill"), false, 1f, 3f),
+    ELITE_DAMAGE(tr("Damage to elites & bosses"), true, 4f, 10f),
+    XP_GAIN(tr("XP gain"), true, 2f, 6f),
+    NODE_DAMAGE(tr("Packet Node damage"), true, 4f, 10f);
 
     fun format(v: Float): String {
         val n = if (v >= 10f || this == ARMOR) "%.0f".format(v) else "%.1f".format(v).removeSuffix(".0")
@@ -139,22 +140,22 @@ data class GearItem(
 
     /** The headline number on the item card: DAMAGE, ARMOR, etc. */
     val mainLabel: String get() = when (slot) {
-        GearSlot.PRIMARY -> "DAMAGE"
-        GearSlot.SECONDARY -> "WEAPON LEVEL"
-        GearSlot.CORE -> "MAX HP"
-        GearSlot.IMPLANT -> "CRITICAL CHANCE"
-        else -> "ARMOR"
+        GearSlot.PRIMARY -> tr("DAMAGE")
+        GearSlot.SECONDARY -> tr("WEAPON LEVEL")
+        GearSlot.CORE -> tr("MAX HP")
+        GearSlot.IMPLANT -> tr("CRITICAL CHANCE")
+        else -> tr("ARMOR")
     }
     val mainValue: String get() = when (slot) {
         GearSlot.CORE, GearSlot.IMPLANT -> "+" + "%.1f".format(effectiveBase).removeSuffix(".0") + "%"
         else -> "%.0f".format(effectiveBase)
     }
     val description: String get() = when (slot) {
-        GearSlot.PRIMARY -> style!!.text + (classOnly?.let { " " + Operatives.byId(it).name + " only." } ?: "")
-        GearSlot.SECONDARY -> sidearm?.let { "Auto-weapon: ${it.name}. ${it.description}" } ?: ""
-        GearSlot.CORE -> "Power core: raises maximum HP."
-        GearSlot.IMPLANT -> "Neural implant: sharper targeting, more critical hits."
-        else -> "Armor plating: cuts the damage you take."
+        GearSlot.PRIMARY -> style!!.text + (classOnly?.let { " " + tr("{0} only.", Operatives.byId(it).name) } ?: "")
+        GearSlot.SECONDARY -> sidearm?.let { tr("Auto-weapon: {0}. {1}", it.name, it.description) } ?: ""
+        GearSlot.CORE -> tr("Power core: raises maximum HP.")
+        GearSlot.IMPLANT -> tr("Neural implant: sharper targeting, more critical hits.")
+        else -> tr("Armor plating: cuts the damage you take.")
     }
 }
 
@@ -170,24 +171,24 @@ enum class GunStyle(
     val classId: String? = null,
     val apply: (RunStats) -> Unit = {}
 ) {
-    PULSE("Pulse Rifle", "Steady pulse bolts.", 1f),
-    BURST("Burst Rifle", "Three-round bursts.", 0.55f, apply = { it.followUpShots += 2 }),
-    SCATTER("Scattergun", "A fan of five pellets, short range.", 0.42f, 0.85f, apply = { it.diagonalPairs += 2; it.range *= 0.7f }),
-    RAIL("Railgun", "Slow, heavy rails that pierce three threats.", 2.3f, 0.5f, apply = { it.pierce += 3; it.projectileSpeed *= 1.6f }),
-    SMG("SMG", "Very fast, light bolts.", 0.58f, 1.8f),
-    ARC("Arc Rifle", "Bolts that jump to two more threats.", 0.8f, apply = { it.chain += 2 }),
-    RICOCHET("Ricochet Carbine", "Bolts bounce off walls twice.", 0.85f, apply = { it.bounce += 2 }),
-    TWIN("Twin Rifle", "Two parallel bolts per shot.", 0.62f, apply = { it.parallelShots += 1 }),
+    PULSE("Pulse Rifle", tr("Steady pulse bolts."), 1f),
+    BURST("Burst Rifle", tr("Three-round bursts."), 0.55f, apply = { it.followUpShots += 2 }),
+    SCATTER("Scattergun", tr("A fan of five pellets, short range."), 0.42f, 0.85f, apply = { it.diagonalPairs += 2; it.range *= 0.7f }),
+    RAIL("Railgun", tr("Slow, heavy rails that pierce three threats."), 2.3f, 0.5f, apply = { it.pierce += 3; it.projectileSpeed *= 1.6f }),
+    SMG("SMG", tr("Very fast, light bolts."), 0.58f, 1.8f),
+    ARC("Arc Rifle", tr("Bolts that jump to two more threats."), 0.8f, apply = { it.chain += 2 }),
+    RICOCHET("Ricochet Carbine", tr("Bolts bounce off walls twice."), 0.85f, apply = { it.bounce += 2 }),
+    TWIN("Twin Rifle", tr("Two parallel bolts per shot."), 0.62f, apply = { it.parallelShots += 1 }),
     // Class weapons: a little stronger than the shared styles.
-    SIGNAL("Signal Rifle", "Signal bolts that pierce two threats and arc to one more.", 0.95f, classId = "technician",
+    SIGNAL("Signal Rifle", tr("Signal bolts that pierce two threats and arc to one more."), 0.95f, classId = "technician",
         apply = { it.pierce += 2; it.chain += 1 }),
-    SIEGE("Siege Cannon", "A huge, slow shell that punches through a threat.", 2.9f, 0.42f, classId = "juggernaut",
+    SIEGE("Siege Cannon", tr("A huge, slow shell that punches through a threat."), 2.9f, 0.42f, classId = "juggernaut",
         apply = { it.pierce += 1; it.projectileSpeed *= 0.85f }),
-    GHOST("Ghost Rifle", "Silent shots: +15% critical chance, +60% critical damage.", 1.05f, classId = "phantom",
+    GHOST("Ghost Rifle", tr("Silent shots: +15% critical chance, +60% critical damage."), 1.05f, classId = "phantom",
         apply = { it.critChance += 0.15f; it.critMul += 0.6f }),
-    HEX("Hex Caster", "Hexed bolts that bounce twice and arc once.", 0.9f, classId = "packet_mage",
+    HEX("Hex Caster", tr("Hexed bolts that bounce twice and arc once."), 0.9f, classId = "packet_mage",
         apply = { it.bounce += 2; it.chain += 1 }),
-    TACTICAL("Tactical Carbine", "Two-round bursts, +5% critical chance.", 0.75f, classId = "operative",
+    TACTICAL("Tactical Carbine", tr("Two-round bursts, +5% critical chance."), 0.75f, classId = "operative",
         apply = { it.followUpShots += 1; it.critChance += 0.05f });
 
     companion object {
@@ -516,14 +517,14 @@ object GearPerks {
 
     /** The perk's line on the item card, or null below LEGENDARY (GOLDEN+ perks +30%, owner 0.39.0). */
     fun text(g: GearItem): String? = when (g.rarity) {
-        GearRarity.LEGENDARY -> when (kind(g)) { Kind.RIFLE -> "Shots pierce 1 more threat"; Kind.ARMOR -> "+2.6% dodge"; Kind.SYSTEM -> "+8% XP gain, +8% €" }
-        GearRarity.GLITCHED -> when (kind(g)) { Kind.RIFLE -> "Fire on the move at 50% rate, +10% damage"; Kind.ARMOR -> "Heal 3 HP per hit, +3% dodge"; Kind.SYSTEM -> "Dash cooldown −25%, +15% damage" }
-        GearRarity.FORGED -> when (kind(g)) { Kind.RIFLE -> "Shots bounce once more, +10% damage"; Kind.ARMOR -> "Molten plating: getting hit sprays 4 slag bolts"; Kind.SYSTEM -> "+1 Packet Node" }
-        GearRarity.VOLTAIC -> when (kind(g)) { Kind.RIFLE -> "Shots arc to 1 more threat"; Kind.ARMOR -> "+9% move speed"; Kind.SYSTEM -> "Packet Nodes fire their own bolts" }
-        GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> "+1 parallel shot"; Kind.ARMOR -> "+20% healing, +4 HP per kill"; Kind.SYSTEM -> "+16% critical damage, +4% critical chance" }
-        GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> "4% chance to delete a threat outright, +33% critical damage"; Kind.ARMOR -> "Hellfire skin: hits spray 6 bolts, +4% dodge"; Kind.SYSTEM -> "+1 Packet Node, +33% node damage, +13% damage" }
-        GearRarity.ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> "Fire at full rate on the move, +50% damage"; Kind.ARMOR -> "HP potions drink themselves at 20% HP or on a lethal hit; heal 8 HP per hit"; Kind.SYSTEM -> "Dash cooldown −50%, double healing, companion fires twice as fast" }
-        GearRarity.GLITCHED_ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> "Fire at full rate on the move, +65% damage, shots pierce 1 more threat"; Kind.ARMOR -> "HP potions drink themselves at 20% HP or on a lethal hit; heal 10 HP per hit, +5% dodge"; Kind.SYSTEM -> "Dash cooldown −50%, double healing, companion fires twice as fast, +20% damage" }
+        GearRarity.LEGENDARY -> when (kind(g)) { Kind.RIFLE -> tr("Shots pierce 1 more threat"); Kind.ARMOR -> tr("+2.6% dodge"); Kind.SYSTEM -> tr("+8% XP gain, +8% €") }
+        GearRarity.GLITCHED -> when (kind(g)) { Kind.RIFLE -> tr("Fire on the move at 50% rate, +10% damage"); Kind.ARMOR -> tr("Heal 3 HP per hit, +3% dodge"); Kind.SYSTEM -> tr("Dash cooldown −25%, +15% damage") }
+        GearRarity.FORGED -> when (kind(g)) { Kind.RIFLE -> tr("Shots bounce once more, +10% damage"); Kind.ARMOR -> tr("Molten plating: getting hit sprays 4 slag bolts"); Kind.SYSTEM -> tr("+1 Packet Node") }
+        GearRarity.VOLTAIC -> when (kind(g)) { Kind.RIFLE -> tr("Shots arc to 1 more threat"); Kind.ARMOR -> tr("+9% move speed"); Kind.SYSTEM -> tr("Packet Nodes fire their own bolts") }
+        GearRarity.CELESTIAL -> when (kind(g)) { Kind.RIFLE -> tr("+1 parallel shot"); Kind.ARMOR -> tr("+20% healing, +4 HP per kill"); Kind.SYSTEM -> tr("+16% critical damage, +4% critical chance") }
+        GearRarity.ABYSSAL -> when (kind(g)) { Kind.RIFLE -> tr("4% chance to delete a threat outright, +33% critical damage"); Kind.ARMOR -> tr("Hellfire skin: hits spray 6 bolts, +4% dodge"); Kind.SYSTEM -> tr("+1 Packet Node, +33% node damage, +13% damage") }
+        GearRarity.ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> tr("Fire at full rate on the move, +50% damage"); Kind.ARMOR -> tr("HP potions drink themselves at 20% HP or on a lethal hit; heal 8 HP per hit"); Kind.SYSTEM -> tr("Dash cooldown −50%, double healing, companion fires twice as fast") }
+        GearRarity.GLITCHED_ENCRYPTED -> when (kind(g)) { Kind.RIFLE -> tr("Fire at full rate on the move, +65% damage, shots pierce 1 more threat"); Kind.ARMOR -> tr("HP potions drink themselves at 20% HP or on a lethal hit; heal 10 HP per hit, +5% dodge"); Kind.SYSTEM -> tr("Dash cooldown −50%, double healing, companion fires twice as fast, +20% damage") }
         else -> null
     }
 

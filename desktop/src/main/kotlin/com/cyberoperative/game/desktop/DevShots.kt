@@ -114,7 +114,7 @@ fun main(args: Array<String>) {
             }
         }
     }
-    shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio, {}, {}) }
+    shot("settings") { com.cyberoperative.game.ui.menu.SettingsScreen(save, audio) {} }
     shot("store") { StoreScreen(save, audio, {}, {}) }
     run {
         val s = GameSession(save, audio, GameMode.CAMPAIGN, Difficulty.MEDIUM)

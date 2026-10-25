@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.common
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -182,7 +183,7 @@ fun ScreenScaffold(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "< BACK",
+                    tr("< BACK"),
                     color = Palette.Cyan,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier

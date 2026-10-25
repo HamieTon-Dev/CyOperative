@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Special-event levels (§26–28). Fully data driven: an event is a set of
  * [EventRules] applied on top of normal level generation, plus presentation.
@@ -50,8 +52,8 @@ data class EventDef(
 object Events {
 
     val PACKET_FLOOD = EventDef(
-        "packet_flood", "PACKET FLOOD", "Volumetric attack inbound",
-        "A massive number of weak packets. Fast combat, bonus €.",
+        "packet_flood", tr("PACKET FLOOD"), tr("Volumetric attack inbound"),
+        tr("A massive number of weak packets. Fast combat, bonus €."),
         0xFF2EE6FF, minLevel = 4, weight = 1f,
         rules = EventRules(
             // Owner, 2026-10-11: "packet flood needs more enemies too" (was ×2.6, +1 wave, 32 on screen).
@@ -61,8 +63,8 @@ object Events {
     )
 
     val FIREWALL_BREACH = EventDef(
-        "firewall_breach", "FIREWALL BREACH", "Perimeter failing",
-        "Defences are down: aggressive threats and collapsing safe space.",
+        "firewall_breach", tr("FIREWALL BREACH"), tr("Perimeter failing"),
+        tr("Defences are down: aggressive threats and collapsing safe space."),
         0xFFFF7A1A, minLevel = 6, weight = 1f,
         rules = EventRules(
             enemyCountMul = 1.2f, enemySpeedMul = 1.25f, enemyDamageMul = 1.2f,
@@ -71,33 +73,33 @@ object Events {
     )
 
     val MALWARE_SWARM = EventDef(
-        "malware_swarm", "MALWARE SWARM", "Survive the outbreak",
-        "Threats spawn continuously. Survive until the timer reaches zero.",
+        "malware_swarm", tr("MALWARE SWARM"), tr("Survive the outbreak"),
+        tr("Threats spawn continuously. Survive until the timer reaches zero."),
         0xFFFF2EC4, minLevel = 5, weight = 1f,
         // Owner, 2026-10-11: "malware swarm needs more than double the amount of enemies" — 2.5× the old rate.
         rules = EventRules(timedSeconds = 30f, spawnInterval = 0.4f, enemyHpMul = 0.8f, rewardMul = 2f)
     )
 
     val DATA_VAULT = EventDef(
-        "data_vault", "DATA VAULT", "Valuable cache detected",
-        "Several waves guard a digital cache. Clear them all for a large reward.",
+        "data_vault", tr("DATA VAULT"), tr("Valuable cache detected"),
+        tr("Several waves guard a digital cache. Clear them all for a large reward."),
         0xFFFFD426, minLevel = 8, weight = 0.8f,
         rules = EventRules(enemyCountMul = 1.5f, extraWaves = 2, rewardMul = 3f, vault = true)
     )
 
     val ZERO_DAY_ANOMALY = EventDef(
-        "zero_day", "ZERO-DAY ANOMALY", "Unknown behaviour",
-        "Unpredictable conditions. Anything can change. Big rewards.",
+        "zero_day", tr("ZERO-DAY ANOMALY"), tr("Unknown behaviour"),
+        tr("Unpredictable conditions. Anything can change. Big rewards."),
         0xFFA259FF, minLevel = 10, weight = 0.7f,
         rules = EventRules(rewardMul = 2.5f),
         randomModifiers = listOf(
-            "THREATS ACCELERATED" to EventRules(enemySpeedMul = 1.3f),
-            "PAYLOAD AMPLIFIED" to EventRules(playerDamageMul = 1.4f),
-            "REPAIR DEGRADED" to EventRules(healingMul = 0.4f),
-            "DOUBLE PACKETS" to EventRules(enemyProjectileMul = 2),
-            "HARDENED THREATS" to EventRules(eliteChanceBonus = 0.3f),
-            "UNSTABLE SECTORS" to EventRules(hazardInterval = 3.5f),
-            "THREAT DENSITY UP" to EventRules(enemyCountMul = 1.5f)
+            tr("THREATS ACCELERATED") to EventRules(enemySpeedMul = 1.3f),
+            tr("PAYLOAD AMPLIFIED") to EventRules(playerDamageMul = 1.4f),
+            tr("REPAIR DEGRADED") to EventRules(healingMul = 0.4f),
+            tr("DOUBLE PACKETS") to EventRules(enemyProjectileMul = 2),
+            tr("HARDENED THREATS") to EventRules(eliteChanceBonus = 0.3f),
+            tr("UNSTABLE SECTORS") to EventRules(hazardInterval = 3.5f),
+            tr("THREAT DENSITY UP") to EventRules(enemyCountMul = 1.5f)
         )
     )
 

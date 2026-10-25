@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -41,23 +42,23 @@ fun MusicPlayerPanel(audio: AudioManager, modifier: Modifier = Modifier) {
             .border(1.dp, Palette.Divider, RoundedCornerShape(8.dp))
             .padding(10.dp)
     ) {
-        Text("MUSIC", color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
+        Text(tr("MUSIC"), color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
         Text(
             audio.currentTrack?.title ?: "—",
             color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium,
             maxLines = 1, overflow = TextOverflow.Ellipsis
         )
         Text(
-            if (audio.pinned != null) "YOUR PICK" else "AUTO · shuffles with the action",
+            if (audio.pinned != null) tr("YOUR PICK") else tr("AUTO · shuffles with the action"),
             color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
         )
         Spacer(Modifier.size(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Control("|<<", Modifier.weight(1f)) { audio.previousTrack() }
-            Control(if (audio.userPaused) "PLAY" else "II", Modifier.weight(1f), active = true) { audio.pauseByUser(!audio.userPaused) }
+            Control(if (audio.userPaused) tr("PLAY") else "II", Modifier.weight(1f), active = true) { audio.pauseByUser(!audio.userPaused) }
             Control(">>|", Modifier.weight(1f)) { audio.nextTrack() }
-            Control("SHUFFLE", Modifier.weight(1.6f), active = audio.shuffle) { audio.toggleShuffle() }
-            Control("AUTO", Modifier.weight(1.2f), active = audio.pinned == null) { audio.clearPin() }
+            Control(tr("SHUFFLE"), Modifier.weight(1.6f), active = audio.shuffle) { audio.toggleShuffle() }
+            Control(tr("AUTO"), Modifier.weight(1.2f), active = audio.pinned == null) { audio.clearPin() }
         }
         Spacer(Modifier.size(8.dp))
         LazyColumn(Modifier.heightIn(max = 220.dp)) {

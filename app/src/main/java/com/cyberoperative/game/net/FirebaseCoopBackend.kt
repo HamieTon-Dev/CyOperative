@@ -1,5 +1,6 @@
 package com.cyberoperative.game.net
 
+import com.cyberoperative.game.i18n.tr
 import android.content.Context
 import android.util.Base64
 import com.google.firebase.FirebaseApp
@@ -56,7 +57,7 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
         val me = uid
         val doc = fs.collection("users").document(me).get().await()
         if (doc.exists()) {
-            _profile.value = CoopProfile(me, doc.getString("callsign") ?: "OPERATIVE", doc.getString("code") ?: "")
+            _profile.value = CoopProfile(me, doc.getString("callsign") ?: tr("OPERATIVE"), doc.getString("code") ?: "")
         }
         // Online dot for friends: set on every (re)connect, cleared by the server on disconnect.
         if (presenceListener == null) {
@@ -119,7 +120,7 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
                     val other = members.firstOrNull { it != me } ?: continue
                     @Suppress("UNCHECKED_CAST")
                     val names = d.get("names") as? Map<String, String> ?: emptyMap()
-                    friends[other] = names[other] ?: "OPERATIVE"
+                    friends[other] = names[other] ?: tr("OPERATIVE")
                 }
                 // Watch presence of exactly the current friends.
                 for (gone in presence.keys - friends.keys) presence.remove(gone)?.let { (r, l) -> r.removeEventListener(l) }
@@ -143,7 +144,7 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
     override fun friendRequests(): Flow<List<FriendRequest>> = callbackFlow {
         val reg = fs.collection("friendRequests").whereEqualTo("to", uid).addSnapshotListener { snap, _ ->
             if (snap == null) return@addSnapshotListener
-            trySend(snap.documents.map { FriendRequest(it.id, it.getString("from") ?: "", it.getString("fromName") ?: "OPERATIVE") })
+            trySend(snap.documents.map { FriendRequest(it.id, it.getString("from") ?: "", it.getString("fromName") ?: tr("OPERATIVE")) })
         }
         awaitClose { reg.remove() }
     }
@@ -154,17 +155,17 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
         if (c == me.code) error("That's your own code")
         val target = fs.collection("codes").document(c).get().await().getString("uid") ?: error("No operative has that code")
         if (fs.collection("friendships").document(pairId(me.uid, target)).get().await().exists()) error("Already friends")
-        val name = fs.collection("users").document(target).get().await().getString("callsign") ?: "OPERATIVE"
+        val name = fs.collection("users").document(target).get().await().getString("callsign") ?: tr("OPERATIVE")
         // They already asked us: just accept theirs.
         val theirs = fs.collection("friendRequests").document("${target}_${me.uid}").get().await()
         if (theirs.exists()) {
             answerFriendRequest(FriendRequest(theirs.id, target, name), true).getOrThrow()
-            return@runCatching "You're now friends with $name"
+            return@runCatching tr("You're now friends with {0}", name)
         }
         fs.collection("friendRequests").document("${me.uid}_$target").set(
             mapOf("from" to me.uid, "fromName" to me.callsign, "to" to target, "toName" to name, "createdAt" to System.currentTimeMillis())
         ).await()
-        "Request sent to $name"
+        tr("Request sent to {0}", name)
     }
 
     override suspend fun answerFriendRequest(request: FriendRequest, accept: Boolean): Result<Unit> = runCatching {
@@ -194,7 +195,7 @@ class FirebaseCoopBackend private constructor(private val app: FirebaseApp) : Co
                 trySend(snap.documents.mapNotNull {
                     val at = it.getLong("createdAt") ?: 0L
                     if (at < fresh) null
-                    else Invite(it.id, it.getString("from") ?: "", it.getString("fromName") ?: "OPERATIVE", it.getString("roomId") ?: return@mapNotNull null, at)
+                    else Invite(it.id, it.getString("from") ?: "", it.getString("fromName") ?: tr("OPERATIVE"), it.getString("roomId") ?: return@mapNotNull null, at)
                 })
             }
         awaitClose { reg.remove() }
@@ -256,7 +257,7 @@ internal fun DataSnapshot.toRoomPlayer(): RoomPlayer? {
     for (c in child("permanent").children) perm[c.key ?: continue] = (c.getValue(Long::class.java) ?: 0L).toInt()
     return RoomPlayer(
         uid = child("uid").getValue(String::class.java) ?: return null,
-        name = child("name").getValue(String::class.java) ?: "OPERATIVE",
+        name = child("name").getValue(String::class.java) ?: tr("OPERATIVE"),
         permanent = perm,
         opLevel = (child("opLevel").getValue(Long::class.java) ?: 1L).toInt(),
         body = child("body").getValue(String::class.java) ?: "agent",

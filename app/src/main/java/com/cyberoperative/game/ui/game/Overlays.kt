@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,7 +57,7 @@ fun GameOverOverlay(
     onMenu: () -> Unit,
     onNew: () -> Unit
 ) {
-    val title = remember { listOf("OPERATIVE TERMINATED", "CONNECTION LOST", "SYSTEM COMPROMISED").random() }
+    val title = remember { listOf(tr("OPERATIVE TERMINATED"), tr("CONNECTION LOST"), tr("SYSTEM COMPROMISED")).random() }
     Box(
         Modifier
             .fillMaxSize()
@@ -80,35 +81,35 @@ fun GameOverOverlay(
                     .border(1.dp, Palette.Divider, RoundedCornerShape(8.dp))
                     .padding(16.dp)
             ) {
-                StatRow("LEVEL REACHED", result.level.toString(), if (result.newBestLevel) "NEW RECORD" else null)
-                StatRow("SCORE", "%,d".format(result.score), if (result.newBestScore) "NEW RECORD" else null)
-                StatRow("THREATS ELIMINATED", result.kills.toString(), null)
-                StatRow("BOSSES ELIMINATED", result.bosses.toString(), null)
-                StatRow("€ EARNED", "€ ${result.euros}", null, Palette.Euro)
+                StatRow(tr("LEVEL REACHED"), result.level.toString(), if (result.newBestLevel) tr("NEW RECORD") else null)
+                StatRow(tr("SCORE"), "%,d".format(result.score), if (result.newBestScore) tr("NEW RECORD") else null)
+                StatRow(tr("THREATS ELIMINATED"), result.kills.toString(), null)
+                StatRow(tr("BOSSES ELIMINATED"), result.bosses.toString(), null)
+                StatRow(tr("€ EARNED"), "€ ${result.euros}", null, Palette.Euro)
             }
             if (result.newAchievements.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                Text("ACHIEVEMENTS UNLOCKED", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
+                Text(tr("ACHIEVEMENTS UNLOCKED"), color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
                 for (a in result.newAchievements) Text("★ $a", color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(20.dp))
             val reviveLabel: String? = when {
-                hud.canRevive -> "FREE · ${hud.revivesLeft} LEFT THIS RUN"
+                hud.canRevive -> tr("FREE · {0} LEFT THIS RUN", hud.revivesLeft)
                 hud.paidRevivesLeft <= 0 -> null
-                hud.reviveTokens > 0 -> "USE 1 OF ${hud.reviveTokens} REVIVES"
+                hud.reviveTokens > 0 -> tr("USE 1 OF {0} REVIVES", hud.reviveTokens)
                 hud.diamonds >= StoreCatalog.revivePacks.first().priceDiamonds -> "◇${StoreCatalog.revivePacks.first().priceDiamonds}"
                 else -> null
             }
             if (reviveLabel != null) {
-                CyberButton("REVIVE", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, subtitle = reviveLabel) { onRevive() }
+                CyberButton(tr("REVIVE"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, subtitle = reviveLabel) { onRevive() }
                 Spacer(Modifier.height(10.dp))
             } else if (!hud.canRevive && hud.paidRevivesLeft > 0) {
-                Text("No revives left — revive packs are in the STORE.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text(tr("No revives left — revive packs are in the STORE."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(10.dp))
             }
-            CyberButton("START NEW OPERATION", Modifier.fillMaxWidth(), accent = Palette.Cyan) { onNew() }
+            CyberButton(tr("START NEW OPERATION"), Modifier.fillMaxWidth(), accent = Palette.Cyan) { onNew() }
             Spacer(Modifier.height(10.dp))
-            CyberButton("RETURN TO MAIN MENU", Modifier.fillMaxWidth(), accent = Palette.TextSecondary) { onMenu() }
+            CyberButton(tr("RETURN TO MAIN MENU"), Modifier.fillMaxWidth(), accent = Palette.TextSecondary) { onMenu() }
         }
     }
 }
@@ -167,12 +168,12 @@ internal fun WeaponSwap(
             Spacer(Modifier.height(20.dp))
             val pick = target
             if (pick == null) {
-                Text("WEAPON SLOTS FULL", color = Palette.Orange, style = MaterialTheme.typography.headlineMedium)
+                Text(tr("WEAPON SLOTS FULL"), color = Palette.Orange, style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Choose a weapon to replace with ${newDef.name}",
+                    tr("Choose a weapon to replace with {0}", newDef.name),
                     color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center
                 )
-                Text("${com.cyberoperative.game.ui.common.tapWord} to choose · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text(tr("{0} to choose · hold for details", com.cyberoperative.game.ui.common.tapWord), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.height(16.dp))
                 for (row in equipped.chunked(4)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -182,7 +183,7 @@ internal fun WeaponSwap(
                                 Modifier
                                     .weight(1f)
                                     .combinedClickable(
-                                        onClickLabel = "Replace", onLongClickLabel = "Details",
+                                        onClickLabel = tr("Replace"), onLongClickLabel = tr("Details"),
                                         onLongClick = { held = w },
                                         onClick = { held = null; target = w }
                                     ),
@@ -196,7 +197,7 @@ internal fun WeaponSwap(
                 Spacer(Modifier.height(8.dp))
                 val info = held
                 if (info != null) {
-                    UpgradeDetails(info.first, info.second, emptyList(), title = "EQUIPPED", accent = Palette.Orange, showChanges = false)
+                    UpgradeDetails(info.first, info.second, emptyList(), title = tr("EQUIPPED"), accent = Palette.Orange, showChanges = false)
                     Spacer(Modifier.height(8.dp))
                     Column(
                         Modifier
@@ -205,15 +206,15 @@ internal fun WeaponSwap(
                             .border(1.dp, Palette.Divider, RoundedCornerShape(10.dp))
                             .padding(14.dp)
                     ) {
-                        StatChanges(preview(info.first.id), heading = "IF ${info.first.name} BECOMES ${newDef.name}")
+                        StatChanges(preview(info.first.id), heading = tr("IF {0} BECOMES {1}", info.first.name, newDef.name))
                     }
                 } else {
-                    UpgradeDetails(newDef, newLevel, emptyList(), title = "NEW WEAPON", accent = Palette.Green, showChanges = false)
+                    UpgradeDetails(newDef, newLevel, emptyList(), title = tr("NEW WEAPON"), accent = Palette.Green, showChanges = false)
                 }
                 Spacer(Modifier.height(16.dp))
-                CyberButton("KEEP MY WEAPONS · BACK", Modifier.fillMaxWidth(), accent = Palette.TextSecondary, onClick = onBack)
+                CyberButton(tr("KEEP MY WEAPONS · BACK"), Modifier.fillMaxWidth(), accent = Palette.TextSecondary, onClick = onBack)
             } else {
-                Text("REPLACE WEAPON?", color = Palette.Orange, style = MaterialTheme.typography.headlineMedium)
+                Text(tr("REPLACE WEAPON?"), color = Palette.Orange, style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
                     WeaponTile(pick.first, pick.second, Modifier.width(110.dp), dim = true)
@@ -222,13 +223,13 @@ internal fun WeaponSwap(
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    "You want to $confirmVerb ${pick.first.name} with ${newDef.name}?",
+                    if (confirmVerb == "replace") tr("You want to replace {0} with {1}?", pick.first.name, newDef.name) else "$confirmVerb ${pick.first.name} → ${newDef.name}?",
                     color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(14.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CyberButton("YES", Modifier.weight(1f), accent = Palette.Green, primary = true) { onReplace(pick.first.id) }
-                    CyberButton("NO", Modifier.weight(1f), accent = Palette.Red, primary = true) { target = null }
+                    CyberButton(tr("YES"), Modifier.weight(1f), accent = Palette.Green, primary = true) { onReplace(pick.first.id) }
+                    CyberButton(tr("NO"), Modifier.weight(1f), accent = Palette.Red, primary = true) { target = null }
                 }
                 Spacer(Modifier.height(16.dp))
                 Column(
@@ -238,12 +239,12 @@ internal fun WeaponSwap(
                         .border(1.dp, Palette.Cyan.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
                         .padding(14.dp)
                 ) {
-                    StatChanges(preview(pick.first.id), heading = "WHAT CHANGES")
+                    StatChanges(preview(pick.first.id), heading = tr("WHAT CHANGES"))
                 }
                 Spacer(Modifier.height(10.dp))
-                UpgradeDetails(pick.first, pick.second, emptyList(), title = "BEFORE · REMOVED", accent = Palette.Red, showChanges = false)
+                UpgradeDetails(pick.first, pick.second, emptyList(), title = tr("BEFORE · REMOVED"), accent = Palette.Red, showChanges = false)
                 Spacer(Modifier.height(10.dp))
-                UpgradeDetails(newDef, newLevel, emptyList(), title = "AFTER · NEW", accent = Palette.Green, showChanges = false)
+                UpgradeDetails(newDef, newLevel, emptyList(), title = tr("AFTER · NEW"), accent = Palette.Green, showChanges = false)
             }
         }
     }
@@ -265,6 +266,6 @@ private fun WeaponTile(def: UpgradeDef, level: Int, modifier: Modifier, dim: Boo
         Text(def.glyph, color = c, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, maxLines = 1)
         Spacer(Modifier.height(4.dp))
         Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 2)
-        Text("LV $level", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        Text(tr("LV {0}", level), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
     }
 }

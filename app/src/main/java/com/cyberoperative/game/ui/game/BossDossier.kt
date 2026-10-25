@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,7 +63,7 @@ internal fun BossDossierCard(h: HudSnapshot, modifier: Modifier = Modifier) {
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("THREAT DOSSIER", color = Palette.TextSecondary, style = mono(10.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
+            Text(tr("THREAT DOSSIER"), color = Palette.TextSecondary, style = mono(10.sp, FontWeight.Bold), modifier = Modifier.weight(1f))
             RoleBadge(h.bossRole, roleColor)
         }
         Spacer(Modifier.height(6.dp))
@@ -94,7 +95,7 @@ internal fun BossDossierCard(h: HudSnapshot, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("BOUNTY", color = Palette.TextSecondary, style = mono(10.sp, FontWeight.Bold))
+            Text(tr("BOUNTY"), color = Palette.TextSecondary, style = mono(10.sp, FontWeight.Bold))
             Spacer(Modifier.width(8.dp))
             Text("€" + "%,d".format(h.bossBounty), color = Palette.Euro, style = mono(15.sp, FontWeight.Bold))
         }

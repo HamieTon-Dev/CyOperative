@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,12 +74,12 @@ fun BossCodexScreen(profile: PlayerProfile, onBack: () -> Unit) {
     val records = profile.bossRecords
     val defeated = Bosses.roster.count { (records[it.id]?.defeated ?: 0) > 0 }
     val sections = listOf(
-        Triple("CLASSIC THREATS", "Any boss level · always the first boss", Bosses.classics),
-        Triple("EXPANSION BOSSES", "From level 20", BossExpansion.all.filter { it.id !in Bosses.GAMMA_IDS }),
-        Triple("PACK GAMMA", "Level ${Bosses.GAMMA_FROM}+ · the hardest", BossExpansion.all.filter { it.id in Bosses.GAMMA_IDS })
+        Triple(tr("CLASSIC THREATS"), tr("Any boss level · always the first boss"), Bosses.classics),
+        Triple(tr("EXPANSION BOSSES"), tr("From level 20"), BossExpansion.all.filter { it.id !in Bosses.GAMMA_IDS }),
+        Triple(tr("PACK GAMMA"), tr("Level {0}+ · the hardest", Bosses.GAMMA_FROM), BossExpansion.all.filter { it.id in Bosses.GAMMA_IDS })
     )
     Box(Modifier.fillMaxSize()) {
-        ScreenScaffold("BOSS CODEX", onBack, trailing = {
+        ScreenScaffold(tr("BOSS CODEX"), onBack, trailing = {
             Text("$defeated/${Bosses.roster.size}", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
         }) {
             LazyVerticalGrid(
@@ -88,7 +89,7 @@ fun BossCodexScreen(profile: PlayerProfile, onBack: () -> Unit) {
             ) {
                 item(span = { GridItemSpan(2) }) {
                     Text(
-                        "Meet a boss to unlock its dossier. Defeated: $defeated of ${Bosses.roster.size}.",
+                        tr("Meet a boss to unlock its dossier. Defeated: {0} of {1}.", defeated, Bosses.roster.size),
                         color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -156,7 +157,7 @@ private fun BossCard(b: BossDef, rec: BossRecord?, time: Float, onClick: () -> U
             style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 1
         )
         Text(
-            if (known) ThreatTier.label(b.tier) + " THREAT" else "NOT ENCOUNTERED",
+            if (known) tr("{0} THREAT", ThreatTier.label(b.tier)) else tr("NOT ENCOUNTERED"),
             color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
         )
     }
@@ -180,7 +181,7 @@ private fun BossDossierPage(b: BossDef, rec: BossRecord, time: Float, onClose: (
         ) {
             Spacer(Modifier.height(40.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("< CODEX", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium, modifier = Modifier.clickable(onClick = onClose).padding(8.dp))
+                Text(tr("< CODEX"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium, modifier = Modifier.clickable(onClick = onClose).padding(8.dp))
                 Text(b.tag, color = col, style = MaterialTheme.typography.titleMedium)
             }
             Text(b.name, color = col, fontSize = 30.sp, fontWeight = FontWeight.Bold)
@@ -188,8 +189,8 @@ private fun BossDossierPage(b: BossDef, rec: BossRecord, time: Float, onClose: (
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip(b.role.label, Color(b.role.color))
-                Chip(ThreatTier.label(b.tier) + " THREAT", if (b.tier >= 3) Palette.Red else Palette.Orange)
-                Chip(if (b.id in Bosses.GAMMA_IDS) "LEVEL ${Bosses.GAMMA_FROM}+" else if (b in Bosses.classics) "ANY LEVEL" else "LEVEL 20+", Palette.Cyan)
+                Chip(tr("{0} THREAT", ThreatTier.label(b.tier)), if (b.tier >= 3) Palette.Red else Palette.Orange)
+                Chip(if (b.id in Bosses.GAMMA_IDS) tr("LEVEL {0}+", Bosses.GAMMA_FROM) else if (b in Bosses.classics) tr("ANY LEVEL") else tr("LEVEL 20+"), Palette.Cyan)
             }
             Spacer(Modifier.height(10.dp))
             Box(
@@ -207,7 +208,7 @@ private fun BossDossierPage(b: BossDef, rec: BossRecord, time: Float, onClose: (
                     for (k in 0..2) {
                         val on = phase == k
                         Text(
-                            "PHASE ${k + 1}", color = if (on) Palette.Background else col, style = MaterialTheme.typography.labelSmall,
+                            tr("PHASE {0}", k + 1), color = if (on) Palette.Background else col, style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier
                                 .background(if (on) col else Palette.Background.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
                                 .border(1.dp, col, RoundedCornerShape(4.dp))
@@ -220,14 +221,14 @@ private fun BossDossierPage(b: BossDef, rec: BossRecord, time: Float, onClose: (
             Spacer(Modifier.height(12.dp))
             Text(b.codex, color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(12.dp))
-            Section("ABILITIES")
+            Section(tr("ABILITIES"))
             for (a in b.abilityNames(6)) Text("▸ $a", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(12.dp))
-            Section("YOUR RECORD")
-            Kv("ENCOUNTERED", "${rec.met}×")
-            Kv("DEFEATED", "${rec.defeated}×", if (rec.defeated > 0) Palette.Green else Palette.TextMuted)
-            Kv("FASTEST KILL", formatFightTime(rec.bestSeconds), Palette.Gold)
-            Kv("BASE BOUNTY", "€" + "%,d".format(b.euros), Palette.Euro)
+            Section(tr("YOUR RECORD"))
+            Kv(tr("ENCOUNTERED"), "${rec.met}×")
+            Kv(tr("DEFEATED"), "${rec.defeated}×", if (rec.defeated > 0) Palette.Green else Palette.TextMuted)
+            Kv(tr("FASTEST KILL"), formatFightTime(rec.bestSeconds), Palette.Gold)
+            Kv(tr("BASE BOUNTY"), "€" + "%,d".format(b.euros), Palette.Euro)
             Spacer(Modifier.height(30.dp))
         }
     }

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -90,8 +91,8 @@ data class RunSnapshot(
     /** One line for the CONTINUE button. */
     val label: String
         get() = (if (mode == GameMode.CAMPAIGN.name) {
-            if (room >= CampaignMap.BOSS_INDEX) "WORLD $world · BOSS" else "WORLD $world · ROOM ${room + 1}"
-        } else "ENDLESS · LEVEL $level") + " · ${Difficulty.byName(difficulty).label}"
+            if (room >= CampaignMap.BOSS_INDEX) tr("WORLD {0} · BOSS", world) else tr("WORLD {0} · ROOM {1}", world, room + 1)
+        } else tr("ENDLESS · LEVEL {0}", level)) + " · ${Difficulty.byName(difficulty).label}"
 
     fun encode(): String = json.encodeToString(serializer(), this)
 

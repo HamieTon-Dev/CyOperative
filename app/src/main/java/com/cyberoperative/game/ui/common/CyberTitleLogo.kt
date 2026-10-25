@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.common
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
@@ -73,7 +74,7 @@ fun CyberTitleLogo(modifier: Modifier = Modifier, glow: Float = 1f, showTagline:
 private const val LOGO_W = 1000f
 private const val LOGO_H = 420f
 private const val LOGO_H_NO_TAGLINE = 360f
-private const val TAGLINE = "ENDLESS CYBER ROGUELIKE ACTION"
+private val TAGLINE: String get() = tr("ENDLESS CYBER ROGUELIKE ACTION")
 private const val TAGLINE_Y = 388f
 private const val CYBER_TOP = 64f
 private const val CYBER_H = 150f

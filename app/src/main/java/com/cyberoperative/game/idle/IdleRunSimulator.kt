@@ -1,5 +1,6 @@
 package com.cyberoperative.game.idle
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.core.Scaling
 import com.cyberoperative.game.data.AiKind
 import com.cyberoperative.game.data.AttackKind
@@ -88,9 +89,9 @@ object IdleRunSimulator {
 
     /** Why a run can't start, or null when it can. */
     fun cannotStart(p: PlayerProfile, difficulty: Difficulty): String? = when {
-        p.characterId.isEmpty() -> "Make a character first."
-        difficulty.inferno > 0 && p.infernoUnlocked <= 0 -> "INFERNO is locked: beat World 15 on HARD."
-        difficulty.inferno > p.infernoUnlocked -> "INFERNO ${difficulty.inferno} is locked."
+        p.characterId.isEmpty() -> tr("Make a character first.")
+        difficulty.inferno > 0 && p.infernoUnlocked <= 0 -> tr("INFERNO is locked: beat World 15 on HARD.")
+        difficulty.inferno > p.infernoUnlocked -> tr("INFERNO {0} is locked.", difficulty.inferno)
         else -> null
     }
 
@@ -187,7 +188,7 @@ object IdleRunSimulator {
         fun runTo(now: Long) {
             var guard = 0
             while (status == com.cyberoperative.game.idle.IdleStatus.ACTIVE && t < now && guard++ < 2_000_000) {
-                if ((t - s0.startedAt) / 1000L >= MAX_RUN_SECONDS) { complete("UPLINK LIMIT · 12 H"); break }
+                if ((t - s0.startedAt) / 1000L >= MAX_RUN_SECONDS) { complete(tr("UPLINK LIMIT · 12 H")); break }
                 val left = (now - t) / 1000f
                 if (pause > 0f) {
                     val dt = min(pause, left)
@@ -419,7 +420,7 @@ object IdleRunSimulator {
         fun defeat() {
             status = IdleStatus.DEFEATED
             endedAt = t
-            endReason = "OPERATOR TERMINATED"
+            endReason = tr("OPERATOR TERMINATED")
         }
 
         fun complete(reason: String) {

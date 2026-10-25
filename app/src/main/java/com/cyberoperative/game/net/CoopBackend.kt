@@ -1,5 +1,6 @@
 package com.cyberoperative.game.net
 
+import com.cyberoperative.game.i18n.tr
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,8 +41,8 @@ interface CoopBackend {
     val directPort: Int get() = 0
     /** This machine's addresses to tell the partner. */
     fun localAddresses(): List<String> = emptyList()
-    suspend fun hostDirect(me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException("Not available"))
-    suspend fun joinDirect(address: String, me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException("Not available"))
+    suspend fun hostDirect(me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException(tr("Not available")))
+    suspend fun joinDirect(address: String, me: RoomPlayer): Result<CoopRoom> = Result.failure(UnsupportedOperationException(tr("Not available")))
 }
 
 /**
@@ -69,7 +70,7 @@ interface CoopRoom {
 class OfflineCoopBackend : CoopBackend {
     override val available = false
     override val profile: StateFlow<CoopProfile?> = MutableStateFlow(null)
-    private val notSetUp = IllegalStateException("Co-op isn't set up in this build")
+    private val notSetUp = IllegalStateException(tr("Co-op isn't set up in this build"))
     override suspend fun start() = Result.failure<Unit>(notSetUp)
     override suspend fun register(callsign: String) = Result.failure<CoopProfile>(notSetUp)
     override fun friends(): Flow<List<Friend>> = flowOf(emptyList())

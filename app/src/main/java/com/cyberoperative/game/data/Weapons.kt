@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Auto-weapon arsenal (owner, 2026-10-08: "at least 5 new weapon types of each
  * rarity"). Every weapon here is data on top of ten engine behaviours, so
@@ -72,16 +74,16 @@ data class WeaponSpec(
         val cd = "%.1f".format(cooldownAt(level))
         val n = countAt(level)
         return when (kind) {
-            WeaponKind.VOLLEY -> "$n bolt${if (n > 1) "s" else ""} · $pct% · every ${cd}s"
-            WeaponKind.RING -> "Ring of $n · $pct% · every ${cd}s"
-            WeaponKind.SPIRAL -> "Spiral of $n · $pct% · every ${cd}s"
-            WeaponKind.NOVA -> "Blast r${radius.toInt()} · $pct% · every ${cd}s"
-            WeaponKind.LASER -> "$n beam${if (n > 1) "s" else ""} · $pct% · every ${cd}s"
-            WeaponKind.ARC -> "Hits $n threats · $pct% · every ${cd}s"
-            WeaponKind.STRIKE -> "$n strike${if (n > 1) "s" else ""} · $pct% · every ${cd}s"
-            WeaponKind.MINES -> "Mine $pct% · up to ${n + 2} · every ${cd}s"
-            WeaponKind.FIELD -> "Zone r${radius.toInt()} · $pct%/s · every ${cd}s"
-            WeaponKind.BOOMERANG -> "$n disc${if (n > 1) "s" else ""} · $pct% · every ${cd}s"
+            WeaponKind.VOLLEY -> if (n > 1) tr("{0} bolts · {1}% · every {2}s", n, pct, cd) else tr("1 bolt · {0}% · every {1}s", pct, cd)
+            WeaponKind.RING -> tr("Ring of {0} · {1}% · every {2}s", n, pct, cd)
+            WeaponKind.SPIRAL -> tr("Spiral of {0} · {1}% · every {2}s", n, pct, cd)
+            WeaponKind.NOVA -> tr("Blast r{0} · {1}% · every {2}s", radius.toInt(), pct, cd)
+            WeaponKind.LASER -> if (n > 1) tr("{0} beams · {1}% · every {2}s", n, pct, cd) else tr("1 beam · {0}% · every {1}s", pct, cd)
+            WeaponKind.ARC -> tr("Hits {0} threats · {1}% · every {2}s", n, pct, cd)
+            WeaponKind.STRIKE -> if (n > 1) tr("{0} strikes · {1}% · every {2}s", n, pct, cd) else tr("1 strike · {0}% · every {1}s", pct, cd)
+            WeaponKind.MINES -> tr("Mine {0}% · up to {1} · every {2}s", pct, n + 2, cd)
+            WeaponKind.FIELD -> tr("Zone r{0} · {1}%/s · every {2}s", radius.toInt(), pct, cd)
+            WeaponKind.BOOMERANG -> if (n > 1) tr("{0} discs · {1}% · every {2}s", n, pct, cd) else tr("1 disc · {0}% · every {1}s", pct, cd)
         }
     }
 }
@@ -90,100 +92,100 @@ object Weapons {
 
     val all: List<WeaponSpec> = listOf(
         // --- COMMON ------------------------------------------------------------
-        WeaponSpec("ping_blaster", "PING BLASTER", "·>", Rarity.COMMON, WeaponKind.VOLLEY,
-            "A quick ping fired at the nearest threat, moving or not.", 3,
+        WeaponSpec("ping_blaster", tr("PING BLASTER"), "·>", Rarity.COMMON, WeaponKind.VOLLEY,
+            tr("A quick ping fired at the nearest threat, moving or not."), 3,
             cooldown = 1.3f, count = 1, damage = 0.6f, speed = 1.3f, color = 0xFF9FF6FF),
-        WeaponSpec("spam_shotgun", "SPAM SHOTGUN", ":::", Rarity.COMMON, WeaponKind.VOLLEY,
-            "A short-range blast of junk packets.", 3,
+        WeaponSpec("spam_shotgun", tr("SPAM SHOTGUN"), ":::", Rarity.COMMON, WeaponKind.VOLLEY,
+            tr("A short-range blast of junk packets."), 3,
             cooldown = 2f, count = 4, countPerLevel = 1, damage = 0.35f, spreadDegrees = 40f, speed = 0.9f, color = 0xFFB8C4D6),
-        WeaponSpec("bit_spinner", "BIT SPINNER", "@", Rarity.COMMON, WeaponKind.SPIRAL,
-            "Spins out a short spiral of bits.", 3,
+        WeaponSpec("bit_spinner", tr("BIT SPINNER"), "@", Rarity.COMMON, WeaponKind.SPIRAL,
+            tr("Spins out a short spiral of bits."), 3,
             cooldown = 3f, count = 6, countPerLevel = 2, damage = 0.3f, speed = 0.8f, color = 0xFFDDE6F0),
-        WeaponSpec("static_shock", "STATIC SHOCK", "*", Rarity.COMMON, WeaponKind.NOVA,
-            "Discharges static into anything touching you.", 3,
+        WeaponSpec("static_shock", tr("STATIC SHOCK"), "*", Rarity.COMMON, WeaponKind.NOVA,
+            tr("Discharges static into anything touching you."), 3,
             cooldown = 2.6f, count = 1, damage = 0.7f, radius = 90f, color = 0xFFCFE8FF),
-        WeaponSpec("cable_whip", "CABLE WHIP", "~-", Rarity.COMMON, WeaponKind.LASER,
-            "A short lashing line toward the nearest threat.", 3,
+        WeaponSpec("cable_whip", tr("CABLE WHIP"), "~-", Rarity.COMMON, WeaponKind.LASER,
+            tr("A short lashing line toward the nearest threat."), 3,
             cooldown = 2.2f, count = 1, damage = 0.8f, length = 170f, color = 0xFFB8F0FF),
         // --- UNCOMMON ----------------------------------------------------------
-        WeaponSpec("heartbeat_pulse", "HEARTBEAT PULSE", "(·)", Rarity.UNCOMMON, WeaponKind.RING,
-            "Every beat, a ring of packets bursts outward.", 3,
+        WeaponSpec("heartbeat_pulse", tr("HEARTBEAT PULSE"), "(·)", Rarity.UNCOMMON, WeaponKind.RING,
+            tr("Every beat, a ring of packets bursts outward."), 3,
             cooldown = 3f, count = 8, countPerLevel = 2, damage = 0.45f, speed = 0.85f, color = 0xFF5CFFB0),
-        WeaponSpec("captcha_mines", "CAPTCHA MINES", "[?]", Rarity.UNCOMMON, WeaponKind.MINES,
-            "Prove you're human: robots that step on these explode.", 3,
+        WeaponSpec("captcha_mines", tr("CAPTCHA MINES"), "[?]", Rarity.UNCOMMON, WeaponKind.MINES,
+            tr("Prove you're human: robots that step on these explode."), 3,
             cooldown = 1.6f, count = 1, countPerLevel = 1, damage = 1.4f, splash = 75f, color = 0xFF7DFFB2),
-        WeaponSpec("traceroute", "TRACEROUTE", "~>", Rarity.UNCOMMON, WeaponKind.VOLLEY,
-            "Seeker packets that trace a route to their target.", 3,
+        WeaponSpec("traceroute", tr("TRACEROUTE"), "~>", Rarity.UNCOMMON, WeaponKind.VOLLEY,
+            tr("Seeker packets that trace a route to their target."), 3,
             cooldown = 2.2f, count = 2, countPerLevel = 1, damage = 0.7f, homing = 6f, speed = 0.8f, color = 0xFF00FF9C),
-        WeaponSpec("packet_fire", "PACKET FIRE", "^^", Rarity.UNCOMMON, WeaponKind.FIELD,
-            "Leaves a patch of burning packets where you stand.", 3,
+        WeaponSpec("packet_fire", tr("PACKET FIRE"), "^^", Rarity.UNCOMMON, WeaponKind.FIELD,
+            tr("Leaves a patch of burning packets where you stand."), 3,
             cooldown = 3.5f, count = 1, damage = 0.45f, radius = 80f, color = 0xFF3CFF8A),
-        WeaponSpec("boomerang_byte", "BOOMERANG BYTE", "<)", Rarity.UNCOMMON, WeaponKind.BOOMERANG,
-            "A disc that slices out and comes back, hitting everything twice.", 3,
+        WeaponSpec("boomerang_byte", tr("BOOMERANG BYTE"), "<)", Rarity.UNCOMMON, WeaponKind.BOOMERANG,
+            tr("A disc that slices out and comes back, hitting everything twice."), 3,
             cooldown = 2.6f, count = 1, countPerLevel = 1, damage = 0.9f, speed = 0.85f, color = 0xFF66FFC2),
         // --- BLUE RARE -----------------------------------------------------------
-        WeaponSpec("bluescreen_nova", "BLUESCREEN NOVA", "[:(]", Rarity.RARE, WeaponKind.NOVA,
-            "Crashes every threat nearby in a flash of blue.", 3,
+        WeaponSpec("bluescreen_nova", tr("BLUESCREEN NOVA"), "[:(]", Rarity.RARE, WeaponKind.NOVA,
+            tr("Crashes every threat nearby in a flash of blue."), 3,
             cooldown = 4f, count = 1, damage = 1.5f, radius = 150f, color = 0xFF2E9BFF),
-        WeaponSpec("subnet_laser", "SUBNET LASER", "-==", Rarity.RARE, WeaponKind.LASER,
-            "A long beam that cuts down a whole subnet in a line.", 3,
+        WeaponSpec("subnet_laser", tr("SUBNET LASER"), "-==", Rarity.RARE, WeaponKind.LASER,
+            tr("A long beam that cuts down a whole subnet in a line."), 3,
             cooldown = 2.8f, count = 1, damage = 1.6f, length = 560f, color = 0xFF4DB2FF),
-        WeaponSpec("cluster_bomb", "CLUSTER BOMB", "(o)", Rarity.RARE, WeaponKind.VOLLEY,
-            "A slow, heavy shell that bursts over a wide area.", 3,
+        WeaponSpec("cluster_bomb", tr("CLUSTER BOMB"), "(o)", Rarity.RARE, WeaponKind.VOLLEY,
+            tr("A slow, heavy shell that bursts over a wide area."), 3,
             cooldown = 3.2f, count = 1, countPerLevel = 1, damage = 2f, splash = 95f, speed = 0.6f, color = 0xFF5BA8FF),
-        WeaponSpec("data_spiral", "DATA SPIRAL", "@@", Rarity.RARE, WeaponKind.SPIRAL,
-            "A long spiral of data bolts that sweeps the whole room.", 3,
+        WeaponSpec("data_spiral", tr("DATA SPIRAL"), "@@", Rarity.RARE, WeaponKind.SPIRAL,
+            tr("A long spiral of data bolts that sweeps the whole room."), 3,
             cooldown = 3.6f, count = 12, countPerLevel = 4, damage = 0.5f, speed = 0.9f, color = 0xFF2E9BFF),
-        WeaponSpec("tesla_relay", "TESLA RELAY", "-z-", Rarity.RARE, WeaponKind.ARC,
-            "Relays a jolt from threat to threat.", 3,
+        WeaponSpec("tesla_relay", tr("TESLA RELAY"), "-z-", Rarity.RARE, WeaponKind.ARC,
+            tr("Relays a jolt from threat to threat."), 3,
             cooldown = 2.6f, count = 3, countPerLevel = 1, damage = 0.9f, color = 0xFF7FC4FF),
         // --- PURPLE ------------------------------------------------------------
-        WeaponSpec("helix_cannon", "HELIX CANNON", "8", Rarity.EPIC, WeaponKind.SPIRAL,
-            "A double helix of piercing bolts.", 3,
+        WeaponSpec("helix_cannon", tr("HELIX CANNON"), "8", Rarity.EPIC, WeaponKind.SPIRAL,
+            tr("A double helix of piercing bolts."), 3,
             cooldown = 3.4f, count = 16, countPerLevel = 4, damage = 0.7f, pierce = 1, speed = 1f, color = 0xFFA259FF),
-        WeaponSpec("malware_swamp", "MALWARE SWAMP", "~~~", Rarity.EPIC, WeaponKind.FIELD,
-            "Floods the floor around you with corrosive code.", 3,
+        WeaponSpec("malware_swamp", tr("MALWARE SWAMP"), "~~~", Rarity.EPIC, WeaponKind.FIELD,
+            tr("Floods the floor around you with corrosive code."), 3,
             cooldown = 4f, count = 1, damage = 0.9f, radius = 120f, color = 0xFFB070FF),
-        WeaponSpec("seeker_swarm", "SEEKER SWARM", ">>>", Rarity.EPIC, WeaponKind.VOLLEY,
-            "Releases a swarm of homing drones.", 3,
+        WeaponSpec("seeker_swarm", tr("SEEKER SWARM"), ">>>", Rarity.EPIC, WeaponKind.VOLLEY,
+            tr("Releases a swarm of homing drones."), 3,
             cooldown = 2.8f, count = 5, countPerLevel = 1, damage = 0.8f, homing = 7f, speed = 0.75f, spreadDegrees = 120f, color = 0xFFC08CFF),
-        WeaponSpec("shockwave", "SHOCKWAVE", "((·))", Rarity.EPIC, WeaponKind.RING,
-            "A dense ring of piercing packets.", 3,
+        WeaponSpec("shockwave", tr("SHOCKWAVE"), "((·))", Rarity.EPIC, WeaponKind.RING,
+            tr("A dense ring of piercing packets."), 3,
             cooldown = 3.4f, count = 16, countPerLevel = 4, damage = 0.9f, pierce = 2, color = 0xFF9B4DFF),
-        WeaponSpec("satellite_lance", "SATELLITE LANCE", "\\|/", Rarity.EPIC, WeaponKind.STRIKE,
-            "A satellite spears two marked threats from orbit.", 3,
+        WeaponSpec("satellite_lance", tr("SATELLITE LANCE"), "\\|/", Rarity.EPIC, WeaponKind.STRIKE,
+            tr("A satellite spears two marked threats from orbit."), 3,
             cooldown = 4.2f, count = 2, countPerLevel = 1, damage = 4f, radius = 70f, color = 0xFFD0A8FF),
         // --- GOLDEN ------------------------------------------------------------
-        WeaponSpec("supernova", "SUPERNOVA", "{*}", Rarity.LEGENDARY, WeaponKind.NOVA,
-            "A golden star collapses around you, erasing the area.", 2,
+        WeaponSpec("supernova", tr("SUPERNOVA"), "{*}", Rarity.LEGENDARY, WeaponKind.NOVA,
+            tr("A golden star collapses around you, erasing the area."), 2,
             cooldown = 5f, count = 1, damage = 4f, radius = 230f, color = 0xFFFFD426),
-        WeaponSpec("prism_laser", "PRISM LASER", "<|>", Rarity.LEGENDARY, WeaponKind.LASER,
-            "Splits one beam into a fan of three.", 2,
+        WeaponSpec("prism_laser", tr("PRISM LASER"), "<|>", Rarity.LEGENDARY, WeaponKind.LASER,
+            tr("Splits one beam into a fan of three."), 2,
             cooldown = 3.2f, count = 3, countPerLevel = 2, damage = 3f, length = 640f, spreadDegrees = 40f, color = 0xFFFFE066),
-        WeaponSpec("golden_boomerang", "GOLDEN BOOMERANG", "<))", Rarity.LEGENDARY, WeaponKind.BOOMERANG,
-            "Three gilded discs fan out and return.", 2,
+        WeaponSpec("golden_boomerang", tr("GOLDEN BOOMERANG"), "<))", Rarity.LEGENDARY, WeaponKind.BOOMERANG,
+            tr("Three gilded discs fan out and return."), 2,
             cooldown = 3f, count = 3, countPerLevel = 1, damage = 2.5f, speed = 1f, spreadDegrees = 50f, color = 0xFFFFC94D),
-        WeaponSpec("chain_storm", "CHAIN STORM", "zZz", Rarity.LEGENDARY, WeaponKind.ARC,
-            "A storm of lightning that leaps through the crowd.", 2,
+        WeaponSpec("chain_storm", tr("CHAIN STORM"), "zZz", Rarity.LEGENDARY, WeaponKind.ARC,
+            tr("A storm of lightning that leaps through the crowd."), 2,
             cooldown = 2.8f, count = 6, countPerLevel = 2, damage = 2.2f, color = 0xFFFFE680),
-        WeaponSpec("carpet_bomb", "CARPET BOMB", "vvv", Rarity.LEGENDARY, WeaponKind.STRIKE,
-            "Calls in a bombing run on six threats.", 2,
+        WeaponSpec("carpet_bomb", tr("CARPET BOMB"), "vvv", Rarity.LEGENDARY, WeaponKind.STRIKE,
+            tr("Calls in a bombing run on six threats."), 2,
             cooldown = 5f, count = 6, countPerLevel = 2, damage = 3.5f, radius = 80f, color = 0xFFFFB020),
         // --- TITANIUM ------------------------------------------------------------
-        WeaponSpec("black_ice", "BLACK ICE", "[##]", Rarity.TITANIUM, WeaponKind.FIELD,
-            "Lethal intrusion countermeasures: a huge field that grinds threats down.", 2,
+        WeaponSpec("black_ice", tr("BLACK ICE"), "[##]", Rarity.TITANIUM, WeaponKind.FIELD,
+            tr("Lethal intrusion countermeasures: a huge field that grinds threats down."), 2,
             cooldown = 4.5f, count = 1, damage = 1.6f, radius = 170f, color = 0xFFDCE8F2),
-        WeaponSpec("root_access", "ROOT ACCESS", "#", Rarity.TITANIUM, WeaponKind.RING,
-            "Total control: a ring of seeking, piercing root packets.", 2,
+        WeaponSpec("root_access", tr("ROOT ACCESS"), "#", Rarity.TITANIUM, WeaponKind.RING,
+            tr("Total control: a ring of seeking, piercing root packets."), 2,
             cooldown = 3f, count = 24, countPerLevel = 8, damage = 1.5f, pierce = 3, homing = 2.5f, color = 0xFFEAF2FA),
-        WeaponSpec("titan_railstorm", "TITAN RAILSTORM", "=|||=", Rarity.TITANIUM, WeaponKind.LASER,
-            "Five full-length rails that ignore walls.", 2,
+        WeaponSpec("titan_railstorm", tr("TITAN RAILSTORM"), "=|||=", Rarity.TITANIUM, WeaponKind.LASER,
+            tr("Five full-length rails that ignore walls."), 2,
             cooldown = 4f, count = 5, countPerLevel = 2, damage = 5f, length = 1400f, spreadDegrees = 60f, throughWalls = true, color = 0xFFF0F6FC),
-        WeaponSpec("doomsday_daemon", "DOOMSDAY DAEMON", "\\V/!", Rarity.TITANIUM, WeaponKind.STRIKE,
-            "Eight strikes from orbit, each enough to end most things.", 2,
+        WeaponSpec("doomsday_daemon", tr("DOOMSDAY DAEMON"), "\\V/!", Rarity.TITANIUM, WeaponKind.STRIKE,
+            tr("Eight strikes from orbit, each enough to end most things."), 2,
             cooldown = 6f, count = 8, countPerLevel = 2, damage = 9f, radius = 95f, color = 0xFFDCE8F2),
-        WeaponSpec("kernel_panic", "KERNEL PANIC", "!!!", Rarity.TITANIUM, WeaponKind.NOVA,
-            "Crashes the whole room. Everything near you simply stops.", 2,
+        WeaponSpec("kernel_panic", tr("KERNEL PANIC"), "!!!", Rarity.TITANIUM, WeaponKind.NOVA,
+            tr("Crashes the whole room. Everything near you simply stops."), 2,
             cooldown = 6f, count = 1, damage = 9f, radius = 320f, color = 0xFFFFFFFF)
     )
 
@@ -191,14 +193,14 @@ object Weapons {
      * Class weapons (owner, 2026-10-11): each class starts with one built-in weapon on top of
      * its slots. Fixed cooldown; damage follows [classWeaponLevel] (×4.15 by level 100).
      */
-    val TECH_BEAM = WeaponSpec("tech_beam", "SIGNAL BEAM", "-|-", Rarity.RARE, WeaponKind.LASER,
-        "TECHNICIAN: a beam through every wall, every 2 seconds.", 1,
+    val TECH_BEAM = WeaponSpec("tech_beam", tr("SIGNAL BEAM"), "-|-", Rarity.RARE, WeaponKind.LASER,
+        tr("TECHNICIAN: a beam through every wall, every 2 seconds."), 1,
         cooldown = 2f, count = 1, damage = 1.8f, length = 900f, throughWalls = true, color = 0xFF22D3FF, innate = true)
-    val BRUTE_FORCE = WeaponSpec("brute_force", "BRUTE FORCE", "[!]", Rarity.RARE, WeaponKind.NOVA,
-        "JUGGERNAUT: a slow, crushing slam around you.", 1,
+    val BRUTE_FORCE = WeaponSpec("brute_force", tr("BRUTE FORCE"), "[!]", Rarity.RARE, WeaponKind.NOVA,
+        tr("JUGGERNAUT: a slow, crushing slam around you."), 1,
         cooldown = 2.6f, count = 1, damage = 3.2f, radius = 125f, color = 0xFFFF9A3C, innate = true)
-    val MAGE_FIREBALL = WeaponSpec("mage_fireball", "PACKET FIREBALL", "(*>", Rarity.RARE, WeaponKind.VOLLEY,
-        "PACKET MAGE: a tracking fire shot every 2 seconds, even on the move. Bursts on threats and walls.", 1,
+    val MAGE_FIREBALL = WeaponSpec("mage_fireball", tr("PACKET FIREBALL"), "(*>", Rarity.RARE, WeaponKind.VOLLEY,
+        tr("PACKET MAGE: a tracking fire shot every 2 seconds, even on the move. Bursts on threats and walls."), 1,
         cooldown = 2f, count = 1, damage = 1.7f, homing = 5f, splash = 95f, speed = 0.8f, color = 0xFFFF6A1A, innate = true)
     val classWeapons: List<WeaponSpec> = listOf(TECH_BEAM, BRUTE_FORCE, MAGE_FIREBALL)
 

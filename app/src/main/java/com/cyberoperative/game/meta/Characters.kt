@@ -1,5 +1,6 @@
 package com.cyberoperative.game.meta
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.Gear
 import com.cyberoperative.game.data.GearItem
 import com.cyberoperative.game.data.GearSlot
@@ -50,7 +51,7 @@ object Characters {
      * the profile already has (players from before characters keep their level and Overclock).
      */
     fun create(p: PlayerProfile, name: String, classId: String, look: CharacterLook): PlayerProfile {
-        val clean = cleanName(name) ?: "Operative"
+        val clean = cleanName(name) ?: tr("Operative")
         val id = "c" + java.lang.Long.toString(System.currentTimeMillis(), 36) + (p.otherCharacters.size)
         if (!hasCharacter(p)) {
             return p.copy(characterId = id, characterName = clean, look = look,

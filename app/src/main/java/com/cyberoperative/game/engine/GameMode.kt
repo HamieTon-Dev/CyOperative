@@ -1,5 +1,7 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * CAMPAIGN is the main game (owner, 2026-10-07): discrete levels with a fixed
  * number of threats, a power-up after every clear, then the gate at the top of
@@ -8,7 +10,7 @@ package com.cyberoperative.game.engine
  * ENDLESS keeps one room and never stops spawning: survive as long as you can,
  * with upgrades earned from data (XP) mid-fight and a boss every 10 stages.
  */
-enum class GameMode(val label: String) { CAMPAIGN("CAMPAIGN"), ENDLESS("ENDLESS") }
+enum class GameMode(val label: String) { CAMPAIGN(tr("CAMPAIGN")), ENDLESS(tr("ENDLESS")) }
 
 /**
  * Chosen when a new run starts (owner, 2026-10-08). Scales how tough threats
@@ -64,11 +66,11 @@ class Difficulty private constructor(
         const val MAX_INFERNO = 500
 
         // Easy stays as it was (owner: "Easy mode is fine. Leave it for younger users").
-        val EASY = Difficulty("EASY", "EASY", "Softer threats · ×0.8 rewards", 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C, extraScaling = 0.5f)
-        val MEDIUM = Difficulty("MEDIUM", "MEDIUM", "The intended challenge", 1f, 1f, 1f, 0.1f, 0xFF00E5FF,
+        val EASY = Difficulty("EASY", tr("EASY"), tr("Softer threats · ×0.8 rewards"), 0.7f, 0.65f, 0.8f, 0f, 0xFF00FF9C, extraScaling = 0.5f)
+        val MEDIUM = Difficulty("MEDIUM", tr("MEDIUM"), tr("The intended challenge"), 1f, 1f, 1f, 0.1f, 0xFF00E5FF,
             pressure = 1f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true)
         // Hard: its own ×1.45 plus 70% of Normal's HP bump, so it stays harder than Normal at every level.
-        val HARD = Difficulty("HARD", "HARD", "Tougher threats · −4 weapon slots · ×1.5 rewards · better mods", 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55,
+        val HARD = Difficulty("HARD", tr("HARD"), tr("Tougher threats · −4 weapon slots · ×1.5 rewards · better mods"), 1.45f, 1.4f, 1.5f, 0.35f, 0xFFFF2D55,
             pressure = 1f, hpPressureShare = 0.7f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true, lockedWeaponSlots = 4)
 
         /** The base three (INFERNO levels come from [inferno]). */
@@ -94,8 +96,8 @@ class Difficulty private constructor(
                 cache.getOrPut(level) {
                     val hp = infernoHp(level); val dmg = infernoDamage(level); val rw = infernoRewards(level)
                     Difficulty(
-                        "INFERNO_$level", "INFERNO $level",
-                        "×%.2f threat HP · ×%.2f damage · ×%.2f rewards · better loot".format(hp, dmg, rw),
+                        "INFERNO_$level", tr("INFERNO {0}", level),
+                        tr("×%.2f threat HP · ×%.2f damage · ×%.2f rewards · better loot").format(hp, dmg, rw),
                         hp, dmg, rw, infernoLuck(level), infernoColors[((level - 1) / 50).coerceAtMost(infernoColors.size - 1)],
                         extraScaling = (0.5f + 0.003f * (level - 1)).coerceAtMost(2f),
                         pressure = 1f, hpPressureShare = 0.7f, bossHpMul = 2f, eliteHpMul = 2f, eliteArmor = true, lockedWeaponSlots = 4,

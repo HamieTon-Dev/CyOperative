@@ -1,21 +1,22 @@
 package com.cyberoperative.game.ui.common
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.ui.input.key.Key
 
 /** Rebindable PC actions (Settings → KEYBINDS). Arrow keys always move and Esc always pauses too. */
 enum class KeyAction(val label: String, val default: Key) {
-    MOVE_UP("MOVE UP", Key.W),
-    MOVE_LEFT("MOVE LEFT", Key.A),
-    MOVE_DOWN("MOVE DOWN", Key.S),
-    MOVE_RIGHT("MOVE RIGHT", Key.D),
-    HP_CHARGE("USE HP CHARGE", Key.Q),
-    PACKET_BOMB("PACKET BOMB", Key.E),
-    DASH("DASH", Key.Spacebar),
-    SPELL_1("CLASS SPELL 1", Key.R),
-    SPELL_2("CLASS SPELL 2", Key.F),
-    PAUSE("PAUSE", Key.P),
-    MAP("MAP", Key.M),
-    INVENTORY("INVENTORY", Key.I)
+    MOVE_UP(tr("MOVE UP"), Key.W),
+    MOVE_LEFT(tr("MOVE LEFT"), Key.A),
+    MOVE_DOWN(tr("MOVE DOWN"), Key.S),
+    MOVE_RIGHT(tr("MOVE RIGHT"), Key.D),
+    HP_CHARGE(tr("USE HP CHARGE"), Key.Q),
+    PACKET_BOMB(tr("PACKET BOMB"), Key.E),
+    DASH(tr("DASH"), Key.Spacebar),
+    SPELL_1(tr("CLASS SPELL 1"), Key.R),
+    SPELL_2(tr("CLASS SPELL 2"), Key.F),
+    PAUSE(tr("PAUSE"), Key.P),
+    MAP(tr("MAP"), Key.M),
+    INVENTORY(tr("INVENTORY"), Key.I)
 }
 
 /** The live key map (key codes by action name), loaded from the save's settings. */

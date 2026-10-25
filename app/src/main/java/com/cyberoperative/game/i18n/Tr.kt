@@ -29,6 +29,9 @@ object Tr {
     @Volatile
     private var table: Map<String, String> = emptyMap()
 
+    /** English → this language's line, so text drawn every frame skips the CRC. */
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
     /** The language being shown (a [Languages.all] tag). */
     @Volatile
     var tag: String = "en"
@@ -51,6 +54,7 @@ object Tr {
     fun init(languageTag: String?) {
         val chosen = languageTag?.takeIf { t -> Languages.all.any { it.tag == t } } ?: Languages.match(Locale.getDefault())
         table = if (chosen == "en") emptyMap() else load(chosen)
+        cache.clear()
         tag = chosen
         touched = false
         generation++
@@ -69,7 +73,7 @@ object Tr {
     fun t(english: String, vararg args: Any?): String {
         touched = true
         val t = table
-        val template = if (t.isEmpty()) english else t[keyOf(english)] ?: english
+        val template = if (t.isEmpty()) english else cache.getOrPut(english) { t[keyOf(english)] ?: english }
         return if (args.isEmpty()) template else fill(template, args)
     }
 

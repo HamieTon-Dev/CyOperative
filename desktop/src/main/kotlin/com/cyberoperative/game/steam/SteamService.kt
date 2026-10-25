@@ -1,5 +1,6 @@
 package com.cyberoperative.game.steam
 
+import com.cyberoperative.game.i18n.tr
 import com.codedisaster.steamworks.SteamAPI
 import com.codedisaster.steamworks.SteamFriends
 import com.codedisaster.steamworks.SteamFriendsCallback
@@ -66,12 +67,12 @@ object SteamService {
         try {
             val idFile = File("steam_appid.txt")
             appId = idFile.takeIf { it.isFile }?.readText()?.trim()?.toIntOrNull() ?: DEFAULT_APP_ID
-            if (!loadNatives()) { lastError = "Steam libraries missing"; return }
+            if (!loadNatives()) { lastError = tr("Steam libraries missing"); return }
             // Release builds launched outside Steam relaunch through the client (once a real App ID exists).
             if (appId != DEFAULT_APP_ID && !idFile.isFile && SteamAPI.restartAppIfNecessary(appId)) {
                 System.exit(0)
             }
-            if (!SteamAPI.init()) { lastError = "Steam isn't running"; return }
+            if (!SteamAPI.init()) { lastError = tr("Steam isn't running"); return }
             user = SteamUser(object : SteamUserCallback {})
             friends = SteamFriends(object : SteamFriendsCallback {
                 override fun onGameLobbyJoinRequested(steamIDLobby: SteamID, steamIDFriend: SteamID) {

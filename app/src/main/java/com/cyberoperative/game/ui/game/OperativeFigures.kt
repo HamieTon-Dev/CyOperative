@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.ui.graphics.drawscope.withTransform
 
 import com.cyberoperative.game.ui.common.drawHeroFigure
@@ -41,13 +42,13 @@ import kotlin.math.sin
  * [u] (one design unit; the in-game operative uses u = 1 → ~66 units tall).
  */
 enum class BodyStyle(val id: String, val label: String, val blurb: String) {
-    AGENT("agent", "FIELD AGENT", "Shield-head specialist in light armour with a sidearm blaster."),
-    MECH("mech", "SENTINEL MECH", "Heavy frame, monitor head showing >_<, shoulder cannon."),
-    RUNNER("runner", "SHADOW RUNNER", "Hooded coat over the shield face, hovers on thrusters."),
+    AGENT("agent", "FIELD AGENT", tr("Shield-head specialist in light armour with a sidearm blaster.")),
+    MECH("mech", "SENTINEL MECH", tr("Heavy frame, monitor head showing >_<, shoulder cannon.")),
+    RUNNER("runner", "SHADOW RUNNER", tr("Hooded coat over the shield face, hovers on thrusters.")),
     /** The app icon as a whole operative (owner, 2026-10-08). Since 0.17.0 the TECHNICIAN's body, no longer sold. */
-    NEON("neon_operative", "NEON OPERATIVE", "The app icon come to life: faceted neon hood, antenna, glowing >_< shield face."),
+    NEON("neon_operative", "NEON OPERATIVE", tr("The app icon come to life: faceted neon hood, antenna, glowing >_< shield face.")),
     /** PACKET MAGE (0.17.0): robed code-caster with a fire-orb staff. */
-    MAGE("mage", "PACKET MAGE", "Robed code-caster under a deep hood, a staff crowned with packet fire.");
+    MAGE("mage", "PACKET MAGE", tr("Robed code-caster under a deep hood, a staff crowned with packet fire."));
 
     /** Bodies that must be bought before they can be selected (none since classes, 0.17.0). */
     val premium: Boolean get() = false

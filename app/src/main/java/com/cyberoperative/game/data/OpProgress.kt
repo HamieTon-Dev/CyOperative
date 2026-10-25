@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import kotlin.math.floor
 import kotlin.math.pow
 
@@ -44,9 +45,9 @@ object OpProgress {
         val fraction: Float get() = if (need <= 0) 1f else (into.toFloat() / need).coerceIn(0f, 1f)
         val maxed: Boolean get() = level >= MAX_LEVEL && overclock >= MAX_OVERCLOCK
         /** "OP Lv 24" or "OP Lv 60 · OC 12". */
-        val label: String get() = if (level < MAX_LEVEL) "OP Lv $level" else "OP Lv $level · OC $overclock"
+        val label: String get() = if (level < MAX_LEVEL) tr("OP Lv {0}", level) else tr("OP Lv {0} · OC {1}", level, overclock)
         /** The HUD's XP-bar label (owner, 2026-10-13): "OP Lv 24", then "OC Lv 12" once OP Lv 60 is reached. */
-        val barLabel: String get() = if (level < MAX_LEVEL) "OP Lv $level" else "OC Lv $overclock"
+        val barLabel: String get() = if (level < MAX_LEVEL) tr("OP Lv {0}", level) else tr("OC Lv {0}", overclock)
         /** Monster level and scaling: the OP level plus a quarter of Overclock. */
         val effective: Int get() = level + overclock / 4
     }

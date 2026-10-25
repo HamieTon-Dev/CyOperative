@@ -1,5 +1,6 @@
 package com.cyberoperative.game.meta
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.Events
 import com.cyberoperative.game.data.PermanentUpgrades
 import com.cyberoperative.game.engine.RunSummary
@@ -22,28 +23,28 @@ data class AchievementDef(
 object Achievements {
 
     val all: List<AchievementDef> = listOf(
-        AchievementDef("first_connection", "FIRST CONNECTION", "Complete your first operation.", 50) { p, _ -> p.totalRuns >= 1 },
-        AchievementDef("threats_100", "DEFEAT 100 THREATS", "Eliminate 100 threats in total.", 100) { p, _ -> p.totalKills >= 100 },
-        AchievementDef("threats_1000", "DEFEAT 1,000 THREATS", "Eliminate 1,000 threats in total.", 400) { p, _ -> p.totalKills >= 1_000 },
-        AchievementDef("threats_10000", "DEFEAT 10,000 THREATS", "Eliminate 10,000 threats in total.", 2_000) { p, _ -> p.totalKills >= 10_000 },
-        AchievementDef("level_10", "REACH LEVEL 10", "Reach level 10 in a single operation.", 150) { p, _ -> p.highestLevel >= 10 },
-        AchievementDef("level_25", "REACH LEVEL 25", "Reach level 25.", 400) { p, _ -> p.highestLevel >= 25 },
-        AchievementDef("level_50", "REACH LEVEL 50", "Reach level 50.", 1_000) { p, _ -> p.highestLevel >= 50 },
-        AchievementDef("level_100", "REACH LEVEL 100", "Reach level 100.", 3_000) { p, _ -> p.highestLevel >= 100 },
-        AchievementDef("boss_1", "THREAT NEUTRALIZED", "Defeat your first boss.", 150) { p, _ -> p.totalBosses >= 1 },
-        AchievementDef("boss_10", "DEFEAT 10 BOSSES", "Defeat 10 bosses in total.", 800) { p, _ -> p.totalBosses >= 10 },
-        AchievementDef("boss_100", "DEFEAT 100 BOSSES", "Defeat 100 bosses in total.", 5_000) { p, _ -> p.totalBosses >= 100 },
-        AchievementDef("all_events", "COMPLETE EVERY EVENT TYPE", "Complete each of the special event types.", 1_000) { p, _ ->
+        AchievementDef("first_connection", tr("FIRST CONNECTION"), tr("Complete your first operation."), 50) { p, _ -> p.totalRuns >= 1 },
+        AchievementDef("threats_100", tr("DEFEAT 100 THREATS"), tr("Eliminate 100 threats in total."), 100) { p, _ -> p.totalKills >= 100 },
+        AchievementDef("threats_1000", tr("DEFEAT 1,000 THREATS"), tr("Eliminate 1,000 threats in total."), 400) { p, _ -> p.totalKills >= 1_000 },
+        AchievementDef("threats_10000", tr("DEFEAT 10,000 THREATS"), tr("Eliminate 10,000 threats in total."), 2_000) { p, _ -> p.totalKills >= 10_000 },
+        AchievementDef("level_10", tr("REACH LEVEL 10"), tr("Reach level 10 in a single operation."), 150) { p, _ -> p.highestLevel >= 10 },
+        AchievementDef("level_25", tr("REACH LEVEL 25"), tr("Reach level 25."), 400) { p, _ -> p.highestLevel >= 25 },
+        AchievementDef("level_50", tr("REACH LEVEL 50"), tr("Reach level 50."), 1_000) { p, _ -> p.highestLevel >= 50 },
+        AchievementDef("level_100", tr("REACH LEVEL 100"), tr("Reach level 100."), 3_000) { p, _ -> p.highestLevel >= 100 },
+        AchievementDef("boss_1", tr("THREAT NEUTRALIZED"), tr("Defeat your first boss."), 150) { p, _ -> p.totalBosses >= 1 },
+        AchievementDef("boss_10", tr("DEFEAT 10 BOSSES"), tr("Defeat 10 bosses in total."), 800) { p, _ -> p.totalBosses >= 10 },
+        AchievementDef("boss_100", tr("DEFEAT 100 BOSSES"), tr("Defeat 100 bosses in total."), 5_000) { p, _ -> p.totalBosses >= 100 },
+        AchievementDef("all_events", tr("COMPLETE EVERY EVENT TYPE"), tr("Complete each of the special event types."), 1_000) { p, _ ->
             Events.all.all { it.id in p.eventTypesCompleted }
         },
-        AchievementDef("zero_day_survivor", "SURVIVE ZERO-DAY ANOMALY", "Complete a Zero-Day Anomaly event.", 500) { p, _ ->
+        AchievementDef("zero_day_survivor", tr("SURVIVE ZERO-DAY ANOMALY"), tr("Complete a Zero-Day Anomaly event."), 500) { p, _ ->
             "zero_day" in p.eventTypesCompleted
         },
-        AchievementDef("maxed_stat", "FULLY UPGRADE AN OPERATIVE STAT", "Max out any permanent upgrade.", 500) { p, _ ->
+        AchievementDef("maxed_stat", tr("FULLY UPGRADE AN OPERATIVE STAT"), tr("Max out any permanent upgrade."), 500) { p, _ ->
             PermanentUpgrades.all.any { (p.permanentUpgrades[it.id] ?: 0) >= it.maxLevel }
         },
-        AchievementDef("score_100k", "HIGH VALUE TARGET", "Score 100,000 in one operation.", 600) { _, r -> r.score >= 100_000 },
-        AchievementDef("deep_dive", "DEEP DIVE", "Reach level 20 in one operation.", 300) { _, r -> r.levelReached >= 20 }
+        AchievementDef("score_100k", tr("HIGH VALUE TARGET"), tr("Score 100,000 in one operation."), 600) { _, r -> r.score >= 100_000 },
+        AchievementDef("deep_dive", tr("DEEP DIVE"), tr("Reach level 20 in one operation."), 300) { _, r -> r.levelReached >= 20 }
     )
 
     /** Achievements newly satisfied by [profile] (not already owned). */

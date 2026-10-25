@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Store catalogue (§33, §58) — owner's structure, 2026-10-07.
  *
@@ -93,24 +95,24 @@ data class OperativeSkin(
  * [level] above 0 still counts too, so a skin earned the old way stays unlocked.
  */
 data class SkinUnlock(val difficulty: String, val level: Int, val campaign: Boolean = false) {
-    val label: String get() = if (campaign) "Beat World 15's boss · every class"
-        else "Reach level $level on ${if (difficulty == "MEDIUM") "Normal" else difficulty.lowercase().replaceFirstChar { it.uppercase() }} with this class"
+    val label: String get() = if (campaign) tr("Beat World 15's boss · every class")
+        else tr("Reach level {0} on {1} with this class", level, when (difficulty) { "MEDIUM" -> tr("Normal"); "HARD" -> tr("Hard"); else -> difficulty.lowercase().replaceFirstChar { it.uppercase() } })
 }
 
 object OperativeSkins {
-    val DEFAULT = OperativeSkin("default", "CYBER OPERATIVE", "The logo", 0xFF23C55E, 0xFF6EF7A5, 0xFF07301E, free = true)
+    val DEFAULT = OperativeSkin("default", "CYBER OPERATIVE", tr("The logo"), 0xFF23C55E, 0xFF6EF7A5, 0xFF07301E, free = true)
 
     /** Class skins (owner, 2026-10-11): every class earns these on its own. */
-    val TITANIUM = OperativeSkin("titanium", "TITANIUM", "Class skin: level 100 on Normal", 0xFFAEB7C1, 0xFFE6ECF2, 0xFF2B3138,
+    val TITANIUM = OperativeSkin("titanium", tr("TITANIUM"), tr("Class skin: level 100 on Normal"), 0xFFAEB7C1, 0xFFE6ECF2, 0xFF2B3138,
         SkinEffect.PULSE, unlock = SkinUnlock("MEDIUM", 100))
     /** Owner, 2026-10-11: now earned by beating World 15's boss (L100 on Hard still counts for anyone who got it that way). */
-    val PURPLE = OperativeSkin("purple", "PURPLE", "Campaign skin: beat World 15's boss", 0xFFA259FF, 0xFFE7D2FF, 0xFF1A0833,
+    val PURPLE = OperativeSkin("purple", tr("PURPLE"), tr("Campaign skin: beat World 15's boss"), 0xFFA259FF, 0xFFE7D2FF, 0xFF1A0833,
         SkinEffect.HOLOGRAM, unlock = SkinUnlock("HARD", 100, campaign = true))
-    val GLITCHED = OperativeSkin("glitched", "GLITCHED", "Campaign skin: beat World 15's boss", 0xFFFF2BD6, 0xFFFFFFFF, 0xFF120818,
+    val GLITCHED = OperativeSkin("glitched", tr("GLITCHED"), tr("Campaign skin: beat World 15's boss"), 0xFFFF2BD6, 0xFFFFFFFF, 0xFF120818,
         SkinEffect.GLITCH, unlock = SkinUnlock("HARD", 0, campaign = true))
     val classSkins: List<OperativeSkin> get() = listOf(TITANIUM, PURPLE, GLITCHED)
 
-    val GOLD = OperativeSkin("gold", "GOLD", "Premium skin", 0xFFFFC832, 0xFFFFF1B8, 0xFF2E2104,
+    val GOLD = OperativeSkin("gold", tr("GOLD"), tr("Premium skin"), 0xFFFFC832, 0xFFFFF1B8, 0xFF2E2104,
         SkinEffect.GOLD, price = StoreCatalog.PREMIUM_SKIN_PRICE)
 
     /** NEON: the player picks the colour ([neon]); the catalogue entry shows the default pink. */
@@ -125,7 +127,7 @@ object OperativeSkins {
         fun mix(t: Float, toward: Int) = { v: Int -> (v + (toward - v) * t).toInt().coerceIn(0, 255) }
         val light = mix(0.65f, 255); val dark = mix(0.86f, 0)
         fun argb(f: (Int) -> Int) = 0xFF000000 or (f(ch(16)).toLong() shl 16) or (f(ch(8)).toLong() shl 8) or f(ch(0)).toLong()
-        return OperativeSkin(NEON_ID, "NEON", "Premium skin · pick your colour", c, argb(light), argb(dark),
+        return OperativeSkin(NEON_ID, tr("NEON"), tr("Premium skin · pick your colour"), c, argb(light), argb(dark),
             SkinEffect.GLOW, price = StoreCatalog.PREMIUM_SKIN_PRICE)
     }
 
@@ -140,24 +142,24 @@ object OperativeSkins {
     val all: List<OperativeSkin> = listOf(
         DEFAULT, TITANIUM, PURPLE, GLITCHED, GOLD, NEON,
         // Colour skins (owner, 2026-10-11: named by how they look; ids kept so owned skins carry over)
-        OperativeSkin("firewall", "MINT", "Colour skin", 0xFF00FF9C, 0xFFB8FFE0, 0xFF033322),
-        OperativeSkin("ids", "CYAN", "Colour skin", 0xFF00E5FF, 0xFFB5F6FF, 0xFF032A33),
-        OperativeSkin("blue_hat", "ROYAL BLUE", "Colour skin", 0xFF2E7BFF, 0xFFA9C8FF, 0xFF081A3D),
-        OperativeSkin("analyst", "YELLOW", "Colour skin", 0xFFFFD426, 0xFFFFF0A8, 0xFF2E2603),
-        OperativeSkin("cryptographer", "DEEP PURPLE", "Colour skin", 0xFFA259FF, 0xFFDCC2FF, 0xFF1E0B36),
-        OperativeSkin("zero_day_hunter", "ORANGE", "Colour skin", 0xFFFF7A1A, 0xFFFFCFA8, 0xFF331604),
-        OperativeSkin("red_hat", "RED", "Colour skin", 0xFFFF2D55, 0xFFFFB3C2, 0xFF33070F),
-        OperativeSkin("ace", "WHITE", "Colour skin", 0xFFE6EEFA, 0xFFFFFFFF, 0xFF1A2130),
-        OperativeSkin("anti_duck", "LIME HOLOGRAM", "Shimmers between lime and yellow", 0xFF5CFF7A, 0xFFF2F25A, 0xFF0E2A12, SkinEffect.HOLOGRAM),
-        OperativeSkin("spectrum", "RAINBOW", "Cycles through every colour", 0xFF00E5FF, 0xFFFFFFFF, 0xFF0C1322, SkinEffect.SPECTRUM),
+        OperativeSkin("firewall", tr("MINT"), tr("Colour skin"), 0xFF00FF9C, 0xFFB8FFE0, 0xFF033322),
+        OperativeSkin("ids", tr("CYAN"), tr("Colour skin"), 0xFF00E5FF, 0xFFB5F6FF, 0xFF032A33),
+        OperativeSkin("blue_hat", tr("ROYAL BLUE"), tr("Colour skin"), 0xFF2E7BFF, 0xFFA9C8FF, 0xFF081A3D),
+        OperativeSkin("analyst", tr("YELLOW"), tr("Colour skin"), 0xFFFFD426, 0xFFFFF0A8, 0xFF2E2603),
+        OperativeSkin("cryptographer", tr("DEEP PURPLE"), tr("Colour skin"), 0xFFA259FF, 0xFFDCC2FF, 0xFF1E0B36),
+        OperativeSkin("zero_day_hunter", tr("ORANGE"), tr("Colour skin"), 0xFFFF7A1A, 0xFFFFCFA8, 0xFF331604),
+        OperativeSkin("red_hat", tr("RED"), tr("Colour skin"), 0xFFFF2D55, 0xFFFFB3C2, 0xFF33070F),
+        OperativeSkin("ace", tr("WHITE"), tr("Colour skin"), 0xFFE6EEFA, 0xFFFFFFFF, 0xFF1A2130),
+        OperativeSkin("anti_duck", tr("LIME HOLOGRAM"), tr("Shimmers between lime and yellow"), 0xFF5CFF7A, 0xFFF2F25A, 0xFF0E2A12, SkinEffect.HOLOGRAM),
+        OperativeSkin("spectrum", tr("RAINBOW"), tr("Cycles through every colour"), 0xFF00E5FF, 0xFFFFFFFF, 0xFF0C1322, SkinEffect.SPECTRUM),
         // Animated and two-tone skins
-        OperativeSkin("reactor", "AMBER", "Pulsing glow", 0xFFFF9A03, 0xFFFFD08A, 0xFF17100A, SkinEffect.PULSE),
-        OperativeSkin("meridian", "SAND & VIOLET", "Two-tone", 0xFFE8BE55, 0xFF7F73C0, 0xFF0B0A1E),
-        OperativeSkin("glacier", "ICE BLUE", "Colour skin", 0xFF96E0FF, 0xFFE6F8FF, 0xFF071620),
-        OperativeSkin("mainframe", "GREEN", "Colour skin", 0xFF00FF52, 0xFFB3FFC9, 0xFF031008),
-        OperativeSkin("cascade", "EMERALD", "Two-tone", 0xFF00F578, 0xFF167F4C, 0xFF020C06),
-        OperativeSkin("neongrid", "ELECTRIC BLUE", "Pulsing glow, mint face", 0xFF0062FF, 0xFF00FF9C, 0xFF030E24, SkinEffect.PULSE),
-        OperativeSkin("void", "VIOLET", "Colour skin", 0xFFB653FF, 0xFFE2C4FF, 0xFF0D0716)
+        OperativeSkin("reactor", tr("AMBER"), tr("Pulsing glow"), 0xFFFF9A03, 0xFFFFD08A, 0xFF17100A, SkinEffect.PULSE),
+        OperativeSkin("meridian", tr("SAND & VIOLET"), tr("Two-tone"), 0xFFE8BE55, 0xFF7F73C0, 0xFF0B0A1E),
+        OperativeSkin("glacier", tr("ICE BLUE"), tr("Colour skin"), 0xFF96E0FF, 0xFFE6F8FF, 0xFF071620),
+        OperativeSkin("mainframe", tr("GREEN"), tr("Colour skin"), 0xFF00FF52, 0xFFB3FFC9, 0xFF031008),
+        OperativeSkin("cascade", tr("EMERALD"), tr("Two-tone"), 0xFF00F578, 0xFF167F4C, 0xFF020C06),
+        OperativeSkin("neongrid", tr("ELECTRIC BLUE"), tr("Pulsing glow, mint face"), 0xFF0062FF, 0xFF00FF9C, 0xFF030E24, SkinEffect.PULSE),
+        OperativeSkin("void", tr("VIOLET"), tr("Colour skin"), 0xFFB653FF, 0xFFE2C4FF, 0xFF0D0716)
     )
 
     /** The ◇100 colour skins (what the skin pack covers). */
@@ -183,14 +185,14 @@ enum class LivingBackground(
     val intensity: Int,
     val speed: Float
 ) {
-    NONE("none", "STATIC", "The plain circuit grid.", 0xFF12203A, 0, 0f),
-    DRIFT("drift", "DRIFT", "Slow diagonal data currents crossing the arena.", 0xFF0D658C, 34, 0.055f),
-    LATTICE("lattice", "LATTICE", "A circuit lattice that breathes with the threat count.", 0xFF167D5B, 40, 0.18f),
-    AURORA("aurora", "AURORA", "Broad bands of cold light moving behind everything.", 0xFF1C59A8, 30, 0.04f),
-    RAINFALL("rainfall", "RAINFALL", "Sparse columns of falling binary.", 0xFF177F6E, 36, 0.5f),
-    PULSE("pulse", "PULSE", "Rings travelling outward from the operative.", 0xFF2E49A8, 32, 0.22f),
-    ORBIT("orbit", "ORBIT", "Slow elliptical traces, like a scheduler at work.", 0xFF3D53A6, 34, 0.035f),
-    HEATMAP("heatmap", "HEATMAP", "A coarse grid whose cells warm with the traffic.", 0xFF217B8C, 30, 0.12f);
+    NONE("none", tr("STATIC"), tr("The plain circuit grid."), 0xFF12203A, 0, 0f),
+    DRIFT("drift", tr("DRIFT"), tr("Slow diagonal data currents crossing the arena."), 0xFF0D658C, 34, 0.055f),
+    LATTICE("lattice", tr("LATTICE"), tr("A circuit lattice that breathes with the threat count."), 0xFF167D5B, 40, 0.18f),
+    AURORA("aurora", tr("AURORA"), tr("Broad bands of cold light moving behind everything."), 0xFF1C59A8, 30, 0.04f),
+    RAINFALL("rainfall", tr("RAINFALL"), tr("Sparse columns of falling binary."), 0xFF177F6E, 36, 0.5f),
+    PULSE("pulse", tr("PULSE"), tr("Rings travelling outward from the operative."), 0xFF2E49A8, 32, 0.22f),
+    ORBIT("orbit", tr("ORBIT"), tr("Slow elliptical traces, like a scheduler at work."), 0xFF3D53A6, 34, 0.035f),
+    HEATMAP("heatmap", tr("HEATMAP"), tr("A coarse grid whose cells warm with the traffic."), 0xFF217B8C, 30, 0.12f);
 
     companion object {
         fun byId(id: String): LivingBackground = entries.firstOrNull { it.id == id } ?: NONE

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.widget
 
+import com.cyberoperative.game.i18n.tr
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -24,13 +25,13 @@ object IdleRunNotifier {
         if (!canPost(context)) return
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CHANNEL) == null) {
-            nm.createNotificationChannel(NotificationChannel(CHANNEL, "Idle Runs", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "When your idle operator is terminated or its run ends"
+            nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Idle Runs"), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = tr("When your idle operator is terminated or its run ends")
             })
         }
         val defeated = run.status == IdleStatus.DEFEATED
-        val title = if (defeated) "Operator terminated" else "Idle run complete"
-        val text = "Highest level ${run.highestLevel} · € ${"%,d".format(run.eurosEarned)} · XP ${"%,d".format(run.xpEarned)}. Start a new idle run?"
+        val title = if (defeated) tr("Operator terminated") else tr("Idle run complete")
+        val text = tr("Highest level {0} · € {1} · XP {2}. Start a new idle run?", run.highestLevel, "%,d".format(run.eurosEarned), "%,d".format(run.xpEarned))
         val n = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_idle_run)
             .setColor(if (defeated) 0xFFFF2D55.toInt() else 0xFF00E5FF.toInt())

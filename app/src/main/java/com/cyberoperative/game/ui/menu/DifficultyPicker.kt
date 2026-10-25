@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,16 +73,16 @@ fun DifficultyPicker(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                if (mode == GameMode.ENDLESS) "NEW ENDLESS RUN" else "NEW CAMPAIGN",
+                if (mode == GameMode.ENDLESS) tr("NEW ENDLESS RUN") else tr("NEW CAMPAIGN"),
                 color = Palette.Cyan, style = MaterialTheme.typography.titleLarge
             )
-            Text("SELECT DIFFICULTY", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            Text(tr("SELECT DIFFICULTY"), color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             if (opLevel > 1) {
                 val cfg = remember(opLevel, permanent) {
                     com.cyberoperative.game.data.Operatives.buildConfig("operative", permanent, 0L).copy(opLevel = opLevel)
                 }
                 Text(
-                    "OP LVL $opLevel: threats +${((cfg.opHpMul - 1f) * 100).toInt()}% HP, +${((cfg.opDamageMul - 1f) * 100).toInt()}% damage",
+                    tr("OP LVL {0}: threats +{1}% HP, +{2}% damage", opLevel, ((cfg.opHpMul - 1f) * 100).toInt(), ((cfg.opDamageMul - 1f) * 100).toInt()),
                     color = Palette.Red, style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -115,7 +116,7 @@ fun DifficultyPicker(
                     Column(Modifier.weight(1f)) {
                         Text((if (locked) "🔒 " else "") + d.label, color = c, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            if (locked) "Beat World 15's boss on ${if (d.inferno == 1) "HARD" else Difficulty.inferno(d.inferno - 1)?.label} to unlock"
+                            if (locked) tr("Beat World 15's boss on {0} to unlock", if (d.inferno == 1) tr("HARD") else Difficulty.inferno(d.inferno - 1)?.label)
                             else d.blurb,
                             color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
                         )
@@ -130,15 +131,15 @@ fun DifficultyPicker(
             if (savedRunLabel != null) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Starting a new run replaces your saved operation ($savedRunLabel).",
+                    tr("Starting a new run replaces your saved operation ({0}).", savedRunLabel),
                     color = Palette.Red, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(8.dp))
             }
             Spacer(Modifier.height(6.dp))
-            CyberButton("START", Modifier.fillMaxWidth(), accent = Color(picked.color), primary = true) { onStart(picked) }
+            CyberButton(tr("START"), Modifier.fillMaxWidth(), accent = Color(picked.color), primary = true) { onStart(picked) }
             Spacer(Modifier.height(8.dp))
-            CyberButton("CANCEL", Modifier.fillMaxWidth(), accent = Palette.TextSecondary) { onCancel() }
+            CyberButton(tr("CANCEL"), Modifier.fillMaxWidth(), accent = Palette.TextSecondary) { onCancel() }
         }
     }
 }
@@ -150,7 +151,7 @@ fun InfernoStepper(level: Int, max: Int, onLevel: (Int) -> Unit) {
         for ((label, step) in listOf("−10" to -10, "−1" to -1)) {
             CyberButton(label, Modifier.weight(1f), accent = Palette.TextSecondary, enabled = level > 1) { onLevel((level + step).coerceIn(1, max)) }
         }
-        Text("LV $level / $max", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge,
+        Text(tr("LV {0} / {1}", level, max), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge,
             textAlign = TextAlign.Center, modifier = Modifier.weight(1.4f))
         for ((label, step) in listOf("+1" to 1, "+10" to 10)) {
             CyberButton(label, Modifier.weight(1f), accent = Palette.TextSecondary, enabled = level < max) { onLevel((level + step).coerceIn(1, max)) }

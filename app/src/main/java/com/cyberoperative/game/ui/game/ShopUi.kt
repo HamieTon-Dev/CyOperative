@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,11 +39,11 @@ import com.cyberoperative.game.ui.theme.Palette
 import kotlinx.coroutines.delay
 
 private val TERMINAL_LINES = listOf(
-    "> RECEIVING MESSAGE ...",
-    "> SOURCE: UNKNOWN // ENCRYPTION: VALID",
-    "> DECRYPTING ......... OK",
-    "> UPGRADE SHOP AVAILABLE",
-    "> SIDE GATE UNLOCKED"
+    tr("> RECEIVING MESSAGE ..."),
+    tr("> SOURCE: UNKNOWN // ENCRYPTION: VALID"),
+    tr("> DECRYPTING ......... OK"),
+    tr("> UPGRADE SHOP AVAILABLE"),
+    tr("> SIDE GATE UNLOCKED")
 )
 
 /**
@@ -52,7 +53,7 @@ private val TERMINAL_LINES = listOf(
  */
 @Composable
 fun ShopMessage(serial: Int, right: Boolean, modifier: Modifier = Modifier, hidden: Boolean = false) {
-    val lines = TERMINAL_LINES.dropLast(1) + (TERMINAL_LINES.last() + if (right) "  [ RIGHT WALL >> ]" else "  [ << LEFT WALL ]")
+    val lines = TERMINAL_LINES.dropLast(1) + (TERMINAL_LINES.last() + if (right) tr("  [ RIGHT WALL >> ]") else tr("  [ << LEFT WALL ]"))
     var shown by remember { mutableIntStateOf(0) }
     var chars by remember { mutableIntStateOf(0) }
     var visible by remember { mutableStateOf(false) }
@@ -121,7 +122,7 @@ fun ShopPanel(
                 .padding(10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("X,.,.X  SHOP", color = Palette.Gold, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
+                Text(tr("X,.,.X  SHOP"), color = Palette.Gold, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f), maxLines = 1)
                 com.cyberoperative.game.ui.common.FitNumber(euros.toLong(), Palette.Euro, MaterialTheme.typography.titleSmall, prefix = "€ ", maxFull = 9)
                 Spacer(Modifier.width(8.dp))
                 Box(
@@ -133,11 +134,11 @@ fun ShopPanel(
                     contentAlignment = Alignment.Center
                 ) { Text("✕", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall) }
             }
-            Text("${com.cyberoperative.game.ui.common.tapWord} to buy · hold for details", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(tr("{0} to buy · hold for details", com.cyberoperative.game.ui.common.tapWord), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
             Spacer(Modifier.height(6.dp))
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                if (items.isEmpty() && gear.isEmpty()) Text("Sold out. Come back another time.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
-                if (items.isNotEmpty()) Text("BUFFS", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
+                if (items.isEmpty() && gear.isEmpty()) Text(tr("Sold out. Come back another time."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                if (items.isNotEmpty()) Text(tr("BUFFS"), color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
                 for ((i, it) in items.withIndex()) {
                     val col = Color(it.def.rarity.color)
                     val affordable = euros >= it.price
@@ -148,7 +149,7 @@ fun ShopPanel(
                             .padding(vertical = 3.dp)
                             .background(Palette.Surface, shape)
                             .border(if (it.sold) 1.dp else 2.dp, if (it.sold) Palette.Divider else col, shape)
-                            .combinedClickable(enabled = !it.sold, onLongClick = { onHold(i) }, onLongClickLabel = "Details") { if (affordable) onBuy(i) }
+                            .combinedClickable(enabled = !it.sold, onLongClick = { onHold(i) }, onLongClickLabel = tr("Details")) { if (affordable) onBuy(i) }
                             .padding(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -162,7 +163,7 @@ fun ShopPanel(
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                it.def.rarity.label + (if (it.nextLevel > 1) " · LV ${it.nextLevel}" else "") + if (!it.sold && slotsFull(i)) " · SWAP" else "",
+                                it.def.rarity.label + (if (it.nextLevel > 1) tr(" · LV {0}", it.nextLevel) else "") + if (!it.sold && slotsFull(i)) tr(" · SWAP") else "",
                                 color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1
                             )
                             Text(it.def.name, color = if (it.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
@@ -171,9 +172,9 @@ fun ShopPanel(
                         Spacer(Modifier.width(6.dp))
                         Text(
                             when {
-                                it.sold -> "SOLD"
+                                it.sold -> tr("SOLD")
                                 affordable -> "€${it.price}"
-                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(it.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((it.price - euros).toLong())}"
+                                else -> tr("€{0}\nNEED €{1}", com.cyberoperative.game.ui.common.formatAmount(it.price.toLong()), com.cyberoperative.game.ui.common.formatAmount((it.price - euros).toLong()))
                             },
                             color = when {
                                 it.sold -> Palette.TextMuted
@@ -187,7 +188,7 @@ fun ShopPanel(
                 // Equipment (owner, 0.32.0): PURPLE and up, bought into this run's finds (backpack, then vault).
                 if (gear.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))
-                    Text("EQUIPMENT", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
+                    Text(tr("EQUIPMENT"), color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
                 }
                 for ((gi, g) in gear.withIndex()) {
                     val col = Color(g.item.rarity.color)
@@ -206,17 +207,17 @@ fun ShopPanel(
                         com.cyberoperative.game.ui.common.GearIconView(g.item, Modifier.size(40.dp), dim = g.sold)
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text("${g.item.rarity.label} · ${g.item.slot.label} · LV ${g.item.level}", color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Text(tr("{0} · {1} · LV {2}", g.item.rarity.label, g.item.slot.label, g.item.level), color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                             Text(g.item.name, color = if (g.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                            Text("${g.item.mainLabel} ${g.item.mainValue}" + if (g.item.affixes.isNotEmpty()) " · ${g.item.affixes.size} bonuses" else "",
+                            Text("${g.item.mainLabel} ${g.item.mainValue}" + if (g.item.affixes.isNotEmpty()) tr(" · {0} bonuses", g.item.affixes.size) else "",
                                 color = Palette.Green, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                         Spacer(Modifier.width(6.dp))
                         Text(
                             when {
-                                g.sold -> "SOLD"
+                                g.sold -> tr("SOLD")
                                 affordable -> "€${"%,d".format(g.price)}"
-                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(g.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((g.price - euros).toLong())}"
+                                else -> tr("€{0}\nNEED €{1}", com.cyberoperative.game.ui.common.formatAmount(g.price.toLong()), com.cyberoperative.game.ui.common.formatAmount((g.price - euros).toLong()))
                             },
                             color = when {
                                 g.sold -> Palette.TextMuted
@@ -233,7 +234,7 @@ fun ShopPanel(
                     val affordable = euros >= egg.price
                     val shape = RoundedCornerShape(8.dp)
                     Spacer(Modifier.height(6.dp))
-                    Text("PET EGG", color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
+                    Text(tr("PET EGG"), color = Palette.Gold, style = MaterialTheme.typography.labelSmall)
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -247,16 +248,16 @@ fun ShopPanel(
                         com.cyberoperative.game.ui.common.AnimatedEgg(egg.egg.art, egg.egg.rarity, if (egg.sold) 0f else eggTime, Modifier.size(40.dp))
                         Spacer(Modifier.width(8.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(egg.egg.rarity.label + " EGG", color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Text(egg.egg.rarity.label + tr(" EGG"), color = col, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                             Text(egg.egg.name, color = if (egg.sold) Palette.TextMuted else Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                            Text("Hatch it in PETS", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            Text(tr("Hatch it in PETS"), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                         }
                         Spacer(Modifier.width(6.dp))
                         Text(
                             when {
-                                egg.sold -> "SOLD"
+                                egg.sold -> tr("SOLD")
                                 affordable -> "€${"%,d".format(egg.price)}"
-                                else -> "€${com.cyberoperative.game.ui.common.formatAmount(egg.price.toLong())}\nNEED €${com.cyberoperative.game.ui.common.formatAmount((egg.price - euros).toLong())}"
+                                else -> tr("€{0}\nNEED €{1}", com.cyberoperative.game.ui.common.formatAmount(egg.price.toLong()), com.cyberoperative.game.ui.common.formatAmount((egg.price - euros).toLong()))
                             },
                             color = when { egg.sold -> Palette.TextMuted; affordable -> Palette.Euro; else -> Palette.Red },
                             style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.End
@@ -272,7 +273,7 @@ fun ShopPanel(
 @Composable
 fun OpenShopButton(onOpen: () -> Unit, modifier: Modifier = Modifier) {
     Text(
-        "X,.,.X  OPEN SHOP",
+        tr("X,.,.X  OPEN SHOP"),
         color = Palette.Gold, style = MaterialTheme.typography.titleSmall,
         modifier = modifier
             .background(Color(0xE6080A10), RoundedCornerShape(8.dp))
@@ -292,14 +293,14 @@ fun SkipShopDialog(onNo: () -> Unit, onYes: () -> Unit, modifier: Modifier = Mod
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("SKIP THE UPGRADE SHOP?", color = Palette.Gold, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(tr("SKIP THE UPGRADE SHOP?"), color = Palette.Gold, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
-        Text("The shop gate closes once you move on.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+        Text(tr("The shop gate closes once you move on."), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(14.dp))
         Row {
-            DialogBox("NO", "TAKE ME TO THE SHOP", Palette.Green, onNo, Modifier.weight(1f))
+            DialogBox(tr("NO"), tr("TAKE ME TO THE SHOP"), Palette.Green, onNo, Modifier.weight(1f))
             Spacer(Modifier.width(10.dp))
-            DialogBox("YES", "SKIP IT", Palette.Red, onYes, Modifier.weight(1f))
+            DialogBox(tr("YES"), tr("SKIP IT"), Palette.Red, onYes, Modifier.weight(1f))
         }
     }
 }

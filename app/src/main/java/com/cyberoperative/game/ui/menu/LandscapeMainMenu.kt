@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -96,10 +97,10 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
         val rest = MenuTarget.grid + listOfNotNull(MenuTarget.IDLE_RUNS.takeIf { com.cyberoperative.game.idle.IdleRuns.supported })
         if (compact) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (saved != null) CyberButton("CONTINUE", primary = true, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.CONTINUE) }
-                CyberButton(if (saved != null) "NEW" else "PLAY", primary = saved == null, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.PLAY) }
-                CyberButton("ENDLESS", accent = Palette.Purple, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.ENDLESS) }
-                CyberButton("CO-OP", accent = Palette.Magenta, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
+                if (saved != null) CyberButton(tr("CONTINUE"), primary = true, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.CONTINUE) }
+                CyberButton(if (saved != null) tr("NEW") else tr("PLAY"), primary = saved == null, accent = Palette.Green, modifier = Modifier.weight(1.3f)) { onSelect(MenuTarget.PLAY) }
+                CyberButton(tr("ENDLESS"), accent = Palette.Purple, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.ENDLESS) }
+                CyberButton(tr("CO-OP"), accent = Palette.Magenta, modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
             }
             for (row in rest.chunked(4)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -112,19 +113,19 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
         }
         if (saved != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("CONTINUE", primary = true, accent = Palette.Green, subtitle = saved.label, modifier = Modifier.weight(1.4f)) { onSelect(MenuTarget.CONTINUE) }
-                CyberButton("NEW OPERATION", accent = Palette.Cyan, subtitle = "START OVER", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.PLAY) }
+                CyberButton(tr("CONTINUE"), primary = true, accent = Palette.Green, subtitle = saved.label, modifier = Modifier.weight(1.4f)) { onSelect(MenuTarget.CONTINUE) }
+                CyberButton(tr("NEW OPERATION"), accent = Palette.Cyan, subtitle = tr("START OVER"), modifier = Modifier.weight(1f)) { onSelect(MenuTarget.PLAY) }
             }
         } else {
-            CyberButton("PLAY", primary = true, accent = Palette.Green, subtitle = if (profile.bestWorld > 0) "CAMPAIGN · BEST: WORLD ${profile.bestWorld}" else "CAMPAIGN · 15 SERVER WORLDS", modifier = Modifier.fillMaxWidth()) { onSelect(MenuTarget.PLAY) }
+            CyberButton(tr("PLAY"), primary = true, accent = Palette.Green, subtitle = if (profile.bestWorld > 0) tr("CAMPAIGN · BEST: WORLD {0}", profile.bestWorld) else tr("CAMPAIGN · 15 SERVER WORLDS"), modifier = Modifier.fillMaxWidth()) { onSelect(MenuTarget.PLAY) }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CyberButton(
-                "ENDLESS MODE", accent = Palette.Purple,
-                subtitle = if (profile.endlessBestStage > 0) "BEST LEVEL ${profile.endlessBestStage}" else "NO MAP · NO END",
+                tr("ENDLESS MODE"), accent = Palette.Purple,
+                subtitle = if (profile.endlessBestStage > 0) tr("BEST LEVEL {0}", profile.endlessBestStage) else tr("NO MAP · NO END"),
                 modifier = Modifier.weight(1f)
             ) { onSelect(MenuTarget.ENDLESS) }
-            CyberButton("CO-OP", accent = Palette.Magenta, subtitle = "PLAY WITH A FRIEND", modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
+            CyberButton(tr("CO-OP"), accent = Palette.Magenta, subtitle = tr("PLAY WITH A FRIEND"), modifier = Modifier.weight(1f)) { onSelect(MenuTarget.CO_OP) }
         }
         for (row in rest.chunked(4)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -140,7 +141,7 @@ private fun MenuButtons(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit, 
 @Composable
 private fun ExitButton() {
     val exit = com.cyberoperative.game.ui.common.AppExit.onExit ?: return
-    CyberButton("EXIT TO DESKTOP", accent = Palette.Red, modifier = Modifier.fillMaxWidth()) { exit() }
+    CyberButton(tr("EXIT TO DESKTOP"), accent = Palette.Red, modifier = Modifier.fillMaxWidth()) { exit() }
 }
 
 @Composable
@@ -187,16 +188,16 @@ private fun HeroStage(profile: PlayerProfile, t: Float, modifier: Modifier) {
 private fun InfoSide(profile: PlayerProfile, modifier: Modifier) {
     Column(modifier.padding(start = 24.dp), verticalArrangement = Arrangement.Bottom) {
         if (profile.highestLevel > 0) {
-            InfoLine("BEST LEVEL", "${profile.highestLevel}")
-            InfoLine("BEST SCORE", "%,d".format(profile.bestScore))
-            if (profile.bestWorld > 0) InfoLine("CAMPAIGN", "WORLD ${profile.bestWorld}" + if (profile.campaignsCompleted > 0) " · ${profile.campaignsCompleted}× DONE" else "")
-            if (profile.endlessBestStage > 0) InfoLine("ENDLESS", "LEVEL ${profile.endlessBestStage}")
+            InfoLine(tr("BEST LEVEL"), "${profile.highestLevel}")
+            InfoLine(tr("BEST SCORE"), "%,d".format(profile.bestScore))
+            if (profile.bestWorld > 0) InfoLine(tr("CAMPAIGN"), tr("WORLD {0}", profile.bestWorld) + if (profile.campaignsCompleted > 0) tr(" · {0}× DONE", profile.campaignsCompleted) else "")
+            if (profile.endlessBestStage > 0) InfoLine(tr("ENDLESS"), tr("LEVEL {0}", profile.endlessBestStage))
             Spacer(Modifier.height(14.dp))
         }
         if (!com.cyberoperative.game.platform.AppInfo.desktop) return@Column
-        Text("CONTROLS", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
+        Text(tr("CONTROLS"), color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
         Spacer(Modifier.height(4.dp))
-        for (l in listOf("WASD · MOVE", "MOUSE · AIM & FIRE", "LEFT STICK · MOVE", "RIGHT STICK · AIM & FIRE", "ESC / START · PAUSE", "F11 · FULLSCREEN")) {
+        for (l in listOf(tr("WASD · MOVE"), tr("MOUSE · AIM & FIRE"), tr("LEFT STICK · MOVE"), tr("RIGHT STICK · AIM & FIRE"), tr("ESC / START · PAUSE"), tr("F11 · FULLSCREEN"))) {
             Text(l, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
@@ -212,8 +213,8 @@ private fun InfoLine(label: String, value: String) {
 
 /** Labels that fit a phone held sideways. */
 private fun shortLabel(t: MenuTarget): String = when (t) {
-    MenuTarget.LEADERBOARD -> "SCORES"
-    MenuTarget.ACHIEVEMENTS -> "TROPHIES"
-    MenuTarget.IDLE_RUNS -> "IDLE"
+    MenuTarget.LEADERBOARD -> tr("SCORES")
+    MenuTarget.ACHIEVEMENTS -> tr("TROPHIES")
+    MenuTarget.IDLE_RUNS -> tr("IDLE")
     else -> t.label
 }

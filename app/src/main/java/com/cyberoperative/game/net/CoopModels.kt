@@ -1,5 +1,6 @@
 package com.cyberoperative.game.net
 
+import com.cyberoperative.game.i18n.tr
 import kotlin.random.Random
 
 /** This device's co-op identity: a callsign and a friend code to share. */
@@ -72,9 +73,9 @@ object Callsign {
     fun problem(input: String): String? {
         val c = clean(input)
         return when {
-            c.length < MIN -> "At least $MIN characters"
-            c.length > MAX -> "At most $MAX characters"
-            !c.all { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' } -> "Letters, digits, space, - and _ only"
+            c.length < MIN -> tr("At least {0} characters", MIN)
+            c.length > MAX -> tr("At most {0} characters", MAX)
+            !c.all { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' } -> tr("Letters, digits, space, - and _ only")
             else -> null
         }
     }

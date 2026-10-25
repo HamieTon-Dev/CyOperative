@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -103,10 +104,10 @@ fun UpgradeBar(
                     Modifier
                         .padding(start = 4.dp)
                         .height(CHIP_TOUCH)
-                        .clickable(role = Role.Button, onClickLabel = "Show more buffs") {
+                        .clickable(role = Role.Button, onClickLabel = tr("Show more buffs")) {
                             scope.launch { list.animateScrollToItem(h.owned.size - 1) }
                         }
-                        .semantics { contentDescription = "$hiddenCount more buffs" },
+                        .semantics { contentDescription = tr("{0} more buffs", hiddenCount) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -180,11 +181,11 @@ private fun CompactUpgradeGrid(h: HudSnapshot, modifier: Modifier, onInteract: (
                     "+$hiddenCount", color = Palette.Cyan, fontSize = 9.sp, fontFamily = TerminalFont, fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .padding(start = 3.dp)
-                        .clickable(role = Role.Button, onClickLabel = "Show more buffs") {
+                        .clickable(role = Role.Button, onClickLabel = tr("Show more buffs")) {
                             onInteract()
                             scope.launch { grid.animateScrollToItem(h.owned.size - 1) }
                         }
-                        .semantics { contentDescription = "$hiddenCount more buffs" }
+                        .semantics { contentDescription = tr("{0} more buffs", hiddenCount) }
                         .background(Palette.Background.copy(alpha = 0.85f), RoundedCornerShape(3.dp))
                         .border(1.dp, Palette.Cyan.copy(alpha = 0.6f), RoundedCornerShape(3.dp))
                         .padding(horizontal = 4.dp, vertical = 1.dp)
@@ -223,8 +224,8 @@ private fun BuffChip(
         Modifier
             .height(if (small) SMALL_CHIP else CHIP_TOUCH)
             .widthIn(min = 36.dp * k)
-            .clickable(role = Role.Button, onClickLabel = "Details", onClick = onTap)
-            .semantics { contentDescription = "${def.name}, level $level" },
+            .clickable(role = Role.Button, onClickLabel = tr("Details"), onClick = onTap)
+            .semantics { contentDescription = tr("{0}, level {1}", def.name, level) },
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -298,16 +299,16 @@ internal fun UpgradeTooltip(def: UpgradeDef, level: Int, beamHeat: Float = 0f, b
             Text(def.rarity.label, color = c, style = MaterialTheme.typography.labelSmall)
         }
         Text(
-            if (level > def.maxLevel) "LEVEL $level · MASTERY ${level - def.maxLevel}" else "LEVEL $level / ${def.maxLevel} (then mastery to ${UpgradeDef.MAX_LEVEL})",
+            if (level > def.maxLevel) tr("LEVEL {0} · MASTERY {1}", level, level - def.maxLevel) else tr("LEVEL {0} / {1} (then mastery to {2})", level, def.maxLevel, UpgradeDef.MAX_LEVEL),
             color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
         )
         Text(def.effectAt(level), color = Palette.Green, style = MaterialTheme.typography.bodySmall)
         Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
         // Mods last the whole run; only the beam has a timer of its own.
         val duration = when {
-            def.id == Upgrades.PLASMA_BEAM.id && beamCooldown > 0f -> "DURATION: OVERHEATED · COOLING ${"%.0f".format(kotlin.math.ceil(beamCooldown))}s"
-            def.id == Upgrades.PLASMA_BEAM.id -> "DURATION: ACTIVE ALL RUN · HEAT ${(beamHeat * 100).toInt()}%"
-            else -> "DURATION: ACTIVE ALL RUN"
+            def.id == Upgrades.PLASMA_BEAM.id && beamCooldown > 0f -> tr("DURATION: OVERHEATED · COOLING {0}s", "%.0f".format(kotlin.math.ceil(beamCooldown)))
+            def.id == Upgrades.PLASMA_BEAM.id -> tr("DURATION: ACTIVE ALL RUN · HEAT {0}%", (beamHeat * 100).toInt())
+            else -> tr("DURATION: ACTIVE ALL RUN")
         }
         Text(duration, color = Palette.Cyan, style = MaterialTheme.typography.labelSmall)
     }

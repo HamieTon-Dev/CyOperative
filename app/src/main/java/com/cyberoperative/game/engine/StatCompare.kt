@@ -1,5 +1,6 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.Weapons
 import kotlin.math.abs
 
@@ -18,34 +19,34 @@ object StatCompare {
     private class Stat(val label: String, val kind: Kind, val higherIsBetter: Boolean = true, val get: (RunStats) -> Float)
 
     private val stats = listOf(
-        Stat("Main gun DPS", Kind.NUMBER) { mainGunDps(it) },
-        Stat("All weapons DPS", Kind.NUMBER) { totalWeaponDps(it) },
-        Stat("Damage", Kind.NUMBER) { it.damage },
-        Stat("Attack speed (/s)", Kind.NUMBER) { it.fireRate },
-        Stat("Crit chance", Kind.PERCENT) { it.critChance },
-        Stat("Crit damage", Kind.MULTIPLIER) { it.critMul },
-        Stat("Shots per volley", Kind.COUNT) { it.parallelShots.toFloat() },
-        Stat("Follow-up shots", Kind.COUNT) { it.followUpShots.toFloat() },
-        Stat("Diagonal pairs", Kind.COUNT) { it.diagonalPairs.toFloat() },
-        Stat("Pierce", Kind.COUNT) { it.pierce.toFloat() },
-        Stat("Bounce", Kind.COUNT) { it.bounce.toFloat() },
-        Stat("Chain", Kind.COUNT) { it.chain.toFloat() },
-        Stat("Instant delete", Kind.PERCENT) { it.instantDeleteChance },
-        Stat("Boss & elite damage", Kind.MULTIPLIER) { it.eliteDamageMul },
-        Stat("Range", Kind.NUMBER) { it.range },
-        Stat("Packet speed", Kind.NUMBER) { it.projectileSpeed },
-        Stat("Max HP", Kind.NUMBER) { it.maxHp },
-        Stat("Armor", Kind.NUMBER) { it.armor },
-        Stat("Dodge", Kind.PERCENT) { it.dodge },
-        Stat("Heal per kill", Kind.NUMBER) { it.healOnKill },
-        Stat("Healing", Kind.MULTIPLIER) { it.healMul },
-        Stat("Counter shots when hit", Kind.COUNT) { it.counterRing.toFloat() },
-        Stat("Move speed", Kind.NUMBER) { it.moveSpeed },
-        Stat("Packet Nodes", Kind.COUNT) { it.orbCount.toFloat() },
-        Stat("Node damage", Kind.NUMBER) { it.orbDamage },
-        Stat("Blade damage", Kind.NUMBER) { it.bladeDamage },
-        Stat("Data gain", Kind.MULTIPLIER) { it.xpMul },
-        Stat("€ gain", Kind.MULTIPLIER) { it.euroMul }
+        Stat(tr("Main gun DPS"), Kind.NUMBER) { mainGunDps(it) },
+        Stat(tr("All weapons DPS"), Kind.NUMBER) { totalWeaponDps(it) },
+        Stat(tr("Damage"), Kind.NUMBER) { it.damage },
+        Stat(tr("Attack speed (/s)"), Kind.NUMBER) { it.fireRate },
+        Stat(tr("Crit chance"), Kind.PERCENT) { it.critChance },
+        Stat(tr("Crit damage"), Kind.MULTIPLIER) { it.critMul },
+        Stat(tr("Shots per volley"), Kind.COUNT) { it.parallelShots.toFloat() },
+        Stat(tr("Follow-up shots"), Kind.COUNT) { it.followUpShots.toFloat() },
+        Stat(tr("Diagonal pairs"), Kind.COUNT) { it.diagonalPairs.toFloat() },
+        Stat(tr("Pierce"), Kind.COUNT) { it.pierce.toFloat() },
+        Stat(tr("Bounce"), Kind.COUNT) { it.bounce.toFloat() },
+        Stat(tr("Chain"), Kind.COUNT) { it.chain.toFloat() },
+        Stat(tr("Instant delete"), Kind.PERCENT) { it.instantDeleteChance },
+        Stat(tr("Boss & elite damage"), Kind.MULTIPLIER) { it.eliteDamageMul },
+        Stat(tr("Range"), Kind.NUMBER) { it.range },
+        Stat(tr("Packet speed"), Kind.NUMBER) { it.projectileSpeed },
+        Stat(tr("Max HP"), Kind.NUMBER) { it.maxHp },
+        Stat(tr("Armor"), Kind.NUMBER) { it.armor },
+        Stat(tr("Dodge"), Kind.PERCENT) { it.dodge },
+        Stat(tr("Heal per kill"), Kind.NUMBER) { it.healOnKill },
+        Stat(tr("Healing"), Kind.MULTIPLIER) { it.healMul },
+        Stat(tr("Counter shots when hit"), Kind.COUNT) { it.counterRing.toFloat() },
+        Stat(tr("Move speed"), Kind.NUMBER) { it.moveSpeed },
+        Stat(tr("Packet Nodes"), Kind.COUNT) { it.orbCount.toFloat() },
+        Stat(tr("Node damage"), Kind.NUMBER) { it.orbDamage },
+        Stat(tr("Blade damage"), Kind.NUMBER) { it.bladeDamage },
+        Stat(tr("Data gain"), Kind.MULTIPLIER) { it.xpMul },
+        Stat(tr("€ gain"), Kind.MULTIPLIER) { it.euroMul }
     )
 
     /** Primary gun: damage × volleys/s × shots per volley, with average crits. */
@@ -59,16 +60,16 @@ object StatCompare {
     private class BuiltIn(val name: String, val level: (RunStats) -> Int, val dps: (RunStats, Int) -> Float)
 
     private val builtIns = listOf(
-        BuiltIn("PACKET SCATTER", { it.coneLevel }) { s, l -> s.damage * 0.45f * (1 + 2 * l) * s.fireRate * 0.5f },
-        BuiltIn("EXPLOIT LANCE", { it.lanceLevel }) { s, l -> s.damage * (2.5f + 0.5f * l) / (2.8f - 0.4f * l) },
-        BuiltIn("PLASMA BEAM", { it.beamLevel }) { s, l -> s.damage * (1.4f + 0.6f * l) * 5f / 8f },
-        BuiltIn("EMP BURST", { it.empLevel }) { s, l -> s.damage * (0.9f + 0.3f * l) / (7f - l) },
-        BuiltIn("LOGIC BOMBS", { it.mineLevel }) { s, l -> s.damage * (1.6f + 0.4f * l) / 0.9f * 0.5f },
-        BuiltIn("MALWARE MISSILES", { it.missileLevel }) { s, l -> s.damage * 1.1f * (1 + l) / (2.8f - 0.4f * l) },
-        BuiltIn("ARC DISCHARGE", { it.arcLevel }) { s, l -> s.damage * (1.3f + 0.3f * l) * (2 + l) / (2.4f - 0.4f * l) },
-        BuiltIn("QUANTUM RAILGUN", { it.railLevel }) { s, l -> s.damage * (6f + 2f * l) / (3.6f - 0.8f * l) },
-        BuiltIn("ORBITAL STRIKE", { it.strikeLevel }) { s, _ -> s.damage * 8f * 3f / 5f },
-        BuiltIn("ENCRYPTION BLADES", { it.bladeCount }) { s, n -> s.bladeDamage * n * 2f }
+        BuiltIn(tr("PACKET SCATTER"), { it.coneLevel }) { s, l -> s.damage * 0.45f * (1 + 2 * l) * s.fireRate * 0.5f },
+        BuiltIn(tr("EXPLOIT LANCE"), { it.lanceLevel }) { s, l -> s.damage * (2.5f + 0.5f * l) / (2.8f - 0.4f * l) },
+        BuiltIn(tr("PLASMA BEAM"), { it.beamLevel }) { s, l -> s.damage * (1.4f + 0.6f * l) * 5f / 8f },
+        BuiltIn(tr("EMP BURST"), { it.empLevel }) { s, l -> s.damage * (0.9f + 0.3f * l) / (7f - l) },
+        BuiltIn(tr("LOGIC BOMBS"), { it.mineLevel }) { s, l -> s.damage * (1.6f + 0.4f * l) / 0.9f * 0.5f },
+        BuiltIn(tr("MALWARE MISSILES"), { it.missileLevel }) { s, l -> s.damage * 1.1f * (1 + l) / (2.8f - 0.4f * l) },
+        BuiltIn(tr("ARC DISCHARGE"), { it.arcLevel }) { s, l -> s.damage * (1.3f + 0.3f * l) * (2 + l) / (2.4f - 0.4f * l) },
+        BuiltIn(tr("QUANTUM RAILGUN"), { it.railLevel }) { s, l -> s.damage * (6f + 2f * l) / (3.6f - 0.8f * l) },
+        BuiltIn(tr("ORBITAL STRIKE"), { it.strikeLevel }) { s, _ -> s.damage * 8f * 3f / 5f },
+        BuiltIn(tr("ENCRYPTION BLADES"), { it.bladeCount }) { s, n -> s.bladeDamage * n * 2f }
     )
 
     /** Every weapon together (arsenal + built-in), rough damage per second. */
@@ -133,10 +134,10 @@ object StatCompare {
     /** A weapon gained, lost or levelled: level and rough damage per second on each side. */
     private fun weaponLine(name: String, la: Int, lb: Int, da: Float, db: Float) = StatLine(
         name,
-        if (la > 0) "LV $la · ${trim(da)}/s" else "—",
-        if (lb > 0) "LV $lb · ${trim(db)}/s" else "REMOVED",
+        if (la > 0) tr("LV {0} · {1}/s", la, trim(da)) else "—",
+        if (lb > 0) tr("LV {0} · {1}/s", lb, trim(db)) else tr("REMOVED"),
         when {
-            la == 0 -> "NEW"
+            la == 0 -> tr("NEW")
             lb == 0 -> "−${trim(da)}/s"
             else -> change(da, db, Kind.NUMBER)
         },

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.core.Rect
 
 /**
@@ -11,37 +12,37 @@ import com.cyberoperative.game.core.Rect
  * horizontally, so N templates give 2N distinct arenas.
  */
 enum class ObstacleKind(val label: String) {
-    SERVER_RACK("SERVER RACK"),
+    SERVER_RACK(tr("SERVER RACK")),
     /** Barrier cube a boss raises out of the floor (never placed by arena layouts). */
-    BARRIER_CUBE("BARRIER CUBE"),
+    BARRIER_CUBE(tr("BARRIER CUBE")),
     /** Ransom King's padlocked cube (Lock Grid, Royal Seizure cage). */
-    LOCK_CUBE("LOCK CUBE"),
-    FIREWALL_NODE("FIREWALL NODE"),
-    DATA_PILLAR("DATA PILLAR"),
-    COOLING_UNIT("COOLING UNIT"),
-    ROUTER("ROUTER"),
-    TERMINAL("CORRUPTED TERMINAL"),
-    POWER_UNIT("POWER UNIT"),
-    FIBER_JUNCTION("FIBER JUNCTION"),
+    LOCK_CUBE(tr("LOCK CUBE")),
+    FIREWALL_NODE(tr("FIREWALL NODE")),
+    DATA_PILLAR(tr("DATA PILLAR")),
+    COOLING_UNIT(tr("COOLING UNIT")),
+    ROUTER(tr("ROUTER")),
+    TERMINAL(tr("CORRUPTED TERMINAL")),
+    POWER_UNIT(tr("POWER UNIT")),
+    FIBER_JUNCTION(tr("FIBER JUNCTION")),
     /** Small blinking server unit (procedural arenas). */
-    SMALL_SERVER("SERVER UNIT"),
+    SMALL_SERVER(tr("SERVER UNIT")),
     /** Stack of hardware crates. */
-    CRATES("HARDWARE CRATES"),
+    CRATES(tr("HARDWARE CRATES")),
     // --- New wall types (owner, 2026-10-08) ---
     /** Armoured bulkhead: long, tall, riveted. */
-    BLAST_WALL("BLAST WALL"),
+    BLAST_WALL(tr("BLAST WALL")),
     /** Bundle of coolant pipes with flowing liquid. */
-    COOLANT_PIPES("COOLANT PIPES"),
+    COOLANT_PIPES(tr("COOLANT PIPES")),
     /** Translucent hologram wall that flickers. */
-    HOLO_WALL("HOLO WALL"),
+    HOLO_WALL(tr("HOLO WALL")),
     /** Round reactor core with a pulsing heart. */
-    REACTOR("REACTOR CORE"),
+    REACTOR(tr("REACTOR CORE")),
     /** Low, glowing energy barrier. */
-    ENERGY_BARRIER("ENERGY BARRIER"),
+    ENERGY_BARRIER(tr("ENERGY BARRIER")),
     /** Thin, tall antenna mast with a blinking beacon. */
-    ANTENNA_TOWER("ANTENNA TOWER"),
+    ANTENNA_TOWER(tr("ANTENNA TOWER")),
     /** The shopkeeper's counter in the upgrade shop. */
-    SHOP_COUNTER("SHOP COUNTER")
+    SHOP_COUNTER(tr("SHOP COUNTER"))
 }
 
 /** Non-colliding floor decoration (procedural arenas). */
@@ -119,55 +120,55 @@ object Arenas {
     val templates: List<ArenaTemplate> get() = if (ArenaShape.wide) wideTemplates else portraitTemplates
 
     private val portraitTemplates: List<ArenaTemplate> = listOf(
-        ArenaTemplate("open_grid", "OPEN GRID", 1040f, listOf(
+        ArenaTemplate("open_grid", tr("OPEN GRID"), 1040f, listOf(
             o(150f, 330f, 70f, 70f, P), o(500f, 330f, 70f, 70f, P),
             o(150f, 640f, 70f, 70f, P), o(500f, 640f, 70f, 70f, P)
         )),
-        ArenaTemplate("rack_rows", "RACK ROWS", 1120f, listOf(
+        ArenaTemplate("rack_rows", tr("RACK ROWS"), 1120f, listOf(
             o(70f, 360f, 220f, 54f, R), o(430f, 360f, 220f, 54f, R),
             o(70f, 700f, 220f, 54f, R), o(430f, 700f, 220f, 54f, R)
         )),
-        ArenaTemplate("crossroads", "CROSSROADS", 1100f, listOf(
+        ArenaTemplate("crossroads", tr("CROSSROADS"), 1100f, listOf(
             o(90f, 260f, 150f, 150f, R), o(480f, 260f, 150f, 150f, R),
             o(90f, 640f, 150f, 150f, PW), o(480f, 640f, 150f, 150f, PW)
         )),
-        ArenaTemplate("firewall_gate", "FIREWALL GATE", 1160f, listOf(
+        ArenaTemplate("firewall_gate", tr("FIREWALL GATE"), 1160f, listOf(
             o(0f, 520f, 170f, 46f, F), o(280f, 520f, 160f, 46f, F), o(550f, 520f, 170f, 46f, F),
             o(130f, 260f, 60f, 60f, RT), o(530f, 260f, 60f, 60f, RT),
             o(330f, 800f, 60f, 60f, P)
         ), minLevel = 2),
-        ArenaTemplate("server_farm", "SERVER FARM", 1200f, listOf(
+        ArenaTemplate("server_farm", tr("SERVER FARM"), 1200f, listOf(
             o(110f, 250f, 60f, 190f, R), o(330f, 250f, 60f, 190f, R), o(550f, 250f, 60f, 190f, R),
             o(110f, 640f, 60f, 190f, R), o(330f, 640f, 60f, 190f, R), o(550f, 640f, 60f, 190f, R)
         ), minLevel = 3),
-        ArenaTemplate("cooling_hall", "COOLING HALL", 1080f, listOf(
+        ArenaTemplate("cooling_hall", tr("COOLING HALL"), 1080f, listOf(
             o(90f, 220f, 96f, 96f, C), o(420f, 300f, 96f, 96f, C),
             o(210f, 520f, 96f, 96f, C), o(540f, 600f, 96f, 96f, C),
             o(100f, 760f, 96f, 96f, C)
         ), minLevel = 2),
-        ArenaTemplate("core_ring", "CORE RING", 1140f, listOf(
+        ArenaTemplate("core_ring", tr("CORE RING"), 1140f, listOf(
             o(290f, 470f, 140f, 140f, PW),
             o(150f, 290f, 56f, 56f, P), o(514f, 290f, 56f, 56f, P),
             o(150f, 734f, 56f, 56f, P), o(514f, 734f, 56f, 56f, P)
         ), minLevel = 4),
-        ArenaTemplate("zigzag", "ZIGZAG ROUTE", 1260f, listOf(
+        ArenaTemplate("zigzag", tr("ZIGZAG ROUTE"), 1260f, listOf(
             o(0f, 300f, 400f, 44f, R), o(320f, 560f, 400f, 44f, R),
             o(0f, 820f, 400f, 44f, R)
         ), minLevel = 5),
-        ArenaTemplate("split_lanes", "SPLIT LANES", 1220f, listOf(
+        ArenaTemplate("split_lanes", tr("SPLIT LANES"), 1220f, listOf(
             o(220f, 230f, 40f, 260f, FJ), o(460f, 230f, 40f, 260f, FJ),
             o(220f, 640f, 40f, 260f, FJ), o(460f, 640f, 40f, 260f, FJ)
         ), minLevel = 6),
-        ArenaTemplate("terminal_scatter", "TERMINAL SCATTER", 1120f, listOf(
+        ArenaTemplate("terminal_scatter", tr("TERMINAL SCATTER"), 1120f, listOf(
             o(80f, 240f, 80f, 56f, T), o(400f, 210f, 80f, 56f, T), o(560f, 420f, 80f, 56f, T),
             o(230f, 450f, 80f, 56f, T), o(90f, 680f, 80f, 56f, T), o(470f, 720f, 80f, 56f, T)
         ), minLevel = 3),
-        ArenaTemplate("router_hub", "ROUTER HUB", 1180f, listOf(
+        ArenaTemplate("router_hub", tr("ROUTER HUB"), 1180f, listOf(
             o(320f, 300f, 80f, 80f, RT), o(140f, 520f, 80f, 80f, RT), o(500f, 520f, 80f, 80f, RT),
             o(320f, 740f, 80f, 80f, RT),
             o(0f, 520f, 60f, 80f, PW), o(660f, 520f, 60f, 80f, PW)
         ), minLevel = 7),
-        ArenaTemplate("backbone", "BACKBONE", 1300f, listOf(
+        ArenaTemplate("backbone", tr("BACKBONE"), 1300f, listOf(
             o(160f, 260f, 400f, 40f, F),
             o(80f, 480f, 50f, 220f, R), o(590f, 480f, 50f, 220f, R),
             o(300f, 560f, 120f, 50f, P),
@@ -179,7 +180,7 @@ object Arenas {
     val bossArena: ArenaTemplate get() = if (ArenaShape.wide) wideBossArena else portraitBossArena
 
     /** Open arena with only corner cover, so boss patterns stay readable. */
-    private val portraitBossArena = ArenaTemplate("boss_core", "COMPROMISED CORE", 1160f, listOf(
+    private val portraitBossArena = ArenaTemplate("boss_core", tr("COMPROMISED CORE"), 1160f, listOf(
         o(110f, 300f, 64f, 64f, P), o(546f, 300f, 64f, 64f, P),
         o(110f, 800f, 64f, 64f, P), o(546f, 800f, 64f, 64f, P)
     ), bossArena = true, decor = listOf(
@@ -205,7 +206,7 @@ object Arenas {
     private val wideBossArena: ArenaTemplate by lazy { scaleWide(wideBossDesign, 1240f) }
 
     /** Drawn on a 1440 × 1000 grid; [scaleWide] spreads it to the PC room size. */
-    private val wideBossDesign = ArenaTemplate("boss_core", "COMPROMISED CORE", 1000f, listOf(
+    private val wideBossDesign = ArenaTemplate("boss_core", tr("COMPROMISED CORE"), 1000f, listOf(
         o(250f, 270f, 70f, 70f, P), o(1120f, 270f, 70f, 70f, P),
         o(250f, 690f, 70f, 70f, P), o(1120f, 690f, 70f, 70f, P),
         o(40f, 470f, 54f, 90f, PW), o(1346f, 470f, 54f, 90f, PW)

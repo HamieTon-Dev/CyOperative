@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Environment themes (owner, 2026-10-08: "different color levels every 3
  * levels, different light colors, new walls, different tile textures and
@@ -53,29 +55,29 @@ data class FloorStyle(
 object Environments {
 
     val all: List<Environment> = listOf(
-        Environment("cyan_grid", "CYAN GRID", 0xFF070D18, 0xFF111D33, 0xFF0F1A2E, 0x2A7DD3FF, 0xFF00E5FF, 0xFF00FF9C, 0xFF00FF9C,
+        Environment("cyan_grid", tr("CYAN GRID"), 0xFF070D18, 0xFF111D33, 0xFF0F1A2E, 0x2A7DD3FF, 0xFF00E5FF, 0xFF00FF9C, 0xFF00FF9C,
             0xFF17233A, 0xFF00E5FF, listOf(FloorPattern.PLATES, FloorPattern.GRID, FloorPattern.CIRCUIT)),
-        Environment("emerald_works", "EMERALD DATAWORKS", 0xFF04110C, 0xFF0C2A1D, 0xFF0A2318, 0x2A6CFFB4, 0xFF00FF9C, 0xFF7DFFB2, 0xFF2BFF88,
+        Environment("emerald_works", tr("EMERALD DATAWORKS"), 0xFF04110C, 0xFF0C2A1D, 0xFF0A2318, 0x2A6CFFB4, 0xFF00FF9C, 0xFF7DFFB2, 0xFF2BFF88,
             0xFF12301F, 0xFF3CFF9A, listOf(FloorPattern.HEX, FloorPattern.CIRCUIT, FloorPattern.DOTS)),
-        Environment("amethyst_core", "AMETHYST CORE", 0xFF0B0716, 0xFF1D1235, 0xFF180F2D, 0x2AB98CFF, 0xFFA259FF, 0xFFFF6AE6, 0xFFB070FF,
+        Environment("amethyst_core", tr("AMETHYST CORE"), 0xFF0B0716, 0xFF1D1235, 0xFF180F2D, 0x2AB98CFF, 0xFFA259FF, 0xFFFF6AE6, 0xFFB070FF,
             0xFF231640, 0xFFC08CFF, listOf(FloorPattern.DIAMOND, FloorPattern.HEX, FloorPattern.PLATES)),
-        Environment("magma_forge", "MAGMA FORGE", 0xFF140804, 0xFF2A140C, 0xFF22100A, 0x2AFF9A5A, 0xFFFF7A1A, 0xFFFFD426, 0xFFFF5A2A,
+        Environment("magma_forge", tr("MAGMA FORGE"), 0xFF140804, 0xFF2A140C, 0xFF22100A, 0x2AFF9A5A, 0xFFFF7A1A, 0xFFFFD426, 0xFFFF5A2A,
             0xFF2E1810, 0xFFFF8A3D, listOf(FloorPattern.BRICK, FloorPattern.GROOVES, FloorPattern.PLATES)),
-        Environment("arctic_server", "ARCTIC SERVER FARM", 0xFF0A1218, 0xFF1C2B38, 0xFF18252F, 0x33DDEEFF, 0xFF9FE7FF, 0xFFFFFFFF, 0xFFBFEFFF,
+        Environment("arctic_server", tr("ARCTIC SERVER FARM"), 0xFF0A1218, 0xFF1C2B38, 0xFF18252F, 0x33DDEEFF, 0xFF9FE7FF, 0xFFFFFFFF, 0xFFBFEFFF,
             0xFF223444, 0xFFCFF4FF, listOf(FloorPattern.GRID, FloorPattern.PLATES, FloorPattern.DOTS)),
-        Environment("toxic_lab", "TOXIC LAB", 0xFF0C1004, 0xFF1D260A, 0xFF182008, 0x2AD6FF4D, 0xFFB8FF2E, 0xFFFFE14D, 0xFFA8FF3A,
+        Environment("toxic_lab", tr("TOXIC LAB"), 0xFF0C1004, 0xFF1D260A, 0xFF182008, 0x2AD6FF4D, 0xFFB8FF2E, 0xFFFFE14D, 0xFFA8FF3A,
             0xFF222C0E, 0xFFC8FF4A, listOf(FloorPattern.GROOVES, FloorPattern.HEX, FloorPattern.CIRCUIT)),
-        Environment("rose_neon", "ROSE NEON DISTRICT", 0xFF14060E, 0xFF2A0F20, 0xFF220C1A, 0x2AFF8AC8, 0xFFFF4DB8, 0xFF00E5FF, 0xFFFF6AC8,
+        Environment("rose_neon", tr("ROSE NEON DISTRICT"), 0xFF14060E, 0xFF2A0F20, 0xFF220C1A, 0x2AFF8AC8, 0xFFFF4DB8, 0xFF00E5FF, 0xFFFF6AC8,
             0xFF2E1226, 0xFFFF7AD0, listOf(FloorPattern.DIAMOND, FloorPattern.GRID, FloorPattern.BRICK)),
-        Environment("golden_vault", "GOLDEN VAULT", 0xFF120E04, 0xFF2A220C, 0xFF221B0A, 0x2AFFE38A, 0xFFFFD426, 0xFFFFF3B0, 0xFFFFC94D,
+        Environment("golden_vault", tr("GOLDEN VAULT"), 0xFF120E04, 0xFF2A220C, 0xFF221B0A, 0x2AFFE38A, 0xFFFFD426, 0xFFFFF3B0, 0xFFFFC94D,
             0xFF2E2610, 0xFFFFD95A, listOf(FloorPattern.PLATES, FloorPattern.DIAMOND, FloorPattern.BRICK)),
-        Environment("deep_ocean", "DEEP OCEAN RELAY", 0xFF031014, 0xFF0A2630, 0xFF081F28, 0x2A5AE8FF, 0xFF00C8E0, 0xFF2E9BFF, 0xFF00D4B4,
+        Environment("deep_ocean", tr("DEEP OCEAN RELAY"), 0xFF031014, 0xFF0A2630, 0xFF081F28, 0x2A5AE8FF, 0xFF00C8E0, 0xFF2E9BFF, 0xFF00D4B4,
             0xFF0E2A34, 0xFF2EE6E6, listOf(FloorPattern.HEX, FloorPattern.GROOVES, FloorPattern.DOTS)),
-        Environment("solar_flare", "SOLAR FLARE ARRAY", 0xFF140B02, 0xFF2C1A06, 0xFF241505, 0x2AFFC060, 0xFFFFA820, 0xFFFF4A2A, 0xFFFFB84D,
+        Environment("solar_flare", tr("SOLAR FLARE ARRAY"), 0xFF140B02, 0xFF2C1A06, 0xFF241505, 0x2AFFC060, 0xFFFFA820, 0xFFFF4A2A, 0xFFFFB84D,
             0xFF301E08, 0xFFFFB02E, listOf(FloorPattern.CIRCUIT, FloorPattern.GRID, FloorPattern.GROOVES)),
-        Environment("ghost_mono", "GHOST PROTOCOL", 0xFF0B0B0D, 0xFF1C1C21, 0xFF17171B, 0x33FFFFFF, 0xFFE6E8EE, 0xFF9AA4B4, 0xFFD8DEE8,
+        Environment("ghost_mono", tr("GHOST PROTOCOL"), 0xFF0B0B0D, 0xFF1C1C21, 0xFF17171B, 0x33FFFFFF, 0xFFE6E8EE, 0xFF9AA4B4, 0xFFD8DEE8,
             0xFF232328, 0xFFF0F2F6, listOf(FloorPattern.DOTS, FloorPattern.GRID, FloorPattern.PLATES)),
-        Environment("ultraviolet", "ULTRAVIOLET MAINFRAME", 0xFF07051A, 0xFF130F38, 0xFF100C2E, 0x2A8A7DFF, 0xFF6A5CFF, 0xFF00FFC8, 0xFF7A6CFF,
+        Environment("ultraviolet", tr("ULTRAVIOLET MAINFRAME"), 0xFF07051A, 0xFF130F38, 0xFF100C2E, 0x2A8A7DFF, 0xFF6A5CFF, 0xFF00FFC8, 0xFF7A6CFF,
             0xFF19143E, 0xFF8C80FF, listOf(FloorPattern.CIRCUIT, FloorPattern.DIAMOND, FloorPattern.HEX))
     )
 
@@ -84,17 +86,17 @@ object Environments {
      * crimson, hellfire orange (Encrypted), void purple or abyss neon blue (Crypto).
      */
     val inferno: List<Environment> = listOf(
-        Environment("hell_blood", "BLOOD SERVERS", 0xFF0B0202, 0xFF1A0606, 0xFF140404, 0x22FF4A4A, 0xFFFF2A2A, 0xFFFF7A1A, 0xFFFF2A2A,
+        Environment("hell_blood", tr("BLOOD SERVERS"), 0xFF0B0202, 0xFF1A0606, 0xFF140404, 0x22FF4A4A, 0xFFFF2A2A, 0xFFFF7A1A, 0xFFFF2A2A,
             0xFF210808, 0xFFFF3A3A, listOf(FloorPattern.PLATES, FloorPattern.GRID, FloorPattern.BRICK)),
-        Environment("hell_forge", "HELLFIRE FORGE", 0xFF0E0401, 0xFF1F0B03, 0xFF180802, 0x22FF8A3D, 0xFFFF6A00, 0xFFFF2A2A, 0xFFFF5A10,
+        Environment("hell_forge", tr("HELLFIRE FORGE"), 0xFF0E0401, 0xFF1F0B03, 0xFF180802, 0x22FF8A3D, 0xFFFF6A00, 0xFFFF2A2A, 0xFFFF5A10,
             0xFF261006, 0xFFFF7A1A, listOf(FloorPattern.BRICK, FloorPattern.GROOVES, FloorPattern.PLATES)),
-        Environment("hell_crimson", "CRIMSON CATHEDRAL", 0xFF0C0206, 0xFF1C0610, 0xFF16040C, 0x22FF4A8A, 0xFFD0103A, 0xFFFF2BD6, 0xFFE0184A,
+        Environment("hell_crimson", tr("CRIMSON CATHEDRAL"), 0xFF0C0206, 0xFF1C0610, 0xFF16040C, 0x22FF4A8A, 0xFFD0103A, 0xFFFF2BD6, 0xFFE0184A,
             0xFF220A14, 0xFFFF2A5A, listOf(FloorPattern.DIAMOND, FloorPattern.HEX, FloorPattern.BRICK)),
-        Environment("hell_void", "VOID ABYSS", 0xFF07020E, 0xFF140820, 0xFF10061A, 0x228A4AFF, 0xFF9B30FF, 0xFFFF2A55, 0xFF8A2AFF,
+        Environment("hell_void", tr("VOID ABYSS"), 0xFF07020E, 0xFF140820, 0xFF10061A, 0x228A4AFF, 0xFF9B30FF, 0xFFFF2A55, 0xFF8A2AFF,
             0xFF1A0A2A, 0xFFB04AFF, listOf(FloorPattern.HEX, FloorPattern.CIRCUIT, FloorPattern.DIAMOND)),
-        Environment("hell_crypto", "CRYPTO HELL", 0xFF02070C, 0xFF06141E, 0xFF051019, 0x2200C8FF, 0xFF00C8FF, 0xFFFF2A2A, 0xFF00AEEA,
+        Environment("hell_crypto", tr("CRYPTO HELL"), 0xFF02070C, 0xFF06141E, 0xFF051019, 0x2200C8FF, 0xFF00C8FF, 0xFFFF2A2A, 0xFF00AEEA,
             0xFF0A1C28, 0xFF2ED8FF, listOf(FloorPattern.CIRCUIT, FloorPattern.GRID, FloorPattern.DOTS)),
-        Environment("hell_ash", "ASH & EMBER", 0xFF0A0605, 0xFF19100C, 0xFF140C09, 0x22FFB04A, 0xFFFF3A1A, 0xFFFFC233, 0xFFFF4A20,
+        Environment("hell_ash", tr("ASH & EMBER"), 0xFF0A0605, 0xFF19100C, 0xFF140C09, 0x22FFB04A, 0xFFFF3A1A, 0xFFFFC233, 0xFFFF4A20,
             0xFF201410, 0xFFFF5A2A, listOf(FloorPattern.GROOVES, FloorPattern.PLATES, FloorPattern.DOTS))
     )
 

@@ -1,5 +1,7 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
+
 /**
  * Data-driven enemy archetypes. Adding an enemy is a new [EnemyDef] in
  * [Enemies.all]; the AI, spawner, renderer and codex read everything from here.
@@ -86,8 +88,8 @@ object Enemies {
 
     val MALWARE = EnemyDef(
         id = "malware", name = "MALWARE CRAWLER", tag = "M",
-        codex = "Malicious code that wants one thing: to reach you. Slow-witted, " +
-            "relentless, and it hurts on contact.",
+        codex = tr("Malicious code that wants one thing: to reach you. Slow-witted, " +
+            "relentless, and it hurts on contact."),
         shape = ShapeKind.CIRCLE, color = 0xFFFF2D55, radius = 18f,
         baseHp = 34f, baseSpeed = 92f, contactDamage = 12f, ai = AiKind.CHASER,
         xp = 2f, euros = 2, score = 10, minLevel = 1, weight = 10f
@@ -95,8 +97,8 @@ object Enemies {
 
     val SQL_INJECTOR = EnemyDef(
         id = "sql_injector", name = "SQL INJECTOR", tag = "SQL",
-        codex = "Keeps its distance and fires malformed queries at you. Break line " +
-            "of sight behind a server rack and it has to come looking.",
+        codex = tr("Keeps its distance and fires malformed queries at you. Break line " +
+            "of sight behind a server rack and it has to come looking."),
         shape = ShapeKind.DIAMOND, color = 0xFFFF7A1A, radius = 17f,
         baseHp = 26f, baseSpeed = 70f, contactDamage = 8f, ai = AiKind.SHOOTER,
         attack = AttackKind.AIMED, projectileDamage = 10f, projectileSpeed = 260f,
@@ -106,8 +108,8 @@ object Enemies {
 
     val BOT = EnemyDef(
         id = "bot", name = "BOT DRONE", tag = "B",
-        codex = "One compromised machine is harmless. A botnet is not — they " +
-            "always arrive in packs.",
+        codex = tr("One compromised machine is harmless. A botnet is not — they " +
+            "always arrive in packs."),
         shape = ShapeKind.TRIANGLE, color = 0xFFFF2EC4, radius = 12f,
         baseHp = 12f, baseSpeed = 135f, contactDamage = 7f, ai = AiKind.SWARMER,
         packSize = 3, xp = 1f, euros = 1, score = 5, minLevel = 2, weight = 6f
@@ -115,8 +117,8 @@ object Enemies {
 
     val EXPLOIT = EnemyDef(
         id = "exploit", name = "EXPLOIT RUNNER", tag = "X",
-        codex = "Finds a gap and rushes it. Watch for the targeting line, then " +
-            "step out of the way.",
+        codex = tr("Finds a gap and rushes it. Watch for the targeting line, then " +
+            "step out of the way."),
         shape = ShapeKind.TRIANGLE, color = 0xFFFFD426, radius = 17f,
         baseHp = 30f, baseSpeed = 80f, contactDamage = 16f, ai = AiKind.CHARGER,
         attackCooldown = 2.8f, windup = 0.75f, projectileSpeed = 620f,
@@ -126,8 +128,8 @@ object Enemies {
 
     val TROJAN = EnemyDef(
         id = "trojan", name = "TROJAN BRUTE", tag = "T",
-        codex = "Disguised as something harmless and wrapped in armour. Every hit " +
-            "loses a little to its plating — heavy shots work best.",
+        codex = tr("Disguised as something harmless and wrapped in armour. Every hit " +
+            "loses a little to its plating — heavy shots work best."),
         shape = ShapeKind.SQUARE, color = 0xFFC8102E, radius = 27f,
         baseHp = 120f, baseSpeed = 58f, contactDamage = 22f, ai = AiKind.CHASER,
         armor = 3f, xp = 6f, euros = 6, score = 30, minLevel = 5, weight = 3f
@@ -135,7 +137,7 @@ object Enemies {
 
     val PHISHER = EnemyDef(
         id = "phisher", name = "PHISH LURE", tag = "@",
-        codex = "Throws a fan of bait. Don't take it — move between the lines.",
+        codex = tr("Throws a fan of bait. Don't take it — move between the lines."),
         shape = ShapeKind.HEXAGON, color = 0xFFFF7A1A, radius = 18f,
         baseHp = 34f, baseSpeed = 64f, contactDamage = 8f, ai = AiKind.SHOOTER,
         attack = AttackKind.SPREAD, projectileDamage = 9f, projectileSpeed = 230f,
@@ -146,8 +148,8 @@ object Enemies {
 
     val SNIFFER = EnemyDef(
         id = "sniffer", name = "PACKET SNIFFER", tag = "<o>",
-        codex = "Watches from the far side of the network. When the red sight " +
-            "line locks, one very fast packet follows.",
+        codex = tr("Watches from the far side of the network. When the red sight " +
+            "line locks, one very fast packet follows."),
         shape = ShapeKind.DIAMOND, color = 0xFFFF4060, radius = 16f,
         baseHp = 28f, baseSpeed = 55f, contactDamage = 6f, ai = AiKind.SNIPER,
         attack = AttackKind.AIMED, projectileDamage = 20f, projectileSpeed = 640f,
@@ -158,7 +160,7 @@ object Enemies {
 
     val WORM = EnemyDef(
         id = "worm", name = "WORM", tag = "~>",
-        codex = "Self-replicating. Destroy it and it splits into smaller copies.",
+        codex = tr("Self-replicating. Destroy it and it splits into smaller copies."),
         shape = ShapeKind.CIRCLE, color = 0xFFFF5A36, radius = 22f,
         baseHp = 60f, baseSpeed = 82f, contactDamage = 14f, ai = AiKind.CHASER,
         splitInto = "wormlet", splitCount = 2,
@@ -167,7 +169,7 @@ object Enemies {
 
     val WORMLET = EnemyDef(
         id = "wormlet", name = "WORM FRAGMENT", tag = "~",
-        codex = "A copy of a copy. Fast and fragile.",
+        codex = tr("A copy of a copy. Fast and fragile."),
         shape = ShapeKind.CIRCLE, color = 0xFFFF8A66, radius = 12f,
         baseHp = 18f, baseSpeed = 128f, contactDamage = 8f, ai = AiKind.SWARMER,
         xp = 1f, euros = 1, score = 6, minLevel = 999, weight = 0f
@@ -175,8 +177,8 @@ object Enemies {
 
     val DDOS_NODE = EnemyDef(
         id = "ddos_node", name = "DDoS NODE", tag = "<<>>",
-        codex = "A stationary flood source. Rings of packets pour out of it on a " +
-            "steady rhythm — find the gaps.",
+        codex = tr("A stationary flood source. Rings of packets pour out of it on a " +
+            "steady rhythm — find the gaps."),
         shape = ShapeKind.CROSS, color = 0xFFFF2EC4, radius = 22f,
         baseHp = 80f, baseSpeed = 0f, contactDamage = 10f, ai = AiKind.TURRET,
         attack = AttackKind.RADIAL, projectileDamage = 9f, projectileSpeed = 170f,
@@ -186,8 +188,8 @@ object Enemies {
 
     val ROOTKIT = EnemyDef(
         id = "rootkit", name = "ROOTKIT PHANTOM", tag = "r00t",
-        codex = "Hides deep in the system and reappears somewhere else. It always " +
-            "flickers before it fires.",
+        codex = tr("Hides deep in the system and reappears somewhere else. It always " +
+            "flickers before it fires."),
         shape = ShapeKind.HEXAGON, color = 0xFFB0304A, radius = 18f,
         baseHp = 46f, baseSpeed = 0f, contactDamage = 10f, ai = AiKind.TELEPORTER,
         attack = AttackKind.SPREAD, projectileDamage = 11f, projectileSpeed = 240f,
@@ -199,8 +201,8 @@ object Enemies {
     // --- *GLITCHED* (later levels) --------------------------------------------
     val GLITCH_DAEMON = EnemyDef(
         id = "glitch_daemon", name = "*GLITCHED* DAEMON", tag = "#?!",
-        codex = "A background process that broke in half. Never the same shape twice; " +
-            "fires bursts, spreads or rings at random, and blinks around the room.",
+        codex = tr("A background process that broke in half. Never the same shape twice; " +
+            "fires bursts, spreads or rings at random, and blinks around the room."),
         shape = ShapeKind.STAR, color = 0xFFFF2EC4, radius = 19f,
         baseHp = 90f, baseSpeed = 84f, contactDamage = 14f, ai = AiKind.GLITCHED,
         projectileDamage = 11f, projectileSpeed = 250f, attackCooldown = 2.2f, windup = 0.45f,
@@ -209,7 +211,7 @@ object Enemies {
     )
     val GLITCH_SHARD = EnemyDef(
         id = "glitch_shard", name = "*GLITCHED* SHARD", tag = "%#",
-        codex = "A splinter of corrupted memory. Quick, erratic, and it never attacks the same way twice.",
+        codex = tr("A splinter of corrupted memory. Quick, erratic, and it never attacks the same way twice."),
         shape = ShapeKind.TRIANGLE, color = 0xFF7DF9FF, radius = 15f,
         baseHp = 55f, baseSpeed = 122f, contactDamage = 11f, ai = AiKind.GLITCHED,
         projectileDamage = 9f, projectileSpeed = 290f, attackCooldown = 1.7f, windup = 0.35f,
@@ -218,7 +220,7 @@ object Enemies {
     )
     val GLITCH_HYDRA = EnemyDef(
         id = "glitch_hydra", name = "*GLITCHED* HYDRA", tag = "<#>",
-        codex = "Three corrupted processes fused into one. Huge, unstable, and every attack pattern at once.",
+        codex = tr("Three corrupted processes fused into one. Huge, unstable, and every attack pattern at once."),
         shape = ShapeKind.OCTAGON, color = 0xFFFFD426, radius = 28f,
         baseHp = 260f, baseSpeed = 58f, contactDamage = 24f, ai = AiKind.GLITCHED,
         projectileDamage = 13f, projectileSpeed = 220f, attackCooldown = 2.6f, windup = 0.6f,
@@ -240,7 +242,7 @@ object Enemies {
     /** Worm Queen's brood: a small spiked red orb that rushes in packs. */
     val SWARMLING = EnemyDef(
         id = "swarmling", name = "SWARMLING", tag = "*",
-        codex = "Hatched from the Worm Queen's eggs. Tiny, spiked and never alone.",
+        codex = tr("Hatched from the Worm Queen's eggs. Tiny, spiked and never alone."),
         shape = ShapeKind.STAR, color = 0xFFFF2D6A, radius = 15f,
         baseHp = 14f, baseSpeed = 150f, contactDamage = 6f, ai = AiKind.SWARMER,
         xp = 1f, euros = 1, score = 6, minLevel = 999, weight = 0f, accent = AccentKind.SPIKES
@@ -249,8 +251,8 @@ object Enemies {
     /** Glitch Forge's decoy: a hologram copy of the forge that shoots; one hit pops it. */
     val HOLO_CLONE = EnemyDef(
         id = "holo_clone", name = "HOLO DECOY", tag = "[]",
-        codex = "A hologram the Glitch Forge projects to confuse you. It shoots like the real thing, " +
-            "but a single hit pops it.",
+        codex = tr("A hologram the Glitch Forge projects to confuse you. It shoots like the real thing, " +
+            "but a single hit pops it."),
         shape = ShapeKind.SQUARE, color = 0xFFFF3BD0, radius = 22f,
         baseHp = 1f, baseSpeed = 70f, contactDamage = 8f, ai = AiKind.SHOOTER,
         attack = AttackKind.SPREAD, projectileDamage = 10f, projectileSpeed = 260f, projectileCount = 3, spreadDegrees = 30f,
@@ -261,8 +263,8 @@ object Enemies {
     /** Botnet Monarch's escort: an armoured drone orb that rides its orbit ring and shoots. */
     val ORBIT_DRONE = EnemyDef(
         id = "orbit_drone", name = "MONARCH DRONE", tag = "o",
-        codex = "Rides the Botnet Monarch's orbit ring and fires on its command. Shoot them down to " +
-            "break the ring.",
+        codex = tr("Rides the Botnet Monarch's orbit ring and fires on its command. Shoot them down to " +
+            "break the ring."),
         shape = ShapeKind.CIRCLE, color = 0xFFFF3A3A, radius = 18f,
         baseHp = 30f, baseSpeed = 0f, contactDamage = 10f, ai = AiKind.SHOOTER,
         attack = AttackKind.AIMED, projectileDamage = 11f, projectileSpeed = 300f,
@@ -273,7 +275,7 @@ object Enemies {
     /** One of Circuit Hydra's heads (HP set from the hydra's on spawn); while any lives, the core is shielded. */
     val HYDRA_HEAD = EnemyDef(
         id = "hydra_head", name = "HYDRA HEAD", tag = "Θ",
-        codex = "One of the Circuit Hydra's dragon heads. While any head lives, the hydra's core is shielded.",
+        codex = tr("One of the Circuit Hydra's dragon heads. While any head lives, the hydra's core is shielded."),
         shape = ShapeKind.CIRCLE, color = 0xFF4CFF6A, radius = 40f,
         baseHp = 60f, baseSpeed = 0f, contactDamage = 14f, ai = AiKind.CHASER,
         xp = 0f, euros = 0, score = 0, minLevel = 999, weight = 0f
@@ -303,12 +305,12 @@ enum class EliteModifier(
     val attackRateMul: Float,
     val damageTakenMul: Float
 ) {
-    ENCRYPTED("ENCRYPTED", 0xFF2EE6FF, 1.4f, 1f, 1f, 0.6f),
-    OVERCLOCKED("OVERCLOCKED", 0xFFFFE14D, 1.3f, 1.35f, 1.35f, 1f),
-    CORRUPTED("CORRUPTED", 0xFF9B4DFF, 1.5f, 1f, 1f, 1f),
-    ARMORED("ARMORED", 0xFFB8C4D6, 2.4f, 0.85f, 1f, 1f),
-    REPLICATING("REPLICATING", 0xFF5CFF7A, 1.4f, 1f, 1f, 1f),
-    VOLATILE("VOLATILE", 0xFFFF9A1A, 1.4f, 1.1f, 1f, 1f);
+    ENCRYPTED(tr("ENCRYPTED"), 0xFF2EE6FF, 1.4f, 1f, 1f, 0.6f),
+    OVERCLOCKED(tr("OVERCLOCKED"), 0xFFFFE14D, 1.3f, 1.35f, 1.35f, 1f),
+    CORRUPTED(tr("CORRUPTED"), 0xFF9B4DFF, 1.5f, 1f, 1f, 1f),
+    ARMORED(tr("ARMORED"), 0xFFB8C4D6, 2.4f, 0.85f, 1f, 1f),
+    REPLICATING(tr("REPLICATING"), 0xFF5CFF7A, 1.4f, 1f, 1f, 1f),
+    VOLATILE(tr("VOLATILE"), 0xFFFF9A1A, 1.4f, 1.1f, 1f, 1f);
 
     companion object {
         const val REWARD_MUL = 2.5f

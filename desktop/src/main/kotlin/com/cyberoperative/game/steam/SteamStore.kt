@@ -1,5 +1,6 @@
 package com.cyberoperative.game.steam
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.DiamondPack
 import com.sun.jna.Function
 import com.sun.jna.Memory
@@ -71,20 +72,20 @@ object SteamStore {
 
     /** Opens the Steam checkout for [pack]. Returns a message for the store screen. */
     fun startPurchase(pack: DiamondPack): String {
-        if (!SteamService.running) return "Steam isn't running. Start Steam to buy ◇."
-        if (!available) return "The Steam store isn't available right now."
-        val def = itemDefs[pack.productId] ?: return "This pack isn't on the Steam store yet."
+        if (!SteamService.running) return tr("Steam isn't running. Start Steam to buy ◇.")
+        if (!available) return tr("The Steam store isn't available right now.")
+        val def = itemDefs[pack.productId] ?: return tr("This pack isn't on the Steam store yet.")
         return try {
             val defs = Memory(4).apply { setInt(0, def) }
             val qty = Memory(4).apply { setInt(0, 1) }
             val call = fn("StartPurchase").invokeLong(arrayOf(inv, defs, qty, 1))
-            if (call == 0L) "Steam couldn't open the checkout. Try again in a moment."
+            if (call == 0L) tr("Steam couldn't open the checkout. Try again in a moment.")
             else {
                 pollUntil = System.currentTimeMillis() + 10 * 60_000
-                "Complete the purchase in the Steam overlay. ◇ arrive as soon as Steam confirms."
+                tr("Complete the purchase in the Steam overlay. ◇ arrive as soon as Steam confirms.")
             }
         } catch (t: Throwable) {
-            "Steam checkout failed: ${t.message ?: "unknown error"}"
+            tr("Steam checkout failed: {0}", t.message ?: "unknown error")
         }
     }
 

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.idle
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.Gear
 import com.cyberoperative.game.save.PlayerProfile
 import kotlinx.coroutines.flow.StateFlow
@@ -31,7 +32,7 @@ object IdleRuns {
     /** The player recalls the operator: the run ends now and keeps what it has earned. */
     fun recall(s: IdleRunState, now: Long): IdleRunState =
         if (!s.active) s else IdleRunSimulator.advance(s, now).let {
-            if (it.active) it.copy(status = IdleStatus.COMPLETED, endedAt = it.simulatedTo, endReason = "RECALLED BY PLAYER") else it
+            if (it.active) it.copy(status = IdleStatus.COMPLETED, endedAt = it.simulatedTo, endReason = tr("RECALLED BY PLAYER")) else it
         }
 
     /**

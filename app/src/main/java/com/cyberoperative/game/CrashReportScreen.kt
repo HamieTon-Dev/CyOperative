@@ -1,5 +1,6 @@
 package com.cyberoperative.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,11 +28,11 @@ fun CrashReportScreen(report: String, onContinue: () -> Unit) {
         Modifier.fillMaxSize().background(Palette.SurfaceSunken).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("THE GAME CRASHED LAST TIME", color = Palette.Red, style = MaterialTheme.typography.titleMedium)
-        Text("Tap COPY and send this report to the developer.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+        Text(tr("THE GAME CRASHED LAST TIME"), color = Palette.Red, style = MaterialTheme.typography.titleMedium)
+        Text(tr("Tap COPY and send this report to the developer."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CyberButton("COPY", Modifier.weight(1f), accent = Palette.Cyan) { clipboard.setText(AnnotatedString(report)) }
-            CyberButton("CONTINUE", Modifier.weight(1f), accent = Palette.Green) { onContinue() }
+            CyberButton(tr("COPY"), Modifier.weight(1f), accent = Palette.Cyan) { clipboard.setText(AnnotatedString(report)) }
+            CyberButton(tr("CONTINUE"), Modifier.weight(1f), accent = Palette.Green) { onContinue() }
         }
         Text(
             report, color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall,

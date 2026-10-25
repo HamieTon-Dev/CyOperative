@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -80,7 +81,7 @@ import com.cyberoperative.game.ui.common.LivingBackground
 import com.cyberoperative.game.ui.theme.Palette
 
 /** CHARACTER screen tabs (owner's mock-ups, 2026-10-13). */
-enum class CharTab(val label: String) { OVERVIEW("OVERVIEW"), GEAR("GEAR"), PETS("PETS"), SKILLS("SKILLS"), VAULT("DATA VAULT") }
+enum class CharTab(val label: String) { OVERVIEW(tr("OVERVIEW")), GEAR(tr("GEAR")), PETS(tr("PETS")), SKILLS(tr("SKILLS")), VAULT(tr("DATA VAULT")) }
 
 /** Where an item sits right now. */
 private enum class Where { EQUIPPED, BACKPACK, VAULT }
@@ -183,8 +184,8 @@ fun CharacterScreen(
                             // Owner: a button on the inventory to send eggs to the incubator.
                             if (p.eggs.isNotEmpty() || p.incubator.busy) {
                                 CyberButton(
-                                    "EGGS (${p.eggs.size}) → INCUBATOR", Modifier.fillMaxWidth(), accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
-                                    subtitle = p.incubator.eggsIn.size.takeIf { it > 0 }?.let { "HATCHING: $it of ${com.cyberoperative.game.data.Pets.SLOTS}" } ?: "SEND EGGS TO HATCH"
+                                    tr("EGGS ({0}) → INCUBATOR", p.eggs.size), Modifier.fillMaxWidth(), accent = androidx.compose.ui.graphics.Color(0xFFFF6A1A),
+                                    subtitle = p.incubator.eggsIn.size.takeIf { it > 0 }?.let { tr("HATCHING: {0} of {1}", it, com.cyberoperative.game.data.Pets.SLOTS) } ?: tr("SEND EGGS TO HATCH")
                                 ) { tab = CharTab.PETS; selected = null }
                                 Spacer(Modifier.height(6.dp))
                             }
@@ -223,10 +224,10 @@ private class GearActions(
 private fun Header(p: PlayerProfile, tab: CharTab, wide: Boolean, inRun: Boolean, onBack: () -> Unit, onTab: (CharTab) -> Unit) {
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(if (inRun) "< RESUME" else "< BACK", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
+            Text(if (inRun) tr("< RESUME") else tr("< BACK"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.clickable(onClick = onBack).padding(vertical = 6.dp, horizontal = 4.dp))
             Spacer(Modifier.width(10.dp))
-            Text(when (tab) { CharTab.VAULT -> "DATA VAULT"; CharTab.PETS -> "COMPANIONS"; else -> "CHARACTER" }, color = Palette.TextPrimary,
+            Text(when (tab) { CharTab.VAULT -> tr("DATA VAULT"); CharTab.PETS -> tr("COMPANIONS"); else -> tr("CHARACTER") }, color = Palette.TextPrimary,
                 style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 1)
             if (wide) TabRow(tab, onTab)
             Spacer(Modifier.width(10.dp))
@@ -280,27 +281,27 @@ private fun OverviewTab(p: PlayerProfile, wide: Boolean, inRun: Boolean, onEditL
     val info: @Composable () -> Unit = {
         Panel {
             Column {
-                Text(p.characterName.ifBlank { "Operative" }, color = Palette.TextPrimary, style = MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.characterName.ifBlank { tr("Operative") }, color = Palette.TextPrimary, style = MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${cls.name}  •  ${st.label.uppercase()}", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
                 XpBar(st.fraction)
                 Spacer(Modifier.height(8.dp))
-                Text("CLASS TRAITS", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                Text(tr("CLASS TRAITS"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
                 for (t in classTraits(cls.id)) Text("· $t", color = Palette.Cyan, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
-                Text("STATS (WITH GEAR)", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
-                StatLine("Max HP", "%,.0f".format(stats.maxHp))
-                StatLine("Damage", "%,.0f".format(stats.damage))
-                StatLine("Attack speed", "%.2f/s".format(stats.fireRate))
-                StatLine("Critical", "%.0f%% · ×%.2f".format(stats.critChance * 100f, stats.critMul))
-                StatLine("Armor", "%,.0f (%.0f%% at your level)".format(stats.armor, com.cyberoperative.game.engine.Armor.reduction(stats.armor, st.level) * 100f))
-                StatLine("Move speed", "%.0f".format(stats.moveSpeed))
+                Text(tr("STATS (WITH GEAR)"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                StatLine(tr("Max HP"), "%,.0f".format(stats.maxHp))
+                StatLine(tr("Damage"), "%,.0f".format(stats.damage))
+                StatLine(tr("Attack speed"), "%.2f/s".format(stats.fireRate))
+                StatLine(tr("Critical"), "%.0f%% · ×%.2f".format(stats.critChance * 100f, stats.critMul))
+                StatLine(tr("Armor"), tr("%,.0f (%.0f%% at your level)").format(stats.armor, com.cyberoperative.game.engine.Armor.reduction(stats.armor, st.level) * 100f))
+                StatLine(tr("Move speed"), "%.0f".format(stats.moveSpeed))
             }
         }
     }
     val look: @Composable () -> Unit = {
         Panel {
             Column {
-                Text("APPEARANCE", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                Text(tr("APPEARANCE"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
                 for ((part, name) in com.cyberoperative.game.data.Appearance.names(cls.id, p.look)) {
                     Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(part, color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.width(56.dp))
@@ -309,15 +310,15 @@ private fun OverviewTab(p: PlayerProfile, wide: Boolean, inRun: Boolean, onEditL
                 }
                 if (onEditLook != null) {
                     Spacer(Modifier.height(6.dp))
-                    CyberButton("✎ EDIT APPEARANCE", Modifier.fillMaxWidth(), onClick = onEditLook)
+                    CyberButton(tr("✎ EDIT APPEARANCE"), Modifier.fillMaxWidth(), onClick = onEditLook)
                 }
             }
         }
     }
     val buttons: @Composable () -> Unit = {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (onChange != null) CyberButton("⇄ CHANGE CHARACTER", Modifier.weight(1f), onClick = onChange)
-            if (onDeploy != null && !inRun) CyberButton("DEPLOY »", Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onDeploy)
+            if (onChange != null) CyberButton(tr("⇄ CHANGE CHARACTER"), Modifier.weight(1f), onClick = onChange)
+            if (onDeploy != null && !inRun) CyberButton(tr("DEPLOY »"), Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onDeploy)
         }
     }
     if (wide) {
@@ -385,7 +386,7 @@ private fun GearTab(
     val doll: @Composable (Modifier) -> Unit = { m -> PaperDoll(p, m, selected, actions, drag, onDrop) }
     val pack: @Composable (Modifier) -> Unit = { m -> BackpackPanel(p, m, selected, actions, drag, onDrop, cols = 5) }
     val card: @Composable (Modifier) -> Unit = { m -> ItemPanel(p, sel, m, actions) }
-    val hint = if (coopRun) "Co-op: gear changes apply on your next run." else if (com.cyberoperative.game.platform.AppInfo.desktop) "Drag an item to a matching gear slot" else "Hold and drag an item onto a matching gear slot"
+    val hint = if (coopRun) tr("Co-op: gear changes apply on your next run.") else if (com.cyberoperative.game.platform.AppInfo.desktop) tr("Drag an item to a matching gear slot") else tr("Hold and drag an item onto a matching gear slot")
     if (wide) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -396,7 +397,7 @@ private fun GearTab(
             Spacer(Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("ⓘ $hint", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                CyberButton("▤ OPEN DATA VAULT", accent = Palette.Cyan, onClick = onOpenVault)
+                CyberButton(tr("▤ OPEN DATA VAULT"), accent = Palette.Cyan, onClick = onOpenVault)
             }
         }
     } else {
@@ -408,7 +409,7 @@ private fun GearTab(
             Spacer(Modifier.height(6.dp))
             Text("ⓘ $hint", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
-            CyberButton("▤ OPEN DATA VAULT", Modifier.fillMaxWidth(), onClick = onOpenVault)
+            CyberButton(tr("▤ OPEN DATA VAULT"), Modifier.fillMaxWidth(), onClick = onOpenVault)
             Spacer(Modifier.height(12.dp))
         }
     }
@@ -420,8 +421,8 @@ private fun PaperDoll(p: PlayerProfile, modifier: Modifier, selected: Long?, act
     val st = OpProgress.of(p.operativeXp)
     Panel(modifier) {
         Column(Modifier.fillMaxSize()) {
-            Text(p.characterName.ifBlank { "Operative" }, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge, maxLines = 1)
-            Text("${Operatives.byId(p.selectedOperative).name}  •  LEVEL ${st.level}", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(p.characterName.ifBlank { tr("Operative") }, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge, maxLines = 1)
+            Text(tr("{0}  •  LEVEL {1}", Operatives.byId(p.selectedOperative).name, st.level), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 SlotColumn(p, leftSlots, selected, actions, drag, onDrop)
@@ -463,14 +464,14 @@ private fun BackpackPanel(p: PlayerProfile, modifier: Modifier, selected: Long?,
     Panel(modifier.onGloballyPositioned { drag.targets["backpack"] = it.boundsInRoot() }, accent = if (drag.item != null) Palette.Cyan else Palette.Divider) {
         Column(Modifier.fillMaxSize()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("BACKPACK", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
+                Text(tr("BACKPACK"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall, maxLines = 1, softWrap = false)
                 Spacer(Modifier.width(6.dp))
                 Text("${p.backpack.size}/${Gear.BACKPACK_SIZE}", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium, maxLines = 1, modifier = Modifier.weight(1f))
                 Spacer(Modifier.width(8.dp))
                 SortChip(sort) { sort = it }
             }
             Spacer(Modifier.height(6.dp))
-            if (items.isEmpty()) Text("Elites and bosses drop gear. It lands here.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+            if (items.isEmpty()) Text(tr("Elites and bosses drop gear. It lands here."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             LazyVerticalGrid(GridCells.Fixed(cols), Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(items, key = { it.uid }) { item ->
                     GearCell(item, item.uid == selected, Modifier.aspectRatio(1f), drag, onDrop) { actions.select(item.uid) }
@@ -481,7 +482,7 @@ private fun BackpackPanel(p: PlayerProfile, modifier: Modifier, selected: Long?,
 }
 
 enum class GearSort(val label: String) {
-    RARITY("RARITY"), NEWEST("NEWEST"), LEVEL("LEVEL"), SLOT("SLOT");
+    RARITY(tr("RARITY")), NEWEST(tr("NEWEST")), LEVEL(tr("LEVEL")), SLOT(tr("SLOT"));
 
     fun apply(list: List<GearItem>): List<GearItem> = when (this) {
         RARITY -> list.sortedWith(compareByDescending<GearItem> { it.rarity.ordinal }.thenByDescending { it.level }.thenByDescending { it.uid })
@@ -494,7 +495,7 @@ enum class GearSort(val label: String) {
 @Composable
 private fun SortChip(sort: GearSort, onSort: (GearSort) -> Unit) {
     Text(
-        "Sort: ${sort.label} ▾", color = Palette.TextPrimary, style = MaterialTheme.typography.labelMedium,
+        tr("Sort: {0} ▾", sort.label), color = Palette.TextPrimary, style = MaterialTheme.typography.labelMedium,
         modifier = Modifier.background(Palette.SurfaceRaised, RoundedCornerShape(6.dp)).border(1.dp, Palette.Divider, RoundedCornerShape(6.dp))
             .clickable { onSort(GearSort.entries[(sort.ordinal + 1) % GearSort.entries.size]) }.padding(horizontal = 8.dp, vertical = 5.dp)
     )
@@ -522,7 +523,7 @@ private fun GearCell(item: GearItem?, selected: Boolean, modifier: Modifier, dra
     ) {
         GearIconView(item, Modifier.fillMaxSize(), dim = drag.item?.uid == item?.uid && item != null)
         if (item != null) {
-            if (item.fresh) Text("NEW", color = Palette.Cyan, fontSize = 8.sp, fontWeight = FontWeight.Bold,
+            if (item.fresh) Text(tr("NEW"), color = Palette.Cyan, fontSize = 8.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopStart).padding(2.dp).background(Palette.Background.copy(alpha = 0.8f), RoundedCornerShape(3.dp)).padding(horizontal = 2.dp))
             if (item.locked) Text("🔒", fontSize = 9.sp, modifier = Modifier.align(Alignment.BottomStart).padding(2.dp))
             Text("${item.level}", color = Palette.TextPrimary, fontSize = 8.sp, modifier = Modifier.align(Alignment.BottomEnd).padding(3.dp))
@@ -541,8 +542,8 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
     Panel(modifier, accent = item?.let { com.cyberoperative.game.ui.common.rarityColor(it.rarity).copy(alpha = 0.7f) } ?: Palette.Divider, rarity = item?.rarity) {
         if (item == null) {
             Column {
-                Text("SELECT AN ITEM", color = Palette.TextSecondary, style = MaterialTheme.typography.titleMedium)
-                Text("Tap any piece to see its stats. Gear drops from elites and bosses, from 2 levels under yours to 2 over (never past ${OpProgress.MAX_LEVEL}).",
+                Text(tr("SELECT AN ITEM"), color = Palette.TextSecondary, style = MaterialTheme.typography.titleMedium)
+                Text(tr("Tap any piece to see its stats. Gear drops from elites and bosses, from 2 levels under yours to 2 over (never past {0}).", OpProgress.MAX_LEVEL),
                     color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
                 RarityLegend()
@@ -557,55 +558,55 @@ private fun ItemPanel(p: PlayerProfile, item: GearItem?, modifier: Modifier, act
                 Text(item.name.uppercase(), color = c, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 Text(if (item.locked) "🔒" else "🔓", fontSize = 16.sp, modifier = Modifier.clickable { actions.lock(item.uid) }.padding(4.dp))
             }
-            Text("${item.rarity.label}  •  LEVEL ${item.level}  •  ${item.slot.label}", color = c.copy(alpha = 0.85f), style = MaterialTheme.typography.labelLarge)
+            Text(tr("{0}  •  LEVEL {1}  •  {2}", item.rarity.label, item.level, item.slot.label), color = c.copy(alpha = 0.85f), style = MaterialTheme.typography.labelLarge)
             GearIconView(item, Modifier.fillMaxWidth().height(120.dp).padding(vertical = 6.dp), frame = false)
             Text(item.mainLabel, color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge)
             Text(item.mainValue, color = Palette.TextPrimary, style = MaterialTheme.typography.headlineMedium)
             GearBank.versus(p, item)?.let { dv ->
                 val up = dv >= 0f
-                Text("${if (up) "+" else "−"}${"%.0f".format(kotlin.math.abs(dv))} vs equipped ${if (up) "▲" else "▼"}",
+                Text(tr("{0}{1} vs equipped {2}", if (up) "+" else "−", "%.0f".format(kotlin.math.abs(dv)), if (up) "▲" else "▼"),
                     color = if (up) Palette.Green else Palette.Red, style = MaterialTheme.typography.labelLarge)
             }
-            item.style?.let { Text(it.noun.uppercase() + if (it.rateMul != 1f) " · ×%.2f fire rate".format(it.rateMul) else "", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium) }
+            item.style?.let { Text(it.noun.uppercase() + if (it.rateMul != 1f) tr(" · ×%.2f fire rate").format(it.rateMul) else "", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium) }
             Spacer(Modifier.height(4.dp))
             for (a in item.affixes) Text("◆ " + a.stat.format(a.value), color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall)
             com.cyberoperative.game.data.GearPerks.text(item)?.let { Text("★ " + it, color = c, style = MaterialTheme.typography.labelMedium) }
             Spacer(Modifier.height(4.dp))
             Text(item.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             item.classOnly?.let { cid ->
-                if (cid != p.selectedOperative) Text("Only a ${Operatives.byId(cid).name} can equip this.", color = Palette.Red, style = MaterialTheme.typography.labelMedium)
+                if (cid != p.selectedOperative) Text(tr("Only a {0} can equip this.", Operatives.byId(cid).name), color = Palette.Red, style = MaterialTheme.typography.labelMedium)
             }
             Spacer(Modifier.height(8.dp))
             when (where) {
-                Where.EQUIPPED -> CyberButton("UNEQUIP", Modifier.fillMaxWidth()) { actions.unequip(item.slot) }
+                Where.EQUIPPED -> CyberButton(tr("UNEQUIP"), Modifier.fillMaxWidth()) { actions.unequip(item.slot) }
                 Where.BACKPACK -> {
-                    CyberButton("EQUIP", Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = false, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
+                    CyberButton(tr("EQUIP"), Modifier.fillMaxWidth(), accent = Palette.Cyan, primary = false, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
                     Spacer(Modifier.height(6.dp))
-                    CyberButton("STORE IN VAULT", Modifier.fillMaxWidth(), enabled = p.vault.size < Gear.VAULT_SIZE) { actions.toVault(item.uid) }
+                    CyberButton(tr("STORE IN VAULT"), Modifier.fillMaxWidth(), enabled = p.vault.size < Gear.VAULT_SIZE) { actions.toVault(item.uid) }
                     if (!item.locked && !actions.canSell) {
                         Spacer(Modifier.height(6.dp))
-                        Text("Sell gear between runs or in solo.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                        Text(tr("Sell gear between runs or in solo."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                     }
                     if (!item.locked && actions.canSell) {
                         Spacer(Modifier.height(6.dp))
                         var confirmSell by remember(item.uid) { mutableStateOf(false) }
                         val price = Gear.sellPrice(item)
-                        CyberButton(if (confirmSell) "TAP AGAIN: SELL FOR €%,d".format(price) else "SELL  €%,d".format(price),
+                        CyberButton(if (confirmSell) tr("TAP AGAIN: SELL FOR €%,d").format(price) else tr("SELL  €%,d").format(price),
                             Modifier.fillMaxWidth(), accent = Palette.Gold) {
                             if (confirmSell) actions.sell(item.uid) else confirmSell = true
                         }
                     }
                 }
                 Where.VAULT -> {
-                    CyberButton("EQUIP", Modifier.fillMaxWidth(), accent = Palette.Cyan, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
+                    CyberButton(tr("EQUIP"), Modifier.fillMaxWidth(), accent = Palette.Cyan, enabled = item.usableBy(p.selectedOperative)) { actions.equip(item.uid) }
                     Spacer(Modifier.height(6.dp))
-                    CyberButton("MOVE TO BACKPACK", Modifier.fillMaxWidth(), enabled = p.backpack.size < Gear.BACKPACK_SIZE) { actions.toBackpack(item.uid) }
+                    CyberButton(tr("MOVE TO BACKPACK"), Modifier.fillMaxWidth(), enabled = p.backpack.size < Gear.BACKPACK_SIZE) { actions.toBackpack(item.uid) }
                 }
                 null -> {}
             }
             if (where != Where.EQUIPPED && !item.locked) {
                 Spacer(Modifier.height(6.dp))
-                CyberButton(if (confirmDiscard) "TAP AGAIN TO DESTROY" else "DISCARD", Modifier.fillMaxWidth(), accent = Palette.Red) {
+                CyberButton(if (confirmDiscard) tr("TAP AGAIN TO DESTROY") else tr("DISCARD"), Modifier.fillMaxWidth(), accent = Palette.Red) {
                     if (confirmDiscard) actions.discard(item.uid) else confirmDiscard = true
                 }
             }
@@ -620,7 +621,7 @@ private fun RarityLegend() {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 1.dp)) {
                 Box(Modifier.size(10.dp).background(com.cyberoperative.game.ui.common.rarityColor(r), RoundedCornerShape(2.dp)))
                 Spacer(Modifier.width(6.dp))
-                Text(r.label + if (r.minInferno > 0) "  · INFERNO ${roman(r.minInferno)}+" else "", color = com.cyberoperative.game.ui.common.rarityColor(r), style = MaterialTheme.typography.labelSmall)
+                Text(r.label + if (r.minInferno > 0) tr("  · INFERNO {0}+", roman(r.minInferno)) else "", color = com.cyberoperative.game.ui.common.rarityColor(r), style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -633,11 +634,11 @@ private fun roman(n: Int): String = listOf("", "I", "II", "III", "IV", "V", "VI"
 // ---------------------------------------------------------------------------------------
 
 private enum class VaultFilter(val label: String, val slots: Set<GearSlot>?) {
-    ALL("ALL", null),
-    WEAPONS("WEAPONS", setOf(GearSlot.PRIMARY, GearSlot.SECONDARY)),
-    ARMOR("ARMOR", setOf(GearSlot.HELMET, GearSlot.CHEST, GearSlot.GLOVES, GearSlot.BOOTS)),
-    IMPLANTS("IMPLANTS", setOf(GearSlot.IMPLANT)),
-    CORES("CORES", setOf(GearSlot.CORE))
+    ALL(tr("ALL"), null),
+    WEAPONS(tr("WEAPONS"), setOf(GearSlot.PRIMARY, GearSlot.SECONDARY)),
+    ARMOR(tr("ARMOR"), setOf(GearSlot.HELMET, GearSlot.CHEST, GearSlot.GLOVES, GearSlot.BOOTS)),
+    IMPLANTS(tr("IMPLANTS"), setOf(GearSlot.IMPLANT)),
+    CORES(tr("CORES"), setOf(GearSlot.CORE))
 }
 
 @Composable
@@ -657,7 +658,7 @@ private fun VaultTab(
         Panel(m.onGloballyPositioned { drag.targets["vault"] = it.boundsInRoot() }, accent = if (drag.item != null) Palette.Cyan else Palette.Divider) {
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("STORED ITEMS · ALL CHARACTERS", color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
+                    Text(tr("STORED ITEMS · ALL CHARACTERS"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.width(8.dp))
                     Text("${"%,d".format(p.vault.size)} / ${"%,d".format(Gear.VAULT_SIZE)}", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge)
                     Spacer(Modifier.width(8.dp))
@@ -672,7 +673,7 @@ private fun VaultTab(
                         textStyle = MaterialTheme.typography.bodyMedium.copy(color = Palette.TextPrimary),
                         cursorBrush = SolidColor(Palette.Cyan),
                         modifier = Modifier.weight(1f).typingGuard().background(Palette.SurfaceSunken, RoundedCornerShape(6.dp)).border(1.dp, Palette.Divider, RoundedCornerShape(6.dp)).padding(8.dp),
-                        decorationBox = { inner -> if (query.isEmpty()) Text("⌕ Search gear…", color = Palette.TextMuted, style = MaterialTheme.typography.bodyMedium); inner() }
+                        decorationBox = { inner -> if (query.isEmpty()) Text(tr("⌕ Search gear…"), color = Palette.TextMuted, style = MaterialTheme.typography.bodyMedium); inner() }
                     )
                     Spacer(Modifier.width(6.dp))
                     SortChip(sort) { sort = it }
@@ -687,7 +688,7 @@ private fun VaultTab(
                     }
                 }
                 Spacer(Modifier.height(6.dp))
-                if (shown.isEmpty()) Text(if (p.vault.isEmpty()) "The vault is empty. Store gear here from your backpack (1,500 slots)." else "Nothing matches.",
+                if (shown.isEmpty()) Text(if (p.vault.isEmpty()) tr("The vault is empty. Store gear here from your backpack (1,500 slots).") else tr("Nothing matches."),
                     color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                 LazyVerticalGrid(GridCells.Adaptive(64.dp), Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(shown, key = { it.uid }) { item ->
@@ -703,8 +704,8 @@ private fun VaultTab(
             BackpackPanel(p, Modifier.fillMaxWidth().weight(1f), selected, actions, drag, onDrop, cols = 3)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallButton("⇩ DEPOSIT ALL", Modifier.weight(1f), onClick = onDepositAll)
-                SmallButton("↩ BACK TO GEAR", Modifier.weight(1f), onClick = onBackToGear)
+                SmallButton(tr("⇩ DEPOSIT ALL"), Modifier.weight(1f), onClick = onDepositAll)
+                SmallButton(tr("↩ BACK TO GEAR"), Modifier.weight(1f), onClick = onBackToGear)
             }
         }
     }
@@ -721,8 +722,8 @@ private fun VaultTab(
             BackpackStrip(p, selected, actions, drag, onDrop)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallButton("⇩ DEPOSIT ALL", Modifier.weight(1f), onClick = onDepositAll)
-                SmallButton("↩ BACK TO GEAR", Modifier.weight(1f), onClick = onBackToGear)
+                SmallButton(tr("⇩ DEPOSIT ALL"), Modifier.weight(1f), onClick = onDepositAll)
+                SmallButton(tr("↩ BACK TO GEAR"), Modifier.weight(1f), onClick = onBackToGear)
             }
         }
     }
@@ -733,7 +734,7 @@ private fun VaultTab(
 private fun BackpackStrip(p: PlayerProfile, selected: Long?, actions: GearActions, drag: GearDrag, onDrop: (GearItem, Offset) -> Unit) {
     Column(Modifier.fillMaxWidth().onGloballyPositioned { drag.targets["backpack"] = it.boundsInRoot() }
         .background(Palette.Surface.copy(alpha = 0.92f), RoundedCornerShape(10.dp)).border(1.dp, if (drag.item != null) Palette.Cyan else Palette.Divider, RoundedCornerShape(10.dp)).padding(8.dp)) {
-        Text("▦ BACKPACK  ${p.backpack.size} / ${Gear.BACKPACK_SIZE}", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+        Text(tr("▦ BACKPACK  {0} / {1}", p.backpack.size, Gear.BACKPACK_SIZE), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.height(4.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (item in GearSort.RARITY.apply(p.backpack)) GearCell(item, item.uid == selected, Modifier.size(56.dp), drag, onDrop) { actions.select(item.uid) }
@@ -752,7 +753,7 @@ private fun SkillsTab(p: PlayerProfile, wide: Boolean, onOverclock: (() -> Unit)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Panel {
             Column {
-                Text("CLASS SKILLS · ${cls.name}", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+                Text(tr("CLASS SKILLS · {0}", cls.name), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
                 Text(cls.passive, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
                 for (i in 0..1) com.cyberoperative.game.data.Spells.of(cls.id, i)?.let { s ->
@@ -767,8 +768,8 @@ private fun SkillsTab(p: PlayerProfile, wide: Boolean, onOverclock: (() -> Unit)
                 Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("»", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge, modifier = Modifier.width(40.dp), textAlign = TextAlign.Center)
                     Column(Modifier.weight(1f)) {
-                        Text("DASH  ·  SPACE", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
-                        Text("A quick burst of speed out of trouble.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                        Text(tr("DASH  ·  SPACE"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                        Text(tr("A quick burst of speed out of trouble."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -776,11 +777,11 @@ private fun SkillsTab(p: PlayerProfile, wide: Boolean, onOverclock: (() -> Unit)
         Spacer(Modifier.height(10.dp))
         Panel {
             Column {
-                Text("OVERCLOCK", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
-                Text(if (st.level < OpProgress.MAX_LEVEL) "Reach OP Lv ${OpProgress.MAX_LEVEL} to start earning Overclock points (OP Lv ${st.level} now)."
-                    else "Overclock ${st.overclock}: ${OpProgress.boardPoints(st, boardSpent(p.permanentUpgrades))} point(s) to spend on the board.",
+                Text(tr("OVERCLOCK"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+                Text(if (st.level < OpProgress.MAX_LEVEL) tr("Reach OP Lv {0} to start earning Overclock points (OP Lv {1} now).", OpProgress.MAX_LEVEL, st.level)
+                    else tr("Overclock {0}: {1} point(s) to spend on the board.", st.overclock, OpProgress.boardPoints(st, boardSpent(p.permanentUpgrades))),
                     color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
-                if (onOverclock != null) { Spacer(Modifier.height(6.dp)); CyberButton("OPEN OVERCLOCK BOARD", Modifier.fillMaxWidth(), onClick = onOverclock) }
+                if (onOverclock != null) { Spacer(Modifier.height(6.dp)); CyberButton(tr("OPEN OVERCLOCK BOARD"), Modifier.fillMaxWidth(), onClick = onOverclock) }
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -799,8 +800,8 @@ private fun CharacterPicker(save: SaveRepository, p: PlayerProfile, onClose: () 
             Modifier.padding(20.dp).widthIn(max = 560.dp).background(Palette.Surface, RoundedCornerShape(12.dp))
                 .border(2.dp, Palette.Cyan, RoundedCornerShape(12.dp)).clickable(enabled = false) {}.padding(16.dp)
         ) {
-            Text("CHANGE CHARACTER", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
-            Text("Each character keeps its own level, Overclock, gear, backpack and Data Vault.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+            Text(tr("CHANGE CHARACTER"), color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            Text(tr("Each character keeps its own level, Overclock, gear, backpack and Data Vault."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(10.dp))
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 for (c in Characters.all(p)) {
@@ -819,16 +820,16 @@ private fun CharacterPicker(save: SaveRepository, p: PlayerProfile, onClose: () 
                             Text(c.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
                             Text("${Operatives.byId(c.classId).name} · ${OpProgress.of(c.operativeXp).label}", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
                         }
-                        if (active) Text("ACTIVE", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
-                        else Text(if (confirmDelete == c.id) "DELETE?" else "✕", color = Palette.Red, style = MaterialTheme.typography.labelLarge,
+                        if (active) Text(tr("ACTIVE"), color = Palette.Green, style = MaterialTheme.typography.labelSmall)
+                        else Text(if (confirmDelete == c.id) tr("DELETE?") else "✕", color = Palette.Red, style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.clickable { if (confirmDelete == c.id) { save.update { Characters.delete(it, c.id) }; confirmDelete = null } else confirmDelete = c.id }.padding(8.dp))
                     }
                 }
             }
             Spacer(Modifier.height(10.dp))
-            if (onNew != null && Characters.all(p).size < Characters.MAX_CHARACTERS) CyberButton("+ NEW CHARACTER", Modifier.fillMaxWidth(), accent = Palette.Green, onClick = onNew)
+            if (onNew != null && Characters.all(p).size < Characters.MAX_CHARACTERS) CyberButton(tr("+ NEW CHARACTER"), Modifier.fillMaxWidth(), accent = Palette.Green, onClick = onNew)
             Spacer(Modifier.height(6.dp))
-            CyberButton("CLOSE", Modifier.fillMaxWidth(), onClick = onClose)
+            CyberButton(tr("CLOSE"), Modifier.fillMaxWidth(), onClick = onClose)
         }
     }
 }
@@ -900,7 +901,7 @@ fun CharacterCreateScreen(save: SaveRepository, editing: Boolean, onBack: (() ->
             }
             val parts: @Composable () -> Unit = {
                 Column {
-                    Text("CHARACTER NAME", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                    Text(tr("CHARACTER NAME"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
                     BasicTextField(
                         name, { name = it.take(Characters.NAME_MAX) }, singleLine = true,
                         textStyle = MaterialTheme.typography.titleMedium.copy(color = Palette.TextPrimary),
@@ -909,7 +910,7 @@ fun CharacterCreateScreen(save: SaveRepository, editing: Boolean, onBack: (() ->
                             .border(1.dp, if (valid) Palette.Divider else Palette.Red, RoundedCornerShape(6.dp)).padding(10.dp),
                         decorationBox = { inner -> Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.weight(1f)) { inner() }; Text("✎", color = Palette.Cyan) } }
                     )
-                    if (!valid) Text("2–16 letters, digits, spaces, - or _", color = Palette.Red, style = MaterialTheme.typography.labelSmall)
+                    if (!valid) Text(tr("2–16 letters, digits, spaces, - or _"), color = Palette.Red, style = MaterialTheme.typography.labelSmall)
                     Spacer(Modifier.height(6.dp))
                     for ((pi, part) in com.cyberoperative.game.data.Appearance.parts.withIndex()) {
                         Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -925,19 +926,19 @@ fun CharacterCreateScreen(save: SaveRepository, editing: Boolean, onBack: (() ->
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SmallButton("⚄ RANDOMIZE", Modifier.weight(1f)) {
+                        SmallButton(tr("⚄ RANDOMIZE"), Modifier.weight(1f)) {
                             look = com.cyberoperative.game.data.Appearance.random()
                             if (!editing) name = com.cyberoperative.game.data.Appearance.randomName()
                         }
-                        SmallButton(if (editing) "SAVE CHANGES »" else "CREATE »", Modifier.weight(1.4f), accent = Palette.Green, filled = true, enabled = valid, onClick = ::finish)
+                        SmallButton(if (editing) tr("SAVE CHANGES »") else tr("CREATE »"), Modifier.weight(1.4f), accent = Palette.Green, filled = true, enabled = valid, onClick = ::finish)
                     }
                 }
             }
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    if (onBack != null) Text("< BACK", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
+                    if (onBack != null) Text(tr("< BACK"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.clickable(onClick = onBack).padding(vertical = 6.dp, horizontal = 4.dp))
-                    Text(if (editing) "EDIT APPEARANCE" else "CREATE CHARACTER", color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge,
+                    Text(if (editing) tr("EDIT APPEARANCE") else tr("CREATE CHARACTER"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center, modifier = Modifier.weight(1f))
                     if (onBack != null) Spacer(Modifier.width(70.dp))
                 }

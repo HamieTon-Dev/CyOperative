@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,12 +69,12 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
     // DAILY EGGS: roll on opening, and again when the 24 h are up while the store is open.
     val left = p.eggOffersAt + com.cyberoperative.game.data.EggOffers.ROTATE_MS - System.currentTimeMillis()
     LaunchedEffect(left <= 0L, p.eggOffers.isEmpty()) { save.update { StoreManager.eggOffers(it) } }
-    ScreenScaffold("STORE", onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
+    ScreenScaffold(tr("STORE"), onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // DAILY EGGS (owner, 0.50.0): three single eggs, each its own offer, ◇1500 each. First on the page.
             item {
                 val mins = (left.coerceAtLeast(0L) / 60_000L).toInt() + (time * 0).toInt()
-                Header("DAILY EGGS  ·  NEW IN ${mins / 60}h ${mins % 60}m  ·  OWNED ${p.eggs.size}/${com.cyberoperative.game.data.Pets.MAX_EGGS}")
+                Header(tr("DAILY EGGS  ·  NEW IN {0}h {1}m  ·  OWNED {2}/{3}", mins / 60, mins % 60, p.eggs.size, com.cyberoperative.game.data.Pets.MAX_EGGS))
             }
             items(p.eggOffers.size, key = { "offer_" + p.eggOffersAt + "_" + p.eggOffers[it].art + "_" + it }) { i ->
                 DailyEggCard(p.eggOffers[i], time, full = p.eggs.size >= com.cyberoperative.game.data.Pets.MAX_EGGS, canPay = p.diamonds >= com.cyberoperative.game.data.EggOffers.price(p.eggOffers[i].rarity)) {
@@ -81,13 +82,13 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                 }
             }
             item {
-                Text("GLITCHED LEGENDARY and up only: ◇100, then +◇50 for each rarity above (◇400 for GLITCHED ENCRYPTED). Buy all three and three new eggs roll at once; otherwise all three change every 24 h.",
+                Text(tr("GLITCHED LEGENDARY and up only: ◇100, then +◇50 for each rarity above (◇400 for GLITCHED ENCRYPTED). Buy all three and three new eggs roll at once; otherwise all three change every 24 h."),
                     color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             }
 
-            item { Header("◇ GOLD") }
+            item { Header(tr("◇ GOLD")) }
             items(StoreCatalog.diamondPacks, key = { it.productId }) { pack ->
-                StoreRow(title = "◇ ${"%,d".format(pack.diamonds)}", subtitle = "Premium currency", price = pack.usdPrice, accent = Palette.Diamond) {
+                StoreRow(title = "◇ ${"%,d".format(pack.diamonds)}", subtitle = tr("Premium currency"), price = pack.usdPrice, accent = Palette.Diamond) {
                     if (Checkout.available) {
                         // Real money only ever moves through the platform store; ◇ arrive when it confirms.
                         notice = Checkout.start(pack)
@@ -96,7 +97,7 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
                         // test ◇ so the store can be exercised. Release builds never do.
                         save.update { StoreManager.grantDiamonds(it, pack.diamonds) }
                         audio.play(GameSound.CURRENCY)
-                        notice = "DEBUG BUILD: granted ◇${pack.diamonds} for testing (no charge)."
+                        notice = tr("DEBUG BUILD: granted ◇{0} for testing (no charge).", pack.diamonds)
                     } else {
                         notice = Checkout.start(pack)
                     }
@@ -104,11 +105,11 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             }
             notice?.let { n -> item { Text(n, color = Palette.Orange, style = MaterialTheme.typography.labelSmall) } }
 
-            item { Header("REVIVES  ·  OWNED: ${p.reviveTokens}") }
+            item { Header(tr("REVIVES  ·  OWNED: {0}", p.reviveTokens)) }
             items(StoreCatalog.revivePacks, key = { it.id }) { pack ->
                 StoreRow(
-                    title = if (pack.revives == 1) "1 REVIVE" else "${pack.revives} REVIVE PACK",
-                    subtitle = "Revives the operative where it fell (max ${StoreCatalog.MAX_PAID_REVIVES_PER_RUN} per run)",
+                    title = if (pack.revives == 1) tr("1 REVIVE") else tr("{0} REVIVE PACK", pack.revives),
+                    subtitle = tr("Revives the operative where it fell (max {0} per run)", StoreCatalog.MAX_PAID_REVIVES_PER_RUN),
                     price = "◇${"%,d".format(pack.priceDiamonds)}", accent = Palette.Green,
                     enabled = p.diamonds >= pack.priceDiamonds
                 ) { spend(save, audio) { StoreManager.buyRevives(it, pack) } }
@@ -117,40 +118,40 @@ fun StoreScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, o
             // 0.50.1 (owner): the store sells no egg below GLITCHED LEGENDARY, so the old
             // MYSTERY / EPIC / LEGENDARY packs are gone: the DAILY EGGS above are the store's eggs.
 
-            item { Header("OPERATIVE SKINS") }
+            item { Header(tr("OPERATIVE SKINS")) }
             item {
                 StoreRow(
-                    title = "OPERATIVE SKINS (${OperativeSkins.paid.size})", subtitle = "◇${StoreCatalog.SKIN_PRICE} each — browse & equip",
-                    price = "OPEN", accent = Palette.Cyan
+                    title = tr("OPERATIVE SKINS ({0})", OperativeSkins.paid.size), subtitle = tr("◇{0} each — browse & equip", StoreCatalog.SKIN_PRICE),
+                    price = tr("OPEN"), accent = Palette.Cyan
                 ) { onOpenSkins() }
             }
             item {
                 val owned = StoreManager.allSkinsOwned(p)
                 StoreRow(
-                    title = "ALL OPERATIVE SKINS", subtitle = "All ${OperativeSkins.paid.size} colour skins, every class (premium skins like GOLD and NEON not included)",
-                    price = if (owned) "OWNED" else "◇${StoreCatalog.ALL_SKINS_PRICE}", accent = Palette.Gold,
+                    title = tr("ALL OPERATIVE SKINS"), subtitle = tr("All {0} colour skins, every class (premium skins like GOLD and NEON not included)", OperativeSkins.paid.size),
+                    price = if (owned) tr("OWNED") else "◇${StoreCatalog.ALL_SKINS_PRICE}", accent = Palette.Gold,
                     enabled = !owned && p.diamonds >= StoreCatalog.ALL_SKINS_PRICE
                 ) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
             }
 
-            item { Header("LIVING BACKGROUNDS") }
+            item { Header(tr("LIVING BACKGROUNDS")) }
             item {
                 StoreRow(
-                    title = "LIVING BACKGROUNDS (${LivingBackground.purchasable.size})", subtitle = "◇${StoreCatalog.BACKGROUND_PRICE} each — animated arena floors from CyOps TD",
-                    price = "OPEN", accent = Palette.Cyan
+                    title = tr("LIVING BACKGROUNDS ({0})", LivingBackground.purchasable.size), subtitle = tr("◇{0} each — animated arena floors from CyOps TD", StoreCatalog.BACKGROUND_PRICE),
+                    price = tr("OPEN"), accent = Palette.Cyan
                 ) { onOpenSkins() }
             }
             item {
                 val owned = StoreManager.allBackgroundsOwned(p)
                 StoreRow(
-                    title = "ALL LIVING BACKGROUNDS", subtitle = "Unlock all ${LivingBackground.purchasable.size} backgrounds",
-                    price = if (owned) "OWNED" else "◇${StoreCatalog.ALL_BACKGROUNDS_PRICE}", accent = Palette.Gold,
+                    title = tr("ALL LIVING BACKGROUNDS"), subtitle = tr("Unlock all {0} backgrounds", LivingBackground.purchasable.size),
+                    price = if (owned) tr("OWNED") else "◇${StoreCatalog.ALL_BACKGROUNDS_PRICE}", accent = Palette.Gold,
                     enabled = !owned && p.diamonds >= StoreCatalog.ALL_BACKGROUNDS_PRICE
                 ) { spend(save, audio) { StoreManager.buyAllBackgrounds(it) } }
             }
             item {
                 Text(
-                    "Nothing in the store is required to progress. € and ◇ are fictional in-game currencies.",
+                    tr("Nothing in the store is required to progress. € and ◇ are fictional in-game currencies."),
                     color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(vertical = 12.dp)
                 )
@@ -175,11 +176,11 @@ private fun DailyEggCard(egg: com.cyberoperative.game.data.PetEgg, time: Float, 
                 Text(egg.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                 val h = com.cyberoperative.game.data.Pets.hatchMs(egg.rarity) / 3_600_000L
                 val m = (com.cyberoperative.game.data.Pets.hatchMs(egg.rarity) / 60_000L) % 60
-                Text("Hatches in ${if (h > 0) "${h}h " else ""}${if (m > 0) "${m}m" else ""}".trim() + " · the pet inside is a surprise",
+                Text(tr("Hatches in {0}{1}", if (h > 0) "${h}h " else "", if (m > 0) "${m}m" else "").trim() + tr(" · the pet inside is a surprise"),
                     color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.width(8.dp))
-            CyberButton(if (full) "FULL" else "◇${"%,d".format(com.cyberoperative.game.data.EggOffers.price(egg.rarity))}", accent = c, enabled = !full && canPay, onClick = onBuy)
+            CyberButton(if (full) tr("FULL") else "◇${"%,d".format(com.cyberoperative.game.data.EggOffers.price(egg.rarity))}", accent = c, enabled = !full && canPay, onClick = onBuy)
         }
     }
 }
@@ -211,16 +212,16 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
     // Skin previews share one slow clock (owner, 0.50.0: "animate it but light weight").
     val time = com.cyberoperative.game.ui.common.rememberSlowClock(20)
-    ScreenScaffold("SKINS", onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
+    ScreenScaffold(tr("SKINS"), onBack, trailing = { CurrencyChip("◇", p.diamonds, Palette.Diamond) }) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CyberButton("OPERATIVE", Modifier.weight(1f), accent = if (tab == 0) Palette.Green else Palette.Divider) { tab = 0 }
-            CyberButton("BACKGROUNDS", Modifier.weight(1f), accent = if (tab == 1) Palette.Green else Palette.Divider) { tab = 1 }
+            CyberButton(tr("OPERATIVE"), Modifier.weight(1f), accent = if (tab == 0) Palette.Green else Palette.Divider) { tab = 0 }
+            CyberButton(tr("BACKGROUNDS"), Modifier.weight(1f), accent = if (tab == 1) Palette.Green else Palette.Divider) { tab = 1 }
         }
         Spacer(Modifier.height(8.dp))
         if (tab == 0) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!StoreManager.allSkinsOwned(p)) item {
-                    CyberButton("ALL ${OperativeSkins.paid.size} COLOUR SKINS  ·  ◇${StoreCatalog.ALL_SKINS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
+                    CyberButton(tr("ALL {0} COLOUR SKINS  ·  ◇{1}", OperativeSkins.paid.size, StoreCatalog.ALL_SKINS_PRICE), Modifier.fillMaxWidth(), accent = Palette.Gold,
                         enabled = p.diamonds >= StoreCatalog.ALL_SKINS_PRICE) { spend(save, audio) { StoreManager.buyAllSkins(it) } }
                 }
                 items(OperativeSkins.all, key = { it.id }) { listed ->
@@ -247,16 +248,16 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
                                 Text(skin.unlock?.let { if (it.campaign) it.label else "${it.label} (${cls.name})" } ?: skin.origin, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                             }
                             if (owned && skin.id == OperativeSkins.NEON_ID) {
-                                CyberButton(if (picking) "DONE" else "COLOUR", accent = Color(skin.edge)) {
+                                CyberButton(if (picking) tr("DONE") else tr("COLOUR"), accent = Color(skin.edge)) {
                                     if (picking) save.update { StoreManager.setNeonColor(it, draft) ?: it } else draft = p.neonColor
                                     picking = !picking
                                 }
                                 Spacer(Modifier.width(6.dp))
                             }
                             when {
-                                equipped -> Text("EQUIPPED", color = Palette.Green, style = MaterialTheme.typography.labelMedium)
-                                owned -> CyberButton("EQUIP", accent = Palette.Green) { spend(save, audio) { StoreManager.equipSkin(it, skin.id) } }
-                                skin.unlock != null -> Text("LOCKED", color = Palette.TextMuted, style = MaterialTheme.typography.labelMedium)
+                                equipped -> Text(tr("EQUIPPED"), color = Palette.Green, style = MaterialTheme.typography.labelMedium)
+                                owned -> CyberButton(tr("EQUIP"), accent = Palette.Green) { spend(save, audio) { StoreManager.equipSkin(it, skin.id) } }
+                                skin.unlock != null -> Text(tr("LOCKED"), color = Palette.TextMuted, style = MaterialTheme.typography.labelMedium)
                                 else -> CyberButton("◇${skin.price}", accent = if (skin.premium) Palette.Gold else Palette.Diamond, enabled = p.diamonds >= skin.price) {
                                     spend(save, audio) { StoreManager.buySkin(it, skin.id) }
                                 }
@@ -275,7 +276,7 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!StoreManager.allBackgroundsOwned(p)) item {
-                    CyberButton("UNLOCK ALL BACKGROUNDS  ·  ◇${StoreCatalog.ALL_BACKGROUNDS_PRICE}", Modifier.fillMaxWidth(), accent = Palette.Gold,
+                    CyberButton(tr("UNLOCK ALL BACKGROUNDS  ·  ◇{0}", StoreCatalog.ALL_BACKGROUNDS_PRICE), Modifier.fillMaxWidth(), accent = Palette.Gold,
                         enabled = p.diamonds >= StoreCatalog.ALL_BACKGROUNDS_PRICE) { spend(save, audio) { StoreManager.buyAllBackgrounds(it) } }
                 }
                 items(LivingBackground.entries, key = { it.id }) { bg ->
@@ -291,8 +292,8 @@ fun SkinsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
                                     Text(bg.description, color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                                 }
                                 when {
-                                    equipped -> Text("EQUIPPED", color = Palette.Green, style = MaterialTheme.typography.labelMedium)
-                                    owned -> CyberButton("EQUIP", accent = Palette.Green) { spend(save, audio) { StoreManager.equipBackground(it, bg.id) } }
+                                    equipped -> Text(tr("EQUIPPED"), color = Palette.Green, style = MaterialTheme.typography.labelMedium)
+                                    owned -> CyberButton(tr("EQUIP"), accent = Palette.Green) { spend(save, audio) { StoreManager.equipBackground(it, bg.id) } }
                                     else -> CyberButton("◇${StoreCatalog.BACKGROUND_PRICE}", accent = Palette.Diamond, enabled = p.diamonds >= StoreCatalog.BACKGROUND_PRICE) {
                                         spend(save, audio) { StoreManager.buyBackground(it, bg.id) }
                                     }

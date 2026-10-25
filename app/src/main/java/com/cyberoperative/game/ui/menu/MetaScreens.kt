@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,7 +67,7 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
     val spent = boardSpent(profile.permanentUpgrades)
     val points = com.cyberoperative.game.data.OpProgress.boardPoints(op, spent)
     val unlocked = op.level >= com.cyberoperative.game.data.OpProgress.MAX_LEVEL
-    ScreenScaffold("OVERCLOCK", onBack, trailing = { CurrencyChip("PTS", points.toLong(), Palette.Cyan) }) {
+    ScreenScaffold(tr("OVERCLOCK"), onBack, trailing = { CurrencyChip(tr("PTS"), points.toLong(), Palette.Cyan) }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 TerminalCard(accent = if (unlocked) Palette.Cyan else Palette.Divider) {
@@ -79,8 +80,8 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            if (unlocked) "Every OVERCLOCK level is one point to spend below. $points to spend · $spent spent."
-                            else "The Overclock board unlocks at OP Lv ${com.cyberoperative.game.data.OpProgress.MAX_LEVEL}. Earn XP from every kill; elites and bosses give more.",
+                            if (unlocked) tr("Every OVERCLOCK level is one point to spend below. {0} to spend · {1} spent.", points, spent)
+                            else tr("The Overclock board unlocks at OP Lv {0}. Earn XP from every kill; elites and bosses give more.", com.cyberoperative.game.data.OpProgress.MAX_LEVEL),
                             color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -95,15 +96,15 @@ fun PermanentUpgradesScreen(save: SaveRepository, audio: AudioManager, onBack: (
                             Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
                             Text(def.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                             Text(
-                                "LV $level" + (if (level > 0) "  ·  ${def.effectAt(level)}" else ""),
+                                tr("LV {0}", level) + (if (level > 0) "  ·  ${def.effectAt(level)}" else ""),
                                 color = Palette.Green, style = MaterialTheme.typography.labelSmall
                             )
                         }
                         Spacer(Modifier.width(8.dp))
                         when {
-                            maxed -> Text("MAX", color = Palette.Gold, style = MaterialTheme.typography.titleMedium)
+                            maxed -> Text(tr("MAX"), color = Palette.Gold, style = MaterialTheme.typography.titleMedium)
                             !unlocked -> LockedBadge(com.cyberoperative.game.data.OpProgress.MAX_LEVEL)
-                            else -> CyberButton("+1 · 1 PT", enabled = points > 0, accent = Palette.Cyan) {
+                            else -> CyberButton(tr("+1 · 1 PT"), enabled = points > 0, accent = Palette.Cyan) {
                                 var bought = false
                                 save.update { p ->
                                     val now = com.cyberoperative.game.data.OpProgress.of(p.operativeXp)
@@ -137,10 +138,10 @@ fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
     val profile by save.profile.collectAsState()
     val op = Operatives.byId(profile.selectedOperative)
     val level = operativeLevel(profile.operativeXp)
-    ScreenScaffold("OPERATIVE", onBack) {
+    ScreenScaffold(tr("OPERATIVE"), onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            Text("CLASS", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
-            Text("Pick who you deploy as. Every class can wear the paid skins and earns its own TITANIUM and PURPLE skins.",
+            Text(tr("CLASS"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("Pick who you deploy as. Every class can wear the paid skins and earns its own TITANIUM and PURPLE skins."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(6.dp))
             for (cls in Operatives.all) {
@@ -152,9 +153,9 @@ fun OperativeScreen(save: SaveRepository, onBack: () -> Unit) {
             Spacer(Modifier.height(2.dp))
             TerminalCard {
                 Column {
-                    Text("OPERATIVE LEVEL $level", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
-                    Text("Operative XP: ${"%,d".format(profile.operativeXp)}", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
-                    Text("Higher levels unlock more permanent upgrades.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("OPERATIVE LEVEL {0}", level), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+                    Text(tr("Operative XP: {0}", "%,d".format(profile.operativeXp)), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("Higher levels unlock more permanent upgrades."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -185,22 +186,22 @@ private fun ClassCard(p: PlayerProfile, cls: com.cyberoperative.game.data.Operat
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(cls.name, color = if (selected) Palette.Green else Palette.TextPrimary, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (selected) Text("SELECTED", color = Palette.Green, style = MaterialTheme.typography.labelSmall)
+                if (selected) Text(tr("SELECTED"), color = Palette.Green, style = MaterialTheme.typography.labelSmall)
             }
             Text(cls.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(4.dp))
             for (t in cls.traits) Text("· $t", color = Palette.Cyan, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.height(4.dp))
             Text(
-                "BEST · NORMAL ${rec?.bestNormal ?: 0} · HARD ${rec?.bestHard ?: 0}",
+                tr("BEST · NORMAL {0} · HARD {1}", rec?.bestNormal ?: 0, rec?.bestHard ?: 0),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
             Column {
                 for (cs in com.cyberoperative.game.data.OperativeSkins.classSkins) {
                     val got = com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, cs, cls.id)
-                    val diff = if (cs.unlock?.difficulty == "HARD") "HARD" else "NORMAL"
+                    val diff = if (cs.unlock?.difficulty == "HARD") tr("HARD") else tr("NORMAL")
                     Text(
-                        if (got) "${cs.name} SKIN ✓" else if (cs.unlock?.campaign == true) "${cs.name} SKIN · beat World 15's boss" else "${cs.name} SKIN · reach L${cs.unlock?.level} on $diff",
+                        if (got) tr("{0} SKIN ✓", cs.name) else if (cs.unlock?.campaign == true) tr("{0} SKIN · beat World 15's boss", cs.name) else tr("{0} SKIN · reach L{1} on {2}", cs.name, cs.unlock?.level, diff),
                         color = if (got) Color(cs.edge) else Palette.TextMuted,
                         style = MaterialTheme.typography.labelSmall
                     )
@@ -214,15 +215,15 @@ private fun ClassCard(p: PlayerProfile, cls: com.cyberoperative.game.data.Operat
 private fun RecordsCard(p: PlayerProfile) {
     TerminalCard {
         Column {
-            Text("SERVICE RECORD", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Text(tr("SERVICE RECORD"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
-            KV("Highest level", p.highestLevel.toString())
-            KV("Best score", "%,d".format(p.bestScore))
-            KV("Threats eliminated", "%,d".format(p.totalKills))
-            KV("Bosses defeated", "%,d".format(p.totalBosses))
-            KV("Events completed", p.totalEvents.toString())
-            KV("Operations", p.totalRuns.toString())
-            KV("Longest run", formatSeconds(p.longestRunSeconds))
+            KV(tr("Highest level"), p.highestLevel.toString())
+            KV(tr("Best score"), "%,d".format(p.bestScore))
+            KV(tr("Threats eliminated"), "%,d".format(p.totalKills))
+            KV(tr("Bosses defeated"), "%,d".format(p.totalBosses))
+            KV(tr("Events completed"), p.totalEvents.toString())
+            KV(tr("Operations"), p.totalRuns.toString())
+            KV(tr("Longest run"), formatSeconds(p.longestRunSeconds))
         }
     }
 }
@@ -246,22 +247,22 @@ private fun KV(k: String, v: String, color: Color = Palette.TextPrimary) {
 
 @Composable
 fun LeaderboardScreen(profile: PlayerProfile, onBack: () -> Unit) {
-    ScreenScaffold("LEADERBOARD", onBack) {
+    ScreenScaffold(tr("LEADERBOARD"), onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
-            Text("PERSONAL BESTS (THIS DEVICE)", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("PERSONAL BESTS (THIS DEVICE)"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(8.dp))
             TerminalCard {
                 Column {
-                    KV("HIGHEST LEVEL", profile.highestLevel.toString(), Palette.Green)
-                    KV("HIGHEST SCORE", "%,d".format(profile.bestScore), Palette.Green)
-                    KV("MOST ENEMIES ELIMINATED (TOTAL)", "%,d".format(profile.totalKills), Palette.Green)
-                    KV("MOST BOSSES DEFEATED (TOTAL)", "%,d".format(profile.totalBosses), Palette.Green)
-                    KV("LONGEST RUN", formatSeconds(profile.longestRunSeconds), Palette.Green)
+                    KV(tr("HIGHEST LEVEL"), profile.highestLevel.toString(), Palette.Green)
+                    KV(tr("HIGHEST SCORE"), "%,d".format(profile.bestScore), Palette.Green)
+                    KV(tr("MOST ENEMIES ELIMINATED (TOTAL)"), "%,d".format(profile.totalKills), Palette.Green)
+                    KV(tr("MOST BOSSES DEFEATED (TOTAL)"), "%,d".format(profile.totalBosses), Palette.Green)
+                    KV(tr("LONGEST RUN"), formatSeconds(profile.longestRunSeconds), Palette.Green)
                 }
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                "Global, weekly and friends leaderboards arrive with Google Play Games Services.",
+                tr("Global, weekly and friends leaderboards arrive with Google Play Games Services."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall
             )
         }
@@ -275,7 +276,7 @@ fun LeaderboardScreen(profile: PlayerProfile, onBack: () -> Unit) {
 @Composable
 fun AchievementsScreen(profile: PlayerProfile, onBack: () -> Unit) {
     val done = Achievements.all.count { it.id in profile.achievements }
-    ScreenScaffold("ACHIEVEMENTS", onBack, trailing = {
+    ScreenScaffold(tr("ACHIEVEMENTS"), onBack, trailing = {
         Text("$done/${Achievements.all.size}", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
     }) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -304,22 +305,22 @@ fun AchievementsScreen(profile: PlayerProfile, onBack: () -> Unit) {
 
 @Composable
 fun ArmoryScreen(onBack: () -> Unit) {
-    ScreenScaffold("ARMORY", onBack) {
+    ScreenScaffold(tr("ARMORY"), onBack) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            item { Section("RUN MODULES") }
+            item { Section(tr("RUN MODULES")) }
             items(Upgrades.all.filter { !it.instant }, key = { "u_" + it.id }) { u ->
                 TerminalCard(accent = Color(u.rarity.color).copy(alpha = 0.5f)) {
                     Column {
                         Text("${u.glyph}  ${u.name}", color = Color(u.rarity.color), style = MaterialTheme.typography.titleSmall)
                         Text(u.description, color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                         u.evolvesFrom?.let {
-                            Text("Evolves from ${Upgrades.byId(it).name} (max level)" + (u.alsoRequires?.let { r -> " + ${Upgrades.byId(r).name}" } ?: ""),
+                            Text(tr("Evolves from {0} (max level)", Upgrades.byId(it).name) + (u.alsoRequires?.let { r -> " + ${Upgrades.byId(r).name}" } ?: ""),
                                 color = Palette.Purple, style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
-            item { Section("KNOWN THREATS") }
+            item { Section(tr("KNOWN THREATS")) }
             items(Enemies.all, key = { "e_" + it.id }) { e ->
                 TerminalCard {
                     Column {
@@ -328,7 +329,7 @@ fun ArmoryScreen(onBack: () -> Unit) {
                     }
                 }
             }
-            item { Section("BOSS DOSSIERS") }
+            item { Section(tr("BOSS DOSSIERS")) }
             items(Bosses.roster, key = { "b_" + it.id }) { b ->
                 TerminalCard(accent = Color(b.color).copy(alpha = 0.5f)) {
                     Column {
@@ -352,7 +353,7 @@ private fun Section(t: String) {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, onLanguage: () -> Unit) {
+fun SettingsScreen(save: SaveRepository, audio: AudioManager, onLanguage: () -> Unit = {}, onBack: () -> Unit) {
     val profile by save.profile.collectAsState()
     val s = profile.settings
     fun set(next: GameSettings) {
@@ -366,32 +367,32 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
         TouchControlsEditor(s, onChange = { set(it) }, onDone = { editingTouch = false })
         return
     }
-    ScreenScaffold("SETTINGS", onBack) {
+    ScreenScaffold(tr("SETTINGS"), onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             // LANGUAGE (0.55.0): the current one in its own name; opens the list.
             TerminalCard {
                 Row(Modifier.fillMaxWidth().clickable(onClick = onLanguage).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("LANGUAGE", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    Text(tr("LANGUAGE"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                     Text(com.cyberoperative.game.i18n.Languages.current().nativeName + "  ›", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
                 }
             }
             Spacer(Modifier.height(10.dp))
             TerminalCard {
                 Column {
-                    Text("MUSIC VOLUME ${(s.musicVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                    Text(tr("MUSIC VOLUME {0}%", (s.musicVolume * 100).toInt()), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
                     Slider(s.musicVolume, { set(s.copy(musicVolume = it)) }, colors = sliderColors())
-                    Text("EFFECTS VOLUME ${(s.sfxVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                    Text(tr("EFFECTS VOLUME {0}%", (s.sfxVolume * 100).toInt()), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
                     Slider(s.sfxVolume, { set(s.copy(sfxVolume = it)) }, onValueChangeFinished = { audio.play(GameSound.UI_CLICK) }, colors = sliderColors())
                 }
             }
             Spacer(Modifier.height(10.dp))
             TerminalCard {
                 Column {
-                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
-                    Toggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
-                    Toggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle(tr("HAPTICS"), s.haptics) { set(s.copy(haptics = it)) }
+                    Toggle(tr("DAMAGE NUMBERS"), s.damageNumbers) { set(s.copy(damageNumbers = it)) }
+                    Toggle(tr("SCREEN SHAKE"), s.screenShake) { set(s.copy(screenShake = it)) }
                     // Portrait HUD (owner, 0.48.1): the compact corner card, or the classic top panel.
-                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle("COMPACT HUD (PORTRAIT)", s.compactHud) { set(s.copy(compactHud = it)) }
+                    if (!com.cyberoperative.game.platform.GameKeys.active) Toggle(tr("COMPACT HUD (PORTRAIT)"), s.compactHud) { set(s.copy(compactHud = it)) }
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -409,7 +410,7 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
                 }
             }
             Spacer(Modifier.height(10.dp))
-            CyberButton("REPLAY TUTORIAL", Modifier.fillMaxWidth()) {
+            CyberButton(tr("REPLAY TUTORIAL"), Modifier.fillMaxWidth()) {
                 save.update { it.copy(tutorialDone = false) }
                 audio.play(GameSound.UI_CLICK)
             }
@@ -426,10 +427,10 @@ private fun AutoSellCard(below: com.cyberoperative.game.data.GearRarity?, onPick
     var open by remember { mutableStateOf(false) }
     TerminalCard {
         Column {
-            Text("AUTO-SELL GEAR", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+            Text(tr("AUTO-SELL GEAR"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("SELL EVERYTHING BELOW", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+                Text(tr("SELL EVERYTHING BELOW"), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
                 Spacer(Modifier.width(8.dp))
                 Box {
                     Row(
@@ -446,8 +447,8 @@ private fun AutoSellCard(below: com.cyberoperative.game.data.GearRarity?, onPick
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                if (below == null) "Off: every piece you find is kept."
-                else "Only gear you pick up below ${below.label} is sold for €, as you pick it up. Your backpack, Data Vault, locked items, shop purchases and trades are never touched.",
+                if (below == null) tr("Off: every piece you find is kept.")
+                else tr("Only gear you pick up below {0} is sold for €, as you pick it up. Your backpack, Data Vault, locked items, shop purchases and trades are never touched.", below.label),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall
             )
         }
@@ -466,7 +467,7 @@ internal fun AutoSellOptions(onPick: (com.cyberoperative.game.data.GearRarity?) 
 @Composable
 private fun AutoSellChoice(r: com.cyberoperative.game.data.GearRarity?) {
     if (r == null) {
-        Text("OFF", color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+        Text(tr("OFF"), color = Palette.TextSecondary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
         return
     }
     val c = com.cyberoperative.game.ui.common.rarityColor(r)
@@ -492,17 +493,17 @@ private fun Toggle(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
-    ScreenScaffold("ABOUT", onBack) {
+    ScreenScaffold(tr("ABOUT"), onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             TerminalCard(accent = Palette.Cyan) {
                 Column {
                     Text("CYBER OPERATIVE", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
-                    Text("Version ${AppInfo.versionName}", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("Version {0}", AppInfo.versionName), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "An endless cyber-themed roguelike action RPG. Enter the network, eliminate " +
+                        tr("An endless cyber-themed roguelike action RPG. Enter the network, eliminate " +
                             "digital threats, strengthen the operative and survive as deep into the " +
-                            "compromised system as possible.",
+                            "compromised system as possible."),
                         color = Palette.TextPrimary, style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -510,16 +511,16 @@ fun AboutScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             TerminalCard {
                 Column {
-                    Text("PART OF THE CYOPS UNIVERSE", color = Palette.Green, style = MaterialTheme.typography.titleSmall)
-                    Text("Shares its world, operative and threats with CyOps TD.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("PART OF THE CYOPS UNIVERSE"), color = Palette.Green, style = MaterialTheme.typography.titleSmall)
+                    Text(tr("Shares its world, operative and threats with CyOps TD."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
-                    Text("No real hacking takes place. All terminal output is fictional.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
-                    Text("€ and ◇ are fictional in-game currencies.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("No real hacking takes place. All terminal output is fictional."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                    Text(tr("€ and ◇ are fictional in-game currencies."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                 }
             }
             Spacer(Modifier.height(10.dp))
             Box(Modifier.fillMaxWidth().background(Palette.Surface, RoundedCornerShape(8.dp)).border(1.dp, Palette.Divider, RoundedCornerShape(8.dp)).padding(14.dp)) {
-                Text("© HamieTon.dev. All rights reserved.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(tr("© HamieTon.dev. All rights reserved."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -535,7 +536,7 @@ fun ComingSoonScreen(title: String, plan: List<String>, onBack: () -> Unit) {
         Column {
             TerminalCard(accent = Palette.Purple) {
                 Column {
-                    Text("MODULE NOT YET DEPLOYED", color = Palette.Purple, style = MaterialTheme.typography.titleMedium)
+                    Text(tr("MODULE NOT YET DEPLOYED"), color = Palette.Purple, style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     for (line in plan) Text("> $line", color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
@@ -569,7 +570,7 @@ private fun LockedBadge(opLevel: Int) {
             )
             drawCircle(Palette.Surface, size.width * 0.1f, androidx.compose.ui.geometry.Offset(size.width / 2f, size.height * 0.68f))
         }
-        Text("OP LVL $opLevel", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+        Text(tr("OP LVL {0}", opLevel), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -580,9 +581,9 @@ fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit
     var waiting by remember { mutableStateOf<com.cyberoperative.game.ui.common.KeyAction?>(null) }
     TerminalCard {
         Column {
-            Text("KEYBINDS", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("KEYBINDS"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             Text(
-                "Click an action, then press its new key (Esc cancels). Arrow keys always move and Esc always pauses.",
+                tr("Click an action, then press its new key (Esc cancels). Arrow keys always move and Esc always pauses."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
             Spacer(Modifier.height(8.dp))
@@ -591,7 +592,7 @@ fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit
                 Row(Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(a.label, color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                     CyberButton(
-                        if (waiting == a) "PRESS A KEY…" else keys.keyName(code).uppercase(),
+                        if (waiting == a) tr("PRESS A KEY…") else keys.keyName(code).uppercase(),
                         accent = if (waiting == a) Palette.Orange else Palette.Cyan,
                         modifier = Modifier.width(170.dp)
                     ) {
@@ -604,10 +605,10 @@ fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit
                 }
             }
             Spacer(Modifier.height(6.dp))
-            CyberButton("RESET TO DEFAULTS", Modifier.fillMaxWidth()) { onChange(emptyMap()) }
+            CyberButton(tr("RESET TO DEFAULTS"), Modifier.fillMaxWidth()) { onChange(emptyMap()) }
             Spacer(Modifier.height(6.dp))
             Text(
-                "Controller: left stick move · right stick aim & fire · LB HP charge · RB Packet Bomb · START pause · B back",
+                tr("Controller: left stick move · right stick aim & fire · LB HP charge · RB Packet Bomb · START pause · B back"),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
         }
@@ -623,30 +624,30 @@ fun KeybindsCard(binds: Map<String, Long>, onChange: (Map<String, Long>) -> Unit
 private fun ScreenCard(s: GameSettings, set: (GameSettings) -> Unit, onEditTouch: () -> Unit) {
     TerminalCard(accent = Palette.Purple) {
         Column {
-            Text("SCREEN", color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
+            Text(tr("SCREEN"), color = Palette.Purple, style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("PORTRAIT", Modifier.weight(1f), accent = if (!s.landscape) Palette.Green else Palette.Cyan, primary = !s.landscape) { set(s.copy(landscape = false)) }
-                CyberButton("LANDSCAPE", Modifier.weight(1f), accent = if (s.landscape) Palette.Green else Palette.Cyan, primary = s.landscape) { set(s.copy(landscape = true)) }
+                CyberButton(tr("PORTRAIT"), Modifier.weight(1f), accent = if (!s.landscape) Palette.Green else Palette.Cyan, primary = !s.landscape) { set(s.copy(landscape = false)) }
+                CyberButton(tr("LANDSCAPE"), Modifier.weight(1f), accent = if (s.landscape) Palette.Green else Palette.Cyan, primary = s.landscape) { set(s.copy(landscape = true)) }
             }
             Text(
-                "LANDSCAPE: wide rooms, HUD above the arena, joystick left and buttons right. Rooms change shape from your next run.",
+                tr("LANDSCAPE: wide rooms, HUD above the arena, joystick left and buttons right. Rooms change shape from your next run."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
             Spacer(Modifier.height(10.dp))
-            Text("JOYSTICK", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+            Text(tr("JOYSTICK"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                for ((mode, label) in listOf("AUTO" to "AUTO", "FLOAT" to "FREE FLOAT", "LOCKED" to "LOCKED")) {
+                for ((mode, label) in listOf("AUTO" to tr("AUTO"), "FLOAT" to tr("FREE FLOAT"), "LOCKED" to tr("LOCKED"))) {
                     CyberButton(label, Modifier.weight(1f), accent = if (s.joystickMode == mode) Palette.Green else Palette.Cyan, primary = s.joystickMode == mode) {
                         set(s.copy(joystickMode = mode))
                     }
                 }
             }
             Text(
-                "AUTO: locked bottom-left in landscape, follows your thumb in portrait.",
+                tr("AUTO: locked bottom-left in landscape, follows your thumb in portrait."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
             Spacer(Modifier.height(8.dp))
-            CyberButton("TOUCH CONTROLS LAYOUT", Modifier.fillMaxWidth()) { onEditTouch() }
+            CyberButton(tr("TOUCH CONTROLS LAYOUT"), Modifier.fillMaxWidth()) { onEditTouch() }
         }
     }
 }
@@ -659,19 +660,19 @@ private fun TouchControlsEditor(s: GameSettings, onChange: (GameSettings) -> Uni
     Box(Modifier.fillMaxSize().background(Palette.Background)) {
         com.cyberoperative.game.ui.common.LivingBackground(Modifier.fillMaxSize(), intensity = 0.5f)
         Column(Modifier.align(Alignment.TopCenter).padding(top = 18.dp, start = 16.dp, end = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("TOUCH CONTROLS · ${if (landscape) "LANDSCAPE" else "PORTRAIT"}", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
-            Text("Drag the joystick and the buttons where you want them.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+            Text(tr("TOUCH CONTROLS · {0}", if (landscape) tr("LANDSCAPE") else tr("PORTRAIT")), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+            Text(tr("Drag the joystick and the buttons where you want them."), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val next = when (s.joystickMode) { "AUTO" -> "FLOAT"; "FLOAT" -> "LOCKED"; else -> "AUTO" }
-                CyberButton("JOYSTICK: ${if (s.joystickMode == "FLOAT") "FREE FLOAT" else s.joystickMode}") { onChange(s.copy(joystickMode = next)) }
-                CyberButton("RESET") { onChange(s.copy(touchLayout = com.cyberoperative.game.ui.game.TouchLayout.reset(s, landscape))) }
-                CyberButton("DONE", accent = Palette.Green, primary = true) { onDone() }
+                CyberButton(tr("JOYSTICK: {0}", when (s.joystickMode) { "FLOAT" -> tr("FREE FLOAT"); "LOCKED" -> tr("LOCKED"); else -> tr("AUTO") })) { onChange(s.copy(joystickMode = next)) }
+                CyberButton(tr("RESET")) { onChange(s.copy(touchLayout = com.cyberoperative.game.ui.game.TouchLayout.reset(s, landscape))) }
+                CyberButton(tr("DONE"), accent = Palette.Green, primary = true) { onDone() }
             }
             // Opaque by default (owner, 0.48.1); this brings back see-through buttons.
             // Left-aligned, clear of the MAP keep-clear zone in the top-right.
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.Start).padding(top = 4.dp)) {
-                Text("SEE-THROUGH BUTTONS", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+                Text(tr("SEE-THROUGH BUTTONS"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.width(10.dp))
                 Switch(s.seeThroughButtons, { onChange(s.copy(seeThroughButtons = it)) },
                     colors = SwitchDefaults.colors(checkedThumbColor = Palette.Background, checkedTrackColor = Palette.Green))

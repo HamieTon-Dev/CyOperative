@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -76,7 +77,7 @@ fun CoopScreen(
     onRoom: (CoopRoom) -> Unit
 ) {
     val me by backend.profile.collectAsState()
-    var status by remember { mutableStateOf(if (backend.available) "CONNECTING…" else "") }
+    var status by remember { mutableStateOf(if (backend.available) tr("CONNECTING…") else "") }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val copyText = com.cyberoperative.game.platform.rememberCopyText()
@@ -84,17 +85,17 @@ fun CoopScreen(
 
     LaunchedEffect(backend) {
         if (!backend.available) return@LaunchedEffect
-        status = backend.start().fold({ "" }, { "OFFLINE · ${it.message ?: "can't reach the server"}" })
+        status = backend.start().fold({ "" }, { tr("OFFLINE · {0}", it.message ?: tr("can't reach the server")) })
     }
 
-    ScreenScaffold("CO-OP", onBack) {
+    ScreenScaffold(tr("CO-OP"), onBack) {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (!backend.available) {
                 TerminalCard(accent = Palette.Orange) {
                     Column {
-                        Text("CO-OP UNAVAILABLE", color = Palette.Orange, style = MaterialTheme.typography.titleMedium)
+                        Text(tr("CO-OP UNAVAILABLE"), color = Palette.Orange, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "This build isn't connected to the co-op server yet. Solo play is unaffected.",
+                            tr("This build isn't connected to the co-op server yet. Solo play is unaffected."),
                             color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -108,7 +109,7 @@ fun CoopScreen(
             if (profileNow == null) {
                 if (status.isEmpty() && !backend.platformFriends) RegisterCard { name ->
                     scope.launch {
-                        backend.register(name).onFailure { message = it.message }.onSuccess { message = "Welcome, ${it.callsign}" }
+                        backend.register(name).onFailure { message = it.message }.onSuccess { message = tr("Welcome, {0}", it.callsign) }
                     }
                 }
                 return@Column
@@ -126,7 +127,7 @@ fun CoopScreen(
                         }
                     },
                     onJoin = { addr ->
-                        message = "Connecting to $addr…"
+                        message = tr("Connecting to {0}…", addr)
                         scope.launch {
                             backend.joinDirect(addr, roomPlayerFor(profileNow.uid, profileNow.callsign, profile))
                                 .onSuccess { message = null; onRoom(it) }.onFailure { message = it.message }
@@ -139,28 +140,28 @@ fun CoopScreen(
             // Who am I + the code to share (Steam: your Steam name; friends come from Steam).
             if (backend.platformFriends) TerminalCard(accent = Palette.Cyan) {
                 Column {
-                    Text("SIGNED IN WITH ${backend.platformName.uppercase()}", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(tr("SIGNED IN WITH {0}", backend.platformName.uppercase()), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                     Text(profileNow.callsign, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "Invite an online friend below, or use the ${backend.platformName} overlay (Shift+Tab). Invites from friends appear here.",
+                        tr("Invite an online friend below, or use the {0} overlay (Shift+Tab). Invites from friends appear here.", backend.platformName),
                         color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
                     )
                 }
             } else TerminalCard(accent = Palette.Cyan) {
                 Column {
-                    Text("CALLSIGN", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(tr("CALLSIGN"), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                     Text(profileNow.callsign, color = Palette.TextPrimary, style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(6.dp))
-                    Text("YOUR FRIEND CODE", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(tr("YOUR FRIEND CODE"), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                     Text(profileNow.code, color = Palette.Cyan, style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CyberButton("COPY", Modifier.weight(1f)) {
+                        CyberButton(tr("COPY"), Modifier.weight(1f)) {
                             copyText(profileNow.code)
-                            message = "Friend code copied"
+                            message = tr("Friend code copied")
                         }
-                        CyberButton("SHARE", Modifier.weight(1f)) {
-                            shareText("Share friend code", "Add me in Cyber Operative co-op! Friend code: ${profileNow.code}")
+                        CyberButton(tr("SHARE"), Modifier.weight(1f)) {
+                            shareText(tr("Share friend code"), tr("Add me in Cyber Operative co-op! Friend code: {0}", profileNow.code))
                         }
                     }
                 }
@@ -180,7 +181,7 @@ fun CoopScreen(
 
             val requests by remember(backend) { backend.friendRequests() }.collectAsState(emptyList())
             for (r in requests) RequestCard(r,
-                onAccept = { scope.launch { backend.answerFriendRequest(r, true).onSuccess { message = "You're now friends with ${r.fromName}" }.onFailure { message = it.message } } },
+                onAccept = { scope.launch { backend.answerFriendRequest(r, true).onSuccess { message = tr("You're now friends with {0}", r.fromName) }.onFailure { message = it.message } } },
                 onDecline = { scope.launch { backend.answerFriendRequest(r, false) } }
             )
 
@@ -189,9 +190,9 @@ fun CoopScreen(
             }
 
             val friends by remember(backend) { backend.friends() }.collectAsState(emptyList())
-            Text("FRIENDS (${friends.size})", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("FRIENDS ({0})", friends.size), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             if (friends.isEmpty()) {
-                Text("Share your code or enter a friend's to start.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+                Text(tr("Share your code or enter a friend's to start."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
             }
             for (f in friends) FriendRow(f,
                 onInvite = {
@@ -217,46 +218,46 @@ private fun DirectIpCard(backend: CoopBackend, name: String, onRename: (String) 
     val copyText = com.cyberoperative.game.platform.rememberCopyText()
     TerminalCard(accent = Palette.Cyan) {
         Column {
-            Text("DIRECT IP CO-OP", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+            Text(tr("DIRECT IP CO-OP"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
             Text(
-                "One of you hosts, the other joins with the host's address. Same network: works as is. " +
-                    "Over the internet the host forwards TCP port ${backend.directPort} on their router, or you both use a virtual LAN (Tailscale, ZeroTier, Radmin VPN).",
+                tr("One of you hosts, the other joins with the host's address. Same network: works as is. " +
+                    "Over the internet the host forwards TCP port {0} on their router, or you both use a virtual LAN (Tailscale, ZeroTier, Radmin VPN).", backend.directPort),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = callsign, onValueChange = { callsign = it.take(16); onRename(callsign) },
-                label = { Text("YOUR NAME") }, singleLine = true, colors = neonFieldColors(), modifier = Modifier.fillMaxWidth()
+                label = { Text(tr("YOUR NAME")) }, singleLine = true, colors = neonFieldColors(), modifier = Modifier.fillMaxWidth()
             )
         }
     }
     TerminalCard(accent = Palette.Green) {
         Column {
-            Text("HOST A GAME", color = Palette.Green, style = MaterialTheme.typography.titleSmall)
+            Text(tr("HOST A GAME"), color = Palette.Green, style = MaterialTheme.typography.titleSmall)
             Text(
-                if (addresses.isEmpty()) "Tell your friend this PC's IP address."
-                else "Your friend joins with: " + addresses.joinToString("  ·  ") + "   (port ${backend.directPort})",
+                if (addresses.isEmpty()) tr("Tell your friend this PC's IP address.")
+                else tr("Your friend joins with: ") + addresses.joinToString("  ·  ") + tr("   (port {0})", backend.directPort),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("HOST", Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onHost)
-                if (addresses.isNotEmpty()) CyberButton("COPY IP", Modifier.weight(1f)) { copyText(addresses.first()) }
+                CyberButton(tr("HOST"), Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onHost)
+                if (addresses.isNotEmpty()) CyberButton(tr("COPY IP"), Modifier.weight(1f)) { copyText(addresses.first()) }
             }
         }
     }
     TerminalCard {
         Column {
-            Text("JOIN A GAME", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Text(tr("JOIN A GAME"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = address, onValueChange = { address = it.trim().take(64) },
-                    label = { Text("HOST'S IP ADDRESS") }, singleLine = true, colors = neonFieldColors(),
+                    label = { Text(tr("HOST'S IP ADDRESS")) }, singleLine = true, colors = neonFieldColors(),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
-                CyberButton("JOIN", accent = Palette.Green, enabled = address.isNotBlank()) { onJoin(address) }
+                CyberButton(tr("JOIN"), accent = Palette.Green, enabled = address.isNotBlank()) { onJoin(address) }
             }
         }
     }
@@ -275,20 +276,20 @@ private fun RegisterCard(onRegister: (String) -> Unit) {
     val problem = Callsign.problem(name)
     TerminalCard(accent = Palette.Green) {
         Column {
-            Text("REGISTER FOR CO-OP", color = Palette.Green, style = MaterialTheme.typography.titleMedium)
+            Text(tr("REGISTER FOR CO-OP"), color = Palette.Green, style = MaterialTheme.typography.titleMedium)
             Text(
-                "Pick the callsign friends will see. You'll get a friend code to share.",
+                tr("Pick the callsign friends will see. You'll get a friend code to share."),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.bodySmall
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = name, onValueChange = { name = it.take(Callsign.MAX + 4) },
-                label = { Text("CALLSIGN") }, singleLine = true, colors = neonFieldColors(),
+                label = { Text(tr("CALLSIGN")) }, singleLine = true, colors = neonFieldColors(),
                 modifier = Modifier.fillMaxWidth()
             )
             if (name.isNotEmpty() && problem != null) Text(problem, color = Palette.Orange, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(8.dp))
-            CyberButton("REGISTER", Modifier.fillMaxWidth(), accent = Palette.Green, enabled = problem == null) { onRegister(name) }
+            CyberButton(tr("REGISTER"), Modifier.fillMaxWidth(), accent = Palette.Green, enabled = problem == null) { onRegister(name) }
         }
     }
 }
@@ -298,17 +299,17 @@ private fun AddFriendCard(onSend: (String) -> Unit) {
     var code by remember { mutableStateOf("") }
     TerminalCard {
         Column {
-            Text("ADD A FRIEND", color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Text(tr("ADD A FRIEND"), color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = code, onValueChange = { code = it.uppercase().take(11) },
-                    label = { Text("FRIEND CODE") }, singleLine = true, colors = neonFieldColors(),
+                    label = { Text(tr("FRIEND CODE")) }, singleLine = true, colors = neonFieldColors(),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(8.dp))
-                CyberButton("SEND", enabled = code.count { it.isLetterOrDigit() } == 8) { onSend(code); code = "" }
+                CyberButton(tr("SEND"), enabled = code.count { it.isLetterOrDigit() } == 8) { onSend(code); code = "" }
             }
         }
     }
@@ -318,11 +319,11 @@ private fun AddFriendCard(onSend: (String) -> Unit) {
 private fun InviteCard(inv: Invite, onJoin: () -> Unit, onDecline: () -> Unit) {
     TerminalCard(accent = Palette.Green) {
         Column {
-            Text("${inv.fromName} WANTS TO RUN CO-OP", color = Palette.Green, style = MaterialTheme.typography.titleSmall)
+            Text(tr("{0} WANTS TO RUN CO-OP", inv.fromName), color = Palette.Green, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("JOIN", Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onJoin)
-                CyberButton("DECLINE", Modifier.weight(1f), accent = Palette.Red, onClick = onDecline)
+                CyberButton(tr("JOIN"), Modifier.weight(1f), accent = Palette.Green, primary = true, onClick = onJoin)
+                CyberButton(tr("DECLINE"), Modifier.weight(1f), accent = Palette.Red, onClick = onDecline)
             }
         }
     }
@@ -332,11 +333,11 @@ private fun InviteCard(inv: Invite, onJoin: () -> Unit, onDecline: () -> Unit) {
 private fun RequestCard(r: FriendRequest, onAccept: () -> Unit, onDecline: () -> Unit) {
     TerminalCard(accent = Palette.Cyan) {
         Column {
-            Text("FRIEND REQUEST · ${r.fromName}", color = Palette.Cyan, style = MaterialTheme.typography.titleSmall)
+            Text(tr("FRIEND REQUEST · {0}", r.fromName), color = Palette.Cyan, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("ACCEPT", Modifier.weight(1f), accent = Palette.Green, onClick = onAccept)
-                CyberButton("DECLINE", Modifier.weight(1f), accent = Palette.Red, onClick = onDecline)
+                CyberButton(tr("ACCEPT"), Modifier.weight(1f), accent = Palette.Green, onClick = onAccept)
+                CyberButton(tr("DECLINE"), Modifier.weight(1f), accent = Palette.Red, onClick = onDecline)
             }
         }
     }
@@ -355,12 +356,12 @@ private fun FriendRow(f: Friend, onInvite: () -> Unit, onRemove: (() -> Unit)?) 
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(f.callsign, color = Palette.TextPrimary, style = MaterialTheme.typography.titleSmall)
-                Text(if (f.online) "ONLINE" else "OFFLINE", color = if (f.online) Palette.Green else Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+                Text(if (f.online) tr("ONLINE") else tr("OFFLINE"), color = if (f.online) Palette.Green else Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             }
             if (confirm) {
-                CyberButton("REMOVE?", accent = Palette.Red) { confirm = false; onRemove?.invoke() }
+                CyberButton(tr("REMOVE?"), accent = Palette.Red) { confirm = false; onRemove?.invoke() }
             } else {
-                CyberButton("INVITE", accent = Palette.Green, enabled = f.online, onClick = onInvite)
+                CyberButton(tr("INVITE"), accent = Palette.Green, enabled = f.online, onClick = onInvite)
                 if (onRemove == null) return@Row
                 Spacer(Modifier.width(6.dp))
                 Text(
@@ -399,46 +400,46 @@ fun CoopLobbyScreen(
         }
     }
     val partnerHere = if (room.isHost) state.guest != null && state.guestOnline else state.host != null && state.hostOnline
-    ScreenScaffold("CO-OP LOBBY", onBack = onLeave) {
+    ScreenScaffold(tr("CO-OP LOBBY"), onBack = onLeave) {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (state.status == RoomStatus.ENDED) {
-                Text("The room was closed.", color = Palette.Orange, style = MaterialTheme.typography.titleSmall)
+                Text(tr("The room was closed."), color = Palette.Orange, style = MaterialTheme.typography.titleSmall)
             }
-            PlayerCard("HOST", state.host, state.hostOnline)
-            PlayerCard("GUEST", state.guest, state.guestOnline, waiting = room.isHost && state.guest == null)
+            PlayerCard(tr("HOST"), state.host, state.hostOnline)
+            PlayerCard(tr("GUEST"), state.guest, state.guestOnline, waiting = room.isHost && state.guest == null)
             Text(
-                "Co-op can't be paused. Each operative picks its own upgrades; stand next to a downed partner for 3s to revive them. " +
-                    "Threats are tougher and more numerous with two. Both of you keep full rewards.",
+                tr("Co-op can't be paused. Each operative picks its own upgrades; stand next to a downed partner for 3s to revive them. " +
+                    "Threats are tougher and more numerous with two. Both of you keep full rewards."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall
             )
             if (room.isHost) {
-                Text("DIFFICULTY", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                Text(tr("DIFFICULTY"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
                 // The host's unlocked tiers (INFERNO ones scroll sideways).
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (d in Difficulty.entries + listOfNotNull(if (difficulty.inferno > 0) difficulty else Difficulty.inferno(infernoUnlocked))) {
                         CyberButton(
                             d.label, Modifier.width(132.dp), accent = if (d == difficulty) Color(d.color) else Palette.Divider,
-                            subtitle = if (d == difficulty) "● SELECTED" else " "
+                            subtitle = if (d == difficulty) tr("● SELECTED") else " "
                         ) { difficulty = d }
                     }
                 }
                 if (difficulty.inferno > 0) InfernoStepper(difficulty.inferno, infernoUnlocked) { lv -> Difficulty.inferno(lv)?.let { difficulty = it } }
                 CyberButton(
-                    "START OPERATION", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true,
+                    tr("START OPERATION"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true,
                     enabled = partnerHere && state.status == RoomStatus.LOBBY,
-                    subtitle = if (partnerHere) null else "WAITING FOR YOUR PARTNER"
+                    subtitle = if (partnerHere) null else tr("WAITING FOR YOUR PARTNER")
                 ) {
                     scope.launch { room.start(System.nanoTime(), difficulty.name, "CAMPAIGN") }
                 }
             } else {
                 Text(
-                    if (partnerHere) "WAITING FOR THE HOST TO START…" else "HOST DISCONNECTED",
+                    if (partnerHere) tr("WAITING FOR THE HOST TO START…") else tr("HOST DISCONNECTED"),
                     color = if (partnerHere) Palette.Green else Palette.Orange,
                     style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            CyberButton("LEAVE", Modifier.fillMaxWidth(), accent = Palette.Red, onClick = onLeave)
+            CyberButton(tr("LEAVE"), Modifier.fillMaxWidth(), accent = Palette.Red, onClick = onLeave)
         }
     }
 }
@@ -452,11 +453,11 @@ private fun PlayerCard(role: String, p: RoomPlayer?, online: Boolean, waiting: B
             Column(Modifier.weight(1f)) {
                 Text(role, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                 Text(
-                    p?.name ?: if (waiting) "WAITING FOR YOUR PARTNER…" else "—",
+                    p?.name ?: if (waiting) tr("WAITING FOR YOUR PARTNER…") else "—",
                     color = if (p != null) Palette.TextPrimary else Palette.TextMuted, style = MaterialTheme.typography.titleMedium
                 )
             }
-            if (p != null) Text("OP LVL ${p.opLevel}", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
+            if (p != null) Text(tr("OP LVL {0}", p.opLevel), color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
         }
     }
 }

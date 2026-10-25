@@ -1,5 +1,6 @@
 package com.cyberoperative.game.data
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.engine.RunConfig
 import com.cyberoperative.game.engine.RunStats
 import kotlin.math.exp
@@ -90,8 +91,8 @@ object PermanentUpgrades {
      * Retired in 0.24.1 (owner: the card screen is gone, so rerolls did nothing). Kept only to
      * work out the refund for players who bought it ([StoreManager.migrate]).
      */
-    val RETIRED_REROLLS = PermanentUpgradeDef("rerolls", "LEVEL-UP REROLLS", "Redraw the upgrade cards.", 3, 400, 4,
-        { l -> "${l.toInt()} reroll" + (if (l >= 2f) "s" else "") + " per run" }, mastery = Mastery.NONE)
+    val RETIRED_REROLLS = PermanentUpgradeDef("rerolls", tr("LEVEL-UP REROLLS"), tr("Redraw the upgrade cards."), 3, 400, 4,
+        { l -> if (l >= 2f) tr("{0} rerolls per run", l.toInt()) else tr("{0} reroll per run", l.toInt()) }, mastery = Mastery.NONE)
 
     /** € spent on [def] up to [level] (refunds). */
     fun spentOn(def: PermanentUpgradeDef, level: Int): Long = (0 until level).sumOf { def.costFor(it) }
@@ -101,48 +102,48 @@ object PermanentUpgrades {
     private fun n(v: Float) = "%.1f".format(v).removeSuffix(".0")
 
     val all: List<PermanentUpgradeDef> = listOf(
-        PermanentUpgradeDef("max_hp", "MAXIMUM HP", "More memory to absorb punishment.", 20, 60, 1,
-            { l -> p(8f * l) + " max HP" }, { s, l -> s.maxHp *= 1f + 0.08f * l }),
-        PermanentUpgradeDef("base_damage", "BASE DAMAGE", "Stronger default payload.", 20, 70, 1,
-            { l -> p(6f * l) + " damage" }, { s, l -> s.damage *= 1f + 0.06f * l }),
+        PermanentUpgradeDef("max_hp", tr("MAXIMUM HP"), tr("More memory to absorb punishment."), 20, 60, 1,
+            { l -> p(8f * l) + tr(" max HP") }, { s, l -> s.maxHp *= 1f + 0.08f * l }),
+        PermanentUpgradeDef("base_damage", tr("BASE DAMAGE"), tr("Stronger default payload."), 20, 70, 1,
+            { l -> p(6f * l) + tr(" damage") }, { s, l -> s.damage *= 1f + 0.06f * l }),
         // Owner, 2026-10-09: extra weapon slots unlock at OP 10, 20, 30, 50 and 80.
-        PermanentUpgradeDef("weapon_slots", "WEAPON SLOTS", "Carry one more weapon into every operation.", 5, 5000, 10,
-            { l -> "${com.cyberoperative.game.data.Upgrades.MAX_WEAPONS + l.toInt()} weapon slots" },
+        PermanentUpgradeDef("weapon_slots", tr("WEAPON SLOTS"), tr("Carry one more weapon into every operation."), 5, 5000, 10,
+            { l -> tr("{0} weapon slots", com.cyberoperative.game.data.Upgrades.MAX_WEAPONS + l.toInt()) },
             applyConfig = { c, l -> c.copy(weaponSlots = c.weaponSlots + l.toInt()) },
             mastery = Mastery.NONE,
             levelUnlocks = listOf(10, 20, 30, 50, 80),
             levelCosts = listOf(5_000L, 15_000L, 40_000L, 100_000L, 250_000L)),
-        PermanentUpgradeDef("attack_speed", "ATTACK SPEED", "Faster packet cycling.", 15, 80, 1,
-            { l -> p(4f * l) + " attack speed" }, { s, l -> s.fireRate *= 1f + 0.04f * l }, mastery = Mastery.SOFT, softExtra = 15),
-        PermanentUpgradeDef("move_speed", "MOVEMENT SPEED", "Lower-latency movement.", 10, 70, 2,
-            { l -> p(3f * l) + " move speed" }, { s, l -> s.moveSpeed *= 1f + 0.03f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("attack_range", "ATTACK RANGE", "Longer targeting range.", 10, 60, 2,
-            { l -> p(4f * l) + " range" }, { s, l -> s.range *= 1f + 0.04f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("crit_chance", "CRITICAL CHANCE", "Find weaknesses more often.", 10, 90, 3,
-            { l -> p(1.5f * l) + " crit chance" }, { s, l -> s.critChance += 0.015f * l }, mastery = Mastery.SOFT, softExtra = 20),
-        PermanentUpgradeDef("crit_damage", "CRITICAL DAMAGE", "Exploit weaknesses harder.", 10, 90, 3,
-            { l -> p(8f * l) + " crit damage" }, { s, l -> s.critMul += 0.08f * l }),
-        PermanentUpgradeDef("armor", "ARMOR", "Hardened chassis: armor cuts the damage you take.", 10, 100, 3,
-            { l -> "+${n(25f * l)} armor" }, { s, l -> s.armor += 25f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("orb_damage", "ORB DAMAGE", "Packet Nodes hit harder.", 15, 70, 2,
-            { l -> p(8f * l) + " node damage" }, { s, l -> s.orbDamage *= 1f + 0.08f * l }),
-        PermanentUpgradeDef("starting_orbs", "STARTING ORB COUNT", "Begin each run with extra Packet Nodes.", 2, 900, 6,
-            { l -> "+${l.toInt()} starting node" + if (l >= 2f) "s" else "" }, { s, l -> s.orbCount += l.toInt() }, mastery = Mastery.NONE),
-        PermanentUpgradeDef("starting_power", "STARTING WEAPON POWER", "Free upgrade chips at the start of every run.", 2, 1200, 8,
-            { l -> "+${l.toInt()} starting upgrade" + if (l >= 2f) "s" else "" },
+        PermanentUpgradeDef("attack_speed", tr("ATTACK SPEED"), tr("Faster packet cycling."), 15, 80, 1,
+            { l -> p(4f * l) + tr(" attack speed") }, { s, l -> s.fireRate *= 1f + 0.04f * l }, mastery = Mastery.SOFT, softExtra = 15),
+        PermanentUpgradeDef("move_speed", tr("MOVEMENT SPEED"), tr("Lower-latency movement."), 10, 70, 2,
+            { l -> p(3f * l) + tr(" move speed") }, { s, l -> s.moveSpeed *= 1f + 0.03f * l }, mastery = Mastery.SOFT, softExtra = 10),
+        PermanentUpgradeDef("attack_range", tr("ATTACK RANGE"), tr("Longer targeting range."), 10, 60, 2,
+            { l -> p(4f * l) + tr(" range") }, { s, l -> s.range *= 1f + 0.04f * l }, mastery = Mastery.SOFT, softExtra = 10),
+        PermanentUpgradeDef("crit_chance", tr("CRITICAL CHANCE"), tr("Find weaknesses more often."), 10, 90, 3,
+            { l -> p(1.5f * l) + tr(" crit chance") }, { s, l -> s.critChance += 0.015f * l }, mastery = Mastery.SOFT, softExtra = 20),
+        PermanentUpgradeDef("crit_damage", tr("CRITICAL DAMAGE"), tr("Exploit weaknesses harder."), 10, 90, 3,
+            { l -> p(8f * l) + tr(" crit damage") }, { s, l -> s.critMul += 0.08f * l }),
+        PermanentUpgradeDef("armor", tr("ARMOR"), tr("Hardened chassis: armor cuts the damage you take."), 10, 100, 3,
+            { l -> tr("+{0} armor", n(25f * l)) }, { s, l -> s.armor += 25f * l }, mastery = Mastery.SOFT, softExtra = 10),
+        PermanentUpgradeDef("orb_damage", tr("ORB DAMAGE"), tr("Packet Nodes hit harder."), 15, 70, 2,
+            { l -> p(8f * l) + tr(" node damage") }, { s, l -> s.orbDamage *= 1f + 0.08f * l }),
+        PermanentUpgradeDef("starting_orbs", tr("STARTING ORB COUNT"), tr("Begin each run with extra Packet Nodes."), 2, 900, 6,
+            { l -> if (l >= 2f) tr("+{0} starting nodes", l.toInt()) else tr("+{0} starting node", l.toInt()) }, { s, l -> s.orbCount += l.toInt() }, mastery = Mastery.NONE),
+        PermanentUpgradeDef("starting_power", tr("STARTING WEAPON POWER"), tr("Free upgrade chips at the start of every run."), 2, 1200, 8,
+            { l -> if (l >= 2f) tr("+{0} starting upgrades", l.toInt()) else tr("+{0} starting upgrade", l.toInt()) },
             applyConfig = { c, l -> c.copy(startingUpgrades = c.startingUpgrades + l.toInt()) }, mastery = Mastery.NONE),
-        PermanentUpgradeDef("projectile_speed", "PROJECTILE SPEED", "Packets reach targets sooner.", 10, 50, 2,
-            { l -> p(5f * l) + " packet speed" }, { s, l -> s.projectileSpeed *= 1f + 0.05f * l }, mastery = Mastery.SOFT, softExtra = 10),
-        PermanentUpgradeDef("healing", "HEALING EFFECTIVENESS", "Repairs restore more.", 10, 70, 4,
-            { l -> p(8f * l) + " healing" }, { s, l -> s.healMul *= 1f + 0.08f * l }),
-        PermanentUpgradeDef("boss_damage", "BOSS DAMAGE", "Extra damage to bosses and elites.", 10, 90, 5,
-            { l -> p(5f * l) + " boss & elite damage" }, { s, l -> s.eliteDamageMul += 0.05f * l }),
-        PermanentUpgradeDef("upgrade_quality", "LEVEL-UP UPGRADE QUALITY", "Rare, Epic and Legendary upgrade drops appear more often.", 5, 250, 5,
-            { l -> p(15f * l) + " rare+ chance" },
+        PermanentUpgradeDef("projectile_speed", tr("PROJECTILE SPEED"), tr("Packets reach targets sooner."), 10, 50, 2,
+            { l -> p(5f * l) + tr(" packet speed") }, { s, l -> s.projectileSpeed *= 1f + 0.05f * l }, mastery = Mastery.SOFT, softExtra = 10),
+        PermanentUpgradeDef("healing", tr("HEALING EFFECTIVENESS"), tr("Repairs restore more."), 10, 70, 4,
+            { l -> p(8f * l) + tr(" healing") }, { s, l -> s.healMul *= 1f + 0.08f * l }),
+        PermanentUpgradeDef("boss_damage", tr("BOSS DAMAGE"), tr("Extra damage to bosses and elites."), 10, 90, 5,
+            { l -> p(5f * l) + tr(" boss & elite damage") }, { s, l -> s.eliteDamageMul += 0.05f * l }),
+        PermanentUpgradeDef("upgrade_quality", tr("LEVEL-UP UPGRADE QUALITY"), tr("Rare, Epic and Legendary upgrade drops appear more often."), 5, 250, 5,
+            { l -> p(15f * l) + tr(" rare+ chance") },
             applyConfig = { c, l -> c.copy(upgradeQuality = c.upgradeQuality + 0.15f * l) }, mastery = Mastery.SOFT, softExtra = 5),
-        PermanentUpgradeDef("xp_gain", "EXPERIENCE GAIN", "Collect run data faster.", 10, 60, 3,
-            { l -> p(5f * l) + " data gain" }, { s, l -> s.xpMul += 0.05f * l }),
-        PermanentUpgradeDef("euro_gain", "€ GAIN", "Earn more € from every operation.", 10, 120, 3,
+        PermanentUpgradeDef("xp_gain", tr("EXPERIENCE GAIN"), tr("Collect run data faster."), 10, 60, 3,
+            { l -> p(5f * l) + tr(" data gain") }, { s, l -> s.xpMul += 0.05f * l }),
+        PermanentUpgradeDef("euro_gain", tr("€ GAIN"), tr("Earn more € from every operation."), 10, 120, 3,
             { l -> p(5f * l) + " €" }, { s, l -> s.euroMul += 0.05f * l })
     )
 
@@ -168,38 +169,38 @@ data class OperativeDef(
 object Operatives {
     /** The base operative (id kept as "operative" so older saves keep their selection). */
     val CYBER_OPERATIVE = OperativeDef(
-        "operative", "FIELD AGENT", "Field specialist of the CyOps universe. Well rounded, adaptable.",
-        "Boosted sidearm: +20% damage.", bodyId = "agent",
-        traits = listOf("+20% damage", "Speed: standard", "Starts with one Packet Node"),
+        "operative", "FIELD AGENT", tr("Field specialist of the CyOps universe. Well rounded, adaptable."),
+        tr("Boosted sidearm: +20% damage."), bodyId = "agent",
+        traits = listOf(tr("+20% damage"), tr("Speed: standard"), tr("Starts with one Packet Node")),
         modify = { s -> s.damage *= 1.2f }
     )
     val TECHNICIAN = OperativeDef(
-        "technician", "TECHNICIAN", "Signal engineer. Fast hands, faster feet, and a beam no wall can stop.",
-        "SIGNAL BEAM: a beam through walls every 2s (grows with the level).", bodyId = "neon_operative",
-        traits = listOf("+10% attack speed", "+10% move speed", "Built-in: SIGNAL BEAM (through walls, 2s)"),
+        "technician", "TECHNICIAN", tr("Signal engineer. Fast hands, faster feet, and a beam no wall can stop."),
+        tr("SIGNAL BEAM: a beam through walls every 2s (grows with the level)."), bodyId = "neon_operative",
+        traits = listOf(tr("+10% attack speed"), tr("+10% move speed"), tr("Built-in: SIGNAL BEAM (through walls, 2s)")),
         modify = { s ->
             s.fireRate *= 1.1f; s.moveSpeed *= 1.1f
             s.weapons[com.cyberoperative.game.data.Weapons.TECH_BEAM.id] = 1
         }
     )
     val JUGGERNAUT = OperativeDef(
-        "juggernaut", "JUGGERNAUT", "Armoured breacher. Soaks the hits nobody else can and answers with a slam.",
-        "BRUTE FORCE: a slow, crushing slam. ×2 HP, +100 armor, −10% speed.", bodyId = "mech",
-        traits = listOf("×2 max HP", "+100 armor", "−10% move speed", "Built-in: BRUTE FORCE (slow, heavy slam)"),
+        "juggernaut", "JUGGERNAUT", tr("Armoured breacher. Soaks the hits nobody else can and answers with a slam."),
+        tr("BRUTE FORCE: a slow, crushing slam. ×2 HP, +100 armor, −10% speed."), bodyId = "mech",
+        traits = listOf(tr("×2 max HP"), tr("+100 armor"), tr("−10% move speed"), tr("Built-in: BRUTE FORCE (slow, heavy slam)")),
         modify = { s ->
             s.maxHp *= 2f; s.armor += 100f; s.moveSpeed *= 0.9f
             s.weapons[com.cyberoperative.game.data.Weapons.BRUTE_FORCE.id] = 1
         }
     )
     val PHANTOM = OperativeDef(
-        "phantom", "PHANTOM", "Stealth operative. Slips out of sight on a timer; only the Nullshade Specter can still see it.",
-        "CLOAK: every 10s, turns invisible for a few seconds.", bodyId = "runner",
-        traits = listOf("Cloaks every 10s (3.5s)", "Threats lose track of you while cloaked", "The Nullshade Specter still sees you")
+        "phantom", "PHANTOM", tr("Stealth operative. Slips out of sight on a timer; only the Nullshade Specter can still see it."),
+        tr("CLOAK: every 10s, turns invisible for a few seconds."), bodyId = "runner",
+        traits = listOf(tr("Cloaks every 10s (3.5s)"), tr("Threats lose track of you while cloaked"), tr("The Nullshade Specter still sees you"))
     ) .let { it.copy(modify = { s -> s.cloak = true }) }
     val PACKET_MAGE = OperativeDef(
-        "packet_mage", "PACKET MAGE", "Code-caster. Hurls tracking fire that bursts across crowds and cover.",
-        "PACKET FIREBALL: a tracking fire shot every 2s, even on the move, with splash.", bodyId = "mage",
-        traits = listOf("Built-in: PACKET FIREBALL (tracking, 2s, moving or not)", "Splash on threats and walls"),
+        "packet_mage", "PACKET MAGE", tr("Code-caster. Hurls tracking fire that bursts across crowds and cover."),
+        tr("PACKET FIREBALL: a tracking fire shot every 2s, even on the move, with splash."), bodyId = "mage",
+        traits = listOf(tr("Built-in: PACKET FIREBALL (tracking, 2s, moving or not)"), tr("Splash on threats and walls")),
         modify = { s -> s.weapons[com.cyberoperative.game.data.Weapons.MAGE_FIREBALL.id] = 1 }
     )
     /** In picker order: the Field Agent first. */

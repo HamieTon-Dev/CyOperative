@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +38,7 @@ data class HudSnapshot(
     val hp: Int = 100,
     val maxHp: Int = 100,
     /** "OP Lv 24" / "OP Lv 60 · OC 12", and progress to the next level (owner, 2026-10-13). */
-    val opLabel: String = "OP Lv 1",
+    val opLabel: String = tr("OP Lv 1"),
     val opFraction: Float = 0f,
     val xpPercent: Int = 0,
     val runLevel: Int = 1,
@@ -453,7 +454,7 @@ class GameSession(
         if (partnerLeft || engine.phase == Phase.DEAD) return
         partnerLeft = true
         if (isHost) engine.removeOperative(1) else engine.promoteToSolo()
-        coopNotice = "PARTNER DISCONNECTED · CONTINUING SOLO"
+        coopNotice = tr("PARTNER DISCONNECTED · CONTINUING SOLO")
         coop?.let { l -> l.scope.launch { l.room.leave() } }
     }
 
@@ -773,7 +774,7 @@ class GameSession(
         if (appliedTrade < 0) { appliedTrade = desk.doneSerial; seenRefusal = desk.refusedSerial }
         if (desk.refusedSerial != seenRefusal) {
             seenRefusal = desk.refusedSerial
-            if (desk.refusedFor == myIndex) coopNotice = "TOO MANY POTIONS · USE OR DROP SOME TO ACCEPT"
+            if (desk.refusedFor == myIndex) coopNotice = tr("TOO MANY POTIONS · USE OR DROP SOME TO ACCEPT")
         }
         if (desk.doneSerial == appliedTrade) return
         appliedTrade = desk.doneSerial
@@ -797,7 +798,7 @@ class GameSession(
             com.cyberoperative.game.meta.GearBank.bank(withPets, got).first
         }
         if (lostActive) applyPet()
-        coopNotice = "TRADE COMPLETE"
+        coopNotice = tr("TRADE COMPLETE")
     }
 
     private var nextWorldSerial = 0
@@ -1020,7 +1021,7 @@ class GameSession(
         if (euros > 0) {
             // Solo: the run wallet takes it (like selling from the INVENTORY); co-op € go straight to the save.
             if (!isCoop) engine.grantEuros(euros)
-            engine.addText(o.px, o.py - 40f, "AUTO-SOLD +€$euros", com.cyberoperative.game.engine.TextKind.INFO)
+            engine.addText(o.px, o.py - 40f, tr("AUTO-SOLD +€{0}", euros), com.cyberoperative.game.engine.TextKind.INFO)
         }
         save.update { p ->
             com.cyberoperative.game.meta.GearBank.bank(if (isCoop && euros > 0) p.copy(euros = p.euros + euros) else p, keep).first
@@ -1080,7 +1081,7 @@ class GameSession(
                 !com.cyberoperative.game.meta.StoreManager.skinUnlocked(p, it, classId) &&
                     com.cyberoperative.game.meta.StoreManager.skinUnlocked(updated, it, classId)
             }
-            unlocked = newly.map { it.name } + skinsEarned.map { "${it.name} SKIN · " + if (it.unlock?.campaign == true) "EVERY CLASS" else className }
+            unlocked = newly.map { it.name } + skinsEarned.map { tr("{0} SKIN · ", it.name) + if (it.unlock?.campaign == true) tr("EVERY CLASS") else className }
             updated.copy(
                 achievements = updated.achievements + newly.map { it.id },
                 euros = updated.euros + newly.sumOf { it.rewardEuros.toLong() }

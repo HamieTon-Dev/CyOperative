@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,13 +45,13 @@ import com.cyberoperative.game.ui.theme.Palette
 import kotlin.math.sin
 
 enum class MenuTarget(val label: String) {
-    PLAY("PLAY"), CO_OP("CO-OP"), OPERATIVE("CHARACTER"), VAULT("DATA VAULT"), UPGRADES("OVERCLOCK"), ARMORY("ARMORY"), CODEX("BOSS CODEX"), PET_CODEX("PET CODEX"),
-    SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
-    SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE"),
+    PLAY(tr("PLAY")), CO_OP(tr("CO-OP")), OPERATIVE(tr("CHARACTER")), VAULT(tr("DATA VAULT")), UPGRADES(tr("OVERCLOCK")), ARMORY(tr("ARMORY")), CODEX(tr("BOSS CODEX")), PET_CODEX(tr("PET CODEX")),
+    SKINS(tr("SKINS")), STORE(tr("STORE")), LEADERBOARD(tr("LEADERBOARD")), ACHIEVEMENTS(tr("ACHIEVEMENTS")),
+    SETTINGS(tr("SETTINGS")), ABOUT(tr("ABOUT")), ENDLESS(tr("ENDLESS MODE")), CONTINUE(tr("CONTINUE")),
     /** IDLE RUNS (0.37.0): Android only (the PC build has no Idle Runs host). */
-    IDLE_RUNS("IDLE RUNS"),
+    IDLE_RUNS(tr("IDLE RUNS")),
     /** Settings › LANGUAGE (0.55.0): not on the menu itself. */
-    LANGUAGE("LANGUAGE");
+    LANGUAGE(tr("LANGUAGE"));
 
     companion object {
         /** The small grid buttons (the big buttons are drawn on their own). */
@@ -112,7 +113,7 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
             Spacer(Modifier.height(10.dp))
             if (profile.highestLevel > 0) {
                 Text(
-                    "BEST LEVEL ${profile.highestLevel}   ·   BEST SCORE ${"%,d".format(profile.bestScore)}",
+                    tr("BEST LEVEL {0}   ·   BEST SCORE {1}", profile.highestLevel, "%,d".format(profile.bestScore)),
                     color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -121,40 +122,40 @@ fun MainMenuScreen(profile: PlayerProfile, onSelect: (MenuTarget) -> Unit) {
             val saved = remember(profile.savedRun) { RunSnapshot.decodeOrNull(profile.savedRun) }
             if (saved != null) {
                 CyberButton(
-                    "CONTINUE", primary = true, accent = Palette.Green,
+                    tr("CONTINUE"), primary = true, accent = Palette.Green,
                     subtitle = saved.label,
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.CONTINUE) }
                 Spacer(Modifier.height(10.dp))
                 CyberButton(
-                    "NEW OPERATION", accent = Palette.Cyan,
-                    subtitle = "START OVER",
+                    tr("NEW OPERATION"), accent = Palette.Cyan,
+                    subtitle = tr("START OVER"),
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.PLAY) }
             } else {
                 CyberButton(
-                    "PLAY", primary = true, accent = Palette.Green,
-                    subtitle = if (profile.bestWorld > 0) "CAMPAIGN · BEST: WORLD ${profile.bestWorld}" else "CAMPAIGN · 15 SERVER WORLDS",
+                    tr("PLAY"), primary = true, accent = Palette.Green,
+                    subtitle = if (profile.bestWorld > 0) tr("CAMPAIGN · BEST: WORLD {0}", profile.bestWorld) else tr("CAMPAIGN · 15 SERVER WORLDS"),
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.PLAY) }
             }
             Spacer(Modifier.height(10.dp))
             CyberButton(
-                "ENDLESS MODE", accent = Palette.Purple,
-                subtitle = if (profile.endlessBestStage > 0) "BEST LEVEL ${profile.endlessBestStage}" else "NO MAP · DOORS ANYWHERE · NO END",
+                tr("ENDLESS MODE"), accent = Palette.Purple,
+                subtitle = if (profile.endlessBestStage > 0) tr("BEST LEVEL {0}", profile.endlessBestStage) else tr("NO MAP · DOORS ANYWHERE · NO END"),
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.ENDLESS) }
             Spacer(Modifier.height(10.dp))
             CyberButton(
-                "CO-OP", accent = Palette.Magenta,
-                subtitle = "PLAY WITH A FRIEND",
+                tr("CO-OP"), accent = Palette.Magenta,
+                subtitle = tr("PLAY WITH A FRIEND"),
                 modifier = Modifier.fillMaxWidth()
             ) { onSelect(MenuTarget.CO_OP) }
             if (com.cyberoperative.game.idle.IdleRuns.supported) {
                 Spacer(Modifier.height(10.dp))
                 CyberButton(
-                    "IDLE RUNS", accent = Palette.Orange,
-                    subtitle = "YOUR OPERATOR FIGHTS ON · 40% € · 50% XP",
+                    tr("IDLE RUNS"), accent = Palette.Orange,
+                    subtitle = tr("YOUR OPERATOR FIGHTS ON · 40% € · 50% XP"),
                     modifier = Modifier.fillMaxWidth()
                 ) { onSelect(MenuTarget.IDLE_RUNS) }
             }

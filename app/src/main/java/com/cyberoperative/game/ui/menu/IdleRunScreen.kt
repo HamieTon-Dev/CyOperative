@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -61,9 +62,9 @@ import kotlinx.coroutines.delay
 @Composable
 fun IdleRunScreen(save: SaveRepository, onBack: () -> Unit, onClick: () -> Unit) {
     val host = IdleRuns.host
-    ScreenScaffold("IDLE RUNS", onBack) {
+    ScreenScaffold(tr("IDLE RUNS"), onBack) {
         if (host == null) {
-            Text("Idle Runs are on the Android version.", color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
+            Text(tr("Idle Runs are on the Android version."), color = Palette.TextSecondary, style = MaterialTheme.typography.bodyMedium)
             return@ScreenScaffold
         }
         val run by host.state.collectAsState()
@@ -114,10 +115,10 @@ internal fun idleDifficultyLabel(s: IdleRunState): String {
 }
 
 internal fun idleEnemyName(s: IdleRunState): String {
-    val e = s.enemy ?: return if (s.pause > 0f) "MOVING TO THE NEXT ROOM" else "—"
-    if (e.boss) return "BOSS · " + (Bosses.byId(e.id)?.name ?: e.id.uppercase())
+    val e = s.enemy ?: return if (s.pause > 0f) tr("MOVING TO THE NEXT ROOM") else "—"
+    if (e.boss) return tr("BOSS · ") + (Bosses.byId(e.id)?.name ?: e.id.uppercase())
     val name = Enemies.byId(e.id).name
-    return if (e.elite != null) "ELITE $name" else name
+    return if (e.elite != null) tr("ELITE {0}", name) else name
 }
 
 @Composable
@@ -157,7 +158,7 @@ private fun ActiveRun(s: IdleRunState, time: Float, onRecall: () -> Unit) {
     TerminalCard(accent = if (inferno) Palette.Red else Palette.Cyan) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("AUTO-FIGHT · 1 THREAT", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Text(tr("AUTO-FIGHT · 1 THREAT"), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
                 Text(idleDifficultyLabel(s), color = if (inferno) Palette.Red else Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             }
             Spacer(Modifier.height(8.dp))
@@ -169,41 +170,41 @@ private fun ActiveRun(s: IdleRunState, time: Float, onRecall: () -> Unit) {
             Box(Modifier.fillMaxWidth().height(8.dp).background(Palette.SurfaceSunken, RoundedCornerShape(4.dp))) {
                 Box(Modifier.fillMaxWidth(frac).fillMaxHeight().background(if (frac < 0.35f) Palette.Red else Palette.Green, RoundedCornerShape(4.dp)))
             }
-            Text("HP ${s.hp.toInt()} / ${s.maxHp.toInt()}   ·   ✚ ${s.charges} HP charges", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("HP {0} / {1}   ·   ✚ {2} HP charges", s.hp.toInt(), s.maxHp.toInt(), s.charges), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(10.dp))
             BossStrip(s)
             Spacer(Modifier.height(10.dp))
             StatRow(
-                Triple("OPERATOR", s.characterName.ifEmpty { Operatives.byId(s.classId).name }, Palette.TextPrimary),
-                Triple("OP LV", OpProgress.of(s.opXp).label.removePrefix("OP Lv ").uppercase(), Palette.Cyan)
+                Triple(tr("OPERATOR"), s.characterName.ifEmpty { Operatives.byId(s.classId).name }, Palette.TextPrimary),
+                Triple(tr("OP LV"), OpProgress.of(s.opXp).label.removePrefix("OP Lv ").uppercase(), Palette.Cyan)
             )
             StatRow(
-                Triple("LEVEL", s.level.toString(), Palette.TextPrimary),
-                Triple("NEXT BOSS", if (s.bossLevel) "NOW" else s.nextBoss.toString(), Palette.Orange)
+                Triple(tr("LEVEL"), s.level.toString(), Palette.TextPrimary),
+                Triple(tr("NEXT BOSS"), if (s.bossLevel) tr("NOW") else s.nextBoss.toString(), Palette.Orange)
             )
             StatRow(
-                Triple("€ EARNED", amount(s.eurosEarned), Palette.Euro),
-                Triple("XP EARNED", amount(s.xpEarned), Palette.Cyan)
+                Triple(tr("€ EARNED"), amount(s.eurosEarned), Palette.Euro),
+                Triple(tr("XP EARNED"), amount(s.xpEarned), Palette.Cyan)
             )
             StatRow(
-                Triple("RUN TIME", clock(s.durationSeconds(System.currentTimeMillis())), Palette.TextPrimary),
-                Triple("KILLS", "${s.kills} · ${s.bosses} BOSS", Palette.TextPrimary)
+                Triple(tr("RUN TIME"), clock(s.durationSeconds(System.currentTimeMillis())), Palette.TextPrimary),
+                Triple(tr("KILLS"), tr("{0} · {1} BOSS", s.kills, s.bosses), Palette.TextPrimary)
             )
-            Text("IDLE RATE: 40% € · 50% XP OF A NORMAL RUN", color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
-            Text("Uses your operator's level, gear, Overclock and class. Upgrade chips are picked for your build.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("IDLE RATE: 40% € · 50% XP OF A NORMAL RUN"), color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
+            Text(tr("Uses your operator's level, gear, Overclock and class. Upgrade chips are picked for your build."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
     Spacer(Modifier.height(10.dp))
     Loot(s)
     Spacer(Modifier.height(10.dp))
-    CyberButton("RECALL OPERATOR", Modifier.fillMaxWidth(), accent = Palette.Red, subtitle = "END THE RUN NOW · KEEP WHAT IT EARNED") { onRecall() }
+    CyberButton(tr("RECALL OPERATOR"), Modifier.fillMaxWidth(), accent = Palette.Red, subtitle = tr("END THE RUN NOW · KEEP WHAT IT EARNED")) { onRecall() }
 }
 
 /** Ten dots for the current block of levels: cleared, current, the boss. */
 @Composable
 private fun BossStrip(s: IdleRunState) {
     val first = (s.nextBoss - 9).coerceAtLeast(1)
-    Text("RUN PROGRESS · LV ${s.level} · NEXT BOSS ${s.nextBoss}", color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
+    Text(tr("RUN PROGRESS · LV {0} · NEXT BOSS {1}", s.level, s.nextBoss), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
     Spacer(Modifier.height(4.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         for (l in first..s.nextBoss) {
@@ -222,18 +223,18 @@ private fun BossStrip(s: IdleRunState) {
 private fun Loot(s: IdleRunState) {
     TerminalCard {
         Column {
-            Text("UPGRADE CHIPS (${s.chipLog.size})", color = Palette.Green, style = MaterialTheme.typography.labelLarge)
-            if (s.chipLog.isEmpty()) Text("None yet: one per cleared room, two per boss.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("UPGRADE CHIPS ({0})", s.chipLog.size), color = Palette.Green, style = MaterialTheme.typography.labelLarge)
+            if (s.chipLog.isEmpty()) Text(tr("None yet: one per cleared room, two per boss."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             else Text(s.chipLog.takeLast(12).reversed().joinToString(" · "), color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(8.dp))
-            Text("GEAR DROPS (${s.drops.size})", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
-            if (s.drops.isEmpty()) Text("Elites and bosses drop gear (Idle Runs keep EPIC and better).", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("GEAR DROPS ({0})", s.drops.size), color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
+            if (s.drops.isEmpty()) Text(tr("Elites and bosses drop gear (Idle Runs keep EPIC and better)."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (g in s.drops) GearIconView(g, Modifier.size(44.dp))
             }
             Spacer(Modifier.height(8.dp))
-            Text("EGGS (${s.eggs.size})", color = Palette.Magenta, style = MaterialTheme.typography.labelLarge)
-            if (s.eggs.isEmpty()) Text("Bosses and elites can drop pet eggs.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("EGGS ({0})", s.eggs.size), color = Palette.Magenta, style = MaterialTheme.typography.labelLarge)
+            if (s.eggs.isEmpty()) Text(tr("Bosses and elites can drop pet eggs."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             else Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (e in s.eggs) androidx.compose.foundation.Canvas(Modifier.size(40.dp)) {
                     with(com.cyberoperative.game.ui.common.PetArt) { drawEgg(e.art, size.width / 2f, size.height, size.minDimension) }
@@ -248,23 +249,23 @@ private fun Summary(s: IdleRunState, time: Float) {
     val defeated = s.status == IdleStatus.DEFEATED
     TerminalCard(accent = if (defeated) Palette.Red else Palette.Gold) {
         Column {
-            Text(if (defeated) "OPERATOR DEFEATED" else "IDLE RUN COMPLETE", color = if (defeated) Palette.Red else Palette.Gold, style = MaterialTheme.typography.titleLarge)
-            Text(s.endReason.ifEmpty { "Run ended" } + " · " + idleDifficultyLabel(s), color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            Text(if (defeated) tr("OPERATOR DEFEATED") else tr("IDLE RUN COMPLETE"), color = if (defeated) Palette.Red else Palette.Gold, style = MaterialTheme.typography.titleLarge)
+            Text(s.endReason.ifEmpty { tr("Run ended") } + " · " + idleDifficultyLabel(s), color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(8.dp))
             Battle(s, time, defeated = defeated)
             Spacer(Modifier.height(10.dp))
             StatRow(
-                Triple("HIGHEST LEVEL", s.highestLevel.toString(), Palette.TextPrimary),
-                Triple("RUN TIME", clock(s.durationSeconds(0)), Palette.TextPrimary)
+                Triple(tr("HIGHEST LEVEL"), s.highestLevel.toString(), Palette.TextPrimary),
+                Triple(tr("RUN TIME"), clock(s.durationSeconds(0)), Palette.TextPrimary)
             )
             StatRow(
-                Triple("€ EARNED", amount(s.eurosEarned), Palette.Euro),
-                Triple("XP EARNED", amount(s.xpEarned), Palette.Cyan)
+                Triple(tr("€ EARNED"), amount(s.eurosEarned), Palette.Euro),
+                Triple(tr("XP EARNED"), amount(s.xpEarned), Palette.Cyan)
             )
             Text(
-                if (s.collected) "Rewards added: € to your account, XP and ${s.drops.size} gear to ${s.characterName.ifEmpty { "your character" }}" +
-                    (if (s.eggs.isNotEmpty()) ", ${s.eggs.size} egg${if (s.eggs.size == 1) "" else "s"} to your PETS." else ".")
-                else "Collecting rewards…",
+                if (s.collected) tr("Rewards added: € to your account, XP and {0} gear to {1}", s.drops.size, s.characterName.ifEmpty { tr("your character") }) +
+                    (if (s.eggs.size == 1) tr(", 1 egg to your PETS.") else if (s.eggs.isNotEmpty()) tr(", {0} eggs to your PETS.", s.eggs.size) else ".")
+                else tr("Collecting rewards…"),
                 color = Palette.Green, style = MaterialTheme.typography.labelSmall
             )
         }
@@ -280,24 +281,24 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
     var tier by remember { mutableIntStateOf(p.infernoUnlocked.coerceAtLeast(1)) }
     TerminalCard(accent = Palette.Cyan) {
         Column {
-            Text("START NEW IDLE RUN?", color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
+            Text(tr("START NEW IDLE RUN?"), color = Palette.Cyan, style = MaterialTheme.typography.titleMedium)
             val cls = Operatives.byId(p.selectedOperative)
-            Text("${p.characterName.ifEmpty { cls.name }} · ${cls.name} · ${operativeLabel(p.operativeXp)} · ${p.equipped.size} gear equipped",
+            Text(tr("{0} · {1} · {2} · {3} gear equipped", p.characterName.ifEmpty { cls.name }, cls.name, operativeLabel(p.operativeXp), p.equipped.size),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CyberButton("STANDARD", Modifier.weight(1f), accent = Palette.Cyan, primary = !inferno && !hard) { inferno = false; hard = false }
+                CyberButton(tr("STANDARD"), Modifier.weight(1f), accent = Palette.Cyan, primary = !inferno && !hard) { inferno = false; hard = false }
                 // HARD (owner, 0.39.1): the player's choice.
-                CyberButton("HARD", Modifier.weight(1f), accent = Palette.Magenta, primary = hard) { hard = true; inferno = false }
+                CyberButton(tr("HARD"), Modifier.weight(1f), accent = Palette.Magenta, primary = hard) { hard = true; inferno = false }
                 // INFERNO only once it is unlocked (beat World 15 on HARD).
-                if (p.infernoUnlocked > 0) CyberButton("INFERNO", Modifier.weight(1f), accent = Palette.Red, primary = inferno) { inferno = true; hard = false }
+                if (p.infernoUnlocked > 0) CyberButton(tr("INFERNO"), Modifier.weight(1f), accent = Palette.Red, primary = inferno) { inferno = true; hard = false }
             }
             if (inferno && p.infernoUnlocked > 0) {
                 Spacer(Modifier.height(8.dp))
                 InfernoStepper(tier, p.infernoUnlocked) { tier = it }
             }
             Spacer(Modifier.height(10.dp))
-            Text("• One threat at a time, a boss every 10 levels.\n• Your equipped operator's real stats, gear and class.\n• Upgrade chips picked for your build.\n• Earns 40% of the € and 50% of the XP a normal run would.\n• Keeps going with the game closed. Add the IDLE RUN widget to your home screen.",
+            Text(tr("• One threat at a time, a boss every 10 levels.\n• Your equipped operator's real stats, gear and class.\n• Upgrade chips picked for your build.\n• Earns 40% of the € and 50% of the XP a normal run would.\n• Keeps going with the game closed. Add the IDLE RUN widget to your home screen."),
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(10.dp))
             val d = when {
@@ -306,7 +307,7 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
                 else -> Difficulty.MEDIUM
             }
             val why = IdleRunSimulator.cannotStart(p, d)
-            CyberButton("START IDLE RUN", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, enabled = why == null,
+            CyberButton(tr("START IDLE RUN"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true, enabled = why == null,
                 subtitle = why ?: idleLabel(d)) { onStart(d) }
         }
     }
@@ -314,7 +315,7 @@ private fun NewRun(p: PlayerProfile, onStart: (Difficulty) -> Unit) {
 
 /** STANDARD, HARD or INFERNO n (idle run badge). */
 fun idleLabel(d: Difficulty): String = when {
-    d.inferno > 0 -> "INFERNO ${d.inferno}"
-    d == Difficulty.HARD -> "HARD"
-    else -> "STANDARD"
+    d.inferno > 0 -> tr("INFERNO {0}", d.inferno)
+    d == Difficulty.HARD -> tr("HARD")
+    else -> tr("STANDARD")
 }

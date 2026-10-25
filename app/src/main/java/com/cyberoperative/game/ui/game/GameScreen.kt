@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
@@ -319,7 +320,7 @@ fun GameScreen(
         }
         if (!stickActive && hud.phase == Phase.COMBAT && hud.level == 1 && time < 12f) {
             Text(
-                if (GameKeys.padConnected) "LEFT STICK TO MOVE · RIGHT STICK TO AIM & FIRE" else if (GameKeys.active) "WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM" else "DRAG TO MOVE · RELEASE TO FIRE",
+                if (GameKeys.padConnected) tr("LEFT STICK TO MOVE · RIGHT STICK TO AIM & FIRE") else if (GameKeys.active) tr("WASD TO MOVE · HOLD MOUSE TO FIRE · STAND STILL TO AUTO-AIM") else tr("DRAG TO MOVE · RELEASE TO FIRE"),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -359,33 +360,33 @@ fun GameScreen(
             }
             if (hud.phase == Phase.PORTAL) {
                 HintChip(
-                    if (hud.topGateLocked) "▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP" else hud.doorHint.ifEmpty { "▲ GATE OPEN — WALK THROUGH TO CONTINUE" },
+                    if (hud.topGateLocked) tr("▲ GATE LOCKED — WALK IN AGAIN TO SKIP SHOP") else hud.doorHint.ifEmpty { tr("▲ GATE OPEN — WALK THROUGH TO CONTINUE") },
                     if (hud.topGateLocked) Palette.Red else Palette.Green
                 )
             }
             // World server: everyone ready to move on (co-op).
             if (hud.coop && hud.worldReadyCount > 0) {
-                HintChip("${hud.worldReadyCount}/${hud.worldReadyTotal} PLAYERS READY TO MOVE TO NEXT WORLD", Palette.Cyan)
+                HintChip(tr("{0}/{1} PLAYERS READY TO MOVE TO NEXT WORLD", hud.worldReadyCount, hud.worldReadyTotal), Palette.Cyan)
             }
             // Co-op shop: both leave together through the exit gate.
             if (hud.inShop && hud.coop && hud.shopReadyCount > 0) {
                 HintChip(
-                    if (hud.meShopReady) "WAITING FOR ${hud.partnerName.ifEmpty { "PARTNER" }} · READY TO LEAVE ${hud.shopReadyCount}/${hud.shopReadyTotal}"
-                    else "${hud.partnerName.ifEmpty { "PARTNER" }} FINISHED SHOPPING · READY TO LEAVE ${hud.shopReadyCount}/${hud.shopReadyTotal} · WALK TO THE GATE",
+                    if (hud.meShopReady) tr("WAITING FOR {0} · READY TO LEAVE {1}/{2}", hud.partnerName.ifEmpty { tr("PARTNER") }, hud.shopReadyCount, hud.shopReadyTotal)
+                    else tr("{0} FINISHED SHOPPING · READY TO LEAVE {1}/{2} · WALK TO THE GATE", hud.partnerName.ifEmpty { tr("PARTNER") }, hud.shopReadyCount, hud.shopReadyTotal),
                     Palette.Gold
                 )
             }
             if (hud.shopGateOpen && hud.phase == Phase.PORTAL) {
-                HintChip(if (hud.shopGateRight) "SHOP GATE OPEN — RIGHT WALL ►" else "◄ SHOP GATE OPEN — LEFT WALL", Palette.Gold)
+                HintChip(if (hud.shopGateRight) tr("SHOP GATE OPEN — RIGHT WALL ►") else tr("◄ SHOP GATE OPEN — LEFT WALL"), Palette.Gold)
             }
             if (hud.vaultReady) {
-                HintChip("◆ WALK UP TO THE DATA CACHE TO CRACK IT", Palette.Gold)
+                HintChip(tr("◆ WALK UP TO THE DATA CACHE TO CRACK IT"), Palette.Gold)
             }
             // Co-op: down and waiting for the partner, or the partner is down.
             if (hud.coop && hud.downed) {
-                HintChip("YOU'RE DOWN · ${hud.partnerName.ifEmpty { "PARTNER" }} CAN REVIVE YOU (${(hud.reviveProgress * 100).toInt()}%)", Palette.Red)
+                HintChip(tr("YOU'RE DOWN · {0} CAN REVIVE YOU ({1}%)", hud.partnerName.ifEmpty { tr("PARTNER") }, (hud.reviveProgress * 100).toInt()), Palette.Red)
             } else if (hud.coop && hud.partnerDowned && !hud.partnerGone) {
-                HintChip("${hud.partnerName.ifEmpty { "PARTNER" }} IS DOWN · STAND NEXT TO THEM TO REVIVE", Palette.Magenta)
+                HintChip(tr("{0} IS DOWN · STAND NEXT TO THEM TO REVIVE", hud.partnerName.ifEmpty { tr("PARTNER") }), Palette.Magenta)
             }
             session.coopNotice?.let { HintChip(it, Palette.Orange) }
             if (hud.bannerVisible && hud.banner.isNotEmpty() && hud.phase != Phase.UPGRADE) {
@@ -397,7 +398,7 @@ fun GameScreen(
         // World server: walk up to it after a world boss, press to move on.
         if (hud.nearWorldServer && !hud.meWorldReady && hud.phase == Phase.PORTAL) {
             Text(
-                "▶  MOVE TO NEXT WORLD",
+                tr("▶  MOVE TO NEXT WORLD"),
                 color = Palette.Cyan, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -435,7 +436,7 @@ fun GameScreen(
             val idx = shopHeld!!
             UpgradeDetailSheet(
                 heldItem.def, heldItem.nextLevel, session.previewLines(heldItem.def),
-                actionLabel = if (heldItem.sold) "SOLD" else "BUY €${heldItem.price}",
+                actionLabel = if (heldItem.sold) tr("SOLD") else tr("BUY €{0}", heldItem.price),
                 actionEnabled = !heldItem.sold && hud.euros >= heldItem.price,
                 onAction = {
                     shopHeld = null
@@ -465,7 +466,7 @@ fun GameScreen(
                     .border(1.5.dp, Palette.Cyan, RoundedCornerShape(8.dp))
                     .clickable { showMap = !showMap }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) { Text("MAP", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge) }
+            ) { Text(tr("MAP"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge) }
         }
         // Co-op TRADE (owner, 0.35.0): small, under the MAP corner; the window when a trade is on.
         if (session.isCoop && !session.paused && hud.phase != Phase.DEAD && !showInventory) {
@@ -485,7 +486,7 @@ fun GameScreen(
                     .clickable { openInventory() }
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
-                Text("■INV" + if (hud.gearFound > 0) " +${hud.gearFound}" else "", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                Text(tr("■INV") + if (hud.gearFound > 0) " +${hud.gearFound}" else "", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             }
         }
         if (showMap && hud.campaign) {
@@ -677,7 +678,7 @@ private fun TutorialOverlay(pcRun: Boolean, onDone: () -> Unit) {
                 .border(1.dp, Palette.Cyan, RoundedCornerShape(10.dp))
                 .padding(20.dp)
         ) {
-            Text("OPERATIVE BRIEFING", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            Text(tr("OPERATIVE BRIEFING"), color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
             for (line in if (GameKeys.active) TUTORIAL_LINES_PC else if (pcRun) TUTORIAL_LINES_TOUCH_PC else TUTORIAL_LINES) {
                 Text("> $line", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
@@ -686,9 +687,9 @@ private fun TutorialOverlay(pcRun: Boolean, onDone: () -> Unit) {
             Spacer(Modifier.height(10.dp))
             Text(
                 when {
-                    GameKeys.padConnected -> "PRESS ANY BUTTON TO BEGIN"
-                    GameKeys.active -> "CLICK TO BEGIN"
-                    else -> "TAP TO BEGIN"
+                    GameKeys.padConnected -> tr("PRESS ANY BUTTON TO BEGIN")
+                    GameKeys.active -> tr("CLICK TO BEGIN")
+                    else -> tr("TAP TO BEGIN")
                 }, color = Palette.Green, style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally))
         }
@@ -696,39 +697,39 @@ private fun TutorialOverlay(pcRun: Boolean, onDone: () -> Unit) {
 }
 
 val TUTORIAL_LINES = listOf(
-    "Drag anywhere to move.",
-    "Stop moving to fire automatically.",
-    "Orbiting Packet Nodes attack all the time.",
-    "Avoid red/orange enemy attacks.",
-    "Defeat all threats, then enter the ACCESS PORT.",
-    "Choose an upgrade when you gain enough data.",
-    "A boss appears every 10 levels."
+    tr("Drag anywhere to move."),
+    tr("Stop moving to fire automatically."),
+    tr("Orbiting Packet Nodes attack all the time."),
+    tr("Avoid red/orange enemy attacks."),
+    tr("Defeat all threats, then enter the ACCESS PORT."),
+    tr("Choose an upgrade when you gain enough data."),
+    tr("A boss appears every 10 levels.")
 )
 
 /** Android PC mode briefing: the joystick plus the on-screen buttons. */
 val TUTORIAL_LINES_TOUCH_PC = listOf(
-    "Move with the joystick; your gun fires on its own.",
-    "Buttons: DASH, your two class SPELLS, HP CHARGE and PACKET BOMB.",
-    "Upgrades drop from threats as glowing chips: walk over them.",
-    "Threats drop € as cash bags; a cleared room pulls them in.",
-    "Defeat all threats, then pick an exit door.",
-    "A boss appears every 10 levels."
+    tr("Move with the joystick; your gun fires on its own."),
+    tr("Buttons: DASH, your two class SPELLS, HP CHARGE and PACKET BOMB."),
+    tr("Upgrades drop from threats as glowing chips: walk over them."),
+    tr("Threats drop € as cash bags; a cleared room pulls them in."),
+    tr("Defeat all threats, then pick an exit door."),
+    tr("A boss appears every 10 levels.")
 )
 
 /** The PC briefing: keyboard + mouse, or a controller. */
 val TUTORIAL_LINES_PC = listOf(
-    "Move with WASD (or the left stick).",
-    "Hold the mouse button (or the right stick) to fire while moving.",
-    "Stand still and your gun picks targets on its own.",
-    "Orbiting Packet Nodes attack all the time.",
-    "Avoid red/orange enemy attacks.",
-    "Defeat all threats, then enter the ACCESS PORT.",
-    "Choose an upgrade when you gain enough data.",
-    "A boss appears every 10 levels.  ESC / START pauses."
+    tr("Move with WASD (or the left stick)."),
+    tr("Hold the mouse button (or the right stick) to fire while moving."),
+    tr("Stand still and your gun picks targets on its own."),
+    tr("Orbiting Packet Nodes attack all the time."),
+    tr("Avoid red/orange enemy attacks."),
+    tr("Defeat all threats, then enter the ACCESS PORT."),
+    tr("Choose an upgrade when you gain enough data."),
+    tr("A boss appears every 10 levels.  ESC / START pauses.")
 )
 
 /** Pause menu tabs (CO-065: current build and a settings shortcut). */
-private enum class PauseTab(val label: String) { MENU("MENU"), BUILD("BUILD"), SETTINGS("SETTINGS") }
+private enum class PauseTab(val label: String) { MENU(tr("MENU")), BUILD(tr("BUILD")), SETTINGS(tr("SETTINGS")) }
 
 @Composable
 private fun PauseOverlay(
@@ -760,8 +761,8 @@ private fun PauseOverlay(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(if (coop) "CO-OP MENU" else "OPERATION PAUSED", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
-            if (coop) Text("Co-op can't be paused · the fight continues", color = Palette.Orange, style = MaterialTheme.typography.labelSmall)
+            Text(if (coop) tr("CO-OP MENU") else tr("OPERATION PAUSED"), color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            if (coop) Text(tr("Co-op can't be paused · the fight continues"), color = Palette.Orange, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(10.dp))
             // Tabs.
             Row(Modifier.fillMaxWidth()) {
@@ -798,14 +799,14 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseMenuTab(
     onSave: () -> Unit,
     onQuit: () -> Unit
 ) {
-    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+    com.cyberoperative.game.ui.common.CyberButton(tr("RESUME"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
     Spacer(Modifier.height(12.dp))
     MusicPlayerPanel(audio, Modifier.weight(1f, fill = false))
     Spacer(Modifier.height(12.dp))
     if (saveBlocked == null) {
         com.cyberoperative.game.ui.common.CyberButton(
-            "SAVE & EXIT TO MENU", Modifier.fillMaxWidth(), accent = Palette.Cyan,
-            subtitle = "CONTINUE FROM HERE LATER"
+            tr("SAVE & EXIT TO MENU"), Modifier.fillMaxWidth(), accent = Palette.Cyan,
+            subtitle = tr("CONTINUE FROM HERE LATER")
         ) { onSave() }
     } else {
         // Boss fights can't be saved; the button is shown locked so the rule is clear.
@@ -820,18 +821,18 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseMenuTab(
             Text(saveBlocked, color = Palette.Red, style = MaterialTheme.typography.titleSmall)
             Text(
                 when {
-                    saveBlocked.contains("BOSS") -> "Defeat the boss to unlock saving"
-                    saveBlocked.contains("CO-OP") -> "Rewards are saved when the run ends"
-                    else -> "Try again in a moment"
+                    saveBlocked == tr("[BOSS] SAVE BLOCKED") -> tr("Defeat the boss to unlock saving")
+                    saveBlocked == tr("CO-OP RUNS CAN'T BE SAVED") -> tr("Rewards are saved when the run ends")
+                    else -> tr("Try again in a moment")
                 },
                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall
             )
         }
     }
     Spacer(Modifier.height(8.dp))
-    com.cyberoperative.game.ui.common.CyberButton("ABORT OPERATION", Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
+    com.cyberoperative.game.ui.common.CyberButton(tr("ABORT OPERATION"), Modifier.fillMaxWidth(), accent = Palette.Red) { onQuit() }
     Spacer(Modifier.height(4.dp))
-    Text("Abort ends the run. Progress and € earned so far are kept.", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    Text(tr("Abort ends the run. Progress and € earned so far are kept."), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
 }
 
 /** BUILD: the operative's key stats and every module owned this run. */
@@ -842,14 +843,14 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseBuildTab(
     onResume: () -> Unit
 ) {
     val stats = listOf(
-        "DAMAGE" to "%.0f".format(s.damage),
-        "FIRE RATE" to "%.1f/s".format(s.fireRate),
-        "CRIT" to "${(s.critChance * 100).toInt()}%",
-        "RANGE" to "%.0f".format(s.range),
-        "MAX HP" to "%.0f".format(s.maxHp),
-        "ARMOR" to "%.0f".format(s.armor),
-        "DODGE" to "${(s.dodge * 100).toInt()}%",
-        "MOVE" to "%.0f".format(s.moveSpeed)
+        tr("DAMAGE") to "%.0f".format(s.damage),
+        tr("FIRE RATE") to "%.1f/s".format(s.fireRate),
+        tr("CRIT") to "${(s.critChance * 100).toInt()}%",
+        tr("RANGE") to "%.0f".format(s.range),
+        tr("MAX HP") to "%.0f".format(s.maxHp),
+        tr("ARMOR") to "%.0f".format(s.armor),
+        tr("DODGE") to "${(s.dodge * 100).toInt()}%",
+        tr("MOVE") to "%.0f".format(s.moveSpeed)
     )
     Column(
         Modifier
@@ -868,9 +869,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseBuildTab(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Text("MODULES (${owned.size})", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+        Text(tr("MODULES ({0})", owned.size), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
         Spacer(Modifier.height(6.dp))
-        if (owned.isEmpty()) Text("No modules yet — clear a room to pick one.", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+        if (owned.isEmpty()) Text(tr("No modules yet — clear a room to pick one."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
         for ((id, lvl) in owned) {
             val u = com.cyberoperative.game.data.Upgrades.byId(id)
             val c = Color(u.rarity.color)
@@ -888,12 +889,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseBuildTab(
                     Text(u.name, color = c, style = MaterialTheme.typography.labelLarge)
                     Text(u.description, color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                 }
-                if (lvl > 0) Text("LV $lvl", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+                if (lvl > 0) Text(tr("LV {0}", lvl), color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             }
         }
     }
     Spacer(Modifier.height(12.dp))
-    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+    com.cyberoperative.game.ui.common.CyberButton(tr("RESUME"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
 }
 
 /** SETTINGS shortcut: volumes and the in-game toggles, without leaving the run. */
@@ -903,17 +904,17 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseSettingsTab(sess
     fun set(next: com.cyberoperative.game.save.GameSettings) { s = next; session.updateSettings(next) }
     val sliderColors = androidx.compose.material3.SliderDefaults.colors(thumbColor = Palette.Cyan, activeTrackColor = Palette.Cyan, inactiveTrackColor = Palette.Divider)
     Column(Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-        Text("MUSIC VOLUME ${(s.musicVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+        Text(tr("MUSIC VOLUME {0}%", (s.musicVolume * 100).toInt()), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
         androidx.compose.material3.Slider(s.musicVolume, { set(s.copy(musicVolume = it)) }, colors = sliderColors)
-        Text("EFFECTS VOLUME ${(s.sfxVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
+        Text(tr("EFFECTS VOLUME {0}%", (s.sfxVolume * 100).toInt()), color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)
         androidx.compose.material3.Slider(
             s.sfxVolume, { set(s.copy(sfxVolume = it)) },
             onValueChangeFinished = { session.audio.play(com.cyberoperative.game.engine.GameSound.UI_CLICK) }, colors = sliderColors
         )
         Spacer(Modifier.height(6.dp))
-        PauseToggle("HAPTICS", s.haptics) { set(s.copy(haptics = it)) }
-        PauseToggle("DAMAGE NUMBERS", s.damageNumbers) { set(s.copy(damageNumbers = it)) }
-        PauseToggle("SCREEN SHAKE", s.screenShake) { set(s.copy(screenShake = it)) }
+        PauseToggle(tr("HAPTICS"), s.haptics) { set(s.copy(haptics = it)) }
+        PauseToggle(tr("DAMAGE NUMBERS"), s.damageNumbers) { set(s.copy(damageNumbers = it)) }
+        PauseToggle(tr("SCREEN SHAKE"), s.screenShake) { set(s.copy(screenShake = it)) }
         // PC: rebind keys without leaving the run (owner, 0.31.0).
         if (com.cyberoperative.game.platform.GameKeys.active) {
             Spacer(Modifier.height(10.dp))
@@ -925,7 +926,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.PauseSettingsTab(sess
         }
     }
     Spacer(Modifier.height(12.dp))
-    com.cyberoperative.game.ui.common.CyberButton("RESUME", Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
+    com.cyberoperative.game.ui.common.CyberButton(tr("RESUME"), Modifier.fillMaxWidth(), accent = Palette.Green, primary = true) { onResume() }
 }
 
 @Composable
@@ -1001,17 +1002,17 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
     ) {
         if (compact) Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (shownName.isEmpty()) "!! WARNING !!" else shownName,
+                if (shownName.isEmpty()) tr("!! WARNING !!") else shownName,
                 color = if (shownName.isEmpty()) color.copy(alpha = if ((intro * 6f).toInt() % 2 == 0) 1f else 0.4f) else Palette.TextPrimary.copy(alpha = flicker),
                 style = mono(14.sp, FontWeight.Bold), maxLines = 1, modifier = Modifier.weight(1f)
             )
-            Text(if (introRunning) (if (intro >= growl) "ENGAGING…" else "") else h.bossPhase, color = color, style = mono(11.sp, FontWeight.Bold), maxLines = 1, modifier = Modifier.weight(1f))
+            Text(if (introRunning) (if (intro >= growl) tr("ENGAGING…") else "") else h.bossPhase, color = color, style = mono(11.sp, FontWeight.Bold), maxLines = 1, modifier = Modifier.weight(1f))
             if (!introRunning) Text("${h.bossPercent}%", color = color, style = mono(14.sp, FontWeight.Bold))
         } else Row(verticalAlignment = Alignment.Bottom) {
             Text(if (shownName.isEmpty()) "" else h.bossTag, color = color.copy(alpha = flicker), style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.width(8.dp))
             Text(
-                if (shownName.isEmpty()) "!! WARNING !!" else shownName,
+                if (shownName.isEmpty()) tr("!! WARNING !!") else shownName,
                 color = if (shownName.isEmpty()) color.copy(alpha = if ((intro * 6f).toInt() % 2 == 0) 1f else 0.4f) else Palette.TextPrimary.copy(alpha = flicker),
                 style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f), maxLines = 1
             )
@@ -1022,7 +1023,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
                 if (introRunning && intro < nameEnd) "" else h.bossTitle.uppercase(),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f), maxLines = 1
             )
-            Text(if (introRunning) (if (intro >= growl) "ENGAGING…" else "") else h.bossPhase, color = color, style = MaterialTheme.typography.labelMedium)
+            Text(if (introRunning) (if (intro >= growl) tr("ENGAGING…") else "") else h.bossPhase, color = color, style = MaterialTheme.typography.labelMedium)
         }
         Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
         androidx.compose.foundation.Canvas(
@@ -1059,7 +1060,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
         }
         if (h.bossIceShell >= 0) {
             Text(
-                "❄ PERMAFROST SHELL ${h.bossIceShell}% — KEEP FIRING",
+                tr("❄ PERMAFROST SHELL {0}% — KEEP FIRING", h.bossIceShell),
                 color = Color(0xFF9AE6FF),
                 style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
@@ -1069,7 +1070,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
             // Spectral Firewall: its plates soak up your fire unless you shoot through a gap.
             val up = h.bossRing == 1
             Text(
-                if (up) "🔥 RING UP — FIRE THROUGH THE GAPS" else "💥 RING LAUNCHED — CORE EXPOSED",
+                if (up) tr("🔥 RING UP — FIRE THROUGH THE GAPS") else tr("💥 RING LAUNCHED — CORE EXPOSED"),
                 color = if (up) Color(0xFFFF7A1A) else Color(0xFFFFD45A),
                 style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
@@ -1079,7 +1080,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
             // Ransom King: shielded until the key zones are captured.
             val up = h.bossShield == 1
             Text(
-                if (up) "🔒 ENCRYPTED — CAPTURE THE KEY ZONES" else "🔓 DECRYPTED — HIT HIM NOW",
+                if (up) tr("🔒 ENCRYPTED — CAPTURE THE KEY ZONES") else tr("🔓 DECRYPTED — HIT HIM NOW"),
                 color = if (up) Color(0xFFFFC233) else Color(0xFFFF3B3B),
                 style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
@@ -1089,7 +1090,7 @@ internal fun BossHealthBar(h: HudSnapshot, compact: Boolean = false) {
             // Nullshade: you can only lock on while its eyes are open.
             val open = h.bossLock == 1
             Text(
-                if (open) "◉ EYES OPEN — LOCK ON" else "◌ IN THE SHADOWS — NO LOCK",
+                if (open) tr("◉ EYES OPEN — LOCK ON") else tr("◌ IN THE SHADOWS — NO LOCK"),
                 color = if (open) Color(0xFFFF2A3A) else Palette.TextMuted,
                 style = if (compact) mono(10.sp, FontWeight.Bold) else MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(top = if (compact) 1.dp else 4.dp)
@@ -1143,14 +1144,14 @@ private fun CampaignCompleteDialog(onEndless: () -> Unit, onFinish: () -> Unit) 
                 .border(2.dp, Palette.Gold, RoundedCornerShape(12.dp)).padding(22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("CAMPAIGN COMPLETE", color = Palette.Gold, style = MaterialTheme.typography.headlineSmall)
+            Text(tr("CAMPAIGN COMPLETE"), color = Palette.Gold, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(6.dp))
-            Text("All ${com.cyberoperative.game.engine.CampaignMap.WORLDS} server worlds secured.", color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
-            Text("Continue in ENDLESS? No map: WORLD ??? · ROOM ???, doors anywhere.", color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
+            Text(tr("All {0} server worlds secured.", com.cyberoperative.game.engine.CampaignMap.WORLDS), color = Palette.TextPrimary, style = MaterialTheme.typography.bodyMedium)
+            Text(tr("Continue in ENDLESS? No map: WORLD ??? · ROOM ???, doors anywhere."), color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.height(14.dp))
-            com.cyberoperative.game.ui.common.CyberButton("CONTINUE IN ENDLESS", Modifier.fillMaxWidth(), accent = Palette.Purple, primary = true) { onEndless() }
+            com.cyberoperative.game.ui.common.CyberButton(tr("CONTINUE IN ENDLESS"), Modifier.fillMaxWidth(), accent = Palette.Purple, primary = true) { onEndless() }
             Spacer(Modifier.height(8.dp))
-            com.cyberoperative.game.ui.common.CyberButton("END THE RUN", Modifier.fillMaxWidth(), accent = Palette.Gold) { onFinish() }
+            com.cyberoperative.game.ui.common.CyberButton(tr("END THE RUN"), Modifier.fillMaxWidth(), accent = Palette.Gold) { onFinish() }
         }
     }
 }

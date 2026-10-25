@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -99,7 +100,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                     val f = h.hp / h.maxHp.coerceAtLeast(1).toFloat()
                     MiniStat(
                         { HeartIcon(Palette.healthColor(f)) }, f, Palette.healthColor(f), 64.dp,
-                        com.cyberoperative.game.ui.common.formatAmount(h.hp.toLong()), "Core health ${h.hp} of ${h.maxHp}"
+                        com.cyberoperative.game.ui.common.formatAmount(h.hp.toLong()), tr("Core health {0} of {1}", h.hp, h.maxHp)
                     )
                 }
                 Spacer(Modifier.height(2.dp))
@@ -108,7 +109,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                     if (h.bossName == null && h.kind != LevelKind.SHOP && h.timedSeconds < 0 && h.levelThreats > 0) {
                         MiniStat(
                             { ThreatIcon() }, h.levelKills / h.levelThreats.toFloat(), ThreatPink, 40.dp,
-                            "${h.levelKills}/${h.levelThreats}", "Threats cleared ${h.levelKills} of ${h.levelThreats}"
+                            "${h.levelKills}/${h.levelThreats}", tr("Threats cleared {0} of {1}", h.levelKills, h.levelThreats)
                         )
                         Spacer(Modifier.width(8.dp))
                     }
@@ -121,7 +122,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                     val pf = h.partnerHp / h.partnerMaxHp.coerceAtLeast(1).toFloat()
                     MiniStat(
                         { HeartIcon(Palette.Magenta) }, if (h.partnerDowned) 0f else pf, if (h.partnerDowned) Palette.Red else Palette.Magenta, 48.dp,
-                        if (h.partnerDowned) "DOWN" else h.partnerName.ifEmpty { "P2" }.uppercase().take(8), "Partner health"
+                        if (h.partnerDowned) tr("DOWN") else h.partnerName.ifEmpty { "P2" }.uppercase().take(8), tr("Partner health")
                     )
                 }
                 if (h.bossName == null && h.eventName != null) {
@@ -139,7 +140,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(10.sp, FontWeight.Medium), prefix = "€ ")
                     Spacer(Modifier.width(8.dp))
-                    com.cyberoperative.game.ui.common.FitNumber(h.score, Palette.TextPrimary, mono(10.sp, FontWeight.Medium), prefix = "SCORE ")
+                    com.cyberoperative.game.ui.common.FitNumber(h.score, Palette.TextPrimary, mono(10.sp, FontWeight.Medium), prefix = tr("SCORE "))
                 }
                 if (h.owned.isNotEmpty()) {
                     Spacer(Modifier.height(3.dp))
@@ -162,7 +163,7 @@ fun SquishHud(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, onBaseHeight
 fun SquishBossBar(h: HudSnapshot, modifier: Modifier = Modifier) {
     val name = h.bossName ?: return
     val bc = Color(h.bossColor).takeIf { h.bossColor != 0L } ?: Palette.Red
-    Column(modifier.semantics(mergeDescendants = true) { contentDescription = "$name ${h.bossPercent} percent" }) {
+    Column(modifier.semantics(mergeDescendants = true) { contentDescription = tr("{0} {1} percent", name, h.bossPercent) }) {
         // Name left, "HP 812k/1.2m" right, both on dark plates above the bar (the bar stays thin).
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -171,7 +172,7 @@ fun SquishBossBar(h: HudSnapshot, modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "HP " + com.cyberoperative.game.ui.common.formatAmount(h.bossHp) + "/" + com.cyberoperative.game.ui.common.formatAmount(h.bossMaxHp),
+                tr("HP ") + com.cyberoperative.game.ui.common.formatAmount(h.bossHp) + "/" + com.cyberoperative.game.ui.common.formatAmount(h.bossMaxHp),
                 color = Palette.TextPrimary, style = mono(9.sp, FontWeight.Bold), maxLines = 1, softWrap = false,
                 modifier = Modifier.background(CardBg, RoundedCornerShape(3.dp)).padding(horizontal = 4.dp)
             )
@@ -271,8 +272,8 @@ private fun ExpandChip(open: Boolean, buffs: Int, onToggle: () -> Unit) {
             .height(18.dp)
             .widthIn(min = 30.dp)
             .border(1.dp, Palette.Cyan.copy(alpha = 0.7f), RoundedCornerShape(4.dp))
-            .clickable(role = Role.Button, onClickLabel = if (open) "Hide details" else "Show buffs, euros and score", onClick = onToggle)
-            .semantics { contentDescription = if (open) "Hide HUD details" else "Show HUD details" }
+            .clickable(role = Role.Button, onClickLabel = if (open) tr("Hide details") else tr("Show buffs, euros and score"), onClick = onToggle)
+            .semantics { contentDescription = if (open) tr("Hide HUD details") else tr("Show HUD details") }
             .padding(horizontal = 5.dp),
         contentAlignment = Alignment.Center
     ) {

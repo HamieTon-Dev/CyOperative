@@ -1,5 +1,6 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.core.MathUtil
 import com.cyberoperative.game.core.Scaling
 import com.cyberoperative.game.data.AiKind
@@ -86,7 +87,7 @@ class BossState(val def: BossDef, val cycle: Int) {
     var shellMax = 0f
     var shellTime = 0f
     var shellAura = 0f
-    val displayName: String get() = if (glitched) "*GLITCHED* ${def.name}" else def.name
+    val displayName: String get() = if (glitched) tr("*GLITCHED* {0}", def.name) else def.name
 
     val phase get() = def.phases[phaseIndex]
 }
@@ -234,7 +235,7 @@ class BossBrain(private val g: GameEngine) {
         if (!st.blackedOut) {
             st.blackedOut = true
             g.blackout(e.x, e.y, st.def.color)
-            g.showBanner("EMP BLACKOUT", "Lock on only while its eyes are open", 1.8f)
+            g.showBanner(tr("EMP BLACKOUT"), tr("Lock on only while its eyes are open"), 1.8f)
             st.eyesOpen = false
             st.eyeTimer = 2.0f
         }
@@ -264,7 +265,7 @@ class BossBrain(private val g: GameEngine) {
             if (st.shieldTimer <= 0f) {
                 st.shieldUp = true
                 g.addPulse(e.x, e.y, e.radius * 2.2f, 0.5f, st.def.color)
-                g.showBanner("RE-ENCRYPTED", "Capture the key zones to break his shield", 1.3f)
+                g.showBanner(tr("RE-ENCRYPTED"), tr("Capture the key zones to break his shield"), 1.3f)
             }
         }
         e.damageTakenMul = if (st.shieldUp) SHIELD_DAMAGE_MUL else DECRYPTED_DAMAGE_MUL
@@ -298,7 +299,7 @@ class BossBrain(private val g: GameEngine) {
                 st.headCount = n
                 st.regrow = 0f
                 g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 3f, 0.6f, st.def.color)
-                g.showBanner("HEADS REGROWN", "The core is shielded again", 1.0f)
+                g.showBanner(tr("HEADS REGROWN"), tr("The core is shielded again"), 1.0f)
             }
         } else if (n > st.headCount) {
             // Fight start, or a new phase: grow the missing heads.
@@ -327,7 +328,7 @@ class BossBrain(private val g: GameEngine) {
             g.addPulse(e.x, HydraRig.coreY(e.y, e.radius), e.radius * 2.6f, 0.5f, 0xFFFFFFFF)
             g.fx.flash(st.def.color, 0.25f, 0.3f)
             g.fx.shake(8f, 0.4f)
-            g.showBanner("CORE EXPOSED", "Hit the core before the heads regrow", 1.2f)
+            g.showBanner(tr("CORE EXPOSED"), tr("Hit the core before the heads regrow"), 1.2f)
         }
         g.bossHeadMask = if (mask == 0) 0 else mask or regrowLook(st)
         // Shielded: aim and shots go past the core to the heads.
@@ -420,7 +421,7 @@ class BossBrain(private val g: GameEngine) {
      */
     private fun headSevered(e: Enemy): Boolean {
         val loss = e.maxHp * HEAD_KILL_HP_SHARE
-        g.addText(e.x, HydraRig.coreY(e.y, e.radius) - 30f, "-10% HEAD SEVERED", TextKind.BOSS)
+        g.addText(e.x, HydraRig.coreY(e.y, e.radius) - 30f, tr("-10% HEAD SEVERED"), TextKind.BOSS)
         g.fx.shake(5f, 0.25f)
         if (e.hp - loss <= 0f) {
             e.hp = 0f
@@ -450,7 +451,7 @@ class BossBrain(private val g: GameEngine) {
         if (g.rng.nextFloat() < 0.5f) g.addParticle(e.x + (g.rng.nextFloat() - 0.5f) * e.radius, cy - e.radius * 0.6f, st.def.color, 140f, 0.3f, 2.5f)
         if (st.shieldSparkCd <= 0f) {
             st.shieldSparkCd = 0.8f
-            g.addText(e.x, cy - e.radius * 1.4f, "SHIELDED", TextKind.SHIELD)
+            g.addText(e.x, cy - e.radius * 1.4f, tr("SHIELDED"), TextKind.SHIELD)
         }
     }
 
@@ -480,7 +481,7 @@ class BossBrain(private val g: GameEngine) {
             g.addPulse(e.x, e.y, e.radius * 1.6f, 0.35f, 0xFFFFFFFF)
             repeat(40) { g.addParticle(e.x, e.y - e.radius, 0xFF9AE6FF, 380f, 0.8f, 4f) }
             g.fx.hitStop(0.08f); g.fx.shake(9f, 0.4f); g.fx.flash(0xFF9AE6FF, 0.3f, 0.35f)
-            g.showBanner("SHELL SHATTERED", "Hit it now", 1.2f)
+            g.showBanner(tr("SHELL SHATTERED"), tr("Hit it now"), 1.2f)
             // Stunned for a moment after the shatter.
             st.rest = 2.2f; st.active = null
         }
@@ -600,7 +601,7 @@ class BossBrain(private val g: GameEngine) {
         g.fx.hitStop(0.08f)
         g.fx.flash(0xFFFFC233, 0.3f, 0.35f)
         g.fx.shake(8f, 0.4f)
-        g.showBanner("DECRYPTED", "Shield down — hit him now", 1.4f)
+        g.showBanner(tr("DECRYPTED"), tr("Shield down — hit him now"), 1.4f)
     }
 
     /**
@@ -827,7 +828,7 @@ class BossBrain(private val g: GameEngine) {
                 val far = kotlin.math.hypot(g.arena.width, g.arena.height)
                 val gapHalf = 0.32f
                 g.addFireWall(e.x, e.y, far, e.radius * 1.2f, p.speed, p.gaps, atan2(g.py - e.y, g.px - e.x) + 1.2f, gapHalf, p.damage * e.damageMul, st.def.color, e.uid)
-                g.showBanner("HEAT COLLAPSE", "Slip through a gap", 1.0f)
+                g.showBanner(tr("HEAT COLLAPSE"), tr("Slip through a gap"), 1.0f)
             }
             is Pattern.LineWarp -> lineWarp(e, st, p)
             is Pattern.DashSlash, is Pattern.BacklineDive -> {}
@@ -862,7 +863,7 @@ class BossBrain(private val g: GameEngine) {
                 }
                 g.addPulse(e.x, e.y, e.radius * 2.5f, 0.5f, st.def.color)
                 g.fx.shake(6f, 0.3f)
-                g.showBanner("SPLIT HEADS", "Every head drains the same HP bar", 1.0f)
+                g.showBanner(tr("SPLIT HEADS"), tr("Every head drains the same HP bar"), 1.0f)
             }
             is Pattern.BeamArc -> {
                 // Every living head breathes a thick sweeping beam from its mouth.
@@ -927,11 +928,11 @@ class BossBrain(private val g: GameEngine) {
                 st.shellAura = p.auraRadius
                 g.bossIceShell = 1f
                 g.addPulse(e.x, e.y, e.radius * 2.4f, 0.6f, 0xFF9AE6FF)
-                g.showBanner("PERMAFROST SHELL", "Keep firing to shatter it", 1.2f)
+                g.showBanner(tr("PERMAFROST SHELL"), tr("Keep firing to shatter it"), 1.2f)
             }
             is Pattern.CoilCrush -> {
                 g.addFireWall(g.px, g.py, p.from, p.to, p.speed, p.gaps, atan2(e.y - g.py, e.x - g.px) + MathUtil.PI, 0.42f, p.damage * e.damageMul, st.def.color, e.uid, kind = HazardKind.COIL)
-                g.showBanner("COIL CRUSH", "Find the gap", 0.9f)
+                g.showBanner(tr("COIL CRUSH"), tr("Find the gap"), 0.9f)
             }
             is Pattern.CorruptFloor -> {
                 // Snap to the floor grid around the operative; alternate cells corrupt (parity flips each cast).
@@ -971,7 +972,7 @@ class BossBrain(private val g: GameEngine) {
                     if (m.hasteTimer <= 0f) { m.hasteMul = p.haste; m.speed *= p.haste }
                     m.hasteTimer = p.seconds
                 }
-                g.showBanner("QUEEN ROAR", "Her swarm surges", 1.0f)
+                g.showBanner(tr("QUEEN ROAR"), tr("Her swarm surges"), 1.0f)
             }
             is Pattern.Scythes -> {
                 val aim = atan2(g.py - e.y, g.px - e.x)
@@ -1002,7 +1003,7 @@ class BossBrain(private val g: GameEngine) {
             is Pattern.ConvergenceFlash -> {
                 g.forEachOperativeHit(e.x, e.y, 9999f, 0) { _ -> g.pull(e.x, e.y, p.pull, p.strength) }
                 g.addPulse(e.x, e.y, p.radius * 1.4f, p.pull, 0xFFFFFFFF)
-                g.showBanner("CONVERGENCE", "Pull away — get out of the blast", 1.0f)
+                g.showBanner(tr("CONVERGENCE"), tr("Pull away — get out of the blast"), 1.0f)
             }
             is Pattern.PurgeSpin -> {
                 val sweep = Math.toRadians(p.sweepDeg.toDouble()).toFloat() * (if (g.rng.nextBoolean()) 1f else -1f)
@@ -1058,7 +1059,7 @@ class BossBrain(private val g: GameEngine) {
             placed++
         }
         st.keysLeft = placed
-        if (placed > 0) g.showBanner("KEY ZONES", "Stand in them to break his shield", 1.2f)
+        if (placed > 0) g.showBanner(tr("KEY ZONES"), tr("Stand in them to break his shield"), 1.2f)
     }
 
     /**

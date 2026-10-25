@@ -1,5 +1,6 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.data.OpProgress
 
 import com.cyberoperative.game.core.MathUtil
@@ -679,7 +680,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** ON FIRE: the current operative burns for [seconds] at [dps]. */
     fun ignite(seconds: Float, dps: Float) {
-        if (cur.burning <= 0f) addText(px, py - 44f, "ON FIRE", TextKind.PLAYER_HURT)
+        if (cur.burning <= 0f) addText(px, py - 44f, tr("ON FIRE"), TextKind.PLAYER_HURT)
         cur.burning = max(cur.burning, seconds)
         cur.burnDps = max(cur.burnDps, dps)
     }
@@ -777,7 +778,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (cur.chill >= CHILL_MAX) {
             cur.frozen = FREEZE_SECONDS
             cur.chill = 0f
-            addText(px, py - 44f, "FROZEN", TextKind.PLAYER_HURT)
+            addText(px, py - 44f, tr("FROZEN"), TextKind.PLAYER_HURT)
             repeat(14) { addParticle(px, py - 20f, 0xFF9AE6FF, 160f, 0.5f, 3f) }
         }
     }
@@ -817,7 +818,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** SEIZED: the current operative can't move for [seconds]. */
     fun root(seconds: Float) {
         cur.rooted = max(cur.rooted, seconds)
-        addText(px, py - 44f, "SEIZED", TextKind.PLAYER_HURT)
+        addText(px, py - 44f, tr("SEIZED"), TextKind.PLAYER_HURT)
     }
 
     /** ENCRYPTED: for [ENCRYPT_SECONDS], moving charges a burst of [burst] damage. */
@@ -825,7 +826,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         cur.encrypted = ENCRYPT_SECONDS
         cur.encryptCharge = 0f
         cur.encryptDamage = burst
-        addText(px, py - 44f, "ENCRYPTED", TextKind.PLAYER_HURT)
+        addText(px, py - 44f, tr("ENCRYPTED"), TextKind.PLAYER_HURT)
     }
 
     /** Ticks SEIZED / ENCRYPTED on the current operative (host). */
@@ -1019,7 +1020,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val now = o.cloakTime % CLOAK_CYCLE >= CLOAK_CYCLE - CLOAK_SECONDS || o.veil > 0f
         if (now && !o.cloaked) {
             o.cloakX = px; o.cloakY = py
-            addText(px, py - 40f, "CLOAKED", TextKind.INFO)
+            addText(px, py - 40f, tr("CLOAKED"), TextKind.INFO)
             addPulse(px, py, 90f, 0.4f, 0xFF8FA7FF)
         } else if (!now && o.cloaked) {
             addPulse(px, py, 70f, 0.3f, 0xFF8FA7FF)
@@ -1045,7 +1046,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         o.pendingUpgrades = 0
         o.offer = emptyList()
         o.beamActive = false
-        showBanner("PARTNER DISCONNECTED", "Continuing solo", 2f)
+        showBanner(tr("PARTNER DISCONNECTED"), tr("Continuing solo"), 2f)
         if (phase == Phase.UPGRADE && ops.all { it.gone || it.pendingUpgrades <= 0 }) finishUpgrades()
     }
 
@@ -1059,7 +1060,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             o.beamActive = false
             o.moving = false
             addPulse(o.px, o.py, 200f, 0.7f, 0xFFFF2D55)
-            showBanner("OPERATIVE DOWN", "Stand next to your partner to revive", 2f)
+            showBanner(tr("OPERATIVE DOWN"), tr("Stand next to your partner to revive"), 2f)
             sound(GameSound.GAME_OVER)
         }
         if (ops.none { it.alive }) {
@@ -1081,7 +1082,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         o.hp = o.build.stats.maxHp * 0.5f
         o.invuln = 2f
         addPulse(o.px, o.py, 200f, 0.6f, 0xFF00FF9C)
-        addText(o.px, o.py - 40f, "REVIVED", TextKind.HEAL)
+        addText(o.px, o.py - 40f, tr("REVIVED"), TextKind.HEAL)
         sound(GameSound.REVIVE)
     }
 
@@ -1345,11 +1346,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
             LevelKind.SHOP -> {}
             LevelKind.NORMAL -> showBanner(
-                "LEVEL $level",
+                tr("LEVEL {0}", level),
                 // A new environment theme every 3 levels gets announced.
                 if (com.cyberoperative.game.data.Environments.isNewTheme(level))
-                    "${plan.enemyCount} THREATS · ENTERING ${com.cyberoperative.game.data.Environments.forLevel(level, config.seed).name}"
-                else "${plan.enemyCount} THREATS · ${plan.arena.name}",
+                    tr("{0} THREATS · ENTERING {1}", plan.enemyCount, com.cyberoperative.game.data.Environments.forLevel(level, config.seed).name)
+                else tr("{0} THREATS · {1}", plan.enemyCount, plan.arena.name),
                 1.6f
             )
         }
@@ -1399,7 +1400,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 if (stragglerTimer >= STRAGGLER_SECONDS) {
                     stragglerTimer = 0f
                     purgeHostiles()
-                    addText(px, py - 40f, "STRAGGLERS PURGED", TextKind.INFO)
+                    addText(px, py - 40f, tr("STRAGGLERS PURGED"), TextKind.INFO)
                 }
             } else stragglerTimer = 0f
             return
@@ -1474,7 +1475,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         addPulse(px, py, 420f, 0.7f, 0xFF00FF9C)
         // OP XP for clearing the room.
         if (!mirror) opXpEarned += OpProgress.roomXp(monsterLevel, stats.xpMul)
-        showBanner(if (plan.kind == LevelKind.EVENT) "EVENT COMPLETE" else "THREATS ELIMINATED", "", 1.2f)
+        showBanner(if (plan.kind == LevelKind.EVENT) tr("EVENT COMPLETE") else tr("THREATS ELIMINATED"), "", 1.2f)
         sound(GameSound.LEVEL_COMPLETE)
         sound(GameSound.CURRENCY)
     }
@@ -1629,7 +1630,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val ny = MathUtil.clamp(py, r.top, r.bottom)
         if (MathUtil.dist(px, py, nx, ny) < playerRadius + 34f) {
             vaultOpening = VAULT_OPEN_SECONDS
-            showBanner("DATA CACHE", "DECRYPTING…", VAULT_OPEN_SECONDS)
+            showBanner(tr("DATA CACHE"), tr("DECRYPTING…"), VAULT_OPEN_SECONDS)
             sound(GameSound.ACCESS_GRANTED)
         }
     }
@@ -1647,7 +1648,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         addPulse(cx, cy, 140f, 0.45f, 0xFFFFFFFF)
         repeat(70) { addParticle(cx, cy, if (it % 3 == 0) 0xFFFFFFFF else 0xFFFFD426, 420f, 1.1f, 4f) }
         addText(cx, cy - 30f, "+€$payout", TextKind.INFO)
-        showBanner("DATA CACHE CRACKED", "+€${"%,d".format(payout)}", 2f)
+        showBanner(tr("DATA CACHE CRACKED"), "+€${"%,d".format(payout)}", 2f)
         sound(GameSound.ELITE_DEATH)
         sound(GameSound.CURRENCY)
     }
@@ -1699,7 +1700,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         }
         options.shuffle(doorRng)
         exitDoors += options.take(extra)
-        if (exitDoors.isNotEmpty()) showBanner("${exitDoors.size + 1} EXITS OPEN", "CHOOSE YOUR ROUTE", 1.6f)
+        if (exitDoors.isNotEmpty()) showBanner(tr("{0} EXITS OPEN", exitDoors.size + 1), tr("CHOOSE YOUR ROUTE"), 1.6f)
     }
 
     /** The strip in front of a far-wall door is free of obstacles. */
@@ -1833,7 +1834,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phase = Phase.PORTAL
         portalOpen = true
         invuln = 1f
-        showBanner("UPGRADE SHOP", "GOLDEN & TITANIUM MODS · PAY WITH RUN €", 2f)
+        showBanner(tr("UPGRADE SHOP"), tr("GOLDEN & TITANIUM MODS · PAY WITH RUN €"), 2f)
     }
 
     /**
@@ -2074,11 +2075,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
      */
     val saveBlockReason: String?
         get() = when {
-            phase == Phase.DEAD -> "OPERATIVE DOWN"
-            coop -> "CO-OP RUNS CAN'T BE SAVED"
-            bossActive -> "[BOSS] SAVE BLOCKED"
-            phase == Phase.TRANSITION || slideIn > 0f -> "ENTERING NEXT ROOM"
-            inShop -> "UPGRADE SHOP · SAVE AFTER LEAVING"
+            phase == Phase.DEAD -> tr("OPERATIVE DOWN")
+            coop -> tr("CO-OP RUNS CAN'T BE SAVED")
+            bossActive -> tr("[BOSS] SAVE BLOCKED")
+            phase == Phase.TRANSITION || slideIn > 0f -> tr("ENTERING NEXT ROOM")
+            inShop -> tr("UPGRADE SHOP · SAVE AFTER LEAVING")
             else -> null
         }
 
@@ -2216,7 +2217,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
         }
         invuln = 2f
-        showBanner("OPERATION RESUMED", roomLabel(), 1.6f)
+        showBanner(tr("OPERATION RESUMED"), roomLabel(), 1.6f)
     }
 
     fun summary(): RunSummary = RunSummary(
@@ -2353,7 +2354,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             if (beamHeat >= BEAM_MAX_FIRE) {
                 beamHeat = 0f
                 beamCooldown = BEAM_COOLDOWN
-                addText(px, py - 44f, "BEAM OVERHEAT", TextKind.INFO)
+                addText(px, py - 44f, tr("BEAM OVERHEAT"), TextKind.INFO)
             }
         }
         if (s.railLevel > 0) {
@@ -2382,9 +2383,9 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
 
     /** "WORLD 3 · ROOM 7", "WORLD 3 · BOSS", or (Endless) "WORLD ??? · ROOM ???". */
     fun roomLabel(): String = when {
-        !campaign -> "WORLD ??? · ROOM ???"
-        room >= CampaignMap.BOSS_INDEX -> "WORLD $world · BOSS"
-        else -> "WORLD $world · ROOM ${room + 1}"
+        !campaign -> tr("WORLD ??? · ROOM ???")
+        room >= CampaignMap.BOSS_INDEX -> tr("WORLD {0} · BOSS", world)
+        else -> tr("WORLD {0} · ROOM {1}", world, room + 1)
     }
 
     // --- OP level (owner, 2026-10-13) --------------------------------------------------------
@@ -2446,15 +2447,15 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
     /** Campaign: which wall the way onward is on, for the "door open" hint. */
     fun forwardHint(): String {
         if (!campaign || inShop) return ""
-        if (worldServerOn) return "WORLD SECURED · WALK TO THE SERVER IN THE CENTRE FOR WORLD ${world + 1}"
+        if (worldServerOn) return tr("WORLD SECURED · WALK TO THE SERVER IN THE CENTRE FOR WORLD {0}", world + 1)
         val d = exitDoors.firstOrNull { it.target == room + 1 || it.target == NEXT_WORLD } ?: return ""
-        val where = when (d.side) { 0 -> "▲ FAR WALL"; 1 -> "◀ LEFT WALL"; 2 -> "RIGHT WALL ▶"; else -> "▼ NEAR WALL" }
+        val where = when (d.side) { 0 -> tr("▲ FAR WALL"); 1 -> tr("◀ LEFT WALL"); 2 -> tr("RIGHT WALL ▶"); else -> tr("▼ NEAR WALL") }
         val to = when {
-            d.target == NEXT_WORLD -> "WORLD ${world + 1}"
-            d.target >= CampaignMap.BOSS_INDEX -> "BOSS ROOM"
-            else -> "ROOM ${d.target + 1}"
+            d.target == NEXT_WORLD -> tr("WORLD {0}", world + 1)
+            d.target >= CampaignMap.BOSS_INDEX -> tr("BOSS ROOM")
+            else -> tr("ROOM {0}", d.target + 1)
         }
-        return "DOOR OPEN · $to · $where"
+        return tr("DOOR OPEN · {0} · {1}", to, where)
     }
 
     /** Where a door on [side] sits in the current arena. */
@@ -2512,12 +2513,12 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             phase = Phase.PORTAL
             phaseTimer = 0f
             portalOpen = true
-            showBanner(roomLabel(), "CLEARED", 1.2f)
+            showBanner(roomLabel(), tr("CLEARED"), 1.2f)
         } else when {
-            r == 0 -> showBanner("SERVER WORLD $world", "ROOM 1 · ${plan.enemyCount} THREATS", 2.2f)
-            r >= CampaignMap.BOSS_INDEX -> showBanner("WORLD $world · BOSS", plan.boss?.name ?: "", 2f)
+            r == 0 -> showBanner(tr("SERVER WORLD {0}", world), tr("ROOM 1 · {0} THREATS", plan.enemyCount), 2.2f)
+            r >= CampaignMap.BOSS_INDEX -> showBanner(tr("WORLD {0} · BOSS", world), plan.boss?.name ?: "", 2f)
             plan.kind == LevelKind.EVENT -> {}
-            else -> showBanner("ROOM ${r + 1}", "WORLD $world · ${plan.enemyCount} THREATS", 1.4f)
+            else -> showBanner(tr("ROOM {0}", r + 1), tr("WORLD {0} · {1} THREATS", world, plan.enemyCount), 1.4f)
         }
     }
 
@@ -2547,10 +2548,10 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (world >= CampaignMap.WORLDS) {
             campaignComplete = true
             campaignFinished = true
-            showBanner("CAMPAIGN COMPLETE", "ALL ${CampaignMap.WORLDS} SERVER WORLDS SECURED", 3f)
+            showBanner(tr("CAMPAIGN COMPLETE"), tr("ALL {0} SERVER WORLDS SECURED", CampaignMap.WORLDS), 3f)
         } else {
             placeWorldServer()
-            showBanner("WORLD $world SECURED", "THE SERVER TO WORLD ${world + 1} IS ONLINE", 2.2f)
+            showBanner(tr("WORLD {0} SECURED", world), tr("THE SERVER TO WORLD {0} IS ONLINE", world + 1), 2.2f)
         }
     }
 
@@ -2568,7 +2569,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         phase = Phase.PORTAL
         phaseTimer = 0f
         openExtraDoors()
-        showBanner("ENDLESS", "WORLD ??? · ROOM ???", 2.4f)
+        showBanner(tr("ENDLESS"), tr("WORLD ??? · ROOM ???"), 2.4f)
         return true
     }
 
@@ -2764,8 +2765,8 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
             }
         }
         if (!quiet) addText(l.x, l.y - 26f, when (l.kind) {
-            LootKind.HP_CHARGE -> "+1 HP CHARGE"
-            LootKind.PACKET_BOMB -> "+1 PACKET BOMB"
+            LootKind.HP_CHARGE -> tr("+1 HP CHARGE")
+            LootKind.PACKET_BOMB -> tr("+1 PACKET BOMB")
             LootKind.CASH -> "+€${l.amount}"
             LootKind.UPGRADE, LootKind.GEAR -> ""
         }, TextKind.INFO)
@@ -3676,11 +3677,11 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 // Every rarity, GLITCHED ENCRYPTED included (its 50 pets, 0.49.0).
                 val rarity = com.cyberoperative.game.data.Gear.rollRarity(petRng, boss, inf, (config.difficulty.luck * 0.3f).coerceAtLeast(0f), false)
                 o.eggsFound += com.cyberoperative.game.data.Pets.rollEgg(petRng, (o.eggsFound.size + 1).toLong(), rarity)
-                if (o === ops[primary]) addText(x, y - 56f, "EGG FOUND", TextKind.INFO)
+                if (o === ops[primary]) addText(x, y - 56f, tr("EGG FOUND"), TextKind.INFO)
             }
             if (boss && petRng.nextFloat() < com.cyberoperative.game.data.Pets.stoneChance(inf)) {
                 o.stonesFound++
-                if (o === ops[primary]) addText(x, y - 76f, "INFERNO STONE!", TextKind.INFO)
+                if (o === ops[primary]) addText(x, y - 76f, tr("INFERNO STONE!"), TextKind.INFO)
             }
         }
     }
@@ -3775,7 +3776,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (!ignoreInvuln && invuln > 0f) return
         val s = stats
         if (s.dodge > 0f && rng.nextFloat() < s.dodge) {
-            addText(px, py - 30f, "DODGE", TextKind.INFO)
+            addText(px, py - 30f, tr("DODGE"), TextKind.INFO)
             invuln = 0.2f
             return
         }
@@ -3799,7 +3800,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                 if (lethal || (hp <= s.maxHp * AUTO_POTION_LINE && cur.consumableCooldown <= 0f)) {
                     if (lethal) hp = 1f
                     drinkPotion(cur)
-                    if (lethal) addText(px, py - 48f, "FAILSAFE", TextKind.CRIT)
+                    if (lethal) addText(px, py - 48f, tr("FAILSAFE"), TextKind.CRIT)
                 }
             }
         }
@@ -4197,7 +4198,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         val s = stats
         // Never elites or bosses (owner, 2026-10-11: "they cannot be deleted").
         if (p.kind == ProjKind.BOLT && e.boss == null && !e.isElite && s.instantDeleteChance > 0f && rng.nextFloat() < s.instantDeleteChance) {
-            addText(e.x, e.y - e.radius - 10f, "DELETED", TextKind.CRIT)
+            addText(e.x, e.y - e.radius - 10f, tr("DELETED"), TextKind.CRIT)
             damageEnemy(e, e.hp / e.damageTakenMul + 9999f, true, p.kind)
         } else {
             damageEnemy(e, p.damage, p.crit, p.kind)
@@ -4586,7 +4587,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
                         h.active = false
                         addPulse(h.x, h.y, h.radius * 1.8f, 0.5f, 0xFFFFC233)
                         repeat(18) { addParticle(h.x, h.y, 0xFFFFC233, 220f, 0.6f, 3f) }
-                        addText(h.x, h.y - 30f, "UNLOCKED", TextKind.INFO)
+                        addText(h.x, h.y - 30f, tr("UNLOCKED"), TextKind.INFO)
                         sound(GameSound.ACCESS_GRANTED)
                         bossBrain.keyCaptured()
                     }
@@ -5378,7 +5379,7 @@ class GameEngine(val config: RunConfig = RunConfig(), restore: RunSnapshot? = nu
         if (phase == Phase.UPGRADE && me.pendingUpgrades > 0 && me.offer.isEmpty()) me.offer = build.rollOffer(rng, luck = currentLuck())
         if (phase == Phase.UPGRADE && me.pendingUpgrades <= 0) finishUpgrades()
         me.invuln = 2f
-        showBanner("HOST DISCONNECTED", "Continuing solo", 2f)
+        showBanner(tr("HOST DISCONNECTED"), tr("Continuing solo"), 2f)
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.splash
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,7 +70,7 @@ fun DeveloperSplash(onFinished: () -> Unit) {
                     .aspectRatio(70f / 8f)
             )
             Spacer(Modifier.height(18.dp))
-            Text("P R E S E N T S", color = Palette.GreenDim, style = MaterialTheme.typography.titleSmall)
+            Text(tr("P R E S E N T S"), color = Palette.GreenDim, style = MaterialTheme.typography.titleSmall)
         }
     }
 }

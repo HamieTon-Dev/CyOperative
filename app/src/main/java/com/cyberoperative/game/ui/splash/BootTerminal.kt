@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.splash
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.widthIn
@@ -100,7 +101,7 @@ fun BootTerminal(onSound: (GameSound) -> Unit, onFinished: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .offset(x = if (glitch) 3.dp else 0.dp)
         ) {
-            Text("INITIALIZING...", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            Text(tr("INITIALIZING..."), color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(6.dp))
             val cells = 28
             val filled = (progress * cells).toInt().coerceIn(0, cells)
@@ -139,12 +140,12 @@ fun BootTerminal(onSound: (GameSound) -> Unit, onFinished: () -> Unit) {
                     .alpha((t * 3f).coerceIn(0f, 1f)),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("ACCESS GRANTED", color = Palette.Green, style = MaterialTheme.typography.headlineMedium)
+                Text(tr("ACCESS GRANTED"), color = Palette.Green, style = MaterialTheme.typography.headlineMedium)
                 Spacer(Modifier.height(10.dp))
-                Text("SYSTEM INITIALIZED", color = Palette.TextSecondary, style = MaterialTheme.typography.titleSmall)
+                Text(tr("SYSTEM INITIALIZED"), color = Palette.TextSecondary, style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "CYBER OPERATIVE ONLINE",
+                    tr("CYBER OPERATIVE ONLINE"),
                     color = Palette.Cyan, textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.alpha(if ((t * 5f).toInt() % 7 == 3) 0.5f else 1f)

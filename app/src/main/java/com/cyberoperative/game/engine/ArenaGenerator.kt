@@ -1,5 +1,6 @@
 package com.cyberoperative.game.engine
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.core.Rect
 import com.cyberoperative.game.data.ArenaTemplate
 import com.cyberoperative.game.data.ArenaShape
@@ -36,8 +37,8 @@ object ArenaGenerator {
     private const val MARGIN = 12f
 
     private val sectorNames = listOf(
-        "SUBNET", "DATA CENTER", "SERVER HALL", "CORE NODE", "BACKBONE", "SECTOR",
-        "DMZ", "VLAN", "CLUSTER", "RACK ROW", "COLD AISLE", "HOT AISLE"
+        tr("SUBNET"), tr("DATA CENTER"), tr("SERVER HALL"), tr("CORE NODE"), tr("BACKBONE"), tr("SECTOR"),
+        tr("DMZ"), tr("VLAN"), tr("CLUSTER"), tr("RACK ROW"), tr("COLD AISLE"), tr("HOT AISLE")
     )
 
     /**
@@ -330,11 +331,11 @@ object ArenaGenerator {
                 if (placed.any { o -> r.intersectsRect(o.rect.left - GAP, o.rect.top - GAP, o.rect.right + GAP, o.rect.bottom + GAP) }) continue
                 placed += ObstacleSpec(r, k)
             }
-            val t = ArenaTemplate("shop", "UPGRADE SHOP", height, placed.toList(), decor = decor(height, placed, rng))
+            val t = ArenaTemplate("shop", tr("UPGRADE SHOP"), height, placed.toList(), decor = decor(height, placed, rng))
             val a = Arena(t)
             if (a.isFree(a.spawnX, a.spawnY, 40f) && a.isFree(a.portalX, a.portalY, 50f) && reachable(a)) return t
         }
-        return ArenaTemplate("shop", "UPGRADE SHOP", 820f, listOf(counter()))
+        return ArenaTemplate("shop", tr("UPGRADE SHOP"), 820f, listOf(counter()))
     }
 
     /**

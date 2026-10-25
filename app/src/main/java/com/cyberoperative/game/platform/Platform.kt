@@ -1,5 +1,6 @@
 package com.cyberoperative.game.platform
 
+import com.cyberoperative.game.i18n.tr
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -242,7 +243,7 @@ object GameKeys {
 object Checkout {
     const val storeName = "Google Play"
     val available: Boolean get() = false
-    fun start(pack: com.cyberoperative.game.data.DiamondPack): String = "Purchases open when Google Play Billing is connected."
+    fun start(pack: com.cyberoperative.game.data.DiamondPack): String = tr("Purchases open when Google Play Billing is connected.")
 }
 
 /** Keeps the system Back edge-swipe off the gameplay surface (Android 10+). */

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.menu
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.platform.PlatformBackHandler as BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -69,7 +70,7 @@ private val sections: List<DexSection> by lazy {
         GearRarity.VOLTAIC, GearRarity.FORGED, GearRarity.GLITCHED
     )
     tiers.map { t -> DexSection(t.label, t, t, newArts.filter { Pets.designedTier(it) == t }) } +
-        DexSection("ORIGINALS", GearRarity.COMMON, GearRarity.LEGENDARY, (0 until Pets.PET_COUNT).toList())
+        DexSection(tr("ORIGINALS"), GearRarity.COMMON, GearRarity.LEGENDARY, (0 until Pets.PET_COUNT).toList())
 }
 
 @Composable
@@ -79,7 +80,7 @@ fun PetCodexScreen(profile: PlayerProfile, onBack: () -> Unit) {
     var open by remember { mutableStateOf<Int?>(null) }
     val total = sections.sumOf { it.arts.size }
     Box(Modifier.fillMaxSize()) {
-        ScreenScaffold("PET CODEX", onBack, trailing = {
+        ScreenScaffold(tr("PET CODEX"), onBack, trailing = {
             Text("${dex.size}/$total", color = Palette.Gold, style = MaterialTheme.typography.labelLarge)
         }) {
             LazyVerticalGrid(
@@ -88,7 +89,7 @@ fun PetCodexScreen(profile: PlayerProfile, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text("Hatch a pet to add it to the codex. Discovered: ${dex.size} of $total.",
+                    Text(tr("Hatch a pet to add it to the codex. Discovered: {0} of {1}.", dex.size, total),
                         color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
                 }
                 for (s in sections) {
@@ -96,7 +97,7 @@ fun PetCodexScreen(profile: PlayerProfile, onBack: () -> Unit) {
                         val found = s.arts.count { it in dex }
                         Column(Modifier.padding(top = 8.dp)) {
                             Text(s.title, color = rarityColor(s.hi), style = MaterialTheme.typography.titleSmall, letterSpacing = 2.sp)
-                            Text("$found / ${s.arts.size} discovered" + if (s.lo != s.hi) " · hatch from ${s.lo.label} to ${s.hi.label} eggs" else "",
+                            Text(tr("{0} / {1} discovered", found, s.arts.size) + if (s.lo != s.hi) tr(" · hatch from {0} to {1} eggs", s.lo.label, s.hi.label) else "",
                                 color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -180,25 +181,25 @@ internal fun PetDexPage(art: Int, entry: PetDexEntry, time: Float, onClose: () -
             Box(Modifier.rarityCard(hi, corner = 4.dp).border(1.dp, rarityColor(hi), RoundedCornerShape(4.dp)).padding(horizontal = 10.dp, vertical = 3.dp)) {
                 Text(if (lo == hi) hi.label else "${lo.label} – ${hi.label}", color = rarityColor(hi), style = MaterialTheme.typography.labelLarge)
             }
-            if (designed == null) Text("Best you've hatched: ${entry.best.label}", color = rarityColor(entry.best), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+            if (designed == null) Text(tr("Best you've hatched: {0}", entry.best.label), color = rarityColor(entry.best), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
             Spacer(Modifier.height(10.dp))
-            Text("POTENTIAL STATS", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("POTENTIAL STATS"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                DexStat("DAMAGE", range(lo, hi) { "${(Pets.damageMul(it) * 100).toInt()}%" }, "of your payload")
-                DexStat("FIRE RATE", range(lo, hi) { "%.2fs".format(Pets.fireInterval(it)) }, "between shots")
-                DexStat("ABILITIES", abilityRange(lo, hi), "random at hatch")
+                DexStat(tr("DAMAGE"), range(lo, hi) { "${(Pets.damageMul(it) * 100).toInt()}%" }, tr("of your payload"))
+                DexStat(tr("FIRE RATE"), range(lo, hi) { "%.2fs".format(Pets.fireInterval(it)) }, tr("between shots"))
+                DexStat(tr("ABILITIES"), abilityRange(lo, hi), tr("random at hatch"))
             }
-            DexStat("HATCH TIME", range(lo, hi) { hours(Pets.hatchMs(it)) }, "in an incubator")
+            DexStat(tr("HATCH TIME"), range(lo, hi) { hours(Pets.hatchMs(it)) }, tr("in an incubator"))
             Spacer(Modifier.height(10.dp))
-            Text("ITS EGG", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+            Text(tr("ITS EGG"), color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
             com.cyberoperative.game.ui.common.AnimatedEgg(entry.egg, entry.best, time, Modifier.size(84.dp))
             Text(
-                if (designed != null) "${Pets.eggName(com.cyberoperative.game.data.PetEgg(0, hi, art, art))} · only this egg hatches it"
-                else "Any ${lo.label} – ${hi.label} egg can hatch it (this is the one yours came from)",
+                if (designed != null) tr("{0} · only this egg hatches it", Pets.eggName(com.cyberoperative.game.data.PetEgg(0, hi, art, art)))
+                else tr("Any {0} – {1} egg can hatch it (this is the one yours came from)", lo.label, hi.label),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(10.dp))
-            CyberButton("CLOSE", Modifier.fillMaxWidth(), accent = c) { onClose() }
+            CyberButton(tr("CLOSE"), Modifier.fillMaxWidth(), accent = c) { onClose() }
         }
     }
 }

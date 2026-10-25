@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,22 +51,22 @@ fun WorldMapOverlay(hud: HudSnapshot, map: WorldMap, time: Float, onClose: () ->
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
-            Text("SERVER WORLD ${hud.world}", color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
+            Text(tr("SERVER WORLD {0}", hud.world), color = Palette.Cyan, style = MaterialTheme.typography.titleLarge)
             Text(
-                if (hud.room >= CampaignMap.BOSS_INDEX) "BOSS ROOM" else "ROOM ${hud.room + 1} OF ${CampaignMap.ROOMS} · BOSS AFTER ROOM ${CampaignMap.ROOMS}",
+                if (hud.room >= CampaignMap.BOSS_INDEX) tr("BOSS ROOM") else tr("ROOM {0} OF {1} · BOSS AFTER ROOM {2}", hud.room + 1, CampaignMap.ROOMS, CampaignMap.ROOMS),
                 color = Palette.TextSecondary, style = MaterialTheme.typography.labelMedium
             )
             Spacer(Modifier.height(10.dp))
             Canvas(Modifier.size(width = 520.dp, height = 400.dp)) { drawMap(hud, map, time) }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Legend(Palette.Cyan, "YOU")
-                Legend(Palette.Green, "CLEARED")
-                Legend(Palette.Gold, "NEXT")
-                Legend(Palette.Red, "BOSS")
+                Legend(Palette.Cyan, tr("YOU"))
+                Legend(Palette.Green, tr("CLEARED"))
+                Legend(Palette.Gold, tr("NEXT"))
+                Legend(Palette.Red, tr("BOSS"))
             }
             Spacer(Modifier.height(6.dp))
-            Text("[M] / BACK / TAP TO CLOSE", color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
+            Text(tr("[M] / BACK / TAP TO CLOSE"), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

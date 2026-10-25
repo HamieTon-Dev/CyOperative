@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -142,7 +143,7 @@ fun GameHud(
                     BossHealthBar(h)
                 } else if (h.eventName != null) {
                     Text(
-                        h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
+                        h.eventName + if (h.timedSeconds >= 0) tr("   SURVIVE {0}s", h.timedSeconds) else "",
                         color = Color(h.eventAccent), style = mono(11.sp, FontWeight.Bold),
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp).plate()
@@ -177,7 +178,7 @@ private fun HeaderRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
                 )
                 // The plates separate the items now (no divider lines, so the numbers keep their room).
                 Spacer(Modifier.width(4.dp))
-                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false).plate(), prefix = "SCORE ")
+                com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false).plate(), prefix = tr("SCORE "))
                 Spacer(Modifier.width(4.dp))
                 com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(small, FontWeight.Medium), Modifier.weight(1f, fill = false).plate(), prefix = "€ ")
             }
@@ -207,7 +208,7 @@ private fun CollapsedRow(h: HudSnapshot, paused: Boolean, onPause: () -> Unit) {
         // The diamond doubles as a quiet core-health light while the bar is folded away.
         val f = h.hp / h.maxHp.coerceAtLeast(1).toFloat()
         val c = Palette.healthColor(f)
-        Canvas(Modifier.size(12.dp).semantics { contentDescription = "Core health ${h.hp} of ${h.maxHp}" }) {
+        Canvas(Modifier.size(12.dp).semantics { contentDescription = tr("Core health {0} of {1}", h.hp, h.maxHp) }) {
             val p = Path().apply {
                 moveTo(size.width / 2f, 0f); lineTo(size.width, size.height / 2f)
                 lineTo(size.width / 2f, size.height); lineTo(0f, size.height / 2f); close()
@@ -245,7 +246,7 @@ internal fun HudClock(modifier: Modifier = Modifier) {
     }
     Text(
         text, color = Palette.TextSecondary, style = mono(12.sp), maxLines = 1, softWrap = false,
-        modifier = modifier.semantics { contentDescription = "Time $text" }
+        modifier = modifier.semantics { contentDescription = tr("Time {0}", text) }
     )
 }
 
@@ -258,8 +259,8 @@ internal fun PauseButton(paused: Boolean, onPause: () -> Unit, compact: Boolean 
     Box(
         Modifier
             .size(if (compact) 34.dp else 48.dp)
-            .clickable(role = Role.Button, onClickLabel = if (paused) "Resume" else "Pause", onClick = onPause)
-            .semantics { contentDescription = if (paused) "Resume" else "Pause" },
+            .clickable(role = Role.Button, onClickLabel = if (paused) tr("Resume") else tr("Pause"), onClick = onPause)
+            .semantics { contentDescription = if (paused) tr("Resume") else tr("Pause") },
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.size(if (compact) 24.dp else 30.dp)) {
@@ -286,7 +287,7 @@ internal fun PauseButton(paused: Boolean, onPause: () -> Unit, compact: Boolean 
 }
 
 @Composable
-private fun HpRow(h: HudSnapshot, label: String = "CORE HP", labelWidth: androidx.compose.ui.unit.Dp = 62.dp) {
+private fun HpRow(h: HudSnapshot, label: String = tr("CORE HP"), labelWidth: androidx.compose.ui.unit.Dp = 62.dp) {
     val f = h.hp / h.maxHp.coerceAtLeast(1).toFloat()
     StatRow(
         labelWidth = labelWidth,
@@ -297,7 +298,7 @@ private fun HpRow(h: HudSnapshot, label: String = "CORE HP", labelWidth: android
         overlay = 0f,
         value = "${h.hp}/${h.maxHp}",
         extra = null,
-        description = "Core health ${h.hp} of ${h.maxHp}"
+        description = tr("Core health {0} of {1}", h.hp, h.maxHp)
     )
 }
 
@@ -316,20 +317,20 @@ private fun XpRow(h: HudSnapshot, labelWidth: androidx.compose.ui.unit.Dp = 62.d
         overlay = 0f,
         value = "${(h.opFraction * 100f).toInt()}%",
         extra = null,
-        description = "${h.opLabel}, ${(h.opFraction * 100f).toInt()} percent to the next level"
+        description = tr("{0}, {1} percent to the next level", h.opLabel, (h.opFraction * 100f).toInt())
     )
 }
 
 /** Co-op partner's HP in magenta, matching their ring on the field. */
 @Composable
 private fun PartnerRow(h: HudSnapshot) {
-    val name = h.partnerName.ifEmpty { "PARTNER" }.uppercase().take(10)
+    val name = h.partnerName.ifEmpty { tr("PARTNER") }.uppercase().take(10)
     StatRow(
         label = name, labelColor = Palette.Magenta,
         fraction = h.partnerHp / h.partnerMaxHp.coerceAtLeast(1).toFloat(),
         color = if (h.partnerDowned) Palette.Red else Palette.Magenta, overlay = 0f,
-        value = if (h.partnerDowned) "DOWN" else "${h.partnerHp}/${h.partnerMaxHp}", extra = null,
-        description = "Partner $name " + if (h.partnerDowned) "is down" else "health ${h.partnerHp} of ${h.partnerMaxHp}"
+        value = if (h.partnerDowned) tr("DOWN") else "${h.partnerHp}/${h.partnerMaxHp}", extra = null,
+        description = tr("Partner {0} ", name) + if (h.partnerDowned) tr("is down") else tr("health {0} of {1}", h.partnerHp, h.partnerMaxHp)
     )
 }
 
@@ -337,10 +338,10 @@ private fun PartnerRow(h: HudSnapshot) {
 private fun ProgressRow(h: HudSnapshot) {
     if (h.kind != LevelKind.BOSS && h.kind != LevelKind.SHOP && h.timedSeconds < 0) {
         StatRow(
-            label = "THREATS", labelColor = ThreatPink,
+            label = tr("THREATS"), labelColor = ThreatPink,
             fraction = h.levelKills / h.levelThreats.coerceAtLeast(1).toFloat(),
             color = ThreatPink, overlay = 0f, value = "${h.levelKills}/${h.levelThreats}", extra = null,
-            description = "Threats cleared ${h.levelKills} of ${h.levelThreats}"
+            description = tr("Threats cleared {0} of {1}", h.levelKills, h.levelThreats)
         )
     }
 }
@@ -394,8 +395,8 @@ private fun PullHandle(collapsed: Boolean, onToggle: () -> Unit, modifier: Modif
     Box(
         modifier
             .size(width = 72.dp, height = 14.dp)
-            .clickable(role = Role.Button, onClickLabel = if (collapsed) "Show HUD" else "Hide HUD", onClick = onToggle)
-            .semantics { contentDescription = if (collapsed) "Show HUD" else "Hide HUD" },
+            .clickable(role = Role.Button, onClickLabel = if (collapsed) tr("Show HUD") else tr("Hide HUD"), onClick = onToggle)
+            .semantics { contentDescription = if (collapsed) tr("Show HUD") else tr("Hide HUD") },
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.size(width = 22.dp, height = 8.dp)) {
@@ -438,7 +439,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                     )
                     Divider()
                     // PC has the room: score and € take what they need (they were clipped at half the rest each).
-                    com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), prefix = "SCORE ")
+                    com.cyberoperative.game.ui.common.FitNumber(h.score.toLong(), Palette.TextPrimary, mono(12.sp, FontWeight.Medium), prefix = tr("SCORE "))
                     Divider()
                     com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
                 }
@@ -453,7 +454,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
                 else {
                     ProgressRow(h)
                     if (h.eventName != null) Text(
-                        h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
+                        h.eventName + if (h.timedSeconds >= 0) tr("   SURVIVE {0}s", h.timedSeconds) else "",
                         color = Color(h.eventAccent), style = mono(12.sp, FontWeight.Bold),
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
                     )
@@ -463,7 +464,7 @@ fun PcHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifier: M
             // PC keys only, and not on Steam (its big ability bar sits along the bottom instead);
             // on Android the on-screen buttons show all of this.
             if (h.consumables && com.cyberoperative.game.platform.GameKeys.active && !com.cyberoperative.game.platform.AppInfo.desktop) {
-                AbilityChip(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, Palette.Cyan)
+                AbilityChip(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", tr("DASH"), h.dashCd, Palette.Cyan)
                 Spacer(Modifier.width(6.dp))
                 h.spell1?.let { AbilityChip(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, Palette.Purple) }
                 Spacer(Modifier.width(6.dp))
@@ -512,7 +513,7 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
                 com.cyberoperative.game.ui.common.FitNumber(h.euros.toLong(), Palette.Euro, mono(12.sp, FontWeight.Medium), Modifier.weight(1f, fill = false), prefix = "€ ")
             }
             Spacer(Modifier.height(2.dp))
-            HpRow(h, label = "HP", labelWidth = 26.dp)
+            HpRow(h, label = tr("HP"), labelWidth = 26.dp)
             XpRow(h, labelWidth = 26.dp)
             if (h.coop && !h.partnerGone) PartnerRow(h)
             Text(com.cyberoperative.game.ui.common.buildStampText(), color = Color.White.copy(alpha = 0.45f), style = mono(9.sp), maxLines = 1)
@@ -524,7 +525,7 @@ fun CompactHudStrip(h: HudSnapshot, paused: Boolean, onPause: () -> Unit, modifi
                 Spacer(Modifier.height(4.dp))
                 ProgressRow(h)
                 if (h.eventName != null) Text(
-                    h.eventName + if (h.timedSeconds >= 0) "   SURVIVE ${h.timedSeconds}s" else "",
+                    h.eventName + if (h.timedSeconds >= 0) tr("   SURVIVE {0}s", h.timedSeconds) else "",
                     color = Color(h.eventAccent), style = mono(11.sp, FontWeight.Bold),
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
                 )
@@ -568,12 +569,12 @@ private fun ConsumableChip(action: com.cyberoperative.game.ui.common.KeyAction, 
 fun PcAbilityBar(h: HudSnapshot, scale: Float, modifier: Modifier = Modifier) {
     val tile = 76.dp * scale
     Row(modifier, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp * scale), verticalAlignment = Alignment.Bottom) {
-        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", "DASH", h.dashCd, h.dashMax, Palette.Cyan, tile)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.DASH, "➠", tr("DASH"), h.dashCd, h.dashMax, Palette.Cyan, tile)
         h.spell1?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_1, it.icon, it.label, h.spell1Cd, it.cooldown, Palette.Purple, tile) }
         h.spell2?.let { AbilityTile(com.cyberoperative.game.ui.common.KeyAction.SPELL_2, it.icon, it.label, h.spell2Cd, it.cooldown, Palette.Magenta, tile) }
         Spacer(Modifier.width(10.dp * scale))
-        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", "HP", 0f, 1f, if (h.potionFull) Color(0xFFFF2B3A) else Palette.Green, tile, count = h.hpCharges)
-        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", "BOMB", 0f, 1f, Palette.Cyan, tile, count = h.packetBombs)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.HP_CHARGE, "✚", tr("HP"), 0f, 1f, if (h.potionFull) Color(0xFFFF2B3A) else Palette.Green, tile, count = h.hpCharges)
+        AbilityTile(com.cyberoperative.game.ui.common.KeyAction.PACKET_BOMB, "✹", tr("BOMB"), 0f, 1f, Palette.Cyan, tile, count = h.packetBombs)
     }
 }
 

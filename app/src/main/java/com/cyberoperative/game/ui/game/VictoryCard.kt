@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -79,7 +80,7 @@ fun VictoryCard(h: HudSnapshot, onSkip: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Header resolves out of glitch characters.
-            val header = "THREAT NEUTRALIZED"
+            val header = tr("THREAT NEUTRALIZED")
             val resolved = (local / 0.45f * header.length).toInt().coerceIn(0, header.length)
             val glitch = "#%&@!?01<>/=+*"
             val shown = header.mapIndexed { i, c -> if (i < resolved || c == ' ') c else glitch[(i * 7 + (local * 40).toInt()) % glitch.length] }.joinToString("")
@@ -94,16 +95,16 @@ fun VictoryCard(h: HudSnapshot, onSkip: () -> Unit) {
             Text("${h.victoryTag} ${h.victoryName}", color = col, fontWeight = FontWeight.Bold, fontSize = 26.sp, textAlign = TextAlign.Center)
             Text(h.victoryTitle.uppercase(), color = Palette.TextMuted, style = MaterialTheme.typography.labelSmall, letterSpacing = 2.sp)
             Spacer(Modifier.height(14.dp))
-            StatRow("FIGHT TIME", formatFightTime(h.victorySeconds), Palette.TextPrimary, badge = if (h.victoryBest) "NEW RECORD" else null)
+            StatRow(tr("FIGHT TIME"), formatFightTime(h.victorySeconds), Palette.TextPrimary, badge = if (h.victoryBest) tr("NEW RECORD") else null)
             Spacer(Modifier.height(6.dp))
             val count = (local / 0.8f).coerceIn(0f, 1f)
             val eased = 1f - (1f - count) * (1f - count)
-            StatRow("BOUNTY", "+€" + "%,d".format((h.victoryBounty * eased).toInt()), Palette.Euro)
+            StatRow(tr("BOUNTY"), "+€" + "%,d".format((h.victoryBounty * eased).toInt()), Palette.Euro)
             if (h.victoryFirst) {
                 Spacer(Modifier.height(12.dp))
                 val blink = if (((local * 3f).toInt() % 2) == 0 || local > 1.6f) 1f else 0.55f
                 Text(
-                    "◆ FIRST DEFEAT · DOSSIER UNLOCKED",
+                    tr("◆ FIRST DEFEAT · DOSSIER UNLOCKED"),
                     color = Palette.Gold.copy(alpha = blink), style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier
                         .border(1.dp, Palette.Gold.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
@@ -111,7 +112,7 @@ fun VictoryCard(h: HudSnapshot, onSkip: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Text("${com.cyberoperative.game.ui.common.tapWord.uppercase()} TO CONTINUE", color = Palette.TextMuted.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+            Text(tr("{0} TO CONTINUE", com.cyberoperative.game.ui.common.tapWord.uppercase()), color = Palette.TextMuted.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
         }
     }
 }

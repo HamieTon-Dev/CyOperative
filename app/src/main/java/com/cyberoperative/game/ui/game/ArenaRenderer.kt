@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.platform.drawGameText
 import com.cyberoperative.game.ui.common.GameTextPaint
 import com.cyberoperative.game.ui.common.argb
@@ -631,7 +632,7 @@ class ArenaRenderer {
     }
 
     private fun DrawScope.drawShopGateLeft(g: GameEngine, time: Float, mirrored: Boolean) =
-        drawSideDoorLeft(g.shopGateY, Palette.Gold, "SHOP", time, mirrored)
+        drawSideDoorLeft(g.shopGateY, Palette.Gold, tr("SHOP"), time, mirrored)
 
     /** A doorway in the left wall (mirrored for the right): the shop's gold door, or a green EXIT. */
     private fun DrawScope.drawSideDoorLeft(cy: Float, accent: Color, label: String, time: Float, mirrored: Boolean) {
@@ -873,8 +874,8 @@ class ArenaRenderer {
         // Side walls only (a bottom door was also drawn here as a phantom left EXIT, owner 0.30.0).
         for (d in g.exitDoors) if (d.side == 1 || d.side == 2) {
             if (d.side == 2) withTransform({ scale(-1f, 1f, Offset(g.arena.width / 2f, 0f)) }) {
-                drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = true)
-            } else drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, "EXIT", time, mirrored = false)
+                drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, tr("EXIT"), time, mirrored = true)
+            } else drawSideDoorLeft(d.y, if (open) Palette.Green else Palette.Red, tr("EXIT"), time, mirrored = false)
         }
     }
 
@@ -965,7 +966,7 @@ class ArenaRenderer {
         drawSkull(sc, 34f, Color(0xFFF2E8E8))
         tagPaint.textSize = 16f
         tagPaint.color = red.toArgb()
-        drawGameText("BOSS", cx, -wallH - 44f, tagPaint)
+        drawGameText(tr("BOSS"), cx, -wallH - 44f, tagPaint)
     }
 
     /** A skull icon (drawn, so it scales crisply): cranium, cheekbones, jaw, sockets, nose and teeth. */
@@ -1537,7 +1538,7 @@ class ArenaRenderer {
                     } else {
                         tagPaint.textSize = 11f
                         tagPaint.color = Palette.TextMuted.toArgb()
-                        drawGameText("SOLD", cx, baseY - 20f, tagPaint)
+                        drawGameText(tr("SOLD"), cx, baseY - 20f, tagPaint)
                     }
                     // Back row: price on the table under the item; front row: on the counter front.
                     tagPaint.textSize = if (row == 0) 11f else 12f

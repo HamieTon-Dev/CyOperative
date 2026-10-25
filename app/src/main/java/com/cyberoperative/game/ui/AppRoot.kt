@@ -219,7 +219,7 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 MenuTarget.PET_CODEX -> com.cyberoperative.game.ui.menu.PetCodexScreen(profile, ::back)
                 MenuTarget.ACHIEVEMENTS -> AchievementsScreen(profile, ::back)
                 MenuTarget.LEADERBOARD -> LeaderboardScreen(profile, ::back)
-                MenuTarget.SETTINGS -> SettingsScreen(save, audio, ::back) { click(); screen = Screen.Sub(MenuTarget.LANGUAGE) }
+                MenuTarget.SETTINGS -> SettingsScreen(save, audio, onLanguage = { click(); screen = Screen.Sub(MenuTarget.LANGUAGE) }, onBack = ::back)
                 MenuTarget.LANGUAGE -> com.cyberoperative.game.ui.menu.LanguageSettingsScreen {
                     audio.play(GameSound.UI_BACK)
                     screen = Screen.Sub(MenuTarget.SETTINGS)

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.lan
 
+import com.cyberoperative.game.i18n.tr
 import com.cyberoperative.game.net.CoopBackend
 import com.cyberoperative.game.net.CoopProfile
 import com.cyberoperative.game.net.CoopRoom
@@ -59,18 +60,18 @@ class DirectIpCoopBackend : CoopBackend {
 
     /** Direct IP has no accounts: "register" just sets the name the partner sees. */
     override suspend fun register(callsign: String): Result<CoopProfile> {
-        val p = profileFlow.value!!.copy(callsign = callsign.trim().take(16).ifEmpty { "OPERATIVE" })
+        val p = profileFlow.value!!.copy(callsign = callsign.trim().take(16).ifEmpty { tr("OPERATIVE") })
         profileFlow.value = p
         return Result.success(p)
     }
 
     override fun friends(): Flow<List<Friend>> = flowOf(emptyList())
     override fun friendRequests(): Flow<List<FriendRequest>> = flowOf(emptyList())
-    override suspend fun sendFriendRequest(code: String) = Result.failure<String>(UnsupportedOperationException("Direct IP has no friend list"))
+    override suspend fun sendFriendRequest(code: String) = Result.failure<String>(UnsupportedOperationException(tr("Direct IP has no friend list")))
     override suspend fun answerFriendRequest(request: FriendRequest, accept: Boolean) = Result.success(Unit)
     override suspend fun removeFriend(uid: String) = Result.success(Unit)
     override fun invites(): Flow<List<Invite>> = flowOf(emptyList())
-    override suspend fun invite(friend: Friend, me: RoomPlayer) = Result.failure<CoopRoom>(UnsupportedOperationException("Use HOST"))
+    override suspend fun invite(friend: Friend, me: RoomPlayer) = Result.failure<CoopRoom>(UnsupportedOperationException(tr("Use HOST")))
     override suspend fun answerInvite(invite: Invite, accept: Boolean, me: RoomPlayer) = Result.success<CoopRoom?>(null)
 
     override fun localAddresses(): List<String> = try {
@@ -96,7 +97,7 @@ class DirectIpCoopBackend : CoopBackend {
             server.bind(InetSocketAddress(PORT))
             DirectRoom(isHost = true, me = me, server = server, socket = null).also { room = it; it.acceptInBackground() }
         }.recoverCatching { e ->
-            throw IllegalStateException("Can't host on port $PORT (${e.message ?: "in use"}). Close other copies of the game and try again.")
+            throw IllegalStateException(tr("Can't host on port {0} ({1}). Close other copies of the game and try again.", PORT, e.message ?: "in use"))
         }
     }
 
@@ -108,7 +109,7 @@ class DirectIpCoopBackend : CoopBackend {
             s.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
             DirectRoom(isHost = false, me = me, server = null, socket = s).also { room = it; it.startConnection(s) }
         }.recoverCatching { e ->
-            throw IllegalStateException("Couldn't reach $address (${e.message ?: "no answer"}). Check the address, and that the host pressed HOST.")
+            throw IllegalStateException(tr("Couldn't reach {0} ({1}). Check the address, and that the host pressed HOST.", address, e.message ?: "no answer"))
         }
     }
 
@@ -315,6 +316,6 @@ class DirectIpCoopBackend : CoopBackend {
 
         private fun defaultName(): String =
             (System.getProperty("user.name") ?: "").filter { it.isLetterOrDigit() || it == ' ' || it == '-' || it == '_' }
-                .take(16).ifEmpty { "OPERATIVE" }.uppercase()
+                .take(16).ifEmpty { tr("OPERATIVE") }.uppercase()
     }
 }

@@ -1,5 +1,6 @@
 package com.cyberoperative.game.ui.game
 
+import com.cyberoperative.game.i18n.tr
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,8 +59,8 @@ fun UpgradeDetails(
             Column(Modifier.weight(1f)) {
                 Text(def.name, color = Palette.TextPrimary, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    def.rarity.label + (if (Upgrades.isWeapon(def)) " · WEAPON" else " · POWER-UP") +
-                        if (def.instant) "" else " · LV $level" + if (level > def.maxLevel) " (MASTERY)" else " / ${def.maxLevel}",
+                    def.rarity.label + (if (Upgrades.isWeapon(def)) tr(" · WEAPON") else tr(" · POWER-UP")) +
+                        if (def.instant) "" else tr(" · LV {0}", level) + if (level > def.maxLevel) tr(" (MASTERY)") else " / ${def.maxLevel}",
                     color = c, style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -76,11 +77,11 @@ fun UpgradeDetails(
 
 /** The before → after table. */
 @Composable
-fun StatChanges(lines: List<StatLine>, heading: String = "WHAT CHANGES") {
+fun StatChanges(lines: List<StatLine>, heading: String = tr("WHAT CHANGES")) {
     Text(heading, color = Palette.Cyan, style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(4.dp))
     if (lines.isEmpty()) {
-        Text("No lasting stat change (one-time effect).", color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
+        Text(tr("No lasting stat change (one-time effect)."), color = Palette.TextMuted, style = MaterialTheme.typography.bodySmall)
         return
     }
     for (l in lines) {
@@ -128,7 +129,7 @@ fun UpgradeDetailSheet(
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 CyberButton(actionLabel, Modifier.weight(1f), accent = Palette.Green, primary = true, enabled = actionEnabled, onClick = onAction)
-                CyberButton("BACK", Modifier.weight(1f), accent = Palette.TextSecondary, primary = true, onClick = onBack)
+                CyberButton(tr("BACK"), Modifier.weight(1f), accent = Palette.TextSecondary, primary = true, onClick = onBack)
             }
         }
     }

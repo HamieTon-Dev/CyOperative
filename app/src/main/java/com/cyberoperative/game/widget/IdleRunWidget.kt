@@ -1,5 +1,6 @@
 package com.cyberoperative.game.widget
 
+import com.cyberoperative.game.i18n.tr
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -124,36 +125,36 @@ object IdleRunWidget {
         val roomy = heightDp >= 64
         v.setViewVisibility(R.id.wide_hint, if (roomy || run == null) View.VISIBLE else View.GONE)
         v.setViewVisibility(R.id.wide_stats, if (run == null) View.GONE else View.VISIBLE)
-        v.setTextViewText(R.id.wide_badge, if (inferno) "INFERNO" else if (run?.difficulty == Difficulty.HARD.name) "HARD" else "STANDARD")
+        v.setTextViewText(R.id.wide_badge, if (inferno) tr("INFERNO") else if (run?.difficulty == Difficulty.HARD.name) tr("HARD") else tr("STANDARD"))
         v.setInt(R.id.wide_badge, "setBackgroundResource", if (inferno) R.drawable.widget_badge_inferno else R.drawable.widget_badge_standard)
         when {
             run == null -> {
-                v.setTextViewText(R.id.wide_title, "IDLE RUN")
+                v.setTextViewText(R.id.wide_title, tr("IDLE RUN"))
                 v.setTextColor(R.id.wide_title, 0xFF00E5FF.toInt())
-                v.setTextViewText(R.id.wide_line2, "No Active Run")
-                v.setTextViewText(R.id.wide_hint, "TAP TO START IDLE RUN · 40% € · 50% XP")
+                v.setTextViewText(R.id.wide_line2, tr("No Active Run"))
+                v.setTextViewText(R.id.wide_hint, tr("TAP TO START IDLE RUN · 40% € · 50% XP"))
             }
             ended -> {
                 val art = render(artW, artH) { with(IdleBattleArt) { drawDefeated(run, 0f) } }
                 for (f in wideFrames) v.setImageViewBitmap(f, art)
                 val defeated = run.status == IdleStatus.DEFEATED
-                v.setTextViewText(R.id.wide_title, when { !defeated -> "RUN COMPLETE"; roomy -> "OPERATOR DEFEATED"; else -> "DEFEATED" })
+                v.setTextViewText(R.id.wide_title, when { !defeated -> tr("RUN COMPLETE"); roomy -> tr("OPERATOR DEFEATED"); else -> tr("DEFEATED") })
                 v.setTextColor(R.id.wide_title, 0xFFFF2D55.toInt())
-                v.setTextViewText(R.id.wide_line2, if (roomy) "Highest level ${run.highestLevel}" else "LV ${run.highestLevel} · NEW RUN?")
+                v.setTextViewText(R.id.wide_line2, if (roomy) tr("Highest level {0}", run.highestLevel) else tr("LV {0} · NEW RUN?", run.highestLevel))
                 v.setTextViewText(R.id.wide_euros, "€ " + short(run.eurosEarned))
-                v.setTextViewText(R.id.wide_xp, "XP " + short(run.xpEarned))
-                v.setTextViewText(R.id.wide_hint, "START NEW IDLE RUN?")
+                v.setTextViewText(R.id.wide_xp, tr("XP ") + short(run.xpEarned))
+                v.setTextViewText(R.id.wide_hint, tr("START NEW IDLE RUN?"))
             }
             else -> {
                 for ((i, f) in IdleBattleArt.Frame.entries.withIndex()) {
                     v.setImageViewBitmap(wideFrames[i], render(artW, artH) { with(IdleBattleArt) { drawBattle(run, f, i * 0.35f) } })
                 }
-                v.setTextViewText(R.id.wide_title, "IDLE RUN")
+                v.setTextViewText(R.id.wide_title, tr("IDLE RUN"))
                 v.setTextColor(R.id.wide_title, 0xFF00E5FF.toInt())
-                v.setTextViewText(R.id.wide_line2, if (run.bossLevel) "BOSS FIGHT · LV ${run.level}" else "LV ${run.level} · BOSS ${run.nextBoss}")
+                v.setTextViewText(R.id.wide_line2, if (run.bossLevel) tr("BOSS FIGHT · LV {0}", run.level) else tr("LV {0} · BOSS {1}", run.level, run.nextBoss))
                 v.setTextViewText(R.id.wide_euros, "€ " + short(run.eurosEarned))
-                v.setTextViewText(R.id.wide_xp, "XP " + short(run.xpEarned))
-                v.setTextViewText(R.id.wide_hint, "OP LV ${opLevel(run)} · 40% € · 50% XP")
+                v.setTextViewText(R.id.wide_xp, tr("XP ") + short(run.xpEarned))
+                v.setTextViewText(R.id.wide_hint, tr("OP LV {0} · 40% € · 50% XP", opLevel(run)))
             }
         }
         return v
@@ -168,7 +169,7 @@ object IdleRunWidget {
         val artH = artW / 2
 
         val inferno = run != null && Difficulty.byName(run.difficulty).inferno > 0
-        v.setTextViewText(R.id.idle_badge, if (inferno) "INFERNO" else if (run?.difficulty == Difficulty.HARD.name) "HARD" else "STANDARD")
+        v.setTextViewText(R.id.idle_badge, if (inferno) tr("INFERNO") else if (run?.difficulty == Difficulty.HARD.name) tr("HARD") else tr("STANDARD"))
         v.setInt(R.id.idle_badge, "setBackgroundResource", if (inferno) R.drawable.widget_badge_inferno else R.drawable.widget_badge_standard)
         v.setViewVisibility(R.id.idle_badge, if (run == null) View.GONE else View.VISIBLE)
         val ended = run != null && run.status != IdleStatus.ACTIVE
@@ -182,12 +183,12 @@ object IdleRunWidget {
         when {
             run == null -> {}
             ended -> {
-                v.setTextViewText(R.id.idle_ended_title, if (run.status == IdleStatus.DEFEATED) "Operator Defeated" else "Idle Run Complete")
+                v.setTextViewText(R.id.idle_ended_title, if (run.status == IdleStatus.DEFEATED) tr("Operator Defeated") else tr("Idle Run Complete"))
                 v.setImageViewBitmap(R.id.idle_ended_art, render(artW, artH) { with(IdleBattleArt) { drawDefeated(run, 0f) } })
                 v.setTextViewText(R.id.idle_ended_level, run.highestLevel.toString())
                 v.setTextViewText(R.id.idle_ended_xp, short(run.xpEarned))
                 v.setTextViewText(R.id.idle_ended_euros, short(run.eurosEarned))
-                v.setTextViewText(R.id.idle_ended_cta, "START NEW IDLE RUN?")
+                v.setTextViewText(R.id.idle_ended_cta, tr("START NEW IDLE RUN?"))
             }
             else -> {
                 for ((i, f) in IdleBattleArt.Frame.entries.withIndex()) {
@@ -197,7 +198,7 @@ object IdleRunWidget {
                 v.setTextViewText(R.id.idle_level, run.level.toString())
                 v.setTextViewText(R.id.idle_euros, short(run.eurosEarned))
                 v.setTextViewText(R.id.idle_xp, short(run.xpEarned))
-                v.setTextViewText(R.id.idle_boss, if (run.bossLevel) "BOSS FIGHT · LV ${run.level}" else "LV ${run.level} · NEXT BOSS ${run.nextBoss}")
+                v.setTextViewText(R.id.idle_boss, if (run.bossLevel) tr("BOSS FIGHT · LV {0}", run.level) else tr("LV {0} · NEXT BOSS {1}", run.level, run.nextBoss))
                 v.setImageViewBitmap(R.id.idle_strip, strip(run, artW, (10 * density).toInt()))
             }
         }
@@ -205,7 +206,7 @@ object IdleRunWidget {
     }
 
     /** "28", or "OC 12" past OP Lv 60. */
-    private fun opLevel(run: IdleRunState): String = OpProgress.of(run.opXp).let { if (it.level < OpProgress.MAX_LEVEL) it.level.toString() else "OC ${it.overclock}" }
+    private fun opLevel(run: IdleRunState): String = OpProgress.of(run.opXp).let { if (it.level < OpProgress.MAX_LEVEL) it.level.toString() else tr("OC {0}", it.overclock) }
 
     /** Full number when it fits a widget cell, else 398k / 3.7m. */
     internal fun short(v: Long): String = formatFull(v).let { if (it.length <= 6) it else formatAmount(v) }
