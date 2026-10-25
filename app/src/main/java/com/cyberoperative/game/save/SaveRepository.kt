@@ -44,6 +44,9 @@ class SaveRepository(context: Context) {
         private const val KEY = "profile_json"
         private const val KEY_CORRUPT = "profile_json_unreadable"
 
+        /** A save is already on this phone (an update, not a fresh install: no language picker). */
+        fun exists(context: Context): Boolean = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).contains(KEY)
+
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
         fun encode(p: PlayerProfile): String = json.encodeToString(PlayerProfile.serializer(), p)

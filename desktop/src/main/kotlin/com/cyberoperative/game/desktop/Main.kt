@@ -30,6 +30,9 @@ import com.cyberoperative.game.ui.AppRoot
 import com.cyberoperative.game.ui.theme.CyberOperativeTheme
 
 fun main(args: Array<String>) {
+    // Language first (0.55.0): before anything, the save included, reads text.
+    com.cyberoperative.game.i18n.Languages.start(saveExisted = SaveRepository.exists())
+    com.cyberoperative.game.platform.AppRestart.beforeExit = { SteamService.shutdown() }
     // Landscape rooms on PC (must be set before any room is generated).
     com.cyberoperative.game.data.ArenaShape.wide = true
     com.cyberoperative.game.data.ArenaShape.pcRules = true

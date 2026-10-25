@@ -352,7 +352,7 @@ private fun Section(t: String) {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit) {
+fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit, onLanguage: () -> Unit) {
     val profile by save.profile.collectAsState()
     val s = profile.settings
     fun set(next: GameSettings) {
@@ -368,6 +368,14 @@ fun SettingsScreen(save: SaveRepository, audio: AudioManager, onBack: () -> Unit
     }
     ScreenScaffold("SETTINGS", onBack) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
+            // LANGUAGE (0.55.0): the current one in its own name; opens the list.
+            TerminalCard {
+                Row(Modifier.fillMaxWidth().clickable(onClick = onLanguage).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("LANGUAGE", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                    Text(com.cyberoperative.game.i18n.Languages.current().nativeName + "  ›", color = Palette.Cyan, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
             TerminalCard {
                 Column {
                     Text("MUSIC VOLUME ${(s.musicVolume * 100).toInt()}%", color = Palette.TextPrimary, style = MaterialTheme.typography.labelLarge)

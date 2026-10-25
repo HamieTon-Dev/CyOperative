@@ -18,6 +18,9 @@ class CyberOperativeApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Language first (0.55.0): before anything, the save included, reads text.
+        com.cyberoperative.game.platform.LanguageStore.context = this
+        com.cyberoperative.game.i18n.Languages.start(saveExisted = SaveRepository.exists(this))
         CrashLog.install(this)
         // Companion incubator: boot-count clock and network time (0.38.0).
         com.cyberoperative.game.platform.PlatformClock.context = this

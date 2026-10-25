@@ -48,11 +48,13 @@ enum class MenuTarget(val label: String) {
     SKINS("SKINS"), STORE("STORE"), LEADERBOARD("LEADERBOARD"), ACHIEVEMENTS("ACHIEVEMENTS"),
     SETTINGS("SETTINGS"), ABOUT("ABOUT"), ENDLESS("ENDLESS MODE"), CONTINUE("CONTINUE"),
     /** IDLE RUNS (0.37.0): Android only (the PC build has no Idle Runs host). */
-    IDLE_RUNS("IDLE RUNS");
+    IDLE_RUNS("IDLE RUNS"),
+    /** Settings › LANGUAGE (0.55.0): not on the menu itself. */
+    LANGUAGE("LANGUAGE");
 
     companion object {
         /** The small grid buttons (the big buttons are drawn on their own). */
-        val grid: List<MenuTarget> get() = entries.filter { it != PLAY && it != ENDLESS && it != CONTINUE && it != CO_OP && it != IDLE_RUNS }
+        val grid: List<MenuTarget> get() = entries.filter { it != PLAY && it != ENDLESS && it != CONTINUE && it != CO_OP && it != IDLE_RUNS && it != LANGUAGE }
     }
 }
 

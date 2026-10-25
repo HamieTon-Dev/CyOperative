@@ -183,3 +183,55 @@ object PlatformClock {
     fun mono(): Long = System.nanoTime() / 1_000_000L
     fun bootId(): String = process
 }
+
+/**
+ * The player's language pick (owner, 0.55.0): language.properties next to the save, read before
+ * the save loads (see i18n.Languages).
+ */
+object LanguageStore {
+    private val file: java.io.File get() = java.io.File(com.cyberoperative.game.save.SaveRepository.defaultDir(), "language.properties")
+
+    private fun read(): java.util.Properties = java.util.Properties().also { p ->
+        try { if (file.exists()) file.reader(Charsets.UTF_8).use { p.load(it) } } catch (_: Exception) {}
+    }
+
+    private fun write(change: (java.util.Properties) -> Unit) {
+        val p = read()
+        change(p)
+        try {
+            file.parentFile.mkdirs()
+            file.writer(Charsets.UTF_8).use { p.store(it, null) }
+        } catch (_: Exception) {}
+    }
+
+    /** The picked language tag, or null to follow the system language. */
+    fun tag(): String? = read().getProperty("tag")
+    /** The first-launch picker has been answered (or skipped for an existing install). */
+    fun chosen(): Boolean = read().getProperty("chosen") == "true"
+    fun markChosen() = write { it["chosen"] = "true" }
+    fun save(tag: String) = write { it["tag"] = tag; it["chosen"] = "true" }
+    /** One-shot: the next start skips the HamieTon.dev ident (a restart to change language). */
+    fun takeSkipSplash(): Boolean {
+        if (read().getProperty("skip_splash") != "true") return false
+        write { it.remove("skip_splash") }
+        return true
+    }
+    internal fun setSkipSplash() = write { it["skip_splash"] = "true" }
+}
+
+/**
+ * Restarts the game (a language change). Only the packaged game can (its launcher is known from
+ * jpackage.app-path); run from Gradle, the pick shows from the next start instead.
+ */
+object AppRestart {
+    var beforeExit: () -> Unit = {}
+    fun restart(): Boolean {
+        val launcher = System.getProperty("jpackage.app-path")?.takeIf { java.io.File(it).exists() } ?: return false
+        LanguageStore.setSkipSplash()
+        // Steam lets go first, so the new process can take it over.
+        beforeExit()
+        try { ProcessBuilder(launcher).inheritIO().start() } catch (_: Exception) {}
+        Runtime.getRuntime().exit(0)
+        return true
+    }
+}

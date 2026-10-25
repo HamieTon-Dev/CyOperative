@@ -276,3 +276,40 @@ object PlatformClock {
         return if (boots >= 0) "b$boots" else "t${(wall() - mono()) / 60_000L}"
     }
 }
+
+/**
+ * The player's language pick (owner, 0.55.0), in its own SharedPreferences file rather than the
+ * save: it is read in Application.onCreate before the save loads (see i18n.Languages).
+ */
+object LanguageStore {
+    @Volatile var context: Context? = null
+    private const val FILE = "cyber_operative_language"
+    private val prefs get() = context?.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    /** The picked language tag, or null to follow the phone. */
+    fun tag(): String? = prefs?.getString("tag", null)
+    /** The first-launch picker has been answered (or skipped for an existing install). */
+    fun chosen(): Boolean = prefs?.getBoolean("chosen", false) ?: true
+    fun markChosen() { prefs?.edit()?.putBoolean("chosen", true)?.commit() }
+    // commit(), not apply(): a restart may follow straight away.
+    fun save(tag: String) { prefs?.edit()?.putString("tag", tag)?.putBoolean("chosen", true)?.commit() }
+    /** One-shot: the next start skips the HamieTon.dev ident (a restart to change language). */
+    fun takeSkipSplash(): Boolean {
+        val p = prefs ?: return false
+        val skip = p.getBoolean("skip_splash", false)
+        if (skip) p.edit().remove("skip_splash").commit()
+        return skip
+    }
+    internal fun setSkipSplash() { prefs?.edit()?.putBoolean("skip_splash", true)?.commit() }
+}
+
+/** Restarts the game (a language change); the next start goes straight past the ident. */
+object AppRestart {
+    fun restart(): Boolean {
+        val ctx = LanguageStore.context ?: return false
+        val launch = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName) ?: return false
+        LanguageStore.setSkipSplash()
+        ctx.startActivity(android.content.Intent.makeRestartActivityTask(launch.component))
+        Runtime.getRuntime().exit(0)
+        return true
+    }
+}

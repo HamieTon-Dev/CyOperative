@@ -48,6 +48,9 @@ class SaveRepository(private val dir: File = defaultDir()) {
     companion object {
         const val FILE = "cyber_operative_save.json"
 
+        /** A save is already there (an update, not a fresh install: no language picker). */
+        fun exists(): Boolean = File(defaultDir(), FILE).exists()
+
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
         fun encode(p: PlayerProfile): String = json.encodeToString(PlayerProfile.serializer(), p)

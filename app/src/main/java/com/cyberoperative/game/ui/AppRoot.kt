@@ -47,6 +47,8 @@ import kotlinx.coroutines.launch
 /** Destinations. A sealed hierarchy + one state value is the whole router. */
 sealed interface Screen {
     data object DevSplash : Screen
+    /** First launch only (0.55.0): pick the game's language, between the ident and the boot terminal. */
+    data object Language : Screen
     data object Boot : Screen
     data object Menu : Screen
     data object Game : Screen
@@ -62,14 +64,17 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
     var screen by remember {
         val link = DeepLink.pending.value
         mutableStateOf<Screen>(
-            if (link != null && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) { DeepLink.pending.value = null; Screen.Sub(link) } else Screen.DevSplash
+            if (link != null && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) { DeepLink.pending.value = null; Screen.Sub(link) }
+            // Back from a language-change restart: straight on, no ident.
+            else if (com.cyberoperative.game.platform.LanguageStore.takeSkipSplash()) Screen.Boot
+            else Screen.DevSplash
         )
     }
     val link by DeepLink.pending.collectAsState()
     LaunchedEffect(link) {
         val target = link ?: return@LaunchedEffect
         // Never throws away a run in progress; otherwise open the page (after the boot if needed).
-        if (screen != Screen.Game && screen != Screen.DevSplash && screen != Screen.Boot && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) {
+        if (screen != Screen.Game && screen != Screen.DevSplash && screen != Screen.Language && screen != Screen.Boot && com.cyberoperative.game.meta.Characters.hasCharacter(save.current)) {
             DeepLink.pending.value = null
             screen = Screen.Sub(target)
         } else if (screen == Screen.Game) DeepLink.pending.value = null
@@ -117,16 +122,21 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
 
     LaunchedEffect(screen) {
         when (screen) {
-            Screen.DevSplash -> {}
+            Screen.DevSplash, Screen.Language -> {}
             Screen.Boot -> audio.playBootChime()
             Screen.Menu, is Screen.Sub, Screen.CoopLobby, is Screen.Create -> { com.cyberoperative.game.audio.MusicLibrary.inferno = false; audio.setMusic(MusicState.MENU) }
             Screen.Game -> {}
         }
     }
 
+    // A language picked before anything was translated switches in place: redraw everything.
+    androidx.compose.runtime.key(com.cyberoperative.game.i18n.Tr.generation) {
     Box(Modifier.fillMaxSize()) {
     when (val s = screen) {
-        Screen.DevSplash -> DeveloperSplash { screen = Screen.Boot }
+        Screen.DevSplash -> DeveloperSplash {
+            screen = if (com.cyberoperative.game.i18n.Languages.needsPicker()) Screen.Language else Screen.Boot
+        }
+        Screen.Language -> com.cyberoperative.game.ui.menu.FirstLaunchLanguageScreen { screen = Screen.Boot }
         // First launch with characters (0.30.0): name your character before the menu (old saves keep their progress).
         Screen.Boot -> BootTerminal(onSound = { audio.play(it) }) {
             val has = com.cyberoperative.game.meta.Characters.hasCharacter(save.current)
@@ -209,7 +219,11 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
                 MenuTarget.PET_CODEX -> com.cyberoperative.game.ui.menu.PetCodexScreen(profile, ::back)
                 MenuTarget.ACHIEVEMENTS -> AchievementsScreen(profile, ::back)
                 MenuTarget.LEADERBOARD -> LeaderboardScreen(profile, ::back)
-                MenuTarget.SETTINGS -> SettingsScreen(save, audio, ::back)
+                MenuTarget.SETTINGS -> SettingsScreen(save, audio, ::back) { click(); screen = Screen.Sub(MenuTarget.LANGUAGE) }
+                MenuTarget.LANGUAGE -> com.cyberoperative.game.ui.menu.LanguageSettingsScreen {
+                    audio.play(GameSound.UI_BACK)
+                    screen = Screen.Sub(MenuTarget.SETTINGS)
+                }
                 MenuTarget.ABOUT -> AboutScreen(::back)
                 MenuTarget.SKINS -> SkinsScreen(save, audio, ::back)
                 MenuTarget.STORE -> StoreScreen(save, audio, ::back) { screen = Screen.Sub(MenuTarget.SKINS) }
@@ -261,5 +275,6 @@ fun AppRoot(save: SaveRepository, audio: AudioManager, coop: CoopBackend = remem
     // Build number, always visible (soft, bottom-right) so testers can say what they are on.
     // Android landscape games show it in the HUD strip instead.
     if (!(screen == Screen.Game && com.cyberoperative.game.ui.common.PlayMode.landscape && !com.cyberoperative.game.platform.AppInfo.desktop)) BuildStamp()
+    }
     }
 }
