@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.55.0 (versionCode 154) — 2026-10-26 · The whole game in 25 languages
+### Added (owner)
+- **Every line of the game is translated** into the same 25 languages as CyOps TD, on **Android and Steam** (one shared catalogue): Arabic, Chinese (Simplified), Chinese (Traditional), Czech, Danish, Dutch, Finnish, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Norwegian, Polish, Portuguese, Russian, Spanish, Spanish (Latin America), Swedish, Thai, Turkish, Ukrainian and Vietnamese.
+  - That covers menus, the HUD, upgrade chips, gear and pet screens, the store, co-op, Idle Runs and the widget, notifications, the boot terminal and the Steam messages: all 1,876 lines.
+  - Proper names stay in English as in CyOps TD: bosses, enemies, pets, eggs, gear, classes, special rarities (GLITCHED, ENCRYPTED, TITANIUM…), DATA VAULT, OVERCLOCK, INFERNO and key names.
+- **First-launch language picker**, right after the HamieTon.dev splash and before the boot terminal. The device's language is highlighted and the title cycles through every language.
+  - It shows **only on a fresh install**: an update over an existing save never shows it, and the choice is remembered.
+  - Change it any time in **Settings › LANGUAGE**.
+- Tests: `I18nCatalogTest` checks that every language translates every line and keeps its `{0}` placeholders and format codes; `StartRunFlowTest` now taps through the picker on first launch.
+
 ## 0.54.1 (versionCode 153) — 2026-10-18 · ARCADE tracks compressed like the rest
 ### Changed (owner)
 - The 10 ARCADE tracks are re-encoded with the **same settings as the rest of the soundtrack**: Ogg Vorbis, 96 kbps, 44.1 kHz stereo (they were about 112 kbps). All ten now take 22 MB (was 27 MB).

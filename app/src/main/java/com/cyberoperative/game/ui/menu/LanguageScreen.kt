@@ -84,7 +84,7 @@ fun FirstLaunchLanguageScreen(onDone: () -> Unit) {
             Text("> LANGUAGE_", color = Palette.GreenDim, style = MaterialTheme.typography.labelSmall)
             Spacer(Modifier.height(14.dp))
             LanguageGrid(highlight = device) { lang ->
-                Languages.apply(lang)
+                Languages.pickFirstLaunch(lang)
                 onDone()
             }
         }

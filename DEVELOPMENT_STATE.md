@@ -6,7 +6,7 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 
 | | |
 |---|---|
-| Version | 0.54.1 (versionCode 153) |
+| Version | 0.55.0 (versionCode 154) |
 | Milestone | M1 vertical slice ✅ · M2 first boss & systems ✅ (pending device playtest) |
 | Last completed | 0.9.5 fullscreen HUD redesign (ui/game/GameHud.kt, buff chips in UpgradeBar.kt) |
 | Current task | Waiting on owner: body design (CO-094) and Power-Up Board picks (CO-090) |
@@ -14,6 +14,10 @@ _Read this first in every new session, then README, GAME_DESIGN, BACKLOG, CHANGE
 | Test status | `./gradlew :app:testDebugUnitTest` ✅ (32 tests + 15 opt-in screenshot renders) |
 
 ## Known issues / caveats
+- **0.55.0 translations:**
+  - Every player-facing line goes through `tr("English {0}", args)` (`i18n/Tr.kt`). New text must be wrapped too.
+  - After adding or changing lines, regenerate `app/i18n/en.properties` with `I18N_WRITE=1` and add the line to all 25 `resources/i18n/<tag>.properties` files, or `I18nCatalogTest` fails.
+  - The first-launch picker shows only when no language has been chosen (`Languages.needsPicker()`); `Languages.start(saveExisted)` marks updates over an old save as already chosen.
 - **0.54.0 music:**
   - `TrackGroup.ARCADE` (10 tracks, `track_arcade_*.ogg`) comes first in `MusicLibrary.all`.
   - It is in every `poolFor` state (MENU, COMBAT/EVENT, BOSS, Inferno too), and the boss pools of both audio managers append `MusicLibrary.arcade`.

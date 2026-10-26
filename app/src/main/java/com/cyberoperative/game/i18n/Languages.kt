@@ -98,10 +98,20 @@ object Languages {
 
     /**
      * Saves [language] and shows the game in it. Straight away when nothing has been translated
-     * yet (the first-launch picker, usually); otherwise the game restarts so every line changes,
+     * yet; otherwise the game restarts so every line changes,
      * not just most of them. Returns false when the platform could not restart by itself (the PC
      * build run outside its launcher): the pick is saved and shows from the next start.
      */
+    /**
+     * The first-launch picker's choice: saved and shown straight away, never a restart. Only the
+     * HamieTon.dev ident has drawn text by then, and it is redrawn, so nothing is left in the old
+     * language.
+     */
+    fun pickFirstLaunch(language: Language) {
+        LanguageStore.save(language.tag)
+        if (language.tag != Tr.tag || Tr.touched) Tr.init(language.tag)
+    }
+
     fun apply(language: Language): Boolean {
         LanguageStore.save(language.tag)
         if (language.tag == Tr.tag) return true

@@ -19,8 +19,8 @@ import java.util.zip.CRC32
  *
  * Placeholders are `{0}`, `{1}`… rather than `%1$s`, so a translator cannot break formatting.
  *
- * Proper names (pets, eggs, gear, bosses, enemies, weapons, skins, tracks) stay in English, as in
- * CyOps TD: they are never wrapped.
+ * Proper names (pets, eggs, gear, bosses, enemies, classes, tracks) stay in English, as in
+ * CyOps TD: they are never wrapped. Weapon and skin names are ordinary lines and are translated.
  *
  * Enums and objects read their text once, when first touched, so changing language after anything
  * was translated restarts the game ([Languages.apply]).

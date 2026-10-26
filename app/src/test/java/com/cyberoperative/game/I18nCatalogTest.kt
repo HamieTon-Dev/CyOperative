@@ -116,6 +116,21 @@ class I18nCatalogTest {
         }
     }
 
+    @Test
+    fun `the first-launch pick switches language straight away after the splash drew text`() {
+        try {
+            Tr.init("en")
+            assertEquals("LANGUAGE", Tr.t("LANGUAGE"))
+            assertTrue(Tr.touched)
+            Languages.pickFirstLaunch(Languages.all.first { it.tag == "fr" })
+            assertEquals("fr", Tr.tag)
+            val fr = I18nProps.read(File(langDir, "fr.properties"))
+            assertEquals(fr.getValue(Tr.keyOf("LANGUAGE")), Tr.t("LANGUAGE"))
+        } finally {
+            Tr.init("en")
+        }
+    }
+
     private fun translationFiles(): List<File> =
         langDir.listFiles().orEmpty().filter { it.extension == "properties" }.sortedBy { it.name }
 

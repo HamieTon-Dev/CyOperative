@@ -5,6 +5,7 @@
 device, tune balance, then fill out the store/meta phases.
 
 ## IN PROGRESS
+- ✅ 0.55.0: whole game translated into 25 languages (Android + Steam); first-launch language picker after the splash.
 - ✅ 0.54.1: ARCADE tracks re-encoded at 96 kbps, cover art stripped, verified in the Android bundle.
 - ✅ 0.54.0: 10 ARCADE tracks (top of playlist, everywhere, any difficulty, shuffle, reverb only).
 - ✅ 0.53.4: auto-sell confirmed gear-only (eggs never sold), with a test.

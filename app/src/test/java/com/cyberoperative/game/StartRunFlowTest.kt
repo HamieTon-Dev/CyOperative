@@ -17,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The whole tap flow from the main menu: PLAY (or ENDLESS) → difficulty → START. */
+/** The whole first-launch tap flow: language → character → PLAY (or ENDLESS) → difficulty → START. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [33])
@@ -31,8 +31,12 @@ class StartRunFlowTest {
         compose.mainClock.autoAdvance = false
         compose.setContent { CyberOperativeTheme { AppRoot(repo, AudioManager(ctx)) } }
         try {
-            // Splash and boot terminal, then the first-launch CREATE CHARACTER screen (0.30.0).
+            // Splash, the first-launch language picker (0.55.0), boot terminal, then CREATE CHARACTER (0.30.0).
             var guard = 0
+            while (compose.onAllNodesWithText("English").fetchSemanticsNodes().isEmpty() && guard++ < 1200) compose.mainClock.advanceTimeBy(50)
+            compose.onAllNodesWithText("English")[0].performClick()
+            assert(!com.cyberoperative.game.i18n.Languages.needsPicker())
+            guard = 0
             while (compose.onAllNodesWithText("CREATE »").fetchSemanticsNodes().isEmpty() && guard++ < 1200) compose.mainClock.advanceTimeBy(50)
             compose.onAllNodesWithText("CREATE »")[0].performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
             repeat(10) { compose.mainClock.advanceTimeBy(50) }
