@@ -13,7 +13,7 @@ data class Language(
 )
 
 /**
- * The languages (the same 26 as CyOps TD), the player's pick and the first-launch picker.
+ * The languages (the same 26 as CyOps TD, plus Bulgarian from 0.56.0), the player's pick and the first-launch picker.
  *
  * The pick is kept by [LanguageStore], outside the save on purpose: it has to be read before
  * anything shows text, and loading the save already touches enums that hold translated text.
@@ -23,6 +23,7 @@ object Languages {
     val all: List<Language> = listOf(
         Language("en", "English", "English"),
         Language("ar", "العربية", "Arabic"),
+        Language("bg", "Български", "Bulgarian"),
         Language("zh-CN", "简体中文", "Chinese (Simplified)"),
         Language("zh-TW", "繁體中文", "Chinese (Traditional)"),
         Language("cs", "Čeština", "Czech"),
@@ -51,7 +52,7 @@ object Languages {
 
     /** "Choose your language" in every language, for the first-launch picker's title. */
     val chooseTitle: Map<String, String> = mapOf(
-        "en" to "CHOOSE YOUR LANGUAGE", "ar" to "اختر لغتك", "zh-CN" to "选择你的语言",
+        "en" to "CHOOSE YOUR LANGUAGE", "ar" to "اختر لغتك", "bg" to "ИЗБЕРИ ЕЗИК", "zh-CN" to "选择你的语言",
         "zh-TW" to "選擇你的語言", "cs" to "VYBERTE SI JAZYK", "da" to "VÆLG DIT SPROG",
         "nl" to "KIES JE TAAL", "fi" to "VALITSE KIELI", "fr" to "CHOISISSEZ VOTRE LANGUE",
         "de" to "WÄHLE DEINE SPRACHE", "hi" to "अपनी भाषा चुनें", "id" to "PILIH BAHASAMU",

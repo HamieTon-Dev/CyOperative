@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.56.0 (versionCode 155) — 2026-10-28 · Bulgarian
+### Added (owner)
+- **Bulgarian (Български)**, the 26th language, covering every line of the game (all 1,876) on Android and Steam.
+  - It is in the first-launch picker ("ИЗБЕРИ ЕЗИК") and in **Settings › LANGUAGE**. A phone set to Bulgarian picks it automatically.
+  - Proper names stay in English as in every other language: bosses, enemies, pets, eggs, gear, classes, special rarities, DATA VAULT, OVERCLOCK and INFERNO.
+  - Terms are the same everywhere: run = ПОХОД, dash = УСТРЕМ, pets = ЛЮБИМЦИ, character = ПЕРСОНАЖ, damage = щети.
+- `I18nCatalogTest` checks the file like every other language: every line is present and keeps its placeholders. It also checks that a Bulgarian phone maps to `bg`.
+
 ## 0.55.0 (versionCode 154) — 2026-10-26 · The whole game in 25 languages
 ### Added (owner)
 - **Every line of the game is translated** into the same 25 languages as CyOps TD, on **Android and Steam** (one shared catalogue): Arabic, Chinese (Simplified), Chinese (Traditional), Czech, Danish, Dutch, Finnish, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Norwegian, Polish, Portuguese, Russian, Spanish, Spanish (Latin America), Swedish, Thai, Turkish, Ukrainian and Vietnamese.

@@ -95,6 +95,7 @@ class I18nCatalogTest {
         assertEquals("zh-TW", Languages.match(Locale.forLanguageTag("zh-Hant")))
         assertEquals("zh-CN", Languages.match(Locale.forLanguageTag("zh")))
         assertEquals("es-419", Languages.match(Locale.forLanguageTag("es-MX")))
+        assertEquals("bg", Languages.match(Locale.forLanguageTag("bg-BG")))
         assertEquals("es", Languages.match(Locale.forLanguageTag("es-ES")))
         assertEquals("pt", Languages.match(Locale.forLanguageTag("pt-PT")))
         assertEquals("nb", Languages.match(Locale.forLanguageTag("nn-NO")))
